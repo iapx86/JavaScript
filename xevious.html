@@ -122,13 +122,6 @@ class Xevious {
 		this.cpu[1].memorymap[0xf0].base = this.mapreg;
 		this.cpu[1].memorymap[0xf0].write = maparea;
 
-		this.cpu[0].breakpoint = hookBreakPoint0;
-		this.cpu[1].breakpoint = hookBreakPoint1;
-		this.cpu[2].breakpoint = hookBreakPoint2;
-		this.cpu[0].set_breakpoint(0x00d7); // Spin CPU1
-		this.cpu[1].set_breakpoint(0x018f); // Infinite Loop
-		this.cpu[2].set_breakpoint(0x0098); // Infinite Loop
-
 		// DIPSW SETUP
 		this.mmi.fill(3, 0, 8);
 
@@ -328,32 +321,6 @@ class Xevious {
 				break;
 			case 0x01:
 				game.dwScroll = data | 0x100;
-				break;
-			}
-		}
-
-		// ブレークポイントコールバック
-		function hookBreakPoint0(addr, game) {
-			switch (addr) {
-			case 0x00d7:
-				game.cpu[1].resume();
-				break;
-			}
-		}
-
-		function hookBreakPoint1(addr, game) {
-			switch (addr) {
-			case 0x018f:
-				if ((this.f & 0x40) === 0)
-					this.suspend();
-				break;
-			}
-		}
-
-		function hookBreakPoint2(addr, game) {
-			switch (addr) {
-			case 0x0098:
-				this.suspend();
 				break;
 			}
 		}
