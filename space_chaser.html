@@ -117,10 +117,16 @@ class SpaceChaser {
 			this.fDIPSwitchChanged = false;
 			switch (this.nStock) {
 			case 3:
-				this.io[2] &= ~1;
+				this.io[2] &= ~3;
 				break;
 			case 4:
-				this.io[2] |= 1;
+				this.io[2] = this.io[2] & ~3 | 1;
+				break;
+			case 5:
+				this.io[2] = this.io[2] & ~3 | 2;
+				break;
+			case 6:
+				this.io[2] |= 3;
 				break;
 			}
 			switch (this.nRank) {
