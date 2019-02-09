@@ -73,7 +73,7 @@ const aTextureCoordHandle = gl.getAttribLocation(program, 'aTextureCoord');
 const positionBuffer = gl.createBuffer();
 const textureCoordBuffer = gl.createBuffer();
 const texture = gl.createTexture();
-let game, sound, pixel, data;
+let game, sound, pixel, data, rotate = false;
 
 function init() {
 	gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -83,10 +83,7 @@ function init() {
 }
 
 function draw() {
-	const positions = new Float32Array([
-		-1.0, 1.0, -1.0, -1.0,
-		1.0, 1.0, 1.0, -1.0,
-	]);
+	const positions = new Float32Array(rotate ? [-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0] : [-1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, -1.0]);
 	const textureCoordinates = new Float32Array([
 		game.xOffset / game.width, game.yOffset / game.height,
 		game.xOffset / game.width, (game.yOffset + game.cyScreen) / game.height,
