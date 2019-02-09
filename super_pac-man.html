@@ -92,11 +92,6 @@ class SuperPacMan {
 		for (let i = 0; i < 0x10; i++)
 			this.cpu[1].memorymap[0xf0 + i].base = PRG2.subarray(i * 0x100);
 
-		this.cpu[0].breakpoint = hookBreakPoint0;
-		this.cpu[1].breakpoint = hookBreakPoint1;
-		this.cpu[0].set_breakpoint(0xe2e6);
-		this.cpu[1].set_breakpoint(0xf07c);
-
 		// Videoの初期化
 		this.bg = new Uint32Array(0x100000);
 		this.obj = new Uint8Array(0x10000);
@@ -138,24 +133,6 @@ class SuperPacMan {
 				break;
 			case 0x0b: // SUB CPU START
 				game.cpu[1].enable();
-				break;
-			}
-		}
-
-		// ブレークポイントコールバック
-		function hookBreakPoint0(addr, game) {
-			switch (addr) {
-			case 0xe2e6:
-				game.cpu[1].resume();
-				break;
-			}
-		}
-
-		function hookBreakPoint1(addr, game) {
-			switch (addr) {
-			case 0xf07c:
-				if ((this.ccr & 4) !== 0)
-					this.suspend();
 				break;
 			}
 		}
