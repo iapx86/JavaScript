@@ -109,7 +109,7 @@ function draw() {
 
 function loop() {
 	if (typeof sound !== 'undefined')
-		sound.output();
+		sound.output(game);
 	draw();
 	updateGamepad(game);
 	game.updateStatus().updateInput().execute().makeBitmap(data);
