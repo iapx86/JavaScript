@@ -581,32 +581,34 @@ class JrPacMan {
  *
  */
 
+const filename = 'jrpacman.zip';
 let BG, COLOR, OBJ, RGB_L, RGB_H, PRG, SND;
 
-$.get('jrpacman.zip', function(zip) {
-	PRG = new Uint8Array(0xa000);
-	PRG.set(Array.from(zip.files['jrp8d.8d'].inflate(), c => c.charCodeAt(0)));
-	PRG.set(Array.from(zip.files['jrp8e.8e'].inflate(), c => c.charCodeAt(0)), 0x2000);
-	PRG.set(Array.from(zip.files['jrp8h.8h'].inflate(), c => c.charCodeAt(0)), 0x4000);
-	PRG.set(Array.from(zip.files['jrp8j.8j'].inflate(), c => c.charCodeAt(0)), 0x6000);
-	PRG.set(Array.from(zip.files['jrp8k.8k'].inflate(), c => c.charCodeAt(0)), 0x8000);
-	BG = Uint8Array.from(zip.files['jrp2c.2c'].inflate(), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['jrp2e.2e'].inflate(), c => c.charCodeAt(0));
-	RGB_L = Uint8Array.from(zip.files['a290-27axv-bxhd.9e'].inflate(), c => c.charCodeAt(0));
-	RGB_H = Uint8Array.from(zip.files['a290-27axv-cxhd.9f'].inflate(), c => c.charCodeAt(0));
-	COLOR = Uint8Array.from(zip.files['a290-27axv-axhd.9p'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['a290-27axv-dxhd.7p'].inflate(), c => c.charCodeAt(0));
-	JrPacMan.patchROM();
-	game = new JrPacMan();
-	sound = new PacManSound(SND, game.sound_port);
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	window.onblur = onblur;
-	window.onfocus = onfocus;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function(zip) {
+		PRG = Uint8Array.from(zip.files['jrp8d.8d'].inflate() + zip.files['jrp8e.8e'].inflate() + zip.files['jrp8h.8h'].inflate() + zip.files['jrp8j.8j'].inflate() + zip.files['jrp8k.8k'].inflate(), c => c.charCodeAt(0));
+		BG = Uint8Array.from(zip.files['jrp2c.2c'].inflate(), c => c.charCodeAt(0));
+		OBJ = Uint8Array.from(zip.files['jrp2e.2e'].inflate(), c => c.charCodeAt(0));
+		RGB_L = Uint8Array.from(zip.files['a290-27axv-bxhd.9e'].inflate(), c => c.charCodeAt(0));
+		RGB_H = Uint8Array.from(zip.files['a290-27axv-cxhd.9f'].inflate(), c => c.charCodeAt(0));
+		COLOR = Uint8Array.from(zip.files['a290-27axv-axhd.9p'].inflate(), c => c.charCodeAt(0));
+		SND = Uint8Array.from(zip.files['a290-27axv-dxhd.7p'].inflate(), c => c.charCodeAt(0));
+		JrPacMan.patchROM();
+		game = new JrPacMan();
+		sound = new PacManSound(SND, game.sound_port);
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		window.onblur = onblur;
+		window.onfocus = onfocus;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>

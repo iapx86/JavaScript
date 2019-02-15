@@ -1237,40 +1237,37 @@ bWbF3nu56qgRZi5Wbrqbu4Jmthkb/kS4subp5BS7PusiZptPhag727t2hvxskk2eXHbGx5trm5+2
  *
  */
 
+const filename = 'digdug.zip';
 let PRG1, PRG2, PRG3, BG2, MAPDATA, BG4, OBJ, SND, BGCOLOR, OBJCOLOR, RGB;
 
-$.get('digdug.zip', function(zip) {
-	PRG1 = new Uint8Array(0x4000);
-	PRG1.set(Array.from(zip.files['dd1a.1'].inflate(), c => c.charCodeAt(0)));
-	PRG1.set(Array.from(zip.files['dd1a.2'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	PRG1.set(Array.from(zip.files['dd1a.3'].inflate(), c => c.charCodeAt(0)), 0x2000);
-	PRG1.set(Array.from(zip.files['dd1a.4'].inflate(), c => c.charCodeAt(0)), 0x3000);
-	PRG2 = new Uint8Array(0x2000);
-	PRG2.set(Array.from(zip.files['dd1a.5'].inflate(), c => c.charCodeAt(0)));
-	PRG2.set(Array.from(zip.files['dd1a.6'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	PRG3 = Uint8Array.from(zip.files['dd1.7'].inflate(), c => c.charCodeAt(0));
-	BG2 = Uint8Array.from(zip.files['dd1.9'].inflate(), c => c.charCodeAt(0));
-	OBJ = new Uint8Array(0x4000);
-	OBJ.set(Array.from(zip.files['dd1.15'].inflate(), c => c.charCodeAt(0)));
-	OBJ.set(Array.from(zip.files['dd1.14'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	OBJ.set(Array.from(zip.files['dd1.13'].inflate(), c => c.charCodeAt(0)), 0x2000);
-	OBJ.set(Array.from(zip.files['dd1.12'].inflate(), c => c.charCodeAt(0)), 0x3000);
-	BG4 = Uint8Array.from(zip.files['dd1.11'].inflate(), c => c.charCodeAt(0));
-	MAPDATA = Uint8Array.from(zip.files['dd1.10b'].inflate(), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['136007.113'].inflate(), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['136007.111'].inflate(), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['136007.112'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['136007.110'].inflate(), c => c.charCodeAt(0));
-	game = new DigDug();
-	sound = new PacManSound(SND, game.mmo);
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	window.onblur = onblur;
-	window.onfocus = onfocus;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function(zip) {
+		PRG1 = Uint8Array.from(zip.files['dd1a.1'].inflate() + zip.files['dd1a.2'].inflate() + zip.files['dd1a.3'].inflate() + zip.files['dd1a.4'].inflate(), c => c.charCodeAt(0));
+		PRG2 = Uint8Array.from(zip.files['dd1a.5'].inflate() + zip.files['dd1a.6'].inflate(), c => c.charCodeAt(0));
+		PRG3 = Uint8Array.from(zip.files['dd1.7'].inflate(), c => c.charCodeAt(0));
+		BG2 = Uint8Array.from(zip.files['dd1.9'].inflate(), c => c.charCodeAt(0));
+		OBJ = Uint8Array.from(zip.files['dd1.15'].inflate() + zip.files['dd1.14'].inflate() + zip.files['dd1.13'].inflate() + zip.files['dd1.12'].inflate(), c => c.charCodeAt(0));
+		BG4 = Uint8Array.from(zip.files['dd1.11'].inflate(), c => c.charCodeAt(0));
+		MAPDATA = Uint8Array.from(zip.files['dd1.10b'].inflate(), c => c.charCodeAt(0));
+		RGB = Uint8Array.from(zip.files['136007.113'].inflate(), c => c.charCodeAt(0));
+		OBJCOLOR = Uint8Array.from(zip.files['136007.111'].inflate(), c => c.charCodeAt(0));
+		BGCOLOR = Uint8Array.from(zip.files['136007.112'].inflate(), c => c.charCodeAt(0));
+		SND = Uint8Array.from(zip.files['136007.110'].inflate(), c => c.charCodeAt(0));
+		game = new DigDug();
+		sound = new PacManSound(SND, game.mmo);
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		window.onblur = onblur;
+		window.onfocus = onfocus;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>

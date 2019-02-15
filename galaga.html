@@ -2110,34 +2110,35 @@ wv+1/4f/dP9u/0z/UP9M/1L/Zf8=
  *
  */
 
+const filename = 'galaga.zip';
 let BG, OBJ, BGCOLOR, OBJCOLOR, RGB, SND, PRG1, PRG2, PRG3;
 
-$.get('galaga.zip', function(zip) {
-	PRG1 = new Uint8Array(0x4000);
-	PRG1.set(Array.from(zip.files['gg1_1b.3p'].inflate(), c => c.charCodeAt(0)));
-	PRG1.set(Array.from(zip.files['gg1_2b.3m'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	PRG1.set(Array.from(zip.files['gg1_3.2m'].inflate(), c => c.charCodeAt(0)), 0x2000);
-	PRG1.set(Array.from(zip.files['gg1_4b.2l'].inflate(), c => c.charCodeAt(0)), 0x3000);
-	PRG2 = Uint8Array.from(zip.files['gg1_5b.3f'].inflate(), c => c.charCodeAt(0));
-	PRG3 = Uint8Array.from(zip.files['gg1_7b.2c'].inflate(), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['gg1_9.4l'].inflate(), c => c.charCodeAt(0));
-	OBJ = new Uint8Array(0x2000);
-	OBJ.set(Array.from(zip.files['gg1_11.4d'].inflate(), c => c.charCodeAt(0)));
-	OBJ.set(Array.from(zip.files['gg1_10.4f'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	RGB = Uint8Array.from(zip.files['prom-5.5n'].inflate(), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['prom-4.2n'].inflate(), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['prom-3.1c'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['prom-1.1d'].inflate(), c => c.charCodeAt(0));
-	game = new Galaga();
-	sound = new PacManSound(SND, game.mmo, game.se);
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	window.onblur = onblur;
-	window.onfocus = onfocus;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function(zip) {
+		PRG1 = Uint8Array.from(zip.files['gg1_1b.3p'].inflate() + zip.files['gg1_2b.3m'].inflate() + zip.files['gg1_3.2m'].inflate() + zip.files['gg1_4b.2l'].inflate(), c => c.charCodeAt(0));
+		PRG2 = Uint8Array.from(zip.files['gg1_5b.3f'].inflate(), c => c.charCodeAt(0));
+		PRG3 = Uint8Array.from(zip.files['gg1_7b.2c'].inflate(), c => c.charCodeAt(0));
+		BG = Uint8Array.from(zip.files['gg1_9.4l'].inflate(), c => c.charCodeAt(0));
+		OBJ = Uint8Array.from(zip.files['gg1_11.4d'].inflate() + zip.files['gg1_10.4f'].inflate(), c => c.charCodeAt(0));
+		RGB = Uint8Array.from(zip.files['prom-5.5n'].inflate(), c => c.charCodeAt(0));
+		BGCOLOR = Uint8Array.from(zip.files['prom-4.2n'].inflate(), c => c.charCodeAt(0));
+		OBJCOLOR = Uint8Array.from(zip.files['prom-3.1c'].inflate(), c => c.charCodeAt(0));
+		SND = Uint8Array.from(zip.files['prom-1.1d'].inflate(), c => c.charCodeAt(0));
+		game = new Galaga();
+		sound = new PacManSound(SND, game.mmo, game.se);
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		window.onblur = onblur;
+		window.onfocus = onfocus;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>

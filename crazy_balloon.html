@@ -377,25 +377,28 @@ class CrazyBalloon {
  *
  */
 
+const filename = 'crbaloon.zip';
 let PRG, BG, OBJ;
 
-$.get('crbaloon.zip', function(zip) {
-	PRG = new Uint8Array(0x3000);
-	PRG.set(Array.from(zip.files['cl01.bin'].inflate(), c => c.charCodeAt(0)));
-	PRG.set(Array.from(zip.files['cl02.bin'].inflate(), c => c.charCodeAt(0)), 0x0800);
-	PRG.set(Array.from(zip.files['cl03.bin'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	PRG.set(Array.from(zip.files['cl04.bin'].inflate(), c => c.charCodeAt(0)), 0x1800);
-	PRG.set(Array.from(zip.files['cl05.bin'].inflate(), c => c.charCodeAt(0)), 0x2000);
-	PRG.set(Array.from(zip.files['cl06.bin'].inflate(), c => c.charCodeAt(0)), 0x2800);
-	BG = Uint8Array.from(zip.files['cl07.bin'].inflate(), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['cl08.bin'].inflate(), c => c.charCodeAt(0));
-	game = new CrazyBalloon();
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function(zip) {
+		PRG = zip.files['cl01.bin'].inflate() + zip.files['cl02.bin'].inflate() + zip.files['cl03.bin'].inflate();
+		PRG += zip.files['cl04.bin'].inflate() + zip.files['cl05.bin'].inflate() + zip.files['cl06.bin'].inflate();
+		PRG = Uint8Array.from(PRG, c => c.charCodeAt(0));
+		BG = Uint8Array.from(zip.files['cl07.bin'].inflate(), c => c.charCodeAt(0));
+		OBJ = Uint8Array.from(zip.files['cl08.bin'].inflate(), c => c.charCodeAt(0));
+		game = new CrazyBalloon();
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>

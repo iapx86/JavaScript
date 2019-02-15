@@ -271,27 +271,27 @@ class Polaris {
  *
  */
 
+const filename = 'polaris.zip';
 let PRG1, PRG2, MAP, OBJ;
 
-$.get('polaris.zip', function(zip) {
-	PRG1 = new Uint8Array(0x2000);
-	PRG1.set(Array.from(zip.files['ps01-1.30'].inflate(), c => c.charCodeAt(0)));
-	PRG1.set(Array.from(zip.files['ps09.36'].inflate(), c => c.charCodeAt(0)), 0x0800);
-	PRG1.set(Array.from(zip.files['ps03-1.31'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	PRG1.set(Array.from(zip.files['ps04.37'].inflate(), c => c.charCodeAt(0)), 0x1800);
-	PRG2 = new Uint8Array(0x1800);
-	PRG2.set(Array.from(zip.files['ps05.32'].inflate(), c => c.charCodeAt(0)));
-	PRG2.set(Array.from(zip.files['ps10.38'].inflate(), c => c.charCodeAt(0)), 0x0800);
-	PRG2.set(Array.from(zip.files['ps26'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	MAP = Uint8Array.from(zip.files['ps08.1b'].inflate(), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['ps07.2c'].inflate(), c => c.charCodeAt(0));
-	game = new Polaris();
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function(zip) {
+		PRG1 = Uint8Array.from(zip.files['ps01-1.30'].inflate() + zip.files['ps09.36'].inflate() + zip.files['ps03-1.31'].inflate() + zip.files['ps04.37'].inflate(), c => c.charCodeAt(0));
+		PRG2 = Uint8Array.from(zip.files['ps05.32'].inflate() + zip.files['ps10.38'].inflate() + zip.files['ps26'].inflate(), c => c.charCodeAt(0));
+		MAP = Uint8Array.from(zip.files['ps08.1b'].inflate(), c => c.charCodeAt(0));
+		OBJ = Uint8Array.from(zip.files['ps07.2c'].inflate(), c => c.charCodeAt(0));
+		game = new Polaris();
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>

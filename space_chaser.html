@@ -288,29 +288,28 @@ class SpaceChaser {
  *
  */
 
+const filename = 'schaser.zip';
 let PRG1, PRG2, MAP;
 
-$.get('schaser.zip', function(zip) {
-	PRG1 = new Uint8Array(0x2000);
-	PRG1.set(Array.from(zip.files['rt13.bin'].inflate(), c => c.charCodeAt(0)));
-	PRG1.set(Array.from(zip.files['rt14.bin'].inflate(), c => c.charCodeAt(0)), 0x0400);
-	PRG1.set(Array.from(zip.files['rt15.bin'].inflate(), c => c.charCodeAt(0)), 0x0800);
-	PRG1.set(Array.from(zip.files['rt16.bin'].inflate(), c => c.charCodeAt(0)), 0x0c00);
-	PRG1.set(Array.from(zip.files['rt17.bin'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	PRG1.set(Array.from(zip.files['rt18.bin'].inflate(), c => c.charCodeAt(0)), 0x1400);
-	PRG1.set(Array.from(zip.files['rt19.bin'].inflate(), c => c.charCodeAt(0)), 0x1800);
-	PRG1.set(Array.from(zip.files['rt20.bin'].inflate(), c => c.charCodeAt(0)), 0x1c00);
-	PRG2 = new Uint8Array(0x0800);
-	PRG2.set(Array.from(zip.files['rt21.bin'].inflate(), c => c.charCodeAt(0)));
-	PRG2.set(Array.from(zip.files['rt22.bin'].inflate(), c => c.charCodeAt(0)), 0x0400);
-	MAP = Uint8Array.from(zip.files['rt06.ic2'].inflate(), c => c.charCodeAt(0));
-	game = new SpaceChaser();
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function(zip) {
+		PRG1 = zip.files['rt13.bin'].inflate() + zip.files['rt14.bin'].inflate() + zip.files['rt15.bin'].inflate() + zip.files['rt16.bin'].inflate();
+		PRG1 += zip.files['rt17.bin'].inflate() + zip.files['rt18.bin'].inflate() + zip.files['rt19.bin'].inflate() + zip.files['rt20.bin'].inflate();
+		PRG1 = Uint8Array.from(PRG1, c => c.charCodeAt(0));
+		PRG2 = Uint8Array.from(zip.files['rt21.bin'].inflate() + zip.files['rt22.bin'].inflate(), c => c.charCodeAt(0));
+		MAP = Uint8Array.from(zip.files['rt06.ic2'].inflate(), c => c.charCodeAt(0));
+		game = new SpaceChaser();
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>

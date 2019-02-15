@@ -631,31 +631,34 @@ class Motos {
  *
  */
 
+const filename = 'motos.zip';
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
-$.get('motos.zip', function(zip) {
-	PRG1 = new Uint8Array(0x8000);
-	PRG1.set(Array.from(zip.files['mo1_3.1d'].inflate(), c => c.charCodeAt(0)));
-	PRG1.set(Array.from(zip.files['mo1_1.1b'].inflate(), c => c.charCodeAt(0)), 0x4000);
-	PRG2 = Uint8Array.from(zip.files['mo1_4.1k'].inflate(), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['mo1_5.3b'].inflate(), c => c.charCodeAt(0));
-	OBJ = new Uint8Array(0x8000);
-	OBJ.set(Array.from(zip.files['mo1_7.3n'].inflate(), c => c.charCodeAt(0)));
-	OBJ.set(Array.from(zip.files['mo1_6.3m'].inflate(), c => c.charCodeAt(0)), 0x4000);
-	RGB = Uint8Array.from(zip.files['mo1-5.5b'].inflate(), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['mo1-6.4c'].inflate(), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['mo1-7.5k'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['mo1-3.3m'].inflate(), c => c.charCodeAt(0));
-	game = new Motos();
-	sound = new MappySound(SND, game.ram.subarray(0x2800));
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	window.onblur = onblur;
-	window.onfocus = onfocus;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function(zip) {
+		PRG1 = Uint8Array.from(zip.files['mo1_3.1d'].inflate() + zip.files['mo1_1.1b'].inflate(), c => c.charCodeAt(0));
+		PRG2 = Uint8Array.from(zip.files['mo1_4.1k'].inflate(), c => c.charCodeAt(0));
+		BG = Uint8Array.from(zip.files['mo1_5.3b'].inflate(), c => c.charCodeAt(0));
+		OBJ = Uint8Array.from(zip.files['mo1_7.3n'].inflate() + zip.files['mo1_6.3m'].inflate(), c => c.charCodeAt(0));
+		RGB = Uint8Array.from(zip.files['mo1-5.5b'].inflate(), c => c.charCodeAt(0));
+		BGCOLOR = Uint8Array.from(zip.files['mo1-6.4c'].inflate(), c => c.charCodeAt(0));
+		OBJCOLOR = Uint8Array.from(zip.files['mo1-7.5k'].inflate(), c => c.charCodeAt(0));
+		SND = Uint8Array.from(zip.files['mo1-3.3m'].inflate(), c => c.charCodeAt(0));
+		game = new Motos();
+		sound = new MappySound(SND, game.ram.subarray(0x2800));
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		window.onblur = onblur;
+		window.onfocus = onfocus;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>

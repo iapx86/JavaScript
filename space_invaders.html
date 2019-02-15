@@ -274,22 +274,25 @@ class SpaceInvaders {
  *
  */
 
+const filename = 'sicv.zip';
 let PRG, MAP;
 
-$.get('sicv.zip', function(zip) {
-	PRG = new Uint8Array(0x2000);
-	PRG.set(Array.from(zip.files['cv17.36'].inflate(), c => c.charCodeAt(0)));
-	PRG.set(Array.from(zip.files['cv18.35'].inflate(), c => c.charCodeAt(0)), 0x0800);
-	PRG.set(Array.from(zip.files['cv19.34'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	PRG.set(Array.from(zip.files['cv20.33'].inflate(), c => c.charCodeAt(0)), 0x1800);
-	MAP = Uint8Array.from(zip.files['cv01.1'].inflate(), c => c.charCodeAt(0));
-	game = new SpaceInvaders();
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function(zip) {
+		PRG = Uint8Array.from(zip.files['cv17.36'].inflate() + zip.files['cv18.35'].inflate() + zip.files['cv19.34'].inflate() + zip.files['cv20.33'].inflate(), c => c.charCodeAt(0));
+		MAP = Uint8Array.from(zip.files['cv01.1'].inflate(), c => c.charCodeAt(0));
+		game = new SpaceInvaders();
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>

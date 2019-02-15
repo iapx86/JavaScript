@@ -495,37 +495,34 @@ class CrushRoller {
  *
  */
 
+const filename = 'crush2.zip';
 let BG, COLOR, OBJ, RGB, PRG, SND;
 
-$.get('crush2.zip', function(zip) {
-	PRG = new Uint8Array(0x4000);
-	PRG.set(Array.from(zip.files['tp1'].inflate(), c => c.charCodeAt(0)));
-	PRG.set(Array.from(zip.files['tp5a'].inflate(), c => c.charCodeAt(0)), 0x0800);
-	PRG.set(Array.from(zip.files['tp2'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	PRG.set(Array.from(zip.files['tp6'].inflate(), c => c.charCodeAt(0)), 0x1800);
-	PRG.set(Array.from(zip.files['tp3'].inflate(), c => c.charCodeAt(0)), 0x2000);
-	PRG.set(Array.from(zip.files['tp7'].inflate(), c => c.charCodeAt(0)), 0x2800);
-	PRG.set(Array.from(zip.files['tp4'].inflate(), c => c.charCodeAt(0)), 0x3000);
-	PRG.set(Array.from(zip.files['tp8'].inflate(), c => c.charCodeAt(0)), 0x3800);
-	BG = new Uint8Array(0x1000);
-	BG.set(Array.from(zip.files['tpa'].inflate(), c => c.charCodeAt(0)));
-	BG.set(Array.from(zip.files['tpc'].inflate(), c => c.charCodeAt(0)), 0x0800);
-	OBJ = new Uint8Array(0x1000);
-	OBJ.set(Array.from(zip.files['tpb'].inflate(), c => c.charCodeAt(0)));
-	OBJ.set(Array.from(zip.files['tpd'].inflate(), c => c.charCodeAt(0)), 0x0800);
-	RGB = Uint8Array.from(zip.files['82s123.7f'].inflate(), c => c.charCodeAt(0));
-	COLOR = Uint8Array.from(zip.files['2s140.4a'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['82s126.1m'].inflate(), c => c.charCodeAt(0));
-	game = new CrushRoller();
-	sound = new PacManSound(SND, game.sound_port);
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	window.onblur = onblur;
-	window.onfocus = onfocus;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function(zip) {
+		PRG = zip.files['tp1'].inflate() + zip.files['tp5a'].inflate() + zip.files['tp2'].inflate() + zip.files['tp6'].inflate();
+		PRG += zip.files['tp3'].inflate() + zip.files['tp7'].inflate() + zip.files['tp4'].inflate() + zip.files['tp8'].inflate();
+		PRG = Uint8Array.from(PRG, c => c.charCodeAt(0));
+		BG = Uint8Array.from(zip.files['tpa'].inflate() + zip.files['tpc'].inflate(), c => c.charCodeAt(0));
+		OBJ = Uint8Array.from(zip.files['tpb'].inflate() + zip.files['tpd'].inflate(), c => c.charCodeAt(0));
+		RGB = Uint8Array.from(zip.files['82s123.7f'].inflate(), c => c.charCodeAt(0));
+		COLOR = Uint8Array.from(zip.files['2s140.4a'].inflate(), c => c.charCodeAt(0));
+		SND = Uint8Array.from(zip.files['82s126.1m'].inflate(), c => c.charCodeAt(0));
+		game = new CrushRoller();
+		sound = new PacManSound(SND, game.sound_port);
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		window.onblur = onblur;
+		window.onfocus = onfocus;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>

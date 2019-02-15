@@ -5589,34 +5589,35 @@ Q/9B/zD/Pv8K/xv/Kv8i/xb/qf77/iL/R/9Y/7P/6f+Y/5n/vf+5/4n/hf+u/7X/yf+z/7P/wf+6
  *
  */
 
+const filename = 'bosco.zip';
 let PRG1, PRG2, PRG3, RGB, SND, BGCOLOR, BG, OBJ;
 
-$.get('bosco.zip', function(zip) {
-	PRG1 = new Uint8Array(0x4000);
-	PRG1.set(Array.from(zip.files['bos3_1.3n'].inflate(), c => c.charCodeAt(0)));
-	PRG1.set(Array.from(zip.files['bos1_2.3m'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	PRG1.set(Array.from(zip.files['bos1_3.3l'].inflate(), c => c.charCodeAt(0)), 0x2000);
-	PRG1.set(Array.from(zip.files['bos1_4b.3k'].inflate(), c => c.charCodeAt(0)), 0x3000);
-	PRG2 = new Uint8Array(0x2000);
-	PRG2.set(Array.from(zip.files['bos1_5c.3j'].inflate(), c => c.charCodeAt(0)));
-	PRG2.set(Array.from(zip.files['bos3_6.3h'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	PRG3 = Uint8Array.from(zip.files['bos1_7.3e'].inflate(), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['bos1_14.5d'].inflate(), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['bos1_13.5e'].inflate(), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['bos1-6.6b'].inflate(), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['bos1-5.4m'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['bos1-1.1d'].inflate(), c => c.charCodeAt(0));
-	rotate = true;
-	game = new Bosconian();
-	sound = new PacManSound(SND, game.mmo, game.se);
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	window.onblur = onblur;
-	window.onfocus = onfocus;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function (zip) {
+		PRG1 = Uint8Array.from(zip.files['bos3_1.3n'].inflate() + zip.files['bos1_2.3m'].inflate() + zip.files['bos1_3.3l'].inflate() + zip.files['bos1_4b.3k'].inflate(), c => c.charCodeAt(0));
+		PRG2 = Uint8Array.from(zip.files['bos1_5c.3j'].inflate() + zip.files['bos3_6.3h'].inflate(), c => c.charCodeAt(0));
+		PRG3 = Uint8Array.from(zip.files['bos1_7.3e'].inflate(), c => c.charCodeAt(0));
+		BG = Uint8Array.from(zip.files['bos1_14.5d'].inflate(), c => c.charCodeAt(0));
+		OBJ = Uint8Array.from(zip.files['bos1_13.5e'].inflate(), c => c.charCodeAt(0));
+		RGB = Uint8Array.from(zip.files['bos1-6.6b'].inflate(), c => c.charCodeAt(0));
+		BGCOLOR = Uint8Array.from(zip.files['bos1-5.4m'].inflate(), c => c.charCodeAt(0));
+		SND = Uint8Array.from(zip.files['bos1-1.1d'].inflate(), c => c.charCodeAt(0));
+		rotate = true;
+		game = new Bosconian();
+		sound = new PacManSound(SND, game.mmo, game.se);
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		window.onblur = onblur;
+		window.onfocus = onfocus;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>

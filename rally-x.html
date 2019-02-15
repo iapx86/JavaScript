@@ -1642,29 +1642,32 @@ l/+b/6j/qv+l/5z/oP+w/77/z//f//3/9f///w==
  *
  */
 
+const filename = 'rallyx.zip';
 let SND, BGOBJ, COLOR, RGB, PRG;
 
-$.get('rallyx.zip', function(zip) {
-	PRG = new Uint8Array(0x4000);
-	PRG.set(Array.from(zip.files['1b'].inflate(), c => c.charCodeAt(0)));
-	PRG.set(Array.from(zip.files['rallyxn.1e'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	PRG.set(Array.from(zip.files['rallyxn.1h'].inflate(), c => c.charCodeAt(0)), 0x2000);
-	PRG.set(Array.from(zip.files['rallyxn.1k'].inflate(), c => c.charCodeAt(0)), 0x3000);
-	BGOBJ = Uint8Array.from(zip.files['8e'].inflate(), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['rx1-1.11n'].inflate(), c => c.charCodeAt(0));
-	COLOR = Uint8Array.from(zip.files['rx1-7.8p'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['rx1-5.3p'].inflate(), c => c.charCodeAt(0));
-	rotate = true;
-	game = new RallyX();
-	sound = new PacManSound(SND, game.mmo.subarray(0x100), game.se);
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	window.onblur = onblur;
-	window.onfocus = onfocus;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function(zip) {
+		PRG = Uint8Array.from(zip.files['1b'].inflate() + zip.files['rallyxn.1e'].inflate() + zip.files['rallyxn.1h'].inflate() + zip.files['rallyxn.1k'].inflate(), c => c.charCodeAt(0));
+		BGOBJ = Uint8Array.from(zip.files['8e'].inflate(), c => c.charCodeAt(0));
+		RGB = Uint8Array.from(zip.files['rx1-1.11n'].inflate(), c => c.charCodeAt(0));
+		COLOR = Uint8Array.from(zip.files['rx1-7.8p'].inflate(), c => c.charCodeAt(0));
+		SND = Uint8Array.from(zip.files['rx1-5.3p'].inflate(), c => c.charCodeAt(0));
+		rotate = true;
+		game = new RallyX();
+		sound = new PacManSound(SND, game.mmo.subarray(0x100), game.se);
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		window.onblur = onblur;
+		window.onfocus = onfocus;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>

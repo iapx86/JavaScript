@@ -5144,26 +5144,29 @@ TP9L/zz/Nv9N/zr/Lv8q/xX/Gf8H//f+5/7j/u3+7/7w/vv+/P4C/xL/MP8=
  *
  */
 
+const filename = 'tankbatt.zip';
 let PRG, BG, RGB;
 
-$.get('tankbatt.zip', function(zip) {
-	PRG = new Uint8Array(0x2000);
-	PRG.set(Array.from(zip.files['tb1-1.1a'].inflate(), c => c.charCodeAt(0)));
-	PRG.set(Array.from(zip.files['tb1-2.1b'].inflate(), c => c.charCodeAt(0)), 0x0800);
-	PRG.set(Array.from(zip.files['tb1-3.1c'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	PRG.set(Array.from(zip.files['tb1-4.1d'].inflate(), c => c.charCodeAt(0)), 0x1800);
-	BG = Uint8Array.from(zip.files['tb1-5.2k'].inflate(), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['bct1-1.l3'].inflate(), c => c.charCodeAt(0));
-	game = new TankBattalion();
-	sound = new SoundEffect(game.se);
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	window.onblur = onblur;
-	window.onfocus = onfocus;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function(zip) {
+		PRG = Uint8Array.from(zip.files['tb1-1.1a'].inflate() + zip.files['tb1-2.1b'].inflate() + zip.files['tb1-3.1c'].inflate() + zip.files['tb1-4.1d'].inflate(), c => c.charCodeAt(0));
+		BG = Uint8Array.from(zip.files['tb1-5.2k'].inflate(), c => c.charCodeAt(0));
+		RGB = Uint8Array.from(zip.files['bct1-1.l3'].inflate(), c => c.charCodeAt(0));
+		game = new TankBattalion();
+		sound = new SoundEffect(game.se);
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		window.onblur = onblur;
+		window.onfocus = onfocus;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>

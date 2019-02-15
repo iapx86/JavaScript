@@ -613,30 +613,34 @@ class PacAndPal {
  *
  */
 
+const filename = 'pacnpal.zip';
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
-$.get('pacnpal.zip', function(zip) {
-	PRG1 = new Uint8Array(0x6000);
-	PRG1.set(Array.from(zip.files['pap1-3b.1d'].inflate(), c => c.charCodeAt(0)));
-	PRG1.set(Array.from(zip.files['pap1-2b.1c'].inflate(), c => c.charCodeAt(0)), 0x2000);
-	PRG1.set(Array.from(zip.files['pap3-1.1b'].inflate(), c => c.charCodeAt(0)), 0x4000);
-	PRG2 = Uint8Array.from(zip.files['pap1-4.1k'].inflate(), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['pap1-6.3c'].inflate(), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['pap1-5.3f'].inflate(), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['pap1-6.4c'].inflate(), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['pap1-5.4e'].inflate(), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['pap1-4.3l'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['pap1-3.3m'].inflate(), c => c.charCodeAt(0));
-	game = new PacAndPal();
-	sound = new MappySound(SND, game.ram.subarray(0x2000));
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	window.onblur = onblur;
-	window.onfocus = onfocus;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function(zip) {
+		PRG1 = Uint8Array.from(zip.files['pap1-3b.1d'].inflate() + zip.files['pap1-2b.1c'].inflate() + zip.files['pap3-1.1b'].inflate(), c => c.charCodeAt(0));
+		PRG2 = Uint8Array.from(zip.files['pap1-4.1k'].inflate(), c => c.charCodeAt(0));
+		BG = Uint8Array.from(zip.files['pap1-6.3c'].inflate(), c => c.charCodeAt(0));
+		OBJ = Uint8Array.from(zip.files['pap1-5.3f'].inflate(), c => c.charCodeAt(0));
+		RGB = Uint8Array.from(zip.files['pap1-6.4c'].inflate(), c => c.charCodeAt(0));
+		BGCOLOR = Uint8Array.from(zip.files['pap1-5.4e'].inflate(), c => c.charCodeAt(0));
+		OBJCOLOR = Uint8Array.from(zip.files['pap1-4.3l'].inflate(), c => c.charCodeAt(0));
+		SND = Uint8Array.from(zip.files['pap1-3.3m'].inflate(), c => c.charCodeAt(0));
+		game = new PacAndPal();
+		sound = new MappySound(SND, game.ram.subarray(0x2000));
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		window.onblur = onblur;
+		window.onfocus = onfocus;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>

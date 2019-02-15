@@ -1612,35 +1612,34 @@ l/+b/6j/qv+l/5z/oP+w/77/z//f//3/9f///w==
  *
  */
 
+const filename = 'nrallyx.zip';
 let SND, BGOBJ, COLOR, RGB, PRG;
 
-$.get('nrallyx.zip', function(zip) {
-	PRG = new Uint8Array(0x4000);
-	PRG.set(Array.from(zip.files['nrx_prg1.1d'].inflate(), c => c.charCodeAt(0)).slice(0, 0x800));
-	PRG.set(Array.from(zip.files['nrx_prg1.1d'].inflate(), c => c.charCodeAt(0)).slice(0x800), 0x1000);
-	PRG.set(Array.from(zip.files['nrx_prg2.1e'].inflate(), c => c.charCodeAt(0)).slice(0, 0x800), 0x0800);
-	PRG.set(Array.from(zip.files['nrx_prg2.1e'].inflate(), c => c.charCodeAt(0)).slice(0x800), 0x1800);
-	PRG.set(Array.from(zip.files['nrx_prg3.1k'].inflate(), c => c.charCodeAt(0)).slice(0, 0x800), 0x2000);
-	PRG.set(Array.from(zip.files['nrx_prg3.1k'].inflate(), c => c.charCodeAt(0)).slice(0x800), 0x3000);
-	PRG.set(Array.from(zip.files['nrx_prg4.1l'].inflate(), c => c.charCodeAt(0)).slice(0, 0x800), 0x2800);
-	PRG.set(Array.from(zip.files['nrx_prg4.1l'].inflate(), c => c.charCodeAt(0)).slice(0x800), 0x3800);
-	BGOBJ = new Uint8Array(0x1000);
-	BGOBJ.set(Array.from(zip.files['nrx_chg1.8e'].inflate(), c => c.charCodeAt(0)));
-	BGOBJ.set(Array.from(zip.files['nrx_chg2.8d'].inflate(), c => c.charCodeAt(0)), 0x800);
-	RGB = Uint8Array.from(zip.files['nrx1-1.11n'].inflate(), c => c.charCodeAt(0));
-	COLOR = Uint8Array.from(zip.files['nrx1-7.8p'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['rx1-5.3p'].inflate(), c => c.charCodeAt(0));
-	rotate = true;
-	game = new NewRallyX();
-	sound = new PacManSound(SND, game.mmo.subarray(0x100), game.se);
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	window.onblur = onblur;
-	window.onfocus = onfocus;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function(zip) {
+		PRG = zip.files['nrx_prg1.1d'].inflate().substring(0, 0x800) + zip.files['nrx_prg2.1e'].inflate().substring(0, 0x800) + zip.files['nrx_prg1.1d'].inflate().substring(0x800);
+		PRG += zip.files['nrx_prg2.1e'].inflate().substring(0x800) + zip.files['nrx_prg3.1k'].inflate().substring(0, 0x800) + zip.files['nrx_prg4.1l'].inflate().substring(0, 0x800);
+		PRG = Uint8Array.from(PRG + zip.files['nrx_prg3.1k'].inflate().substring(0x800) + zip.files['nrx_prg4.1l'].inflate().substring(0x800), c => c.charCodeAt(0));
+		BGOBJ = Uint8Array.from(zip.files['nrx_chg1.8e'].inflate() + zip.files['nrx_chg2.8d'].inflate(), c => c.charCodeAt(0));
+		RGB = Uint8Array.from(zip.files['nrx1-1.11n'].inflate(), c => c.charCodeAt(0));
+		COLOR = Uint8Array.from(zip.files['nrx1-7.8p'].inflate(), c => c.charCodeAt(0));
+		SND = Uint8Array.from(zip.files['rx1-5.3p'].inflate(), c => c.charCodeAt(0));
+		rotate = true;
+		game = new NewRallyX();
+		sound = new PacManSound(SND, game.mmo.subarray(0x100), game.se);
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		window.onblur = onblur;
+		window.onfocus = onfocus;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>

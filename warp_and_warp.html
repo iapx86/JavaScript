@@ -5489,24 +5489,28 @@ CAANAAsABgALAAcAAQAJABAACQAPABkA9/8ZAC0AGAASABkAFAAJAAMABwAJAAAA9v8KAAkA+P/8
  *
  */
 
+const filename = 'warpwarp.zip';
 let PRG, BG;
 
-$.get('warpwarp.zip', function(zip) {
-	PRG = new Uint8Array(0x3000);
-	PRG.set(Array.from(zip.files['ww1_prg1.s10'].inflate(), c => c.charCodeAt(0)));
-	PRG.set(Array.from(zip.files['ww1_prg2.s8'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	PRG.set(Array.from(zip.files['ww1_prg3.s4'].inflate(), c => c.charCodeAt(0)), 0x2000);
-	BG = Uint8Array.from(zip.files['ww1_chg1.s12'].inflate(), c => c.charCodeAt(0));
-	game = new WarpAndWarp();
-	sound = new WarpAndWarpSound(game.ram, game.se);
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	window.onblur = onblur;
-	window.onfocus = onfocus;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function(zip) {
+		PRG = Uint8Array.from(zip.files['ww1_prg1.s10'].inflate() + zip.files['ww1_prg2.s8'].inflate() + zip.files['ww1_prg3.s4'].inflate(), c => c.charCodeAt(0));
+		BG = Uint8Array.from(zip.files['ww1_chg1.s12'].inflate(), c => c.charCodeAt(0));
+		game = new WarpAndWarp();
+		sound = new WarpAndWarpSound(game.ram, game.se);
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		window.onblur = onblur;
+		window.onfocus = onfocus;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>

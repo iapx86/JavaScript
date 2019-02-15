@@ -4088,29 +4088,29 @@ Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkAtf+4/vP9AP4=
  *
  */
 
+const filename = 'galaxian.zip';
 let BG, RGB, PRG;
 
-$.get('galaxian.zip', function(zip) {
-	PRG = new Uint8Array(0x2800);
-	PRG.set(Array.from(zip.files['galmidw.u'].inflate(), c => c.charCodeAt(0)));
-	PRG.set(Array.from(zip.files['galmidw.v'].inflate(), c => c.charCodeAt(0)), 0x0800);
-	PRG.set(Array.from(zip.files['galmidw.w'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	PRG.set(Array.from(zip.files['galmidw.y'].inflate(), c => c.charCodeAt(0)), 0x1800);
-	PRG.set(Array.from(zip.files['7l'].inflate(), c => c.charCodeAt(0)), 0x2000);
-	BG = new Uint8Array(0x1000);
-	BG.set(Array.from(zip.files['1h.bin'].inflate(), c => c.charCodeAt(0)));
-	BG.set(Array.from(zip.files['1k.bin'].inflate(), c => c.charCodeAt(0)), 0x0800);
-	RGB = Uint8Array.from(zip.files['6l.bpr'].inflate(), c => c.charCodeAt(0));
-	game = new Galaxian();
-	sound = new GalaxianSound(SND, game.mmo, game.se);
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	window.onblur = onblur;
-	window.onfocus = onfocus;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function(zip) {
+		PRG = Uint8Array.from(zip.files['galmidw.u'].inflate() + zip.files['galmidw.v'].inflate() + zip.files['galmidw.w'].inflate() + zip.files['galmidw.y'].inflate() + zip.files['7l'].inflate(), c => c.charCodeAt(0));
+		BG = Uint8Array.from(zip.files['1h.bin'].inflate() + zip.files['1k.bin'].inflate(), c => c.charCodeAt(0));
+		RGB = Uint8Array.from(zip.files['6l.bpr'].inflate(), c => c.charCodeAt(0));
+		game = new Galaxian();
+		sound = new GalaxianSound(SND, game.mmo, game.se);
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		window.onblur = onblur;
+		window.onfocus = onfocus;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>

@@ -279,24 +279,25 @@ class GalaxyWars {
  *
  */
 
+const filename = 'galxwars.zip';
 let PRG1, PRG2;
 
-$.get('galxwars.zip', function(zip) {
-	PRG1 = new Uint8Array(0x1000);
-	PRG1.set(Array.from(zip.files['univgw3.0'].inflate(), c => c.charCodeAt(0)));
-	PRG1.set(Array.from(zip.files['univgw4.1'].inflate(), c => c.charCodeAt(0)), 0x400);
-	PRG1.set(Array.from(zip.files['univgw5.2'].inflate(), c => c.charCodeAt(0)), 0x800);
-	PRG1.set(Array.from(zip.files['univgw6.3'].inflate(), c => c.charCodeAt(0)), 0xc00);
-	PRG2 = new Uint8Array(0x800);
-	PRG2.set(Array.from(zip.files['univgw1.4'].inflate(), c => c.charCodeAt(0)));
-	PRG2.set(Array.from(zip.files['univgw2.5'].inflate(), c => c.charCodeAt(0)), 0x400);
-	game = new GalaxyWars();
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function(zip) {
+		PRG1 = Uint8Array.from(zip.files['univgw3.0'].inflate() + zip.files['univgw4.1'].inflate() + zip.files['univgw5.2'].inflate() + zip.files['univgw6.3'].inflate(), c => c.charCodeAt(0));
+		PRG2 = Uint8Array.from(zip.files['univgw1.4'].inflate() + zip.files['univgw2.5'].inflate(), c => c.charCodeAt(0));
+		game = new GalaxyWars();
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>

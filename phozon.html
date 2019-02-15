@@ -847,37 +847,35 @@ class Phozon {
  *
  */
 
+const filename = 'phozon.zip';
 let PRG1, PRG2, PRG3, RGB, SND, BG, BGCOLOR, OBJ, OBJCOLOR;
 
-$.get('phozon.zip', function(zip) {
-	PRG1 = new Uint8Array(0x8000);
-	PRG1.set(Array.from(zip.files['6e.rom'].inflate(), c => c.charCodeAt(0)));
-	PRG1.set(Array.from(zip.files['6h.rom'].inflate(), c => c.charCodeAt(0)), 0x2000);
-	PRG1.set(Array.from(zip.files['6c.rom'].inflate(), c => c.charCodeAt(0)), 0x4000);
-	PRG1.set(Array.from(zip.files['6d.rom'].inflate(), c => c.charCodeAt(0)), 0x6000);
-	PRG2 = Uint8Array.from(zip.files['3b.rom'].inflate(), c => c.charCodeAt(0));
-	PRG3 = Uint8Array.from(zip.files['9r.rom'].inflate(), c => c.charCodeAt(0));
-	BG = new Uint8Array(0x2000);
-	BG.set(Array.from(zip.files['7j.rom'].inflate(), c => c.charCodeAt(0)));
-	BG.set(Array.from(zip.files['8j.rom'].inflate(), c => c.charCodeAt(0)), 0x1000);
-	OBJ = Uint8Array.from(zip.files['5t.rom'].inflate(), c => c.charCodeAt(0));
-	RGB = new Uint8Array(0x300);
-	RGB.set(Array.from(zip.files['green.prm'].inflate(), c => c.charCodeAt(0)));
-	RGB.set(Array.from(zip.files['red.prm'].inflate(), c => c.charCodeAt(0)), 0x100);
-	RGB.set(Array.from(zip.files['blue.prm'].inflate(), c => c.charCodeAt(0)), 0x200);
-	BGCOLOR = Uint8Array.from(zip.files['chr.prm'].inflate(), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['sprite.prm'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['sound.prm'].inflate(), c => c.charCodeAt(0));
-	game = new Phozon();
-	sound = new MappySound(SND, game.ram.subarray(0x2800));
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
-	document.onkeydown = onkeydown;
-	document.onkeyup = onkeyup;
-	window.onblur = onblur;
-	window.onfocus = onfocus;
-	init();
-	loop();
+$.ajax({
+	url: filename,
+	success: function(zip) {
+		PRG1 = Uint8Array.from(zip.files['6e.rom'].inflate() + zip.files['6h.rom'].inflate() + zip.files['6c.rom'].inflate() + zip.files['6d.rom'].inflate(), c => c.charCodeAt(0));
+		PRG2 = Uint8Array.from(zip.files['3b.rom'].inflate(), c => c.charCodeAt(0));
+		PRG3 = Uint8Array.from(zip.files['9r.rom'].inflate(), c => c.charCodeAt(0));
+		BG = Uint8Array.from(zip.files['7j.rom'].inflate() + zip.files['8j.rom'].inflate(), c => c.charCodeAt(0));
+		OBJ = Uint8Array.from(zip.files['5t.rom'].inflate(), c => c.charCodeAt(0));
+		RGB = Uint8Array.from(zip.files['green.prm'].inflate() + zip.files['red.prm'].inflate() + zip.files['blue.prm'].inflate(), c => c.charCodeAt(0));
+		BGCOLOR = Uint8Array.from(zip.files['chr.prm'].inflate(), c => c.charCodeAt(0));
+		OBJCOLOR = Uint8Array.from(zip.files['sprite.prm'].inflate(), c => c.charCodeAt(0));
+		SND = Uint8Array.from(zip.files['sound.prm'].inflate(), c => c.charCodeAt(0));
+		game = new Phozon();
+		sound = new MappySound(SND, game.ram.subarray(0x2800));
+		pixel = new Uint8Array(game.width * game.height * 4);
+		data = new Uint32Array(pixel.buffer);
+		document.onkeydown = onkeydown;
+		document.onkeyup = onkeyup;
+		window.onblur = onblur;
+		window.onfocus = onfocus;
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>
