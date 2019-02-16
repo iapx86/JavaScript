@@ -270,10 +270,6 @@ $.ajax({
 		MAP = Uint8Array.from(zip.files['ps08.1b'].inflate(), c => c.charCodeAt(0));
 		OBJ = Uint8Array.from(zip.files['ps07.2c'].inflate(), c => c.charCodeAt(0));
 		game = new Polaris();
-		pixel = new Uint8Array(game.width * game.height * 4);
-		data = new Uint32Array(pixel.buffer);
-		document.onkeydown = onkeydown;
-		document.onkeyup = onkeyup;
 		init();
 		loop();
 	},

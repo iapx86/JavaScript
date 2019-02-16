@@ -5097,12 +5097,6 @@ $.ajax({
 		RGB = Uint8Array.from(zip.files['bct1-1.l3'].inflate(), c => c.charCodeAt(0));
 		game = new TankBattalion();
 		sound = new SoundEffect(game.se);
-		pixel = new Uint8Array(game.width * game.height * 4);
-		data = new Uint32Array(pixel.buffer);
-		document.onkeydown = onkeydown;
-		document.onkeyup = onkeyup;
-		window.onblur = onblur;
-		window.onfocus = onfocus;
 		init();
 		loop();
 	},

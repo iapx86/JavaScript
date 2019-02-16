@@ -276,10 +276,6 @@ $.ajax({
 		PRG1 = Uint8Array.from(zip.files['univgw3.0'].inflate() + zip.files['univgw4.1'].inflate() + zip.files['univgw5.2'].inflate() + zip.files['univgw6.3'].inflate(), c => c.charCodeAt(0));
 		PRG2 = Uint8Array.from(zip.files['univgw1.4'].inflate() + zip.files['univgw2.5'].inflate(), c => c.charCodeAt(0));
 		game = new GalaxyWars();
-		pixel = new Uint8Array(game.width * game.height * 4);
-		data = new Uint32Array(pixel.buffer);
-		document.onkeydown = onkeydown;
-		document.onkeyup = onkeyup;
 		init();
 		loop();
 	},

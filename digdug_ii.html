@@ -631,12 +631,6 @@ $.ajax({
 		SND = Uint8Array.from(zip.files['d21-3.3m'].inflate(), c => c.charCodeAt(0));
 		game = new DigDugII();
 		sound = new MappySound(SND, game.ram.subarray(0x2800));
-		pixel = new Uint8Array(game.width * game.height * 4);
-		data = new Uint32Array(pixel.buffer);
-		document.onkeydown = onkeydown;
-		document.onkeyup = onkeyup;
-		window.onblur = onblur;
-		window.onfocus = onfocus;
 		init();
 		loop();
 	},

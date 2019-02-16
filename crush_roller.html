@@ -499,12 +499,6 @@ $.ajax({
 		SND = Uint8Array.from(zip.files['82s126.1m'].inflate(), c => c.charCodeAt(0));
 		game = new CrushRoller();
 		sound = new PacManSound(SND, game.sound_port);
-		pixel = new Uint8Array(game.width * game.height * 4);
-		data = new Uint32Array(pixel.buffer);
-		document.onkeydown = onkeydown;
-		document.onkeyup = onkeyup;
-		window.onblur = onblur;
-		window.onfocus = onfocus;
 		init();
 		loop();
 	},

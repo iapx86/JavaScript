@@ -76,6 +76,14 @@ const texture = gl.createTexture();
 let game, sound, pixel, data, rotate = false;
 
 function init() {
+	pixel = new Uint8Array(game.width * game.height * 4);
+	data = new Uint32Array(pixel.buffer);
+	document.onkeydown = onkeydown;
+	document.onkeyup = onkeyup;
+	if (typeof sound !== 'undefined') {
+		window.onblur = onblur;
+		window.onfocus = onfocus;
+	}
 	gl.bindTexture(gl.TEXTURE_2D, texture);
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, game.width, game.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);

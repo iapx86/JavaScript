@@ -276,10 +276,6 @@ $.ajax({
 		PRG2 = Uint8Array.from(zip.files['lrescue.5'].inflate() + zip.files['lrescue.6'].inflate(), c => c.charCodeAt(0));
 		MAP = Uint8Array.from(zip.files['7643-1.cpu'].inflate(), c => c.charCodeAt(0));
 		game = new LunarRescue();
-		pixel = new Uint8Array(game.width * game.height * 4);
-		data = new Uint32Array(pixel.buffer);
-		document.onkeydown = onkeydown;
-		document.onkeyup = onkeyup;
 		init();
 		loop();
 	},

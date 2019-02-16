@@ -1644,12 +1644,6 @@ $.ajax({
 		rotate = true;
 		game = new RallyX();
 		sound = new PacManSound(SND, game.mmo.subarray(0x100), game.se);
-		pixel = new Uint8Array(game.width * game.height * 4);
-		data = new Uint32Array(pixel.buffer);
-		document.onkeydown = onkeydown;
-		document.onkeyup = onkeyup;
-		window.onblur = onblur;
-		window.onfocus = onfocus;
 		init();
 		loop();
 	},

@@ -288,10 +288,6 @@ $.ajax({
 		PRG2 = Uint8Array.from(zip.files['rt21.bin'].inflate() + zip.files['rt22.bin'].inflate(), c => c.charCodeAt(0));
 		MAP = Uint8Array.from(zip.files['rt06.ic2'].inflate(), c => c.charCodeAt(0));
 		game = new SpaceChaser();
-		pixel = new Uint8Array(game.width * game.height * 4);
-		data = new Uint32Array(pixel.buffer);
-		document.onkeydown = onkeydown;
-		document.onkeyup = onkeyup;
 		init();
 		loop();
 	},
