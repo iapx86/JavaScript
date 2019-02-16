@@ -3,19 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>New Rally-X</title>
-<style>
-html {
-	height: 100%;
-	margin: auto;
-	display: table;
-}
-body {
-	display: table-cell;
-	text-align: center;
-	vertical-align: middle;
-	background-color: gray;
-}
-</style>
+<link href="style.css" rel="stylesheet" type="text/css">
 </head>
 <body>
 <canvas id="canvas" width="285" height="224"></canvas>
@@ -781,7 +769,7 @@ class NewRallyX {
  *
  */
 
-const BANG = new Int16Array(Uint8Array.from(atob(`
+const BANG = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 Lf9t/ib+/f0N/rD+KATG/MbpoOCA2nPWhdNb0brPfs57zaLM+stay+TKW8rRyX3DgMXl0EfhpfaX
 CjYWBh5xI2UnXCqeLGQuBDBFMVY3Qy1HMQgzgzSWNXg2Yzd0OJY+MDaxKGwQCAe3BsgL3RMPIvks
 9ynAH5AR5P7X7p7hsuH1597x0f2eCjIb/CPdKdgtozCtMi00WjVHNvw2nDcbOJM4BzlaOcY5ZTpK
@@ -1599,7 +1587,7 @@ wf+n/5f/f/9t/13/R/83/yf/Ff8M/wH/8f7v/uf+7P7y/g3/Kf9L/1f/Y/9m/23/dv9d/0v/WP9R
 OwD8/8n/kP9a/y7/7/67/p3+g/5t/mr+gf5t/mX+aP5z/nr+hf6Q/pj+o/62/s7+3f7b/tP+0f7C
 /rT+uf66/sf+1/7y/gj/B/8I/wb///7//vf+7/7o/ur+6P7y/vj+9P74/v3+/P4D/x3/M/9V/4X/
 l/+b/6j/qv+l/5z/oP+w/77/z//f//3/9f///w==
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
 (function () {
 	for (let i = 0, n = BANG.length; i < n; i++)

@@ -3,19 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Grobda</title>
-<style>
-html {
-	height: 100%;
-	margin: auto;
-	display: table;
-}
-body {
-	display: table-cell;
-	text-align: center;
-	vertical-align: middle;
-	background-color: gray;
-}
-</style>
+<link href="style.css" rel="stylesheet" type="text/css">
 </head>
 <body>
 <canvas id="canvas" width="224" height="288"></canvas>
@@ -95,7 +83,6 @@ class Grobda {
 			this.cpu[1].memorymap[0xe0 + i].base = PRG2.subarray(i * 0x100);
 
 		this.cpu[1].breakpoint = hookBreakPoint1;
-		this.cpu[1].set_breakpoint(0xe097); // Infinite Loop
 		this.cpu[1].set_breakpoint(0xea2c); // Get Ready
 
 		// Videoの初期化
@@ -155,9 +142,6 @@ class Grobda {
 		// ブレークポイントコールバック
 		function hookBreakPoint1(addr, game) {
 			switch (addr) {
-			case 0xe097:
-				this.suspend();
-				break;
 			case 0xea2c:
 				game.se[0].start = game.se[0].stop = true;
 				break;

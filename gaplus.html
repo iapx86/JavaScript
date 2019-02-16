@@ -3,19 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Gaplus</title>
-<style>
-html {
-	height: 100%;
-	margin: auto;
-	display: table;
-}
-body {
-	display: table-cell;
-	text-align: center;
-	vertical-align: middle;
-	background-color: gray;
-}
-</style>
+<link href="style.css" rel="stylesheet" type="text/css">
 </head>
 <body>
 <canvas id="canvas" width="224" height="288"></canvas>
@@ -1268,7 +1256,7 @@ class Gaplus {
  *
  */
 
-const BANG = new Int16Array(Uint8Array.from(atob(`
+const BANG = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 a/+J/xv/5f8e+hTp/dqS2M7aUtxe3lvgpOL75Dvncemo6+zt6e/M8Qn0dfVE+EDx0uT+4VfiU+SA
 5VHkM+NW4wPlpeZZ6BHqrOtu61Xq8ek36xjtI+5+7QXt2Ozr7Eftx+1V7tLupe8T8YDy2fIm85Tz
 FfRz9OH0H/aT9wT4F/hX+Kf4+/hf+Yj6L/zn/KH8nvyx/Mr89/wc/ur/LgHCAG0AIwDi/+f/5P/w
@@ -1776,7 +1764,7 @@ Lv42/kn+T/5a/mH+b/6J/oX+nP6h/pT+rP6Z/rX+yv7d/uv+4/7o/vD+BP/8/uf+5/4E/xX/Fv81
 2//U/+3/+v/v/+j/8f/5//7/CgD5/+3/CwAXACkAOwAwABYAJAA9ACYALgBBACYAGQAqAB0AKAAt
 ACAAKgA7AEUAQABBAEMAMQAxAE0AUABGAEIALwArADkAJwAxAEMASwAtADAAOwA1AFQASQA7AD8A
 OQA3ADcA
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
 (function () {
 	for (let i = 0, n = BANG.length; i < n; i++)

@@ -3,19 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Galaxian</title>
-<style>
-html {
-	height: 100%;
-	margin: auto;
-	display: table;
-}
-body {
-	display: table-cell;
-	text-align: center;
-	vertical-align: middle;
-	background-color: gray;
-}
-</style>
+<link href="style.css" rel="stylesheet" type="text/css">
 </head>
 <body>
 <canvas id="canvas" width="224" height="256"></canvas>
@@ -575,12 +563,12 @@ class Galaxian {
  *
  */
 
-const SND = Uint8Array.from(atob(`
+const SND = Uint8Array.from(Array.from(window.atob(`
 9/n6+/z9/f7+/v39/Pv6+ff19PPy8fHw8PDx8fLz9PX39/j4+fn6+vv7/Pz9/f7+//8AAAEBAgID
 AwQEBQUGBg==
-`), c => c.charCodeAt(0));
+`), c => c.charCodeAt(0)));
 
-const BOMB = new Int16Array(Uint8Array.from(atob(`
+const BOMB = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 AAD//wEA/f8EAPf/EADA/+/+CP/7/gP///4A/wL//f4G//f+E/++/vf93f2n/AT89PtA/Hf86PpO
 +f33PfYP9SLzWfK+8UTz+PVP+On6dP0p/rr87vpx+3D+3gArANb9C/01/zsCyAUICPgJ/AsCDlAP
 rBDXEXISwxIEExATthLvET0O4AcSAvL7KPY88tHyMPW+9QXyA+4f6hLodeUE6D7tjvCN8L/uM+9e
@@ -1978,9 +1966,9 @@ AP8A///+Af/+/gP/+/4I/+/+P/8SAPX/CAD3/w0AR//e/sj/CwD8/wAAAgD5/xAAwP/x/gX/AP/6
 AP8A/wD/AP///gL/+/4H//P+Gf+v/i/+Gf/z/gf/+/6C/v/+AP8A/wD/AP///gH//f4F//b+Ef/f
 /l7/t/83/17/3/4R//b+Bf/9/gH///4A/wD/AP8A/4D/AP8A/wD/AP8A/wD///4C//v+B//z/hn/
 r/6v/hn/8/4H//3+AP8E//j+EP/B/u39C/72/Qv+7v1A/hP/8/4M/3D+G/+u/rD+Gf/z/gf/
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const SHOT = new Int16Array(Uint8Array.from(atob(`
+const SHOT = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 AAD//wEA/f8EAPf/EADA/+/+Bv/9/v3+Cf/u/h//xf7Q//ABwABP/W/8XgYlAPj2igNFB73z0v+v
 CUoAEfUI+RYQ3/VD9X0Pwf/i7ecHaAyA614D1Qvp/SnsGgJIDpf84eu2AWcQ/Og8/54SjfCe8V8U
 GftA7O8SMv2s6GkIhw8K6rP6chWx80buNBXP/hrrshCrBkfvhPLNE/oDJ+669PIYHfCj868ZqfXH
@@ -2329,9 +2317,9 @@ AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP///gL/+/4I//H+G/+r/rf+DP8M
 /7f+K/4b//H+CP/7/gL/f/8A/wD/AP8A/wD/AP8A/wD/AP8A/4D/gP8A/4D/AP8A/wD/AP8A/wD/
 AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A
 /wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const WAVE0001 = new Int16Array(Uint8Array.from(atob(`
+const WAVE0001 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 AQD+/wMA+v8JAO//IgB+/9/9DP77/fb9M/68/+sAEQPIBLsFxwYWB+cGLQfQBe4C/AA2/zX+/v1H
 /er8CP36/P/8Af31/DH9x/61/+4AEgNDBEcFDAb5BQIG/gX+BQMG+AUOBsMFSAQIA/8A8/44/TT8
 Gvzf/fP9Pv4T//b+Cv/W/iX9EP03/Ab8uPuq+xr88/sA/KT8+/1h/+//5ACQAvEEFAdBCE4JYwkC
@@ -2388,9 +2376,9 @@ t/rs+Tb6Sfu0/Fb9+f3A/g7/Bf9O/kD9tvz6+/r7Fvwy+y77Gvzy+wr8+PsI/PL7NfxD/b/+uv/q
 ABYDPQRPBf0FtgYZB+wGFge7BvIFBQbfBe0DTALvAPT/Rv/2/k3+5/0M/vr9Av6F/Vj9Bfyf+g36
 wfnx+Ab5APn3+DP5SPq9+8b8vf3K/jX/3wAxALr96vpC+bP4AfjO9972x/cT+O73QfgX+ez4QfkX
 +uz5wPoY++j6
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const WAVE0010 = new Int16Array(Uint8Array.from(atob(`
+const WAVE0010 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 AQD+/wQA+P8MAOr/KABw/xr+Jf/i/jz/PwA7AUQCMwP3BGEG9gY3ByEIuwdQBgEFrwPJAroByAAY
 /0D86Pk5+Eb3t/by9Qz28fW79h734fbU9/L38fhY+rn7vvxQ/fz9O/4P/x3/AgH6AgoF0AYSB0gG
 vQW9BOcDGwQyAwIDRALsAQQCBAJOAbgAQf/g/kn/CAAEAND/t/5J/TX89PsO/M371/rf+yP7kfkV
@@ -2451,9 +2439,9 @@ GwTnAz0EOgVMBgYHBAfPBrcFRwQ5A0oCsAHfAMf+8ft9+TT4vvfx9gf3//b89gr36vbK9/33vPgs
 +TT7Ef4EAEkBSwIBAzkDFQT3AwMEAwTYAwQCnAAwACYBsAABAE3/PP65/fH8Bv39/P78Av2Y/Rv/
 BAC9AAcBswEaAvIBDgJTAQcAnf4N/r/98fwD/Qf9y/zd+0r8C/38/AH9A/36/A395fz0/Vv/DgBG
 /+b+Gf88/vH9Cv73/Qr+7/2+/hX/7/4W/w==
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const WAVE0011 = new Int16Array(Uint8Array.from(atob(`
+const WAVE0011 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 AAAAAAAA/v8BAPv/BQD0/xMAtv8d/9MApgEBA04EswXLBgoHFgcaCQgKtAr8Cr0I7AUTBEAB5/43
 /cX8svv0+gP7/vr++gT79Po4+x783Pv3/Fb+Mv9OACwBAwMuBK4DAQNQAtUBVgLyAskDWAM6ArMB
 AAFGAO3/AgAoANQBBQIBAloBIQAUABD/Jv1Q/C779foH+3P6NPvG/Dn9Sv4P//L+tf9IADgB0gLj
@@ -2518,9 +2506,9 @@ FQL4AQUCAQL9AQ4CKQE1/vT7pvoI+kX57PgM+ff4C/nx+L75Gfrr+cL6Fvvt+kD7Gfzo+0j8Cv0C
 /fX8O/0W/u39E/7g/VP+5/4gACAD8ARoBvAGPwcWCFAHCQb9A/sBKgBS/yH+D/6t/TL9Z/3B/Ab+
 Q//nABUDQgRGBREG7gW9BvsG0gQzBOgEJgPUAqYBBgFFAOb/FADF/zz+QP3d/E79/P27/hP/+f4A
 /4r/S/5A/bn8
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const WAVE0100 = new Int16Array(Uint8Array.from(atob(`
+const WAVE0100 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 /v8BAP3/BQD3/xAA3/9+ACYCRgGuAIb/Qf/3/tL+2P1I/gz/8/4M/+f+Rf+fAL8C3AS3BbQGAAjH
 CdAKVgo9CTQI4Qc6BawDFAL8/+v97Pxa/Kr78fox+0r8s/1X/vn+wP8NAAUAzf9B/rP9//zL/N/7
 vvy8/cH+u/9EADQB9QJiBJYFJgfRB/QGUAbnBW4F7ANEAgsB/v72/Db7O/rv+Qj6ePkG+vX5D/rh
@@ -2588,9 +2576,9 @@ BbwGSAcQCPIHFQgcB+UEwAOyAvkBVwGnAP3/+P8OAL//7v4G//z++/6n//sAYAL0Aj0DEwTzAwwE
 CQZFBegEFAXHBLwDRgIZAUD+6Ps4+kf5s/j29wP4Afj69w346ffN+Pj46vni+6j83f32/b/+FP/5
 /gT/Iv8JAVMC+QITAKX89Pm6+Lz38/YG9wD3/PYM9+v2zff998P4Bfk6+RP6Afry+cf6Avs6+xP8
 +/s=
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const WAVE0101 = new Int16Array(Uint8Array.from(atob(`
+const WAVE0101 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 //8BAP7/AwD5/woA6v9HAOAAJv/5/iH/BwFIAkQDDwT5AwIEBQTYAwUCngAQABz/6/yz++z6Ffs7
 +u/5pvoH/EH99f5bAK0B2gL6AjsDHgQnA6sAsv4X/ZT7Efu9+u/5Bvr8+f75pPoB/FX9Kf4CANAB
 twJLAxIE6wNDBA4F/ATeBPwCrAFTACT/D/81/gn+FP2l+8r63flE+jf7U/z+/Lf9HP7p/UX+df7h
@@ -2658,9 +2646,9 @@ tQTOBQkG/AX/BQIG9gUQBrwFcgX/BAsFwQTtAwoEWgP4ATwAEP+a/Q39JvzX+QD5SPjs94z3+vcI
 xAO6BMcFEgbpBUUGbAbxBLkDPQJHASwAAwDF/+r+CP/6/v/+Av/3/g3/4v71/1MBOwIZA+cCwQMS
 BPADEwTAA+wCDwPvAhsDMgINAnUAF/0R++D4+/dM9+n2D/f39gz39fYZ97r2BPZJ9fD0B/UH9fD0
 yPUC9rb2Off/+FH6wPu4/P39V/+2AK8BBAAy/kb9Qvy3+/b6AfsG+/D6QvsN/AH88/tB/A79
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const WAVE0110 = new Int16Array(Uint8Array.from(atob(`
+const WAVE0110 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 /v8BAPz/BQD1/xIA3P+DABoC/AFQATwAtv/3/vf+tf+8AM4B/AE4AhQD9AIHA/oCBgP3AhADwAJu
 AgsC0wGiABMACf/O/Uf+t/9JAA8B6gA+ARMC7wESAtwBmwM3Bv0GEwe4Bv8FywVIBAQDsgEdAOT9
 Q/yw+/76z/rX+c76A/sI++f68/vY/bX+Sf8YAN7/XgAbAJ/+7/3g/hUBRgK5A0oEDQX1BAwF7QQj
@@ -2737,9 +2725,9 @@ AwH4AAkB6QDoAWwD6gPJBAIFFQUPBKoCSAFEAA//9/yl+wj7Qvru+Qb6//n7+Qv65/nx+l38q/1a
 /vj+u/8WAPD/DwDo/0YAhAAqAc4CswNUBAQFCAXwBCsFNQPh/j375fhA9zj28vUJ9vn1Cvbz9Tz2
 H/fj9tL3+/fC+Aj5M/kg+uf5xPoV++36wPsY/On7RPwP/fn8Av2e/Qz/QwBNAf8BMwK9A9MEVATe
 Ax8ENAP6AvgCFwMOAiYATf+y/u39E/7b/QH/
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const WAVE0111 = new Int16Array(Uint8Array.from(atob(`
+const WAVE0111 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 AAD//wAA/v8AAPz/BAD0/7IAxwE2AksDrQTjBb8FAAVBBPsDSAPvAt0CJgFbAO3+5f0H/vr9mf48
 AGcCnwMKBSgG1gXkBpUFqgTDA8wC+gA7/yf+Nf4G/zH/FwDz/wYA+/+iAA4CIQNIArEBAAHQALv/
 P/5H/S78A/xI+2f7Evvo+sP7Dfz2+6T8Bv5E/+kADgPyBBQHQAhSCdwJsAjRBwsG9wMNAsf/3PzH
@@ -2820,9 +2808,9 @@ xwbgBRwGMgX+BMoE4AMcBDQD9wL7AhADPAL7AdAB4AAjAREA+v0F/P/5Afij9gf28PUn9vj08vPP
 8+3yBPMw88f05fUj+A/5pPnf+vj6PvsU/JX8Gf4R/6H/3wD0AL8BEQL3AQQC/AH/AQAC/AEFAvMB
 NQLDA8MEGgVEBEIDvgIrAQD+2PpB+UL4OPfy9gn3+fYJ9/P2vPcd+OX3zvgB+bf5Hfro+cT6Ffvt
 +sD7Gfzn+w==
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const WAVE1000 = new Int16Array(Uint8Array.from(atob(`
+const WAVE1000 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 /v8BAPv/BQD0/xQA1/+KAAsCtwIKAxEDCwLQAMEBRgINA/kCAQP/AvwCBwPPAjEBTgAh/6//uwDy
 Ad4DoATtBbMFFAX/A+0CzQLxAdEB4QBzANv+/f1A/Zb92v4h/woBRQJKAwUErgQtBQwE/AECAP39
 ovwJ/MP77PoK+/b6CPvw+jv7Gfzj++n8D//uAB0DDQSkBNgFAgYDBvkFDwZDBesE8QTfAl4BNf+3
@@ -2919,9 +2907,9 @@ NgBC/0H+t/3x/An99vwP/cf84vvG/Bf9zPw4+1P6A/mu99D2sPX99P/0C/Xs9En1APY79g/3Iff9
 +Ij68/wd/6sAGAL/Ak0DwgMrAwkE2ARxBukGPwcQCO8HEQg/B+gGEgdABuUFGwYxBQQFwQT0A9oD
 CwLp/+7+Yv4h/Q79Q/zT+1j52vZJ9bL0+/MA9Ar07/PJ9AT1OfUb9vL1tPZW9wD4OPgg+eT4zfkC
 +rP6Ivs=
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const WAVE1001 = new Int16Array(Uint8Array.from(atob(`
+const WAVE1001 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 /P8FAPT/EgDe/zkAjP++AdoGrwQUBMUDHALa/wD/Qf74/Un96fwG/f/8lf0k//D/AgGNAT8C2AJp
 Al8BKgDP/8f+EAAHATQBLQIRBAIFxAXxBV0GBAYWBR8G/AXJBe8EXwQFA/YAEf/c/AH8PfsC+7r6
 p/oc++/6Cvv3+gb7FPu//QsABwJKA0gECgUIBckESAMJAoP/6v3q/AH9qf1P/gz/7f4+/xQA7/81
@@ -3026,9 +3014,9 @@ QQTvA+UD9AE1AEX/Pv6+/eb8Iv0K/Cn6Ufkv+Pr3A/gC+P73B/j09734Gfnr+EL5Fvrt+UD6Gfvo
 +kb7DPz/+/j7NPxE/cL+uP/TAPsAugEUAvUBBgL6AQIC+wEDAvUBMALKA7IEVAX8BRcGDQUoA0oC
 OgG8AOn/FwA7//P+Bv8A//z+Ef8m/j376PjB97f29/UD9gT29vU69h735fbN9wP4NPgj+d741Pn1
 +cn6+frs+1v9tv4=
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const WAVE1010 = new Int16Array(Uint8Array.from(atob(`
+const WAVE1010 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 /v8BAPz/BgD0/xQA2P+NAGoBLwDB/+3+Cf/6/gL//v7+/gD/+/4D//L+M/9BAN4BRwQIBwEJ1QqN
 C8wKtgnuCHYIrQY1BAgDrwEZAOr9sfzw+wr8bvs6/Dz9T/4A/zT/IgC//8X+tv3w/Iz87fy8/br+
 0P/+/zQAHQHlACIBpAC9AP4A4wFmA/8D/AONBMYDxgKsAQkBPAD//8f/Tv7z/Oz7Vfva+h/70Pqs
@@ -3144,9 +3132,9 @@ SPfe9sv3CPgE+PP3wPgQ+Rz5CvvO/Lb9Tv4L//j+qf8AAdgCqgPkBEUEUwPvAfYAxwD2/03/5v4N
 CQL1ARICPwHvAAcB+gACAf4A/wAAAf0ABAF3AI4AwQDr/w0A7v85AL8BxwKRA9ACpwELAbwA/v9J
 /+v+CP/8/vz+C//E/ub9Ff7g/fT+WgAsAVgC/gIVAxgCmQAPAEn/Qv4c/cH65vfA9jn18/QL9ff0
 EPXp9M/1/PXF9gP3PvcL+DL4IPnp+ML5Gvrm+cz6APu3+xr86vu7/ET9
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const WAVE1011 = new Int16Array(Uint8Array.from(atob(`
+const WAVE1011 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 AQD+/wQA9/8NAOj/LQBq/6b+Dv/R/wICsQEGAcMA8P8DAIv/Q//s/gn/+/7g/hT9xf34/ej+XwAs
 AVUCBgMAAwID5QJMAOP9PPxF+zb68/kH+vj5Cfpw+r76Ffvt+jj7Rfy6/cj+L//+AFMCMgPQBAcF
 /gT/BAUF9wQTBToE/QMvA68A+P3++6H6I/pe+/H7x/z+/D/9C/4Q/hf9nvv/+gf7UPrT+V76wPqd
@@ -3270,9 +3258,9 @@ AuQBCwL7AfkBrgLIA7UESwUJBvkFAwb6BQMG9wUNBkIF5gQVBT4E6gMUBEAD6AIbAxYC7/+z/kz9
 rPwE/Mn75voZ+8L6Sfkx+AX4TffE9jL1CPVD9Pjz+PPD9An1MfUl9t/11fb49sj3APjC+AT5vfkL
 +jL6IPvn+sP7Fvzp+8T8D/35/AH9of0I/0sAQAEYAuYByAJlAhoBNgEZAuYBRAIOA/YCCAP0AhED
 QAJMAf3/
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const WAVE1100 = new Int16Array(Uint8Array.from(atob(`
+const WAVE1100 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 //8AAP3/AQD6/wYA7/87ALUB+ALZBKkF3gZPBj4FtwT4A1oDpwJfAef/9v5I/uv9Av4F/uT99P5N
 AOMBFQRHBToGqwYABjUEuAP5AlIC1QHRAloCqAH6AAABAgFXAMH/HwHSAfUAzADv////GAAK/zL9
 uPz/+8j77foH+wH78/o8+xP88vsK/O372fxH/68C4AXDB/sILwq6CccIOwfJBhEF7wIYAbL+o/xM
@@ -3421,9 +3409,9 @@ DgQRAywBIwA//dz69fla+Sn4/ff99wn47vdE+Av5Bfnt+Mz59/nt+tv8tf3F/kb/EwDz/xQAw//I
 /iz9CP08/Bz81f2s/tj/9/88ABMB9gAHAfwABQH6AAkB8AAeAQcAsf66/Rj9Yv7y/j//EQD2/wUA
 /P8CAP3/AgD4/6gA+gFgA/MDPAQSBfMECQXzBBMFvATzAwIECgTIA+cCHgP8Abr9mvkE9/r0qfP+
 8v3yDPPr8s7z/PNG9AH1xPUD9kL2BPfA9wf4u/gQ+aj5VPoP++76xPsO/P77+vsy/En9uv4=
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const WAVE1101 = new Int16Array(Uint8Array.from(atob(`
+const WAVE1101 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 AAD+/wEA+/8GAPP/FwCw/yn/wwDLAf4BtwIUA/QCBQP9AgADAQP8AgYD9AIXAxACmwAEAFP/pP4o
 /sv/swBPAQYCAAL2AbUCIgM2AvMBBAL7AQIC/AEBAvgBqQLZA1YDrgLyAa8C0wMDBAkEygNCAhQB
 7/42/cj8s/v1+gX7+/oE+/j6DPvp+sr7/Ps6/K39D/8LALMALwEyA/AF+gUBBgQG8wUaBq8FEgUH
@@ -3593,9 +3581,9 @@ AhYDMAISAgcBQP/7/e38VvzF+wb6NPg+99f28fT280/z7PIJ8wTz8/LD8wv0qPRV9Sr2Bfju+cv8
 Xv60/8cAQwEXAuoBQgIRA3QCDAPJAlYCVgJMAuUBDAKRAhwEBQW1BRUG9QUBBgcGzwUVBNsB/wBA
 APv/yf/r/gb/Bf/L/uD9I/4K/aP7+fop+1r89vw//Q7+//31/b3+E//4/gb///4C/wL/AP8H/9j+
 B/3/+gD5JPcH90z23PVO9gb3B/fw9sb3B/gz+CP54fjR+f35Pvo=
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const WAVE1110 = new Int16Array(Uint8Array.from(atob(`
+const WAVE1110 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 /v8BAPr/BwDv/xsAx//FAMUDCwXgBegE2ATcAx4EOgPyAugC5wDu/13/of4E/ur9Q/4j/zsBZAOs
 BM4FFAbDBcYErwMBA0kC5gHzAdb/Kf8XAPT/AQAFAOn/7QBjAv8ChQNYAqIBFQEOACr+Sf09/Ln7
 8PoJ+/f6Cvvu+j/7EPz1+wT8GPy0/h0B3wLRBdcHuAgiCTsITgenBhIGEQUHAz4AeP3s+/D6Uvrd
@@ -3797,9 +3785,9 @@ AsYDCAQMBBwDkAEXATUAAABI/+n+DP/2/gj/9f4S/7/+8P0G/v/9/f0J/uz9SP5f/sr9Bf8rALP/
 +f4C/wP/+v4P/0T+7P1w/eH7/PpH+u/5APou+sj7vPzA/Ub+Ff/q/sT/EAD5/wQA/f8BAP//AAAA
 AP//AQD+/wMA+v8MAMr/vv48/ej8uv1G/hr/wf5I/S/8BfzJ++v6D/v1+hH7SfpB+Tv48PcP+O/3
 P/gY+ev4QvkW+u35wPo=
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const WAVE1111 = new Int16Array(Uint8Array.from(atob(`
+const WAVE1111 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 /v8BAPv/BwDy/xYA1P+SAF0B5AADAbABHgLkAcQCDwP0Ag0DywI3AUgALP+g/9sA9wC3ARsC5AEo
 AvgA5v8BADEAHQHjAEQBDAL3AQUC9wEqAtcD9wO6BBUF8QQOBe4EHwWLBAoCPP8d/VX8q/v5+gL7
 /voA+wH7/foG+/T6N/tC/MP9t/7T//r/vAARAfgAnwEWAwgENQQTBfwE+AQaBQkErwJAAU8A9/7h
@@ -4043,7 +4031,7 @@ A/uh+Qv5xvjq9xP46ffH+Aj5Bfnu+En5/Pni+g79/P4AAewCPQICAkMB+gDNAOb/EQDw/xQAPf/w
 9/sz/MX9vv6//0UAFQHoAMYBCgIBAvQBGQKpATsBXQHWAEEBvQK9A8kEDgX5BAcF+QQVBQMEs/8i
 +/X4NPdH9jn16PRA9Zf17PUf9k/2IPdM96z3EPg2+BD5Lfkm+t/50vr8+j37Evz9+/n7t/wd/eP8
 Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkAtf+4/vP9AP4=
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
 (function() {
 	for (let i = 0, n = BOMB.length; i < n; i++)

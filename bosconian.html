@@ -3,19 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Bosconian</title>
-<style>
-html {
-	height: 100%;
-	margin: auto;
-	display: table;
-}
-body {
-	display: table-cell;
-	text-align: center;
-	vertical-align: middle;
-	background-color: gray;
-}
-</style>
+<link href="style.css" rel="stylesheet" type="text/css">
 </head>
 <body>
 <canvas id="canvas" width="285" height="224"></canvas>
@@ -1384,7 +1372,7 @@ class Bosconian {
  *
  */
 
-const SND12 = new Int16Array(Uint8Array.from(atob(`
+const SND12 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 kP4q8XvnvehI67js+e0K77/vMvIX9nH6Lf95A3AH/AqRDUIPhhAcEZ8Quw/JDVwNAxjmH/gdZBuB
 GSYYrxXyEKILsgVwAPb6Ufeu7wXg8uCj5BXm1+e16KTphuow62ns1+/584L4Sv2+Aa0FGwnQCxca
 diMfH8kckRpOGUcYbRfTFDsQMguQBUQAR/tg9xbz3fHt6bnh/uVq5wzp+Om/6n3rKezb7M7vTvS2
@@ -2394,9 +2382,9 @@ hAC9/13/2v6L/gz+vf3o/c39Bv5G/nT+xv4S/2b/q//d/zn/qf5c/lv+Xv5l/p3++P46/37/qf/Q
 9v5X/gH+w/3L/fX9Qv63/hz/bf/O/xsAEAElAqoC6QIEA9YCfAIfAowB7ABJALn/Rf+6/kH+HP4K
 /ub9Bf4T/kT+kP7o/jf/av+O/8b/+P8fAC0ANgA4ACsAHAAKAO3/sv9w/3f/Yv9P/+7+uv76/gf/
 WP9X/w==
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const SND13 = new Int16Array(Uint8Array.from(atob(`
+const SND13 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 HPXY5aHb4tL0yiHPQtmE39Tm1OJM2fjTnM9SzUnQ19NN1tbYy9rl3Ljet+BT4ivkc+iH7D7x0/T6
 Ac4VUSU4NaI4kDSZMw0z5DGxOmBKOVV3Xqhl0WqObiFp6GHkWfhK6j5XM3koFR4jFJYKkAEV+Rnx
 5emG47DdOdh609XPvsvmzXXb0eQI76DxS+nR5L7hM98g4Lrt/flaBG0LNwVk/x78o/ih+HAG4RCD
@@ -3077,9 +3065,9 @@ Gv5w/rX+7P5v/1r/bP+b/5v/qf+u/8v/8f///w0AGAAdACsAGAAJACMA9P8NAAUA6//5/9r/wv+x
 /4//e/82/x3/Gv8N//n+6/7u/s/+3/7D/tb+u/6e/q7+tf69/sf+y/7S/ub+4P72/tn+zP7o/vv+
 Kv8h/1X/Wv90/3j/gP+R/5D/nv+f/8D/5v/T//j/+f/w/wEA7f/U/+n/2f/2//b/5//o/+7/8v/o
 /9v/xf++/7v/zf/N/73/w/+7/7T/r/+B/23/k/92/4v/k/+T/4n/rv+o/w==
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const SND14 = new Int16Array(Uint8Array.from(atob(`
+const SND14 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 OP8VAMv+qQFk9zHgcfV/D1QNyv19/9UkLxKI71nxzABxBfoAL/yBAAD4tt+y9egOWg+IIyQMdeyE
 9CfmjepzDTQMURoEHRLzifD08KHhRv3HEZUI+/xV+1IC1/8xDd4kJwTw6i/5M/KG4S0AaBFRB2n8
 lfvKAk//shHOI7X+UuvH+Qzp/OaPCssMdhsbHJvylPDU60DjVQSJD/QLjyO9BpTrCfW5AmMEi/71
@@ -3447,9 +3435,9 @@ FAC8AJQAwgG2/43+JP+r/Tj/5QAYAGMB0QB7/hz/Xf76/VEAxgDW/2gBzQBp/vr+Xv7W/cD/QgCT
 5v2y/rgALADq/6AB+f92/j3/V/45/oUAowDM/1v/nP/j/83/CgD5AXcAkv4y/w7+bf6mAIQAsP99
 /8H/DgCn/6MAQwK6/6f+sv7H/eX/DQFWAKEB/gDx/hX/9f8KAMf/iP/Q/zr/jf2m/xkBpADlAWwA
 hv4v/wb+rv79AIEASQGGAfb+AP/M/tT9IwC0AE0ApAEuAL/+M/8EABcA
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const SND15 = new Int16Array(Uint8Array.from(atob(`
+const SND15 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 PQDQFPswQzSYHncJrv1o7sbmLOGT1t/VOtqd3lnknerp72z3UQlfFJgbTynULG0o+SKzGxkNogDc
 91Hk+Njl2mvfHuV67ev1Nfr7+PT21Ph9/u8ClwOSA0YDVwdyDi4Quw3pCucIAwdKBawFgwhHCnoC
 IPV88MLynfak+QH7IvwT/eb93/50/8L/9v8DAJAA6P/Y+Nry2vQk/McB2QCa/Db7AgIkC6APrx7Z
@@ -3901,9 +3889,9 @@ ABYAUQBkAIQAhgC8AN8AiQB0AHoAZAAoAPL/GwAnAB4AAwANAB8ACwD///z/8//7/wsABQANAC8A
 AgAdABUAHAAOAN//8f/o////DQAYABYADAApAAsAGAACABUAFAALAAMAIgAQAA0ADgAXAA4Auv/L
 /8z/yf/D/97/7P/B/8f/4v/M/6L/nv+k/8b/xv/I/73/uf+9/67/wf+Y/5X/p/+u/7X/p/+8/8r/
 zf/A/8H/p/+//7P/wf/U/8L/2v/X/9P/0P/W/5X/
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const SND16 = new Int16Array(Uint8Array.from(atob(`
+const SND16 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 r/+v/6X/aP98/6//vP+T/yz/JP84/0f/9gmOG8oe8Q1Y+5r2rPtIAdL+E/YQ8fAC1CJELd4lBBuk
 El8IYgI28OPE57ASuGXFjdKN6jIDGgxtDrkNHQ74E48WTRa9FvMT//yn4gXcqdjT13LjD/4RD3oZ
 biclKvEZbQXP+2Tx2Olq7Sf5YgKrAKX4EvWv9or51v1pD7YftiC8GdkTSgaV7l3km+ff7dfzEQAm
@@ -4353,9 +4341,9 @@ GJQceRMVCh0JeRAGFOEQxQsEBvvo4crqyGTY5OUc+LsbqC+lJDYM6/6a9iHwLPDK8kX25/Rm6/Xm
 TfCVAH4IpgjLBnMFwQQoBKgDjQNUAw0D3ALCAp0CWgItAhgC5QHcAb0BnwF2AUAB5gDDAKkAhQBp
 AB4ABQDT/73/kv96/z//Ff8t/yz/A/+P/r3+y/71/gP/Qv+J/0//Uf98/3z/av94/5X/qv/B/9v/
 1//q/yAA9P8KAEUAJABfAFwAOQBUAFEARAAvADQAIQA=
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const SND17 = new Int16Array(Uint8Array.from(atob(`
+const SND17 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 X/88/13/O/8yAAMEMgeBBsgEoQOlApsBzQA3AAYAiP+b+1P4TfYI8CPuougP3M7ZtduS3Vzk6fY3
 Bk8RByuTOe868TwEOP4yjTAoKfEX4AgJ+/fbz8pZxuC8/75IyJHRydsT6374CwGjEugcvybIPcJF
 PjkLJwkZ4/wn4/XbxtIX0InUfdZw28DlqvHP+a0MpR9FJaEx8DgsNn802S4xKkspMCQUEiL/n/PU
@@ -4756,9 +4744,9 @@ vfFp9OL3/AGeCswPwxy2JDkhXBpeFCMQ6QxACjwInwZnBU0EUgOhAicChAHxALYAQQAJAMn/WP8k
 /+H+mv5t/iv++f2k/XL9aP13/WL9YP00/WL9Zf1i/X/9Yf19/ZL9q/3W/fz9Kv49/mn+cf6p/oX+
 mv7T/gP/L/9a/2T/hP+l/57/3f+u/7z/5f/j/+v/6f/i//X/7P/R/9j/j/+A/2//if9t/2H/a/8+
 /0z/Mf8W/yD/AP8Q///+//7+/hH/Cf8Z/wT/HP8E/wj/Bv8r/1T/Xv8=
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const SND18 = new Int16Array(Uint8Array.from(atob(`
+const SND18 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 Vv/s/ib/L//K/gnzRuYP5/zzPP/2BN4LrQ4uD2cQiw/zD9UQzw67Cy4JmwYEBd4CnwwoIX8nWh26
 EAsD+9gkueG1p7QaujTLseDn7cjzCfd/+ugEjwyeF5U5EE0mSvRCqjjiF//wLuG7zJO+ssOgzW7X
 aeYc+y8G7QxRE2sVAibINS43bzlWOCspkg/AAH71Aup75gvdvdRA2C7g+OcY6gzm5+XI71b9AgXS
@@ -5155,9 +5143,9 @@ fQxZCr0IZAdABkoFagTqA10DDANkAt0BfgEbAfAAxgBlAPj/xP90/0j/9/7K/p3+Yv46/iv+EP7x
 /fT97f3a/bD9mP3H/cv96/0O/lT+U/56/o/+u/6u/sv+Cf80/1//kP/o/+//GwAiADIAKgD3/zMA
 VwBbAF0AfQB0AHUAVgBfACEAAAABAOv/+//j/87/wP+i/5v/pv+G/zv/QP9B/z//Pf8w/yn/Ov8r
 /0X/Tf81/2T/Yv91/4f/iP+q/7L/1P/j/+f/wP/d/+//+/8QAAkAHAApABAAEgA0AAgA
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
-const SND19 = new Int16Array(Uint8Array.from(atob(`
+const SND19 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
 kv7CCKMify+tFNHoA9kH2MvaLN9w3vfdWuztCXgb1Qgm5KDZqQD8MGM9ujegL50hfwvg/EADHhZK
 HLwBmd+W2xb4qRMoE+n74Own5B/Z4tj37N0FTw7cCyoIqQRv/3b8EvhE8THwBwsxMjE1mvc7vUG8
 qeDP+zcJqBczHYsMhPMW7Zj8mA71D3oBjvYa9IXzK/Wz96L5E/xRAAYGqQGm6jvYhvLRN1Reiy8d
@@ -5562,7 +5550,7 @@ Y/R38Y74WP23+1/3WfaF9wf5CPr0+t77Uvzd/B39b/2S/ev9Ov6H/sL+6f4K/0X/bP9//7z/rP+t
 /87/4v/6//v/AgAXABkAEAAjAA4A7P/+/woA+v/c/83/x//O/73/uf99/1j/Wv9U/2T/TP84/xP/
 Q/9B/zD/Pv8K/xv/Kv8i/xb/qf77/iL/R/9Y/7P/6f+Y/5n/vf+5/4n/hf+u/7X/yf+z/7P/wf+6
 /5v/xv/R/7T/4v/Z/73/3P+1/6z/r/+z/5H/
-`), c => c.charCodeAt(0)).buffer);
+`), c => c.charCodeAt(0))).buffer);
 
 (function () {
 	for (let i = 0, n = SND12.length; i < n; i++)

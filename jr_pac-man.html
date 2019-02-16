@@ -3,19 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Jr. Pac-Man</title>
-<style>
-html {
-	height: 100%;
-	margin: auto;
-	display: table;
-}
-body {
-	display: table-cell;
-	text-align: center;
-	vertical-align: middle;
-	background-color: gray;
-}
-</style>
+<link href="style.css" rel="stylesheet" type="text/css">
 </head>
 <body>
 <canvas id="canvas" width="224" height="288"></canvas>
@@ -262,14 +250,10 @@ class JrPacMan {
 	}
 
 	convertRGB() {
-		let RGB;
-
-		for (let i = 0; i < 0x20; i++) {
-			RGB = RGB_H[i] << 4 | RGB_L[i];
-			this.rgb[i] = (RGB & 7) * 255 / 7		// Red
-				| (RGB >>> 3 & 7) * 255 / 7 << 8	// Green
-				| (RGB >>> 6) * 255 / 3 << 16;		// Blue
-		}
+		for (let i = 0; i < 0x20; i++)
+			this.rgb[i] = ((RGB_H[i] << 4 | RGB_L[i]) & 7) * 255 / 7	// Red
+				| ((RGB_H[i] << 4 | RGB_L[i]) >>> 3 & 7) * 255 / 7 << 8	// Green
+				| ((RGB_H[i] << 4 | RGB_L[i]) >>> 6) * 255 / 3 << 16;	// Blue
 	}
 
 	convertBG() {

@@ -3,19 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Crazy Balloon</title>
-<style>
-html {
-	height: 100%;
-	margin: auto;
-	display: table;
-}
-body {
-	display: table-cell;
-	text-align: center;
-	vertical-align: middle;
-	background-color: gray;
-}
-</style>
+<link href="style.css" rel="stylesheet" type="text/css">
 </head>
 <body>
 <canvas id="canvas" width="224" height="256"></canvas>
@@ -71,7 +59,7 @@ class CrazyBalloon {
 		for (let i = 0; i < 0x100; i++) {
 			this.cpu.iomap[i].base = this.io;
 			this.cpu.iomap[i].read = (addr, game) => game.io[addr & 3];
-			this.cpu.iomap[i].write = (addr, data, game) => {
+			this.cpu.iomap[i].write = (addr, data) => {
 				switch (addr & 0xff) {
 				case 2:
 				case 3:

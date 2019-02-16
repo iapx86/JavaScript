@@ -3,19 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>DigDug</title>
-<style>
-html {
-	height: 100%;
-	margin: auto;
-	display: table;
-}
-body {
-	display: table-cell;
-	text-align: center;
-	vertical-align: middle;
-	background-color: gray;
-}
-</style>
+<link href="style.css" rel="stylesheet" type="text/css">
 </head>
 <body>
 <canvas id="canvas" width="224" height="288"></canvas>
@@ -1084,7 +1072,7 @@ class DigDug {
  *
  */
 
-const RAM = Uint8Array.from(atob(`
+const RAM = Uint8Array.from(Array.from(window.atob(`
 //f/6/9v//8T/zT/YP8o/////+f///9/3f/5/5z/Ev//f////////2f/rf/L/6L//7P///////8R
 /wL/AP/A///z/////v+/Ff9M/7j/Rv//////////78z/TP/B/7H/////7/////4m/23/Xf9x///d
 ////Pv/8DP+I/4D/Bv//z/+/////+0H/NP8I/yT//////9/9//+//y7/5f9q////////////2/+e
@@ -1229,7 +1217,7 @@ w+3fTker76tS+Ut2+d9cvmKj1eYI7qgAIyLj5tb7oiqi7cNuuul5GU+5SmJvjo7ulv2g7qaJeZrt
 e2t9wsreTtyt1na4GMl7OKo+YuCY56uH6gbm0xfKSzedkibtMjDOzqf/Zt+qD7ep96cn82S+GO+O
 bWbF3nu56qgRZi5Wbrqbu4Jmthkb/kS4subp5BS7PusiZptPhag727t2hvxskk2eXHbGx5trm5+2
 9gevKuoMxXtuPXzy2j93U0bhf+vz0Mn3JvaL7Yogp3Zmly63M5neP2Y=
-`), c => c.charCodeAt(0));
+`), c => c.charCodeAt(0)));
 
 /*
  *
