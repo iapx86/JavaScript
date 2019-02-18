@@ -396,7 +396,7 @@ class JumpBug {
 		let q = (this.ram[k] | this.ram[0xc01 + i * 2] << 10) << 6 & 0x73fc0;
 
 		if (this.mmo[4] && (this.ram[k] & 0xc0) === 0x80)
-			q = (this.ram[k] & 0x3f | this.bank << 6 & 0x1c0 | 0x200 | this.ram[0xc01 + i * 2] << 10) << 6 & 0x7ffc0;
+			q = (this.ram[k] & 0x3f | this.bank << 6 | 0x200 | this.ram[0xc01 + i * 2] << 10) << 6 & 0x7ffc0;
 		data[p + 0x000] = this.bg[q + 0x00];
 		data[p + 0x001] = this.bg[q + 0x01];
 		data[p + 0x002] = this.bg[q + 0x02];
@@ -470,7 +470,7 @@ class JumpBug {
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)
 			return;
 		if (this.mmo[4] && (src & 0x30) === 0x20)
-			src = (src << 8 & 0x0f00 | this.bank << 12) + 0x4000;
+			src = src << 8 & 0x0f00 | this.bank << 12 | 0x8000;
 		else
 			src = src << 8 & 0x3f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
