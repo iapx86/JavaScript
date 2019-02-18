@@ -45,26 +45,26 @@ class JumpBug {
 		this.psg = {addr: 0, reg: new Uint8Array(0x10).fill(0xff)};
 
 		this.cpu = new Z80(this);
-        for (let i = 0; i < 0x40; i++)
-            this.cpu.memorymap[i].base = PRG.subarray(i * 0x100);
-        for (let i = 0; i < 0x28; i++)
-            this.cpu.memorymap[0x80 + i].base = PRG.subarray(0x4000 + i * 0x100);
-        for (let i = 0; i < 0x10; i++)
-            this.cpu.memorymap[0xb0 + i].read = (addr) => {
-                switch (addr & 0xfff) {
-                case 0x0114:
-                    return 0x4f;
-                case 0x0118:
-                    return 0xd3;
-                case 0x0214:
-                    return 0xcf;
-                case 0x0235:
-                    return 0x02;
-                case 0x0311:
-                    return 0xff;
-                }
-                return 0xff;
-            };
+		for (let i = 0; i < 0x40; i++)
+			this.cpu.memorymap[i].base = PRG.subarray(i * 0x100);
+		for (let i = 0; i < 0x28; i++)
+			this.cpu.memorymap[0x80 + i].base = PRG.subarray(0x4000 + i * 0x100);
+		for (let i = 0; i < 0x10; i++)
+			this.cpu.memorymap[0xb0 + i].read = (addr) => {
+				switch (addr & 0xfff) {
+				case 0x0114:
+					return 0x4f;
+				case 0x0118:
+					return 0xd3;
+				case 0x0214:
+					return 0xcf;
+				case 0x0235:
+					return 0x02;
+				case 0x0311:
+					return 0xff;
+				}
+				return 0xff;
+			};
 		for (let i = 0; i < 8; i++) {
 			this.cpu.memorymap[0x40 + i].base = this.ram.subarray(i * 0x100);
 			this.cpu.memorymap[0x40 + i].write = null; // ramarea
@@ -84,23 +84,23 @@ class JumpBug {
 		for (let i = 0; i < 8; i++)
 			this.cpu.memorymap[0x60 + i].read = () => this.in[0];
 		this.cpu.memorymap[0x60].write = (addr, data, game) => {
-		    game.mmo[addr & 0xff] = data & 1;
-		    game.bank = game.mmo[2] | game.mmo[3] << 1 | game.mmo[6] << 2;
-        };
+			game.mmo[addr & 0xff] = data & 1;
+			game.bank = game.mmo[2] | game.mmo[3] << 1 | game.mmo[6] << 2;
+		};
 		for (let i = 0; i < 8; i++)
 			this.cpu.memorymap[0x68 + i].read = () => this.in[1];
 		for (let i = 0; i < 8; i++)
 			this.cpu.memorymap[0x70 + i].read = () => this.in[2];
 		this.cpu.memorymap[0x70].write = (addr, data, game) => {
-            switch (addr & 0x0f) {
-            case 0x01:
-                game.fInterruptEnable = data !== 0;
-                break;
-            case 0x04:
-                game.fStarEnable = data !== 0;
-                break;
-            }
-        };
+			switch (addr & 0x0f) {
+			case 0x01:
+				game.fInterruptEnable = data !== 0;
+				break;
+			case 0x04:
+				game.fStarEnable = data !== 0;
+				break;
+			}
+		};
 
 		// Videoの初期化
 		this.stars = [];
@@ -144,9 +144,9 @@ class JumpBug {
 			case 5:
 				this.in[2] |= 3;
 				break;
-            case 'INFINITE':
-            	this.in[2] &= ~3;
-            	break;
+			case 'INFINITE':
+				this.in[2] &= ~3;
+				break;
 			}
 			switch (this.nRank) {
 			case 'EASY':
@@ -250,50 +250,50 @@ class JumpBug {
 	}
 
 	convertBG() {
-        for (let p = 0, q = 0, i = 256; i !== 0; q += 8, --i)
-            for (let j = 7; j >= 0; --j)
-                for (let k = 7; k >= 0; --k)
-                    this.bg[p++] = BG[q + k + 0x1800] >>> j & 1 | BG[q + k] >>> j << 1 & 2;
-        for (let p = 0x8000, q = 0x800, i = 512; i !== 0; q += 8, --i)
-            for (let j = 7; j >= 0; --j)
-                for (let k = 7; k >= 0; --k)
-                    this.bg[p++] = BG[q + k + 0x1800] >>> j & 1 | BG[q + k] >>> j << 1 & 2;
-        for (let p = 0, i = 7; i !== 0; p += 0x10000, --i)
-            this.bg.copyWithin(p + 0x10000, p, p + 0x10000);
-        for (let p = 0, i = 0; i < 8; i++)
-            for (let j = 0x10000; j !== 0; p++, --j)
-                this.bg[p] = this.rgb[i * 4 + this.bg[p]];
+		for (let p = 0, q = 0, i = 256; i !== 0; q += 8, --i)
+			for (let j = 7; j >= 0; --j)
+				for (let k = 7; k >= 0; --k)
+					this.bg[p++] = BG[q + k + 0x1800] >>> j & 1 | BG[q + k] >>> j << 1 & 2;
+		for (let p = 0x8000, q = 0x800, i = 512; i !== 0; q += 8, --i)
+			for (let j = 7; j >= 0; --j)
+				for (let k = 7; k >= 0; --k)
+					this.bg[p++] = BG[q + k + 0x1800] >>> j & 1 | BG[q + k] >>> j << 1 & 2;
+		for (let p = 0, i = 7; i !== 0; p += 0x10000, --i)
+			this.bg.copyWithin(p + 0x10000, p, p + 0x10000);
+		for (let p = 0, i = 0; i < 8; i++)
+			for (let j = 0x10000; j !== 0; p++, --j)
+				this.bg[p] = this.rgb[i * 4 + this.bg[p]];
 	}
 
 	convertOBJ() {
-        for (let p = 0, q = 0, i = 64; i !== 0; q += 32, --i) {
-            for (let j = 7; j >= 0; --j) {
-                for (let k = 7; k >= 0; --k)
-                    this.obj[p++] = BG[q + k + 0x1800 + 16] >>> j & 1 | BG[q + k + 16] >>> j << 1 & 2;
-                for (let k = 7; k >= 0; --k)
-                    this.obj[p++] = BG[q + k + 0x1800] >>> j & 1 | BG[q + k] >>> j << 1 & 2;
-            }
-            for (let j = 7; j >= 0; --j) {
-                for (let k = 7; k >= 0; --k)
-                    this.obj[p++] = BG[q + k + 0x1800 + 24] >>> j & 1 | BG[q + k + 24] >>> j << 1 & 2;
-                for (let k = 7; k >= 0; --k)
-                    this.obj[p++] = BG[q + k + 0x1800 + 8] >>> j & 1 | BG[q + k + 8] >>> j << 1 & 2;
-            }
-        }
-        for (let p = 0x8000, q = 0x800, i = 128; i !== 0; q += 32, --i) {
-            for (let j = 7; j >= 0; --j) {
-                for (let k = 7; k >= 0; --k)
-                    this.obj[p++] = BG[q + k + 0x1800 + 16] >>> j & 1 | BG[q + k + 16] >>> j << 1 & 2;
-                for (let k = 7; k >= 0; --k)
-                    this.obj[p++] = BG[q + k + 0x1800] >>> j & 1 | BG[q + k] >>> j << 1 & 2;
-            }
-            for (let j = 7; j >= 0; --j) {
-                for (let k = 7; k >= 0; --k)
-                    this.obj[p++] = BG[q + k + 0x1800 + 24] >>> j & 1 | BG[q + k + 24] >>> j << 1 & 2;
-                for (let k = 7; k >= 0; --k)
-                    this.obj[p++] = BG[q + k + 0x1800 + 8] >>> j & 1 | BG[q + k + 8] >>> j << 1 & 2;
-            }
-        }
+		for (let p = 0, q = 0, i = 64; i !== 0; q += 32, --i) {
+			for (let j = 7; j >= 0; --j) {
+				for (let k = 7; k >= 0; --k)
+					this.obj[p++] = BG[q + k + 0x1800 + 16] >>> j & 1 | BG[q + k + 16] >>> j << 1 & 2;
+				for (let k = 7; k >= 0; --k)
+					this.obj[p++] = BG[q + k + 0x1800] >>> j & 1 | BG[q + k] >>> j << 1 & 2;
+			}
+			for (let j = 7; j >= 0; --j) {
+				for (let k = 7; k >= 0; --k)
+					this.obj[p++] = BG[q + k + 0x1800 + 24] >>> j & 1 | BG[q + k + 24] >>> j << 1 & 2;
+				for (let k = 7; k >= 0; --k)
+					this.obj[p++] = BG[q + k + 0x1800 + 8] >>> j & 1 | BG[q + k + 8] >>> j << 1 & 2;
+			}
+		}
+		for (let p = 0x8000, q = 0x800, i = 128; i !== 0; q += 32, --i) {
+			for (let j = 7; j >= 0; --j) {
+				for (let k = 7; k >= 0; --k)
+					this.obj[p++] = BG[q + k + 0x1800 + 16] >>> j & 1 | BG[q + k + 16] >>> j << 1 & 2;
+				for (let k = 7; k >= 0; --k)
+					this.obj[p++] = BG[q + k + 0x1800] >>> j & 1 | BG[q + k] >>> j << 1 & 2;
+			}
+			for (let j = 7; j >= 0; --j) {
+				for (let k = 7; k >= 0; --k)
+					this.obj[p++] = BG[q + k + 0x1800 + 24] >>> j & 1 | BG[q + k + 24] >>> j << 1 & 2;
+				for (let k = 7; k >= 0; --k)
+					this.obj[p++] = BG[q + k + 0x1800 + 8] >>> j & 1 | BG[q + k + 8] >>> j << 1 & 2;
+			}
+		}
 	}
 
 	initializeStar() {
@@ -393,10 +393,10 @@ class JumpBug {
 	}
 
 	xfer8x8(data, p, k, i) {
-	    let q = (this.ram[k] | this.ram[0xc01 + i * 2] << 10) << 6 & 0x73fc0;
+		let q = (this.ram[k] | this.ram[0xc01 + i * 2] << 10) << 6 & 0x73fc0;
 
-        if (this.mmo[4] && (this.ram[k] & 0xc0) === 0x80)
-            q = (this.ram[k] & 0x3f | this.bank << 6 & 0x1c0 | 0x200 | this.ram[0xc01 + i * 2] << 10) << 6 & 0x7ffc0;
+		if (this.mmo[4] && (this.ram[k] & 0xc0) === 0x80)
+			q = (this.ram[k] & 0x3f | this.bank << 6 & 0x1c0 | 0x200 | this.ram[0xc01 + i * 2] << 10) << 6 & 0x7ffc0;
 		data[p + 0x000] = this.bg[q + 0x00];
 		data[p + 0x001] = this.bg[q + 0x01];
 		data[p + 0x002] = this.bg[q + 0x02];
@@ -469,10 +469,10 @@ class JumpBug {
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)
 			return;
-        if (this.mmo[4] && (src & 0x30) === 0x20)
-            src = (src << 8 & 0x0f00 | this.bank << 12) + 0x4000;
-        else
-            src = src << 8 & 0x3f00;
+		if (this.mmo[4] && (src & 0x30) === 0x20)
+			src = (src << 8 & 0x0f00 | this.bank << 12) + 0x4000;
+		else
+			src = src << 8 & 0x3f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
 				if ((px = this.rgb[idx + this.obj[src++]]) !== 0)
@@ -485,10 +485,10 @@ class JumpBug {
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)
 			return;
-        if (this.mmo[4] && (src & 0x30) === 0x20)
-            src = (src << 8 & 0x0f00 | this.bank << 12 | 0x8000) + 256 - 16;
-        else
-            src = (src << 8 & 0x3f00) + 256 - 16;
+		if (this.mmo[4] && (src & 0x30) === 0x20)
+			src = (src << 8 & 0x0f00 | this.bank << 12 | 0x8000) + 256 - 16;
+		else
+			src = (src << 8 & 0x3f00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
 				if ((px = this.rgb[idx + this.obj[src++]]) !== 0)
@@ -501,10 +501,10 @@ class JumpBug {
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)
 			return;
-        if (this.mmo[4] && (src & 0x30) === 0x20)
-            src = (src << 8 & 0x0f00 | this.bank << 12 | 0x8000) + 16;
-        else
-	        src = (src << 8 & 0x3f00) + 16;
+		if (this.mmo[4] && (src & 0x30) === 0x20)
+			src = (src << 8 & 0x0f00 | this.bank << 12 | 0x8000) + 16;
+		else
+			src = (src << 8 & 0x3f00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
 				if ((px = this.rgb[idx + this.obj[--src]]) !== 0)
@@ -517,10 +517,10 @@ class JumpBug {
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)
 			return;
-        if (this.mmo[4] && (src & 0x30) === 0x20)
-            src = (src << 8 & 0x0f00 | this.bank << 12 | 0x8000) + 256;
-        else
-	        src = (src << 8 & 0x3f00) + 256;
+		if (this.mmo[4] && (src & 0x30) === 0x20)
+			src = (src << 8 & 0x0f00 | this.bank << 12 | 0x8000) + 256;
+		else
+			src = (src << 8 & 0x3f00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
 				if ((px = this.rgb[idx + this.obj[--src]]) !== 0)
@@ -538,21 +538,21 @@ const filename = 'jumpbug.zip';
 let BG, RGB, PRG;
 
 $.ajax({
-    url: filename,
-    success: function(zip) {
-        PRG = zip.files['jb1'].inflate() + zip.files['jb2'].inflate() + zip.files['jb3'].inflate() + zip.files['jb4'].inflate();
-        PRG = Uint8Array.from(PRG + zip.files['jb5'].inflate() + zip.files['jb6'].inflate() + zip.files['jb7'].inflate(), c => c.charCodeAt(0));
-        BG = zip.files['jbl'].inflate() + zip.files['jbn'].inflate() + zip.files['jbm'].inflate();
-        BG = Uint8Array.from(BG + zip.files['jbi'].inflate() + zip.files['jbk'].inflate() + zip.files['jbj'].inflate(), c => c.charCodeAt(0));
-        RGB = Uint8Array.from(zip.files['l06_prom.bin'].inflate(), c => c.charCodeAt(0));
-        game = new JumpBug();
-        sound = new AY_3_8910(1536000, game.psg.reg);
-        init();
-        loop();
-    },
-    error: function() {
-        alert(filename + ': failed to get');
-    }
+	url: filename,
+	success: function(zip) {
+		PRG = zip.files['jb1'].inflate() + zip.files['jb2'].inflate() + zip.files['jb3'].inflate() + zip.files['jb4'].inflate();
+		PRG = Uint8Array.from(PRG + zip.files['jb5'].inflate() + zip.files['jb6'].inflate() + zip.files['jb7'].inflate(), c => c.charCodeAt(0));
+		BG = zip.files['jbl'].inflate() + zip.files['jbn'].inflate() + zip.files['jbm'].inflate();
+		BG = Uint8Array.from(BG + zip.files['jbi'].inflate() + zip.files['jbk'].inflate() + zip.files['jbj'].inflate(), c => c.charCodeAt(0));
+		RGB = Uint8Array.from(zip.files['l06_prom.bin'].inflate(), c => c.charCodeAt(0));
+		game = new JumpBug();
+		sound = new AY_3_8910(1536000, game.psg.reg);
+		init();
+		loop();
+	},
+	error: function() {
+		alert(filename + ': failed to get');
+	}
 });
 
 </script>
