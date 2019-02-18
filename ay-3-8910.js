@@ -58,7 +58,7 @@ class AY_3_8910 {
 				ch.freq = freq;
 			}
 			if (vol !== ch.vol) {
-				ch.gainNode.gain.value = vol === 0 ? 0 : Math.pow(2, (15 - vol) / 2) / 10;
+				ch.gainNode.gain.value = vol === 0 ? 0 : Math.pow(2, (vol - 15) / 2) / 10;
 				ch.vol = vol;
 			}
 		}
@@ -71,7 +71,7 @@ class AY_3_8910 {
 				ch.freq = freq;
 			}
 			if (vol !== ch.vol) {
-				ch.gainNode.gain.value = vol === 0 ? 0 : Math.pow(2, (15 - vol) / 2) / 10;
+				ch.gainNode.gain.value = vol === 0 ? 0 : Math.pow(2, (vol - 15) / 2) / 10;
 				ch.vol = vol;
 			}
 		}
