@@ -8,21 +8,12 @@ const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 class AY_3_8910 {
 	constructor(clock, base) {
-		this.audioBuffer = [];
-		for (let i = 0; i < 2; i++) {
-			this.audioBuffer[i] = audioCtx.createBuffer(1, 8192, 96000);
-			const data = this.audioBuffer[i].getChannelData(0);
-			switch (i) {
-			case 0:
-				for (let j = 0; j < data.length; j++)
-					data[j] = j & 1 ? 1.0 : -1.0;
-				break;
-			case 1:
-				for (let j = 0; j < data.length; j++)
-					data[j] = Math.random() < 0.5 ? 1.0 : -1.0;
-				break;
-			}
-		}
+		this.toneBuffer = audioCtx.createBuffer(1, 2, 96000);
+		this.toneBuffer.getChannelData(0).set([1, -1]);
+		this.noiseBuffer = audioCtx.createBuffer(1, 8192, 96000);
+		const data = this.noiseBuffer.getChannelData(0);
+		for (let i = 0; i < data.length; i++)
+			data[i] = Math.random() < 0.5 ? 1.0 : -1.0;
 		this.rate = clock / 8 / 96000;
 		this.base = base;
 		this.gainNode = audioCtx.createGain();
@@ -43,7 +34,7 @@ class AY_3_8910 {
 				this.audioBufferSource.playbackRate.value = 0;
 				this.audioBufferSource.connect(this.gainNode);
 				this.audioBufferSource.start();
-			})(this.merger, this.audioBuffer[i < 3 ? 0 : 1]);
+			})(this.merger, i < 3 ? this.toneBuffer : this.noiseBuffer);
 		}
 	}
 
