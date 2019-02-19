@@ -10,10 +10,13 @@ class AY_3_8910 {
 	constructor(clock, base) {
 		this.toneBuffer = audioCtx.createBuffer(1, 2, 96000);
 		this.toneBuffer.getChannelData(0).set([1, -1]);
-		this.noiseBuffer = audioCtx.createBuffer(1, 8192, 96000);
+		this.noiseBuffer = audioCtx.createBuffer(1, 131071, 96000);
 		const data = this.noiseBuffer.getChannelData(0);
-		for (let i = 0; i < data.length; i++)
-			data[i] = Math.random() < 0.5 ? 1.0 : -1.0;
+		let rng = 0xffff;
+		for (let i = 0; i < data.length; i++) {
+			rng = (rng >>> 16 ^ rng >>> 13 ^ 1) & 1 | rng << 1;
+			data[i] = rng & 1 ? 1 : -1;
+		}
 		this.rate = clock / 8 / 96000;
 		this.base = base;
 		this.gainNode = audioCtx.createGain();
