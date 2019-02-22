@@ -59,17 +59,12 @@ class MoonCresta {
 		for (let i = 0; i < 8; i++) {
 			this.cpu.memorymap[0x98 + i].base = this.ram.subarray(0x800);
 			this.cpu.memorymap[0x98 + i].write = null; // ramarea
-		}
-		for (let i = 0; i < 8; i++)
 			this.cpu.memorymap[0xa0 + i].read = () => this.in[0];
-		for (let i = 0; i < 8; i++)
 			this.cpu.memorymap[0xa0 + i].write = (addr, data, game) => {
 				game.mmo[addr & 7] = data & 1;
 				game.bank = game.mmo[0] | game.mmo[1] << 1;
 			};
-		for (let i = 0; i < 8; i++)
 			this.cpu.memorymap[0xa8 + i].read = () => this.in[1];
-		for (let i = 0; i < 8; i++)
 			this.cpu.memorymap[0xa8 + i].write = (addr, data, game) => {
 				switch (addr & 7) {
 				case 3: // BOMB
@@ -87,11 +82,9 @@ class MoonCresta {
 				}
 				game.mmo[addr & 7 | 0x10] = data & 1;
 			};
-		for (let i = 0; i < 8; i++)
 			this.cpu.memorymap[0xb0 + i].read = () => this.in[2];
-		for (let i = 0; i < 8; i++)
 			this.cpu.memorymap[0xb0 + i].write = (addr, data, game) => {
-				switch (addr & 0x07) {
+				switch (addr & 7) {
 				case 0:
 					game.fInterruptEnable = data !== 0;
 					break;
@@ -103,8 +96,8 @@ class MoonCresta {
 				}
 				game.mmo[addr & 7 | 0x20] = data & 1;
 			};
-		for (let i = 0; i < 8; i++)
 			this.cpu.memorymap[0xb8 + i].write = (addr, data, game) => game.mmo[0x30] = data;
+		}
 
 		// Videoの初期化
 		this.stars = [];

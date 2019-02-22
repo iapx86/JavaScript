@@ -81,42 +81,41 @@ class JumpBug {
 		}
 		this.cpu.memorymap[0x58].write = (addr, data) => this.psg.reg[this.psg.addr] = data;
 		this.cpu.memorymap[0x59].write = (addr, data) => this.psg.addr = data & 0x0f;
-		for (let i = 0; i < 8; i++)
+		for (let i = 0; i < 8; i++) {
 			this.cpu.memorymap[0x60 + i].read = () => this.in[0];
-		this.cpu.memorymap[0x60].write = (addr, data, game) => {
-			game.mmo[addr & 0xff] = data & 1;
-			game.bank = game.mmo[2] | game.mmo[3] << 1 | game.mmo[6] << 2;
-		};
-		for (let i = 0; i < 8; i++)
+			this.cpu.memorymap[0x60 + i].write = (addr, data, game) => {
+				game.mmo[addr & 0xff] = data & 1;
+				game.bank = game.mmo[2] | game.mmo[3] << 1 | game.mmo[6] << 2;
+			};
 			this.cpu.memorymap[0x68 + i].read = () => this.in[1];
-		this.cpu.memorymap[0x68].write = (addr, data, game) => {
-			switch (addr & 0x0f) {
-			case 0x03: // BOMB
-				if (data)
-					game.se[0].start = true;
-				else
-					game.se[0].stop = true;
-				break;
-			case 0x05: // SHOT
-				if (data)
-					game.se[1].start = true;
-				else
-					game.se[1].stop = true;
-				break;
-			}
-		};
-		for (let i = 0; i < 8; i++)
+			this.cpu.memorymap[0x68 + i].write = (addr, data, game) => {
+				switch (addr & 7) {
+				case 3: // BOMB
+					if (data)
+						game.se[0].start = true;
+					else
+						game.se[0].stop = true;
+					break;
+				case 5: // SHOT
+					if (data)
+						game.se[1].start = true;
+					else
+						game.se[1].stop = true;
+					break;
+				}
+			};
 			this.cpu.memorymap[0x70 + i].read = () => this.in[2];
-		this.cpu.memorymap[0x70].write = (addr, data, game) => {
-			switch (addr & 0x0f) {
-			case 0x01:
-				game.fInterruptEnable = data !== 0;
-				break;
-			case 0x04:
-				game.fStarEnable = data !== 0;
-				break;
-			}
-		};
+			this.cpu.memorymap[0x70 + i].write = (addr, data, game) => {
+				switch (addr & 7) {
+				case 1:
+					game.fInterruptEnable = data !== 0;
+					break;
+				case 4:
+					game.fStarEnable = data !== 0;
+					break;
+				}
+			};
+		}
 
 		// Videoの初期化
 		this.stars = [];
