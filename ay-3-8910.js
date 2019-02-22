@@ -8,16 +8,17 @@ const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 class AY_3_8910 {
 	constructor(clock, base) {
-		this.toneBuffer = audioCtx.createBuffer(1, 2, 96000);
-		this.toneBuffer.getChannelData(0).set([1, -1]);
-		this.noiseBuffer = audioCtx.createBuffer(1, 131071, 96000);
-		const data = this.noiseBuffer.getChannelData(0);
-		let rng = 0xffff;
-		for (let i = 0; i < data.length; i++) {
-			rng = (rng >>> 16 ^ rng >>> 13 ^ 1) & 1 | rng << 1;
+		const sampleRate = 96000, repeat = 16;
+		this.toneBuffer = audioCtx.createBuffer(1, 2 * repeat, sampleRate);
+		for (let data = this.toneBuffer.getChannelData(0), i = 0; i < data.length; i++)
+			data[i] = i < repeat ? 1 : -1;
+		this.noiseBuffer = audioCtx.createBuffer(1, 131071 * repeat, sampleRate);
+		for (let data = this.noiseBuffer.getChannelData(0), rng = 0xffff, i = 0; i < data.length; i++) {
+			if (i % repeat === 0)
+				rng = (rng >>> 16 ^ rng >>> 13 ^ 1) & 1 | rng << 1;
 			data[i] = rng & 1 ? 1 : -1;
 		}
-		this.rate = clock / 8 / 96000;
+		this.rate = clock / 8 * repeat / sampleRate;
 		this.base = base;
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.connect(audioCtx.destination);
@@ -45,7 +46,7 @@ class AY_3_8910 {
 		const base = this.base;
 		for (let i = 0; i < 3; i++) {
 			const freq = base[i * 2] | base[i * 2 + 1] << 8 & 0xf00;
-			const vol = base[7] & 1 << i || base[i + 8] & 0x10 ? 0 : base[i + 8] & 0x0f;
+			const vol = (base[7] & 1 << i) !== 0 ? 0 : (base[i + 8] & 0x10) !== 0 ? 13 : base[i + 8] & 0x0f;
 			const ch = this.channel[i];
 			if (freq !== ch.freq) {
 				ch.audioBufferSource.playbackRate.value = this.rate / (freq === 0 ? 1 : freq);
@@ -58,7 +59,7 @@ class AY_3_8910 {
 		}
 		for (let i = 3; i < 6; i++) {
 			const freq = base[6] & 0x1f;
-			const vol = base[7] & 1 << i || base[i + 5] & 0x10 ? 0 : base[i + 5] & 0x0f;
+			const vol = (base[7] & 1 << i) !== 0 ? 0 : (base[i + 5] & 0x10) !== 0 ? 13 : base[i + 5] & 0x0f;
 			const ch = this.channel[i];
 			if (freq !== ch.freq) {
 				ch.audioBufferSource.playbackRate.value = this.rate / 2 / (freq === 0 ? 1 : freq);
