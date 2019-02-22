@@ -91,18 +91,18 @@ class JumpBug {
 			this.cpu.memorymap[0x68 + i].read = () => this.in[1];
 		this.cpu.memorymap[0x68].write = (addr, data, game) => {
 			switch (addr & 0x0f) {
-            case 0x03: // BOMB
-                if (data)
-                    game.se[0].start = true;
-                else
+			case 0x03: // BOMB
+				if (data)
+					game.se[0].start = true;
+				else
 					game.se[0].stop = true;
-                break;
-            case 0x05: // SHOT
-                if (data)
-                    game.se[1].start = true;
-                else
+				break;
+			case 0x05: // SHOT
+				if (data)
+					game.se[1].start = true;
+				else
 					game.se[1].stop = true;
-                break;
+				break;
 			}
 		};
 		for (let i = 0; i < 8; i++)
