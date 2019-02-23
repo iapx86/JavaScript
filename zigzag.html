@@ -319,7 +319,7 @@ class ZigZag {
 		}
 
 		// obj 描画
-		for (let k = 0x840, i = 8; i !== 0; k += 4, --i) {
+		for (let k = 0x840, i = 16; i !== 0; k += 4, --i) {
 			const x = this.ram[k];
 			const y = this.ram[k + 3] + 16;
 			switch (this.ram[k + 1] & 0xc0) {
@@ -501,7 +501,7 @@ class ZigZag {
  */
 
 const filename = 'zigzagb.zip';
-let BG, RGB, PRG;
+let BG, OBJ, RGB, PRG;
 
 $.ajax({
 	url: filename,
