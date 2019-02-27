@@ -1642,7 +1642,7 @@ $.ajax({
 		SND = Uint8Array.from(zip.files['rx1-5.3p'].inflate(), c => c.charCodeAt(0));
 		rotate = true;
 		game = new RallyX();
-		sound = new PacManSound(SND, game.mmo.subarray(0x100), game.se);
+		sound = new PacManSound(SND, game.mmo.subarray(0x100), null, game.se);
 		init();
 		loop();
 	},

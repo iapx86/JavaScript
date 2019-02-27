@@ -61,6 +61,7 @@ class Bosconian {
 		this.ram = new Uint8Array(0x1800).fill(0xff);
 		this.mmi = new Uint8Array(0x200).fill(0xff);
 		this.mmo = new Uint8Array(0x100);
+		this.mmo0 = new Uint8Array(0x100);
 		this.starport = new Uint8Array(0x100);
 		this.keyport = new Uint8Array(0x100);
 		this.scoreport = new Uint8Array(0x100);
@@ -510,6 +511,7 @@ class Bosconian {
 				this.cpu[1].non_maskable_interrupt();	// DMA INTERRUPT
 			Cpu.multiple_execute(this.cpu, 32);
 		}
+		this.mmo0.set(this.mmo);
 		this.cpu[2].non_maskable_interrupt();			// SOUND INTERRUPT
 		for (let i = 0; i < 64; i++) {
 			if (this.fNmiEnable0)
@@ -5592,7 +5594,7 @@ $.ajax({
 		SND = Uint8Array.from(zip.files['bos1-1.1d'].inflate(), c => c.charCodeAt(0));
 		rotate = true;
 		game = new Bosconian();
-		sound = new PacManSound(SND, game.mmo, game.se);
+		sound = new PacManSound(SND, game.mmo0, game.mmo, game.se);
 		init();
 		loop();
 	},
