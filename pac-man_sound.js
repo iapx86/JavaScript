@@ -61,7 +61,7 @@ class PacManSound {
 		let voice, freq, vol;
 
 		for (let i = 0; i < 3; i++) {
-			[voice, freq, vol] = this.getParameter(this.base, i);
+			[voice, freq, vol] = PacManSound.getParameter(this.base, i);
 			const ch = this.channel[i];
 			if (voice !== ch.voice) {
 				ch.gainNode[ch.voice].gain.cancelScheduledValues(now);
@@ -90,7 +90,7 @@ class PacManSound {
 		}
 		if (this.base2 !== null)
 			for (let i = 0; i < 3; i++) {
-				[voice, freq, vol] = this.getParameter(this.base2, i);
+				[voice, freq, vol] = PacManSound.getParameter(this.base2, i);
 				const ch = this.channel[i];
 				if (voice !== ch.voice) {
 					ch.gainNode[ch.voice].gain.setValueAtTime(0, nextTime);
@@ -130,7 +130,7 @@ class PacManSound {
 		}
 	}
 
-	getParameter(base, index) {
+	static getParameter(base, index) {
 		let voice, freq, vol;
 
 		switch (index) {
