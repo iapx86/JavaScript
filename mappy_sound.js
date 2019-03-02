@@ -22,22 +22,27 @@ class MappySound {
 		this.merger = audioCtx.createChannelMerger(1);
 		this.merger.connect(this.gainNode);
 		this.channel = [];
-		for (let i = 0; i < 8; i++) {
+		for (let i = 0; i < 8; i++)
 			this.channel[i] = new (function (dst, buf) {
 				this.voice = 0;
 				this.freq = 0;
 				this.vol = 0;
-				this.gainNode = audioCtx.createGain();
-				this.gainNode.gain.value = 0;
-				this.gainNode.connect(dst);
-				this.audioBufferSource = audioCtx.createBufferSource();
-				this.audioBufferSource.buffer = buf;
-				this.audioBufferSource.loop = true;
-				this.audioBufferSource.playbackRate.value = 0;
-				this.audioBufferSource.connect(this.gainNode);
-				this.audioBufferSource.start();
-			})(this.merger, this.audioBuffer[0]);
-		}
+				this.gainNode = [];
+				this.audioBufferSource = [];
+				this.merger = audioCtx.createChannelMerger(1);
+				this.merger.connect(dst);
+				for (let i = 0; i < 8; i++) {
+					this.gainNode[i] = audioCtx.createGain();
+					this.gainNode[i].gain.value = 0;
+					this.gainNode[i].connect(this.merger);
+					this.audioBufferSource[i] = audioCtx.createBufferSource();
+					this.audioBufferSource[i].buffer = buf[i];
+					this.audioBufferSource[i].loop = true;
+					this.audioBufferSource[i].playbackRate.value = 0;
+					this.audioBufferSource[i].connect(this.gainNode[i]);
+					this.audioBufferSource[i].start();
+				}
+			})(this.merger, this.audioBuffer);
 		for (let i = 0; i < se.length; i++) {
 			const n = se[i].buf.length;
 			se[i].audioBuffer = audioCtx.createBuffer(1, n, 48000);
@@ -57,22 +62,21 @@ class MappySound {
 			const vol = base[r + 3] & 0x0f;
 			const ch = this.channel[i];
 			if (voice !== ch.voice) {
-				ch.audioBufferSource.stop();
-				ch.audioBufferSource = audioCtx.createBufferSource();
-				ch.audioBufferSource.buffer = this.audioBuffer[voice];
-				ch.audioBufferSource.loop = true;
-				ch.audioBufferSource.playbackRate.value = freq / (1 << 16);
-				ch.audioBufferSource.connect(ch.gainNode);
-				ch.audioBufferSource.start();
+				ch.gainNode[ch.voice].gain.value = 0;
+				ch.audioBufferSource[voice].playbackRate.value = freq / (1 << 16);
+				ch.gainNode[voice].gain.value = freq > 0 ? vol / (15 * 10) : 0;
 				ch.voice = voice;
 				ch.freq = freq;
+				ch.vol = vol;
 			}
 			else if (freq !== ch.freq) {
-				ch.audioBufferSource.playbackRate.value = freq / (1 << 16);
+				ch.audioBufferSource[voice].playbackRate.value = freq / (1 << 16);
+				ch.gainNode[voice].gain.value = freq > 0 ? vol / (15 * 10) : 0;
 				ch.freq = freq;
+				ch.vol = vol;
 			}
-			if (vol !== ch.vol) {
-				ch.gainNode.gain.value = vol / (15 * 10);
+			else if (vol !== ch.vol) {
+				ch.gainNode[voice].gain.value = freq > 0 ? vol / (15 * 10) : 0;
 				ch.vol = vol;
 			}
 		}
