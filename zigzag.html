@@ -41,7 +41,7 @@ class ZigZag {
 
 		this.ram = new Uint8Array(0x900);
 		this.in = new Uint8Array([0, 0, 2]);
-		this.psg = {latch: 0, addr: 0, reg: new Uint8Array(0x10).fill(0xff)};
+		this.psg = [{latch: 0, addr: 0, reg: new Uint8Array(0x10).fill(0xff)}];
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x40; i++)
@@ -59,18 +59,18 @@ class ZigZag {
 		for (let i = 0; i < 8; i++) {
 			this.cpu.memorymap[0x58 + i].base = this.ram.subarray(0x800);
 			this.cpu.memorymap[0x58 + i].write = null; // ramarea
-			this.cpu.memorymap[0x48 + i].write = (addr, data, game) => {
+			this.cpu.memorymap[0x48 + i].write = (addr) => {
 				switch (addr & 0x0300) {
 				case 0x0000:
 					if ((addr & 1) === 0)
 						break;
 					if ((addr & 2) === 0)
-						game.psg.reg[game.psg.addr] = game.psg.latch;
+						this.psg[0].reg[this.psg[0].addr] = this.psg[0].latch;
 					else
-						game.psg.addr = game.psg.latch & 0x0f;
+						this.psg[0].addr = this.psg[0].latch & 0x0f;
 					break;
 				case 0x0100:
-					game.psg.latch = addr & 0xff;
+					this.psg[0].latch = addr & 0xff;
 					break;
 				}
 			};
@@ -511,7 +511,7 @@ $.ajax({
 		OBJ = Uint8Array.from(Array.from(zip.files['zz_6.1h'].inflate().substring(0x800) + zip.files['zz_5.1k'].inflate().substring(0x800), c => c.charCodeAt(0)));
 		RGB = Uint8Array.from(zip.files['zzbpr_e9.bin'].inflate(), c => c.charCodeAt(0));
 		game = new ZigZag();
-		sound = new AY_3_8910(3072000, game.psg.reg);
+		sound = new AY_3_8910(3072000, game.psg);
 		init();
 		loop();
 	},

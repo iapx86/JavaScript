@@ -42,7 +42,8 @@ class Frogger {
 		this.ppi0 = new Uint8Array([0xff, 0xfc, 0xf1, 0]);
 		this.ppi1 = new Uint8Array(4);
 		this.ram2 = new Uint8Array(0x400);
-		this.psg = {addr: 0, reg: new Uint8Array(0x10).fill(0xff)};
+		this.psg = [{que: '', addr: 0, reg: new Uint8Array(0x10).fill(0xff), tmp: new Uint8Array(0x10).fill(0xff)}];
+		this.count = 0;
 		this.hibit = 0;
 		this.cycles = 0;
 		this.command = '';
@@ -105,12 +106,14 @@ class Frogger {
 			this.cpu2.memorymap[0x5c + i].write = null; // ramarea
 		}
 		for (let i = 0; i < 0x100; i++) {
-			this.cpu2.iomap[i].read = (addr, game) => (addr & 0x40) !== 0 ? game.psg.reg[game.psg.addr] : 0xff;
-			this.cpu2.iomap[i].write = (addr, data, game) => {
-				if ((addr & 0x40) !== 0)
-					game.psg.reg[game.psg.addr] = data;
+			this.cpu2.iomap[i].read = (addr) => (addr & 0x40) !== 0 ? this.psg[0].tmp[this.psg[0].addr] : 0xff;
+			this.cpu2.iomap[i].write = (addr, data) => {
+				if ((addr & 0x40) !== 0) {
+					this.psg[0].tmp[this.psg[0].addr] = data;
+					this.psg[0].que += String.fromCharCode(this.count, this.psg[0].addr, data);
+				}
 				else if ((addr & 0x80) !== 0)
-					game.psg.addr = data & 0x0f;
+					this.psg[0].addr = data & 0x0f;
 			};
 		}
 
@@ -128,17 +131,18 @@ class Frogger {
 			this.cpu.non_maskable_interrupt();
 		this.cpu.execute(0x2000);
 		for (let i = 0; i < 116; i++) { // 14318181 / 60 / 2048
+			this.count = i;
 			if (this.command !== '' && this.cpu2.iff === 3) {
-				this.psg.reg[0x0e] = this.command.charCodeAt(0);
+				this.psg[0].tmp[0x0e] = this.command.charCodeAt(0);
 				this.cpu2.interrupt(0xff);
 				this.command = this.command.substring(1);
 			}
+			this.psg[0].tmp[0x0f] = this.hibit << 7 | this.cycles << 3 & 0x40 | 0x20 | this.cycles << 4 & 0x10 |  this.cycles << 1 & 8 | 6;
 			this.cpu2.execute(36);
 			if (++this.cycles >= 10) {
 				this.hibit ^= 1;
 				this.cycles = 0;
 			}
-			this.psg.reg[0x0f] = this.hibit << 7 | this.cycles << 3 & 0x40 | 0x20 | this.cycles << 4 & 0x10 |  this.cycles << 1 & 8 | 6;
 		}
 		return this;
 	}
@@ -506,7 +510,7 @@ $.ajax({
 		RGB = Uint8Array.from(zip.files['pr-91.6l'].inflate(), c => c.charCodeAt(0));
 		Frogger.decodeROM();
 		game = new Frogger();
-		sound = new AY_3_8910(14318181 / 8, game.psg.reg);
+		sound = new AY_3_8910(14318181 / 8, game.psg, 116);
 		init();
 		loop();
 	},

@@ -42,7 +42,7 @@ class JumpBug {
 		this.ram = new Uint8Array(0xd00);
 		this.mmo = new Uint8Array(0x100);
 		this.in = new Uint8Array([0, 0, 1]);
-		this.psg = {addr: 0, reg: new Uint8Array(0x10).fill(0xff)};
+		this.psg = [{addr: 0, reg: new Uint8Array(0x10).fill(0xff)}];
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x40; i++)
@@ -79,8 +79,8 @@ class JumpBug {
 			this.cpu.memorymap[0x50 + i].base = this.ram.subarray(0xc00);
 			this.cpu.memorymap[0x50 + i].write = null; // ramarea
 		}
-		this.cpu.memorymap[0x58].write = (addr, data) => this.psg.reg[this.psg.addr] = data;
-		this.cpu.memorymap[0x59].write = (addr, data) => this.psg.addr = data & 0x0f;
+		this.cpu.memorymap[0x58].write = (addr, data) => this.psg[0].reg[this.psg[0].addr] = data;
+		this.cpu.memorymap[0x59].write = (addr, data) => this.psg[0].addr = data & 0x0f;
 		for (let i = 0; i < 8; i++) {
 			this.cpu.memorymap[0x60 + i].read = () => this.in[0];
 			this.cpu.memorymap[0x60 + i].write = (addr, data, game) => {
@@ -2329,7 +2329,7 @@ $.ajax({
 		BG = Uint8Array.from(BG + zip.files['jbi'].inflate() + zip.files['jbk'].inflate() + zip.files['jbj'].inflate(), c => c.charCodeAt(0));
 		RGB = Uint8Array.from(zip.files['l06_prom.bin'].inflate(), c => c.charCodeAt(0));
 		game = new JumpBug();
-		sound = new AY_3_8910(1536000, game.psg.reg, game.se);
+		sound = new AY_3_8910(1536000, game.psg, 0, game.se);
 		init();
 		loop();
 	},
