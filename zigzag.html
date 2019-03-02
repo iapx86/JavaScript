@@ -77,10 +77,10 @@ class ZigZag {
 			this.cpu.memorymap[0x60 + i].read = () => this.in[0];
 			this.cpu.memorymap[0x68 + i].read = () => this.in[1];
 			this.cpu.memorymap[0x70 + i].read = () => this.in[2];
-			this.cpu.memorymap[0x70 + i].write = (addr, data, game) => {
+			this.cpu.memorymap[0x70 + i].write = (addr, data) => {
 				switch (addr & 7) {
 				case 0x01:
-					game.fInterruptEnable = data !== 0;
+					this.fInterruptEnable = data !== 0;
 					break;
 				case 0x02:
 					if ((data & 1) === 0)
@@ -95,7 +95,7 @@ class ZigZag {
 						}
 					break;
 				case 0x04:
-					game.fStarEnable = data !== 0;
+					this.fStarEnable = data !== 0;
 					break;
 				}
 			};

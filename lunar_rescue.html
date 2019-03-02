@@ -50,26 +50,26 @@ class LunarRescue {
 		}
 		for (let i = 0; i < 0x100; i++) {
 			this.cpu.iomap[i].base = this.io;
-			this.cpu.iomap[i].write = (addr, data, game) => {
+			this.cpu.iomap[i].write = (addr, data) => {
 				switch (addr & 0xff) {
 				case 0x00:
 				case 0x01:
 				case 0x02:
-					game.shifter.shift = data & 7;
+					this.shifter.shift = data & 7;
 					break;
 				case 0x03:
 //					check_sound3(this, data);
-					game.screen_red = (data & 4) !== 0;
+					this.screen_red = (data & 4) !== 0;
 					break;
 				case 0x04:
-					game.io[3] = (data << game.shifter.shift | game.shifter.reg >>> (8 - game.shifter.shift)) & 0xff;
-					game.shifter.reg = data;
+					this.io[3] = (data << this.shifter.shift | this.shifter.reg >>> (8 - this.shifter.shift)) & 0xff;
+					this.shifter.reg = data;
 					break;
 				case 0x05:
 //					check_sound5(this, data);
 					break;
 				default:
-					game.io[addr & 0xff] = data;
+					this.io[addr & 0xff] = data;
 					break;
 				}
 			};

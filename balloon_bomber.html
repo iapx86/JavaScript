@@ -50,7 +50,7 @@ class BalloonBomber {
 		}
 		for (let i = 0; i < 0x100; i++) {
 			this.cpu.iomap[i].base = this.io;
-			this.cpu.iomap[i].write = (addr, data, game) => {
+			this.cpu.iomap[i].write = (addr, data) => {
 				switch (addr & 0xff) {
 				case 0x00:
 				case 0x01:
@@ -62,7 +62,7 @@ class BalloonBomber {
 					this.screen_red = (data & 4) !== 0;
 					break;
 				case 0x04:
-					this.io[3] = (data << game.shifter.shift | game.shifter.reg >>> (8 - game.shifter.shift)) & 0xff;
+					this.io[3] = (data << this.shifter.shift | this.shifter.reg >>> (8 - this.shifter.shift)) & 0xff;
 					this.shifter.reg = data;
 					break;
 				case 0x05:
