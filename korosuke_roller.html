@@ -534,27 +534,28 @@ class KorosukeRoller {
  *
  */
 
-const filename = 'korosuke.zip';
+const filename1 = 'korosuke.zip';
+const filename2 = 'crush.zip';
 let BG, COLOR, OBJ, RGB, PRG, SND;
 
-$.ajax({
-	url: filename,
-	success: function(zip) {
-		PRG = Uint8Array.from(zip.files['kr.6e'].inflate() + zip.files['kr.6f'].inflate() + zip.files['kr.6h'].inflate() + zip.files['kr.6j'].inflate(), c => c.charCodeAt(0));
-		BG = Uint8Array.from(zip.files['kr.5e'].inflate(), c => c.charCodeAt(0));
-		OBJ = Uint8Array.from(zip.files['kr.5f'].inflate(), c => c.charCodeAt(0));
-		RGB = Uint8Array.from(zip.files['82s123.7f'].inflate(), c => c.charCodeAt(0));
-		COLOR = Uint8Array.from(zip.files['2s140.4a'].inflate(), c => c.charCodeAt(0));
-		SND = Uint8Array.from(zip.files['82s126.1m'].inflate(), c => c.charCodeAt(0));
-		game = new KorosukeRoller();
-		sound = new PacManSound(SND, game.sound);
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename1,	success: onFile1Success, error: function() { alert(filename1 + ': failed to get'); }});
+
+function onFile1Success(zip) {
+	PRG = Uint8Array.from(zip.files['kr.6e'].inflate() + zip.files['kr.6f'].inflate() + zip.files['kr.6h'].inflate() + zip.files['kr.6j'].inflate(), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['kr.5e'].inflate(), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from(zip.files['kr.5f'].inflate(), c => c.charCodeAt(0));
+	$.ajax({url: filename2, success: onFile2Success, error: function() { alert(filename2 + ': failed to get'); }});
+}
+
+function onFile2Success(zip) {
+	RGB = Uint8Array.from(zip.files['82s123.7f'].inflate(), c => c.charCodeAt(0));
+	COLOR = Uint8Array.from(zip.files['2s140.4a'].inflate(), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['82s126.1m'].inflate(), c => c.charCodeAt(0));
+	game = new KorosukeRoller();
+	sound = new PacManSound(SND, game.sound);
+	init();
+	loop();
+}
 
 </script>
 </body>
