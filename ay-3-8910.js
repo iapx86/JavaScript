@@ -153,7 +153,7 @@ class AY_3_8910 {
 			se.stop = false;
 		}
 	}
-	
+
 	static getToneParameter(base, index) {
 		const freq = base[index * 2] | base[index * 2 + 1] << 8 & 0xf00;
 		const vol = (base[7] & 1 << index) !== 0 ? 0 : (base[index + 8] & 0x10) !== 0 ? 13 : base[index + 8] & 0x0f;

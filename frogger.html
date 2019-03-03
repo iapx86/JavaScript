@@ -64,9 +64,9 @@ class Frogger {
 		for (let i = 0; i < 8; i++) {
 			this.cpu.memorymap[0xb0 + i].base = this.ram.subarray(0xc00);
 			this.cpu.memorymap[0xb0 + i].write = null; // ramarea
-			this.cpu.memorymap[0xb8].write = (addr, data, game) => {
+			this.cpu.memorymap[0xb8].write = (addr, data) => {
 				if ((addr & 0x1c) === 8)
-					game.fInterruptEnable = data !== 0;
+					this.fInterruptEnable = data !== 0;
 			};
 		}
 		for (let i = 0; i < 0x40; i++) {
