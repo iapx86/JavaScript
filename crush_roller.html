@@ -109,7 +109,7 @@ class CrushRoller {
 					this.sound[addr & 0x1f] = data & 0x0f;
 					break;
 				case 0x60:
-					this.ram[0xc60 + (addr & 0x1f)] = data;
+					this.ram[0xc60 + (addr & 0x0f)] = data;
 					break;
 				}
 			};
@@ -176,10 +176,10 @@ class CrushRoller {
 		// クレジット/スタートボタン処理
 		if (this.fCoin) {
 			--this.fCoin;
-			this.in[0] &= ~(1 << 7);
+			this.in[0] &= ~(1 << 5);
 		}
 		else
-			this.in[0] |= 1 << 7;
+			this.in[0] |= 1 << 5;
 		if (this.fStart1P) {
 			--this.fStart1P;
 			this.in[1] &= ~(1 << 5);
