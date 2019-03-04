@@ -38,7 +38,7 @@ class KorosukeRoller {
 		// CPU周りの初期化
 		this.ram = new Uint8Array(0xd00);
 		this.sound = new Uint8Array(0x20);
-		this.in = new Uint8Array([0xef, 0x6f, 0x31, 0xff]);
+		this.in = new Uint8Array([0xef, 0x6f, 0x31, 0x00]);
 		this.vector = 0;
 		this.fInterruptEnable = false;
 		this.fSoundEnable = false;
@@ -115,7 +115,7 @@ class KorosukeRoller {
 			};
 		}
 		for (let i = 0; i < 0x100; i++)
-			this.cpu.iomap[i].write = (addr) => {
+			this.cpu.iomap[i].write = (addr, data) => {
 				if ((addr & 0xff) === 0)
 					this.vector = data;
 			};
@@ -538,16 +538,16 @@ const filename1 = 'korosuke.zip';
 const filename2 = 'crush.zip';
 let BG, COLOR, OBJ, RGB, PRG, SND;
 
-$.ajax({url: filename1,	success: onFile1Success, error: function() { alert(filename1 + ': failed to get'); }});
+$.ajax({url: filename1, success: success1, error: () => alert(filename1 + ': failed to get')});
 
-function onFile1Success(zip) {
+function success1(zip) {
 	PRG = Uint8Array.from(zip.files['kr.6e'].inflate() + zip.files['kr.6f'].inflate() + zip.files['kr.6h'].inflate() + zip.files['kr.6j'].inflate(), c => c.charCodeAt(0));
 	BG = Uint8Array.from(zip.files['kr.5e'].inflate(), c => c.charCodeAt(0));
 	OBJ = Uint8Array.from(zip.files['kr.5f'].inflate(), c => c.charCodeAt(0));
-	$.ajax({url: filename2, success: onFile2Success, error: function() { alert(filename2 + ': failed to get'); }});
+	$.ajax({url: filename2, success: success2, error: () => alert(filename2 + ': failed to get')});
 }
 
-function onFile2Success(zip) {
+function success2(zip) {
 	RGB = Uint8Array.from(zip.files['82s123.7f'].inflate(), c => c.charCodeAt(0));
 	COLOR = Uint8Array.from(zip.files['2s140.4a'].inflate(), c => c.charCodeAt(0));
 	SND = Uint8Array.from(zip.files['82s126.1m'].inflate(), c => c.charCodeAt(0));

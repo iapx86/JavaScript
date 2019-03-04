@@ -38,7 +38,7 @@ class CrushRoller {
 		// CPU周りの初期化
 		this.ram = new Uint8Array(0xd00);
 		this.sound = new Uint8Array(0x20);
-		this.in = new Uint8Array([0xef, 0x6f, 0x31, 0xff]);
+		this.in = new Uint8Array([0xef, 0x6f, 0x31, 0x00]);
 		this.vector = 0;
 		this.fInterruptEnable = false;
 		this.fSoundEnable = false;
@@ -115,7 +115,7 @@ class CrushRoller {
 			};
 		}
 		for (let i = 0; i < 0x100; i++)
-			this.cpu.iomap[i].write = (addr) => {
+			this.cpu.iomap[i].write = (addr, data) => {
 				if ((addr & 0xff) === 0)
 					this.vector = data;
 			};
@@ -533,24 +533,20 @@ class CrushRoller {
 const filename = 'crush.zip';
 let BG, COLOR, OBJ, RGB, PRG, SND;
 
-$.ajax({
-	url: filename,
-	success: function(zip) {
-		PRG = Uint8Array.from(zip.files['crushkrl.6e'].inflate() + zip.files['crushkrl.6f'].inflate() + zip.files['crushkrl.6h'].inflate() + zip.files['crushkrl.6j'].inflate(), c => c.charCodeAt(0));
-		BG = Uint8Array.from(zip.files['maketrax.5e'].inflate(), c => c.charCodeAt(0));
-		OBJ = Uint8Array.from(zip.files['maketrax.5f'].inflate(), c => c.charCodeAt(0));
-		RGB = Uint8Array.from(zip.files['82s123.7f'].inflate(), c => c.charCodeAt(0));
-		COLOR = Uint8Array.from(zip.files['2s140.4a'].inflate(), c => c.charCodeAt(0));
-		SND = Uint8Array.from(zip.files['82s126.1m'].inflate(), c => c.charCodeAt(0));
-		game = new CrushRoller();
-		sound = new PacManSound(SND, game.sound);
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+
+function success(zip) {
+	PRG = Uint8Array.from(zip.files['crushkrl.6e'].inflate() + zip.files['crushkrl.6f'].inflate() + zip.files['crushkrl.6h'].inflate() + zip.files['crushkrl.6j'].inflate(), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['maketrax.5e'].inflate(), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from(zip.files['maketrax.5f'].inflate(), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['82s123.7f'].inflate(), c => c.charCodeAt(0));
+	COLOR = Uint8Array.from(zip.files['2s140.4a'].inflate(), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['82s126.1m'].inflate(), c => c.charCodeAt(0));
+	game = new CrushRoller();
+	sound = new PacManSound(SND, game.sound);
+	init();
+	loop();
+}
 
 </script>
 </body>
