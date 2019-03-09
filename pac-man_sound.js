@@ -11,48 +11,36 @@ class PacManSound {
 		this.audioBuffer = [];
 		for (let i = 0; i < 8; i++) {
 			this.audioBuffer[i] = audioCtx.createBuffer(1, 32, 48000);
-			const data = this.audioBuffer[i].getChannelData(0);
-			for (let j = 0; j < 32; j++)
-				data[j] = (SND[i * 32 + j] & 0x0f) * 2 / 15 - 1;
+			this.audioBuffer[i].getChannelData(0).forEach((x, j, data) => data[j] = (SND[i * 32 + j] & 0x0f) * 2 / 15 - 1);
 		}
 		this.base = base;
 		this.base2 = base2;
 		this.se = se;
 		this.gainNode = audioCtx.createGain();
-		this.gainNode.connect(audioCtx.destination);
 		this.merger = audioCtx.createChannelMerger(1);
-		this.merger.connect(this.gainNode);
+		this.merger.connect(this.gainNode).connect(audioCtx.destination);
 		this.channel = [];
-		for (let i = 0; i < 3; i++)
-			this.channel[i] = new (function (dst, buf) {
-				this.voice = 0;
-				this.freq = 0;
-				this.vol = 0;
-				this.gainNode = [];
-				this.audioBufferSource = [];
-				this.merger = audioCtx.createChannelMerger(1);
-				this.merger.connect(dst);
-				for (let i = 0; i < 8; i++) {
-					this.gainNode[i] = audioCtx.createGain();
-					this.gainNode[i].gain.value = 0;
-					this.gainNode[i].connect(this.merger);
-					this.audioBufferSource[i] = audioCtx.createBufferSource();
-					this.audioBufferSource[i].buffer = buf[i];
-					this.audioBufferSource[i].loop = true;
-					this.audioBufferSource[i].playbackRate.value = 0;
-					this.audioBufferSource[i].connect(this.gainNode[i]);
-					this.audioBufferSource[i].start();
-				}
-			})(this.merger, this.audioBuffer);
-		for (let i = 0; i < se.length; i++) {
-			const n = se[i].buf.length;
-			se[i].audioBuffer = audioCtx.createBuffer(1, n, 48000);
-			se[i].playbackRate = freq / 48000;
-			const data = se[i].audioBuffer.getChannelData(0);
-			for (let j = 0; j < n; j++)
-				data[j] = se[i].buf[j] / 32767;
-			se[i].audioBufferSource = null;
+		for (let i = 0; i < 3; i++) {
+			const ch = {voice: 0, freq: 0, vol: 0, merger: audioCtx.createChannelMerger(1), gainNode: [], audioBufferSource: []};
+			ch.merger.connect(this.merger);
+			for (let j = 0; j < 8; j++) {
+				ch.gainNode[j] = audioCtx.createGain();
+				ch.gainNode[j].gain.value = 0;
+				ch.audioBufferSource[j] = audioCtx.createBufferSource();
+				ch.audioBufferSource[j].buffer = this.audioBuffer[j];
+				ch.audioBufferSource[j].loop = true;
+				ch.audioBufferSource[j].playbackRate.value = 0;
+				ch.audioBufferSource[j].connect(ch.gainNode[j]).connect(ch.merger);
+				ch.audioBufferSource[j].start();
+			}
+			this.channel.push(ch);
 		}
+		se.forEach(se => {
+			se.audioBuffer = audioCtx.createBuffer(1, se.buf.length, 48000);
+			se.audioBuffer.getChannelData(0).forEach((x, i, data) => data[i] = se.buf[i] / 32767);
+			se.playbackRate = freq / 48000;
+			se.audioBufferSource = null;
+		});
 	}
 
 	output() {
@@ -60,9 +48,8 @@ class PacManSound {
 		const nextTime = now + 1 / 120;
 		let voice, freq, vol;
 
-		for (let i = 0; i < 3; i++) {
+		this.channel.forEach((ch, i) => {
 			[voice, freq, vol] = PacManSound.getParameter(this.base, i);
-			const ch = this.channel[i];
 			if (voice !== ch.voice) {
 				ch.gainNode[ch.voice].gain.cancelScheduledValues(now);
 				ch.gainNode[ch.voice].gain.setValueAtTime(0, now);
@@ -70,49 +57,41 @@ class PacManSound {
 				ch.audioBufferSource[voice].playbackRate.setValueAtTime(freq / (1 << 14), now);
 				ch.gainNode[voice].gain.cancelScheduledValues(now);
 				ch.gainNode[voice].gain.setValueAtTime(freq > 0 ? vol / (15 * 10) : 0, now);
-				ch.voice = voice;
-				ch.freq = freq;
-				ch.vol = vol;
+				[ch.voice, ch.freq, ch.vol] = [voice, freq, vol];
 			}
 			else if (freq !== ch.freq) {
 				ch.audioBufferSource[voice].playbackRate.cancelScheduledValues(now);
 				ch.audioBufferSource[voice].playbackRate.setValueAtTime(freq / (1 << 14), now);
 				ch.gainNode[voice].gain.cancelScheduledValues(now);
 				ch.gainNode[voice].gain.setValueAtTime(freq > 0 ? vol / (15 * 10) : 0, now);
-				ch.freq = freq;
-				ch.vol = vol;
+				[ch.freq, ch.vol] = [freq, vol];
 			}
 			else if (vol !== ch.vol) {
 				ch.gainNode[voice].gain.cancelScheduledValues(now);
 				ch.gainNode[voice].gain.setValueAtTime(freq > 0 ? vol / (15 * 10) : 0, now);
 				ch.vol = vol;
 			}
-		}
+		}, this);
 		if (this.base2 !== null)
-			for (let i = 0; i < 3; i++) {
+			this.channel.forEach((ch, i) => {
 				[voice, freq, vol] = PacManSound.getParameter(this.base2, i);
-				const ch = this.channel[i];
 				if (voice !== ch.voice) {
 					ch.gainNode[ch.voice].gain.setValueAtTime(0, nextTime);
 					ch.audioBufferSource[voice].playbackRate.setValueAtTime(freq / (1 << 14), nextTime);
 					ch.gainNode[voice].gain.setValueAtTime(freq > 0 ? vol / (15 * 10) : 0, nextTime);
-					ch.voice = voice;
-					ch.freq = freq;
-					ch.vol = vol;
+					[ch.voice, ch.freq, ch.vol] = [voice, freq, vol];
 				}
 				else if (freq !== ch.freq) {
 					ch.audioBufferSource[voice].playbackRate.setValueAtTime(freq / (1 << 14), nextTime);
 					ch.gainNode[voice].gain.setValueAtTime(freq > 0 ? vol / (15 * 10) : 0, nextTime);
-					ch.freq = freq;
-					ch.vol = vol;
+					[ch.freq, ch.vol] = [freq, vol];
 				}
 				else if (vol !== ch.vol) {
 					ch.gainNode[voice].gain.setValueAtTime(freq > 0 ? vol / (15 * 10) : 0, nextTime);
 					ch.vol = vol;
 				}
-			}
-		for (let i = 0, n = this.se.length; i < n; i++) {
-			const se = this.se[i];
+			}, this);
+		this.se.forEach(se => {
 			if (se.stop && se.audioBufferSource) {
 				se.audioBufferSource.stop();
 				se.audioBufferSource = null;
@@ -125,9 +104,8 @@ class PacManSound {
 				se.audioBufferSource.connect(this.merger);
 				se.audioBufferSource.start();
 			}
-			se.start = false;
-			se.stop = false;
-		}
+			se.start = se.stop = false;
+		});
 	}
 
 	static getParameter(base, index) {

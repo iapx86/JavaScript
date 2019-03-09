@@ -78,21 +78,21 @@ class Xevious {
 		for (let i = 0; i < 3; i++) {
 			for (let j = 0; j < 8; j++) {
 				this.cpu[i].memorymap[0x78 + j].base = this.ram.subarray(j * 0x100);
-				this.cpu[i].memorymap[0x78 + j].write = null; // ramarea
+				this.cpu[i].memorymap[0x78 + j].write = null;
 				this.cpu[i].memorymap[0x80 + j].base = this.ram.subarray(0x0800 + j * 0x100);
-				this.cpu[i].memorymap[0x80 + j].write = null; // ramarea
+				this.cpu[i].memorymap[0x80 + j].write = null;
 				this.cpu[i].memorymap[0x90 + j].base = this.ram.subarray(0x1000 + j * 0x100);
-				this.cpu[i].memorymap[0x90 + j].write = null; // ramarea
+				this.cpu[i].memorymap[0x90 + j].write = null;
 				this.cpu[i].memorymap[0xa0 + j].base = this.ram.subarray(0x1800 + j * 0x100);
-				this.cpu[i].memorymap[0xa0 + j].write = null; // ramarea
+				this.cpu[i].memorymap[0xa0 + j].write = null;
 				this.cpu[i].memorymap[0xb0 + j].base = this.ram.subarray(0x2000 + j * 0x100);
-				this.cpu[i].memorymap[0xb0 + j].write = null; // ramarea
+				this.cpu[i].memorymap[0xb0 + j].write = null;
 				this.cpu[i].memorymap[0xb8 + j].base = this.ram.subarray(0x2800 + j * 0x100);
-				this.cpu[i].memorymap[0xb8 + j].write = null; // bgarea
+				this.cpu[i].memorymap[0xb8 + j].write = null;
 				this.cpu[i].memorymap[0xc0 + j].base = this.ram.subarray(0x3000 + j * 0x100);
-				this.cpu[i].memorymap[0xc0 + j].write = null; // ramarea
+				this.cpu[i].memorymap[0xc0 + j].write = null;
 				this.cpu[i].memorymap[0xc8 + j].base = this.ram.subarray(0x3800 + j * 0x100);
-				this.cpu[i].memorymap[0xc8 + j].write = null; // bgarea
+				this.cpu[i].memorymap[0xc8 + j].write = null;
 			}
 		}
 		this.cpu[0].memorymap[0x68].base = this.mmi;
@@ -133,15 +133,7 @@ class Xevious {
 		this.convertOBJ();
 
 		// 効果音の初期化
-		const table = [VX01, VX02, VX80];
-		this.se = [];
-		for (let i = 0; i < table.length; i++)
-			this.se[i] = new (function (buf) {
-				this.buf = buf;
-				this.loop = false;
-				this.start = false;
-				this.stop = false;
-			})(table[i]);
+		this.se = [VX01, VX02, VX80].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
 
 		// ライトハンドラ
 		function systemctrl0(addr, data, game) {
@@ -152,7 +144,7 @@ class Xevious {
 			case 0x20:
 				switch (addr & 0x0f) {
 				case 0:
-					game.fInterruptEnable = data !== 0;
+					game.fInterruptEnable = (data & 1) !== 0;
 					break;
 				case 1:
 					break;
@@ -2643,12 +2635,7 @@ AAIAAAAAAAAAAQABAAEAAQABAAEAAAAAAAAA//////7//v/+//7//f/9//3//f/8//v/+//7//v/
 `), c => c.charCodeAt(0))).buffer);
 
 (function () {
-	for (let i = 0, n = VX01.length; i < n; i++)
-		VX01[i] <<= 3;
-	for (let i = 0, n = VX02.length; i < n; i++)
-		VX02[i] <<= 3;
-	for (let i = 0, n = VX80.length; i < n; i++)
-		VX80[i] <<= 3;
+	[VX01, VX02, VX80].forEach(buf => buf.forEach((x, i, a) => a[i] <<= 3));
 })();
 
 /*
@@ -2658,38 +2645,33 @@ AAIAAAAAAAAAAQABAAEAAQABAAEAAAAAAAAA//////7//v/+//7//f/9//3//f/8//v/+//7//v/
  */
 
 const filename = 'xevious.zip';
-let BG2, BG4, OBJ4, OBJ8, BGCOLOR_H, BGCOLOR_L, OBJCOLOR_H, OBJCOLOR_L;
-let RED, GREEN, BLUE, SND, PRG1, PRG2, PRG3, MAPTBL, MAPDATA;
+let BG2, BG4, OBJ4, OBJ8, BGCOLOR_H, BGCOLOR_L, OBJCOLOR_H, OBJCOLOR_L, RED, GREEN, BLUE, SND, PRG1, PRG2, PRG3, MAPTBL, MAPDATA;
 
-$.ajax({
-	url: filename,
-	success: function(zip) {
-		PRG1 = Uint8Array.from(zip.files['xvi_1.3p'].inflate() + zip.files['xvi_2.3m'].inflate() + zip.files['xvi_3.2m'].inflate() + zip.files['xvi_4.2l'].inflate(), c => c.charCodeAt(0));
-		PRG2 = Uint8Array.from(zip.files['xvi_5.3f'].inflate() + zip.files['xvi_6.3j'].inflate(), c => c.charCodeAt(0));
-		PRG3 = Uint8Array.from(zip.files['xvi_7.2c'].inflate(), c => c.charCodeAt(0));
-		BG2 = Uint8Array.from(zip.files['xvi_12.3b'].inflate(), c => c.charCodeAt(0));
-		BG4 = Uint8Array.from(zip.files['xvi_13.3c'].inflate() + zip.files['xvi_14.3d'].inflate(), c => c.charCodeAt(0));
-		OBJ8 = Uint8Array.from(zip.files['xvi_15.4m'].inflate() + zip.files['xvi_17.4p'].inflate() + zip.files['xvi_18.4r'].inflate(), c => c.charCodeAt(0));
-		OBJ4 = Uint8Array.from(zip.files['xvi_16.4n'].inflate(), c => c.charCodeAt(0));
-		MAPTBL = Uint8Array.from(zip.files['xvi_9.2a'].inflate() + zip.files['xvi_10.2b'].inflate(), c => c.charCodeAt(0));
-		MAPDATA = Uint8Array.from(zip.files['xvi_11.2c'].inflate(), c => c.charCodeAt(0));
-		RED = Uint8Array.from(zip.files['xvi-8.6a'].inflate(), c => c.charCodeAt(0));
-		GREEN = Uint8Array.from(zip.files['xvi-9.6d'].inflate(), c => c.charCodeAt(0));
-		BLUE = Uint8Array.from(zip.files['xvi-10.6e'].inflate(), c => c.charCodeAt(0));
-		BGCOLOR_L = Uint8Array.from(zip.files['xvi-7.4h'].inflate(), c => c.charCodeAt(0));
-		BGCOLOR_H = Uint8Array.from(zip.files['xvi-6.4f'].inflate(), c => c.charCodeAt(0));
-		OBJCOLOR_L = Uint8Array.from(zip.files['xvi-4.3l'].inflate(), c => c.charCodeAt(0));
-		OBJCOLOR_H = Uint8Array.from(zip.files['xvi-5.3m'].inflate(), c => c.charCodeAt(0));
-		SND = Uint8Array.from(zip.files['xvi-2.7n'].inflate(), c => c.charCodeAt(0));
-		game = new Xevious();
-		sound = new PacManSound(SND, game.mmo0, game.mmo, game.se);
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+
+function success(zip) {
+	PRG1 = Uint8Array.from(zip.files['xvi_1.3p'].inflate() + zip.files['xvi_2.3m'].inflate() + zip.files['xvi_3.2m'].inflate() + zip.files['xvi_4.2l'].inflate(), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['xvi_5.3f'].inflate() + zip.files['xvi_6.3j'].inflate(), c => c.charCodeAt(0));
+	PRG3 = Uint8Array.from(zip.files['xvi_7.2c'].inflate(), c => c.charCodeAt(0));
+	BG2 = Uint8Array.from(zip.files['xvi_12.3b'].inflate(), c => c.charCodeAt(0));
+	BG4 = Uint8Array.from(zip.files['xvi_13.3c'].inflate() + zip.files['xvi_14.3d'].inflate(), c => c.charCodeAt(0));
+	OBJ8 = Uint8Array.from(zip.files['xvi_15.4m'].inflate() + zip.files['xvi_17.4p'].inflate() + zip.files['xvi_18.4r'].inflate(), c => c.charCodeAt(0));
+	OBJ4 = Uint8Array.from(zip.files['xvi_16.4n'].inflate(), c => c.charCodeAt(0));
+	MAPTBL = Uint8Array.from(zip.files['xvi_9.2a'].inflate() + zip.files['xvi_10.2b'].inflate(), c => c.charCodeAt(0));
+	MAPDATA = Uint8Array.from(zip.files['xvi_11.2c'].inflate(), c => c.charCodeAt(0));
+	RED = Uint8Array.from(zip.files['xvi-8.6a'].inflate(), c => c.charCodeAt(0));
+	GREEN = Uint8Array.from(zip.files['xvi-9.6d'].inflate(), c => c.charCodeAt(0));
+	BLUE = Uint8Array.from(zip.files['xvi-10.6e'].inflate(), c => c.charCodeAt(0));
+	BGCOLOR_L = Uint8Array.from(zip.files['xvi-7.4h'].inflate(), c => c.charCodeAt(0));
+	BGCOLOR_H = Uint8Array.from(zip.files['xvi-6.4f'].inflate(), c => c.charCodeAt(0));
+	OBJCOLOR_L = Uint8Array.from(zip.files['xvi-4.3l'].inflate(), c => c.charCodeAt(0));
+	OBJCOLOR_H = Uint8Array.from(zip.files['xvi-5.3m'].inflate(), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['xvi-2.7n'].inflate(), c => c.charCodeAt(0));
+	game = new Xevious();
+	sound = new PacManSound(SND, game.mmo0, game.mmo, game.se);
+	init();
+	loop();
+}
 
 </script>
 </body>

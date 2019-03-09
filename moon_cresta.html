@@ -47,18 +47,14 @@ class MoonCresta {
 		for (let i = 0; i < 0x40; i++)
 			this.cpu.memorymap[i].base = PRG.subarray(i * 0x100);
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x80 + i].base = this.ram.subarray(i * 0x100);
-			this.cpu.memorymap[0x80 + i].write = null; // ramarea
-			this.cpu.memorymap[0x84 + i].base = this.ram.subarray(i * 0x100);
-			this.cpu.memorymap[0x84 + i].write = null; // ramarea
-			this.cpu.memorymap[0x90 + i].base = this.ram.subarray(0x400 + i * 0x100);
-			this.cpu.memorymap[0x90 + i].write = null; // ramarea
-			this.cpu.memorymap[0x94 + i].base = this.ram.subarray(0x400 + i * 0x100);
-			this.cpu.memorymap[0x94 + i].write = null; // ramarea
+			this.cpu.memorymap[0x84 + i].base = this.cpu.memorymap[0x80 + i].base = this.ram.subarray(i * 0x100);
+			this.cpu.memorymap[0x84 + i].write = this.cpu.memorymap[0x80 + i].write = null;
+			this.cpu.memorymap[0x94 + i].base = this.cpu.memorymap[0x90 + i].base = this.ram.subarray(0x400 + i * 0x100);
+			this.cpu.memorymap[0x94 + i].write = this.cpu.memorymap[0x90 + i].write = null;
 		}
 		for (let i = 0; i < 8; i++) {
 			this.cpu.memorymap[0x98 + i].base = this.ram.subarray(0x800);
-			this.cpu.memorymap[0x98 + i].write = null; // ramarea
+			this.cpu.memorymap[0x98 + i].write = null;
 			this.cpu.memorymap[0xa0 + i].read = () => this.in[0];
 			this.cpu.memorymap[0xa0 + i].write = (addr, data) => {
 				this.mmo[addr & 7] = data & 1;
@@ -68,16 +64,12 @@ class MoonCresta {
 			this.cpu.memorymap[0xa8 + i].write = (addr, data) => {
 				switch (addr & 7) {
 				case 3: // BOMB
-					if ((data & 1) !== 0) {
-						this.se[0].stop = true;
-						this.se[0].start = true;
-					}
+					if ((data & 1) !== 0)
+						this.se[0].start = 	this.se[0].stop = true;
 					break;
 				case 5: // SHOT
-					if ((data & 1) !== 0 && !this.mmo[addr & 7 | 0x10]) {
-						this.se[1].stop = true;
-						this.se[1].start = true;
-					}
+					if ((data & 1) !== 0 && !this.mmo[addr & 7 | 0x10])
+						this.se[1].start = 	this.se[1].stop = true;
 					break;
 				}
 				this.mmo[addr & 7 | 0x10] = data & 1;
@@ -86,12 +78,12 @@ class MoonCresta {
 			this.cpu.memorymap[0xb0 + i].write = (addr, data) => {
 				switch (addr & 7) {
 				case 0:
-					this.fInterruptEnable = data !== 0;
+					this.fInterruptEnable = (data & 1) !== 0;
 					break;
 				case 4:
 					if (this.fSoundEnable === false)
 						this.mmo[0x30] = 0xff;
-					this.fStarEnable = this.fSoundEnable = data !== 0;
+					this.fStarEnable = this.fSoundEnable = (data & 1) !== 0;
 					break;
 				}
 				this.mmo[addr & 7 | 0x20] = data & 1;
@@ -102,7 +94,7 @@ class MoonCresta {
 		// Videoの初期化
 		this.stars = [];
 		for (let i = 0; i < 1024; i++)
-			this.stars[i] = {x: 0, y: 0, color: 0};
+			this.stars.push({x: 0, y: 0, color: 0});
 		this.fStarEnable = false;
 		this.fStarMove = false;
 		this.bank = 0;
@@ -115,15 +107,7 @@ class MoonCresta {
 		this.initializeStar();
 
 		// 効果音の初期化
-		const table = [BOMB, SHOT];
-		this.se = [];
-		for (let i = 0; i < table.length; i++)
-			this.se[i] = new (function (buf) {
-				this.buf = buf;
-				this.loop = false;
-				this.start = false;
-				this.stop = false;
-			})(table[i]);
+		this.se = [BOMB, SHOT].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
 	}
 
 	execute() {
@@ -158,16 +142,11 @@ class MoonCresta {
 		if (this.fReset) {
 			this.fReset = false;
 			this.fSoundEnable = false;
-			this.stopSound();
+			this.se.forEach(se => se.stop = true);
 			this.cpu.reset();
 			this.fInterruptEnable = false;
 		}
 		return this;
-	}
-
-	stopSound() {
-		for (let i = 0; i < this.se.length; i++)
-			this.se[i].stop = true;
 	}
 
 	updateInput() {
@@ -2281,10 +2260,7 @@ AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A
 `), c => c.charCodeAt(0))).buffer);
 
 (function() {
-	for (let i = 0, n = BOMB.length; i < n; i++)
-		BOMB[i] >>= 1;
-	for (let i = 0, n = SHOT.length; i < n; i++)
-		SHOT[i] >>= 1;
+	[BOMB, SHOT].forEach(buf => buf.forEach((x, i, a) => a[i] >>= 1));
 })();
 
 /*
@@ -2296,23 +2272,19 @@ AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A
 const filename = 'mooncrst.zip';
 let BG, RGB, PRG;
 
-$.ajax({
-	url: filename,
-	success: function(zip) {
-		PRG = zip.files['mc1'].inflate() + zip.files['mc2'].inflate() + zip.files['mc3'].inflate() + zip.files['mc4'].inflate() + zip.files['mc5.7r'].inflate();
-		PRG = Uint8Array.from(PRG + zip.files['mc6.8d'].inflate() + zip.files['mc7.8e'].inflate() + zip.files['mc8'].inflate(), c => c.charCodeAt(0));
-		BG = Uint8Array.from(zip.files['mcs_b'].inflate() + zip.files['mcs_d'].inflate() + zip.files['mcs_a'].inflate() + zip.files['mcs_c'].inflate(), c => c.charCodeAt(0));
-		RGB = Uint8Array.from(zip.files['mmi6331.6l'].inflate(), c => c.charCodeAt(0));
-		MoonCresta.decodeROM();
-		game = new MoonCresta();
-		sound = new GalaxianSound(SND, game.mmo, game.se);
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+
+function success(zip) {
+	PRG = zip.files['mc1'].inflate() + zip.files['mc2'].inflate() + zip.files['mc3'].inflate() + zip.files['mc4'].inflate() + zip.files['mc5.7r'].inflate();
+	PRG = Uint8Array.from(PRG + zip.files['mc6.8d'].inflate() + zip.files['mc7.8e'].inflate() + zip.files['mc8'].inflate(), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['mcs_b'].inflate() + zip.files['mcs_d'].inflate() + zip.files['mcs_a'].inflate() + zip.files['mcs_c'].inflate(), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['mmi6331.6l'].inflate(), c => c.charCodeAt(0));
+	MoonCresta.decodeROM();
+	game = new MoonCresta();
+	sound = new GalaxianSound(SND, game.mmo, game.se);
+	init();
+	loop();
+}
 
 </script>
 </body>

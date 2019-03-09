@@ -53,28 +53,28 @@ class Motos {
 
 		for (let i = 0; i < 0x10; i++) {
 			this.cpu[0].memorymap[i].base = this.ram.subarray(i * 0x100);
-			this.cpu[0].memorymap[i].write = null; // bgarea;
+			this.cpu[0].memorymap[i].write = null;
 		}
 		for (let i = 0; i < 0x18; i++) {
 			this.cpu[0].memorymap[0x10 + i].base = this.ram.subarray(0x1000 + i * 0x100);
-			this.cpu[0].memorymap[0x10 + i].write = null; // ramarea
+			this.cpu[0].memorymap[0x10 + i].write = null;
 		}
 		for (let i = 0; i < 8; i++)
-			this.cpu[0].memorymap[0x38 + i].write = scrollregister;
+			this.cpu[0].memorymap[0x38 + i].write = (addr) => this.dwScroll = addr >>> 3 & 0xff;
 		for (let i = 0; i < 4; i++) {
 			this.cpu[0].memorymap[0x40 + i].base = this.ram.subarray(0x2800 + i * 0x100);
-			this.cpu[0].memorymap[0x40 + i].write = null; // ramarea
+			this.cpu[0].memorymap[0x40 + i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
 			this.cpu[0].memorymap[0x48 + i].base = this.ram.subarray(0x2c00 + i * 0x100);
-			this.cpu[0].memorymap[0x48 + i].write = null; // ramarea
+			this.cpu[0].memorymap[0x48 + i].write = null;
 		}
 		this.cpu[0].memorymap[0x50].write = systemcontrolarea;
 		for (let i = 0; i < 0x80; i++)
 			this.cpu[0].memorymap[0x80 + i].base = PRG1.subarray(i * 0x100);
 		for (let i = 0; i < 4; i++) {
 			this.cpu[1].memorymap[i].base = this.ram.subarray(0x2800 + i * 0x100);
-			this.cpu[1].memorymap[i].write = null; // ramarea
+			this.cpu[1].memorymap[i].write = null;
 		}
 		this.cpu[1].memorymap[0x20].write = systemcontrolarea;
 		for (let i = 0; i < 0x20; i++)
@@ -124,10 +124,6 @@ class Motos {
 				game.cpu[1].enable();
 				break;
 			}
-		}
-
-		function scrollregister(addr, data, game) {
-			game.dwScroll = (addr - 0x3800) >>> 3;
 		}
 	}
 
@@ -621,26 +617,22 @@ class Motos {
 const filename = 'motos.zip';
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
-$.ajax({
-	url: filename,
-	success: function(zip) {
-		PRG1 = Uint8Array.from(zip.files['mo1_3.1d'].inflate() + zip.files['mo1_1.1b'].inflate(), c => c.charCodeAt(0));
-		PRG2 = Uint8Array.from(zip.files['mo1_4.1k'].inflate(), c => c.charCodeAt(0));
-		BG = Uint8Array.from(zip.files['mo1_5.3b'].inflate(), c => c.charCodeAt(0));
-		OBJ = Uint8Array.from(zip.files['mo1_7.3n'].inflate() + zip.files['mo1_6.3m'].inflate(), c => c.charCodeAt(0));
-		RGB = Uint8Array.from(zip.files['mo1-5.5b'].inflate(), c => c.charCodeAt(0));
-		BGCOLOR = Uint8Array.from(zip.files['mo1-6.4c'].inflate(), c => c.charCodeAt(0));
-		OBJCOLOR = Uint8Array.from(zip.files['mo1-7.5k'].inflate(), c => c.charCodeAt(0));
-		SND = Uint8Array.from(zip.files['mo1-3.3m'].inflate(), c => c.charCodeAt(0));
-		game = new Motos();
-		sound = new MappySound(SND, game.ram.subarray(0x2800));
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+
+function success(zip) {
+	PRG1 = Uint8Array.from(zip.files['mo1_3.1d'].inflate() + zip.files['mo1_1.1b'].inflate(), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['mo1_4.1k'].inflate(), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['mo1_5.3b'].inflate(), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from(zip.files['mo1_7.3n'].inflate() + zip.files['mo1_6.3m'].inflate(), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['mo1-5.5b'].inflate(), c => c.charCodeAt(0));
+	BGCOLOR = Uint8Array.from(zip.files['mo1-6.4c'].inflate(), c => c.charCodeAt(0));
+	OBJCOLOR = Uint8Array.from(zip.files['mo1-7.5k'].inflate(), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['mo1-3.3m'].inflate(), c => c.charCodeAt(0));
+	game = new Motos();
+	sound = new MappySound(SND, game.ram.subarray(0x2800));
+	init();
+	loop();
+}
 
 </script>
 </body>

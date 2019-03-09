@@ -44,16 +44,12 @@ class CrazyBalloon {
 		for (let i = 0; i < 0x30; i++)
 			this.cpu.memorymap[i].base = PRG.subarray(i * 0x100);
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x40 + i].base = this.ram.subarray(i * 0x100);
-			this.cpu.memorymap[0x40 + i].write = null; // ramarea
-		}
-		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x48 + i].base = this.ram.subarray(0x400 + i * 0x100);
-			this.cpu.memorymap[0x48 + i].write = null; // ramarea
-		}
-		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x50 + i].base = this.ram.subarray(0x800 + i * 0x100);
-			this.cpu.memorymap[0x50 + i].write = null; // ramarea
+			this.cpu.memorymap[0x44 + i].base = this.cpu.memorymap[0x40 + i].base = this.ram.subarray(i * 0x100);
+			this.cpu.memorymap[0x44 + i].write = this.cpu.memorymap[0x40 + i].write = null;
+			this.cpu.memorymap[0x4c + i].base = this.cpu.memorymap[0x48 + i].base = this.ram.subarray(0x400 + i * 0x100);
+			this.cpu.memorymap[0x4c + i].write = this.cpu.memorymap[0x48 + i].write = null;
+			this.cpu.memorymap[0x54 + i].base = this.cpu.memorymap[0x50 + i].base = this.ram.subarray(0x800 + i * 0x100);
+			this.cpu.memorymap[0x54 + i].write = this.cpu.memorymap[0x50 + i].write = null;
 		}
 		for (let i = 0; i < 0x100; i++) {
 			this.cpu.iomap[i].base = this.io;
@@ -367,22 +363,17 @@ class CrazyBalloon {
 const filename = 'crbaloon.zip';
 let PRG, BG, OBJ;
 
-$.ajax({
-	url: filename,
-	success: function(zip) {
-		PRG = zip.files['cl01.bin'].inflate() + zip.files['cl02.bin'].inflate() + zip.files['cl03.bin'].inflate();
-		PRG += zip.files['cl04.bin'].inflate() + zip.files['cl05.bin'].inflate() + zip.files['cl06.bin'].inflate();
-		PRG = Uint8Array.from(PRG, c => c.charCodeAt(0));
-		BG = Uint8Array.from(zip.files['cl07.bin'].inflate(), c => c.charCodeAt(0));
-		OBJ = Uint8Array.from(zip.files['cl08.bin'].inflate(), c => c.charCodeAt(0));
-		game = new CrazyBalloon();
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+
+function success(zip) {
+	PRG = zip.files['cl01.bin'].inflate() + zip.files['cl02.bin'].inflate() + zip.files['cl03.bin'].inflate() + zip.files['cl04.bin'].inflate();
+	PRG = Uint8Array.from(PRG + zip.files['cl05.bin'].inflate() + zip.files['cl06.bin'].inflate(), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['cl07.bin'].inflate(), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from(zip.files['cl08.bin'].inflate(), c => c.charCodeAt(0));
+	game = new CrazyBalloon();
+	init();
+	loop();
+}
 
 </script>
 </body>

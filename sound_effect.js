@@ -10,23 +10,18 @@ class SoundEffect {
 	constructor(se, freq = 22050) {
 		this.se = se;
 		this.gainNode = audioCtx.createGain();
-		this.gainNode.connect(audioCtx.destination);
 		this.merger = audioCtx.createChannelMerger(1);
-		this.merger.connect(this.gainNode);
-		for (let i = 0; i < se.length; i++) {
-			const n = se[i].buf.length;
-			se[i].audioBuffer = audioCtx.createBuffer(1, n, 44100);
-			se[i].playbackRate = freq / 44100;
-			const data = se[i].audioBuffer.getChannelData(0);
-			for (let j = 0; j < n; j++)
-				data[j] = se[i].buf[j] / 32767;
-			se[i].audioBufferSource = null;
-		}
+		this.merger.connect(this.gainNode).connect(audioCtx.destination);
+		se.forEach(se => {
+			se.audioBuffer = audioCtx.createBuffer(1, se.buf.length, 44100);
+			se.audioBuffer.getChannelData(0).forEach((x, i, data) => data[i] = se.buf[i] / 32767);
+			se.playbackRate = freq / 44100;
+			se.audioBufferSource = null;
+		});
 	}
 
 	output() {
-		for (let i = 0, n = this.se.length; i < n; i++) {
-			const se = this.se[i];
+		this.se.forEach(se => {
 			if (se.stop && se.audioBufferSource) {
 				se.audioBufferSource.stop();
 				se.audioBufferSource = null;
@@ -39,9 +34,8 @@ class SoundEffect {
 				se.audioBufferSource.connect(this.merger);
 				se.audioBufferSource.start();
 			}
-			se.start = false;
-			se.stop = false;
-		}
+			se.start = se.stop = false;
+		});
 	}
 }
 

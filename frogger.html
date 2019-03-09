@@ -53,20 +53,18 @@ class Frogger {
 			this.cpu.memorymap[i].base = PRG1.subarray(i * 0x100);
 		for (let i = 0; i < 8; i++) {
 			this.cpu.memorymap[0x80 + i].base = this.ram.subarray(i * 0x100);
-			this.cpu.memorymap[0x80 + i].write = null; // ramarea
+			this.cpu.memorymap[0x80 + i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0xa8 + i].base = this.ram.subarray(0x800 + i * 0x100);
-			this.cpu.memorymap[0xa8 + i].write = null; // ramarea
-			this.cpu.memorymap[0xac + i].base = this.ram.subarray(0x800 + i * 0x100);
-			this.cpu.memorymap[0xac + i].write = null; // ramarea
+			this.cpu.memorymap[0xac + i].base = this.cpu.memorymap[0xa8 + i].base = this.ram.subarray(0x800 + i * 0x100);
+			this.cpu.memorymap[0xac + i].write = this.cpu.memorymap[0xa8 + i].write = null;
 		}
 		for (let i = 0; i < 8; i++) {
 			this.cpu.memorymap[0xb0 + i].base = this.ram.subarray(0xc00);
-			this.cpu.memorymap[0xb0 + i].write = null; // ramarea
+			this.cpu.memorymap[0xb0 + i].write = null;
 			this.cpu.memorymap[0xb8].write = (addr, data) => {
 				if ((addr & 0x1c) === 8)
-					this.fInterruptEnable = data !== 0;
+					this.fInterruptEnable = (data & 1) !== 0;
 			};
 		}
 		for (let i = 0; i < 0x40; i++) {
@@ -88,22 +86,11 @@ class Frogger {
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[i].base = PRG2.subarray(i * 0x100);
 		for (let i = 0; i < 4; i++) {
-			this.cpu2.memorymap[0x40 + i].base = this.ram2.subarray(i * 0x100);
-			this.cpu2.memorymap[0x40 + i].write = null; // ramarea
-			this.cpu2.memorymap[0x44 + i].base = this.ram2.subarray(i * 0x100);
-			this.cpu2.memorymap[0x44 + i].write = null; // ramarea
-			this.cpu2.memorymap[0x48 + i].base = this.ram2.subarray(i * 0x100);
-			this.cpu2.memorymap[0x48 + i].write = null; // ramarea
-			this.cpu2.memorymap[0x4c + i].base = this.ram2.subarray(i * 0x100);
-			this.cpu2.memorymap[0x4c + i].write = null; // ramarea
-			this.cpu2.memorymap[0x50 + i].base = this.ram2.subarray(i * 0x100);
-			this.cpu2.memorymap[0x50 + i].write = null; // ramarea
-			this.cpu2.memorymap[0x54 + i].base = this.ram2.subarray(i * 0x100);
-			this.cpu2.memorymap[0x54 + i].write = null; // ramarea
-			this.cpu2.memorymap[0x58 + i].base = this.ram2.subarray(i * 0x100);
-			this.cpu2.memorymap[0x58 + i].write = null; // ramarea
-			this.cpu2.memorymap[0x5c + i].base = this.ram2.subarray(i * 0x100);
-			this.cpu2.memorymap[0x5c + i].write = null; // ramarea
+			const base = this.ram2.subarray(i * 0x100);
+			this.cpu2.memorymap[0x4c + i].base = this.cpu2.memorymap[0x48 + i].base = this.cpu2.memorymap[0x44 + i].base = this.cpu2.memorymap[0x40 + i].base = base;
+			this.cpu2.memorymap[0x4c + i].write = this.cpu2.memorymap[0x48 + i].write = this.cpu2.memorymap[0x44 + i].write = this.cpu2.memorymap[0x40 + i].write = null;
+			this.cpu2.memorymap[0x5c + i].base = this.cpu2.memorymap[0x58 + i].base = this.cpu2.memorymap[0x54 + i].base = this.cpu2.memorymap[0x50 + i].base = base;
+			this.cpu2.memorymap[0x5c + i].write = this.cpu2.memorymap[0x58 + i].write = this.cpu2.memorymap[0x54 + i].write = this.cpu2.memorymap[0x50 + i].write = null;
 		}
 		for (let i = 0; i < 0x100; i++) {
 			this.cpu2.iomap[i].read = (addr) => (addr & 0x40) !== 0 ? this.psg[0].tmp[this.psg[0].addr] : 0xff;
@@ -308,9 +295,9 @@ class Frogger {
 
 	makeBitmap(data) {
 		// bg 描画
-		let p = 256 * 32;
-		let k = 0xbe2;
-		for (let i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
+		let p = 256 * 16;
+		let k = 0xbe0;
+		for (let i = 0; i < 32; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0xc00 + i * 2] >>> 4 | this.ram[0xc00 + i * 2] << 4 & 0xf0;
 			for (let j = 0; j < 32; k -= 0x20, j++) {
 				this.xfer8x8(data, p + dwScroll, k, i);
@@ -319,8 +306,8 @@ class Frogger {
 		}
 
 		// 背景色変更
-		p = 256 * 32 + 16;
-		for (let i = 0; i < 112; p += 256 - 224, i++)
+		p = 256 * 16 + 16;
+		for (let i = 0; i < 128; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
 				if (data[p] === 0)
 					data[p] = this.rgb[2];
@@ -344,24 +331,6 @@ class Frogger {
 				break;
 			}
 		}
-
-		// bg 描画
-		p = 256 * 16;
-		k = 0xbe0;
-		for (let i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
-			let dwScroll = this.ram[0xc00 + i * 2] >>> 4 | this.ram[0xc00 + i * 2] << 4 & 0xf0;
-			for (let j = 0; j < 32; k -= 0x20, j++) {
-				this.xfer8x8(data, p + dwScroll, k, i);
-				dwScroll = dwScroll + 8 & 0xff;
-			}
-		}
-
-		// 背景色変更
-		p = 256 * 16 + 16;
-		for (let i = 0; i < 16; p += 256 - 224, i++)
-			for (let j = 0; j < 224; p++, j++)
-				if (data[p] === 0)
-					data[p] = this.rgb[2];
 
 		// alphaチャンネル修正
 		p = 256 * 16 + 16;
@@ -501,23 +470,19 @@ class Frogger {
 const filename = 'frogger.zip';
 let BG, RGB, PRG1, PRG2;
 
-$.ajax({
-	url: filename,
-	success: function(zip) {
-		PRG1 = Uint8Array.from(zip.files['frogger.26'].inflate() + zip.files['frogger.27'].inflate() + zip.files['frsm3.7'].inflate(), c => c.charCodeAt(0));
-		PRG2 = Uint8Array.from(zip.files['frogger.608'].inflate() + zip.files['frogger.609'].inflate() + zip.files['frogger.610'].inflate(), c => c.charCodeAt(0));
-		BG = Uint8Array.from(zip.files['frogger.607'].inflate() + zip.files['frogger.606'].inflate(), c => c.charCodeAt(0));
-		RGB = Uint8Array.from(zip.files['pr-91.6l'].inflate(), c => c.charCodeAt(0));
-		Frogger.decodeROM();
-		game = new Frogger();
-		sound = new AY_3_8910(14318181 / 8, game.psg, 116);
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+
+function success(zip) {
+	PRG1 = Uint8Array.from(zip.files['frogger.26'].inflate() + zip.files['frogger.27'].inflate() + zip.files['frsm3.7'].inflate(), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['frogger.608'].inflate() + zip.files['frogger.609'].inflate() + zip.files['frogger.610'].inflate(), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['frogger.607'].inflate() + zip.files['frogger.606'].inflate(), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['pr-91.6l'].inflate(), c => c.charCodeAt(0));
+	Frogger.decodeROM();
+	game = new Frogger();
+	sound = new AY_3_8910(14318181 / 8, game.psg, 116);
+	init();
+	loop();
+}
 
 </script>
 </body>

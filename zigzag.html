@@ -47,18 +47,14 @@ class ZigZag {
 		for (let i = 0; i < 0x40; i++)
 			this.cpu.memorymap[i].base = PRG.subarray(i * 0x100);
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x40 + i].base = this.ram.subarray(i * 0x100);
-			this.cpu.memorymap[0x40 + i].write = null; // ramarea
-			this.cpu.memorymap[0x44 + i].base = this.ram.subarray(i * 0x100);
-			this.cpu.memorymap[0x44 + i].write = null; // ramarea
-			this.cpu.memorymap[0x50 + i].base = this.ram.subarray(0x400 + i * 0x100);
-			this.cpu.memorymap[0x50 + i].write = null; // ramarea
-			this.cpu.memorymap[0x54 + i].base = this.ram.subarray(0x400 + i * 0x100);
-			this.cpu.memorymap[0x54 + i].write = null; // ramarea
+			this.cpu.memorymap[0x44 + i].base = this.cpu.memorymap[0x40 + i].base = this.ram.subarray(i * 0x100);
+			this.cpu.memorymap[0x44 + i].write = this.cpu.memorymap[0x40 + i].write = null;
+			this.cpu.memorymap[0x54 + i].base = this.cpu.memorymap[0x50 + i].base = this.ram.subarray(0x400 + i * 0x100);
+			this.cpu.memorymap[0x54 + i].write = this.cpu.memorymap[0x50 + i].write = null;
 		}
 		for (let i = 0; i < 8; i++) {
 			this.cpu.memorymap[0x58 + i].base = this.ram.subarray(0x800);
-			this.cpu.memorymap[0x58 + i].write = null; // ramarea
+			this.cpu.memorymap[0x58 + i].write = null;
 			this.cpu.memorymap[0x48 + i].write = (addr) => {
 				switch (addr & 0x0300) {
 				case 0x0000:
@@ -80,7 +76,7 @@ class ZigZag {
 			this.cpu.memorymap[0x70 + i].write = (addr, data) => {
 				switch (addr & 7) {
 				case 0x01:
-					this.fInterruptEnable = data !== 0;
+					this.fInterruptEnable = (data & 1) !== 0;
 					break;
 				case 0x02:
 					if ((data & 1) === 0)
@@ -95,7 +91,7 @@ class ZigZag {
 						}
 					break;
 				case 0x04:
-					this.fStarEnable = data !== 0;
+					this.fStarEnable = (data & 1) !== 0;
 					break;
 				}
 			};
@@ -503,22 +499,18 @@ class ZigZag {
 const filename = 'zigzagb.zip';
 let BG, OBJ, RGB, PRG;
 
-$.ajax({
-	url: filename,
-	success: function(zip) {
-		PRG = Uint8Array.from(zip.files['zz_d1.7l'].inflate() + zip.files['zz_d2.7k'].inflate() + zip.files['zz_d4.7f'].inflate() + zip.files['zz_d3.7h'].inflate(), c => c.charCodeAt(0));
-		BG = Uint8Array.from(Array.from(zip.files['zz_6.1h'].inflate().substring(0, 0x800) + zip.files['zz_5.1k'].inflate().substring(0, 0x800), c => c.charCodeAt(0)));
-		OBJ = Uint8Array.from(Array.from(zip.files['zz_6.1h'].inflate().substring(0x800) + zip.files['zz_5.1k'].inflate().substring(0x800), c => c.charCodeAt(0)));
-		RGB = Uint8Array.from(zip.files['zzbpr_e9.bin'].inflate(), c => c.charCodeAt(0));
-		game = new ZigZag();
-		sound = new AY_3_8910(3072000, game.psg);
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+
+function success(zip) {
+	PRG = Uint8Array.from(zip.files['zz_d1.7l'].inflate() + zip.files['zz_d2.7k'].inflate() + zip.files['zz_d4.7f'].inflate() + zip.files['zz_d3.7h'].inflate(), c => c.charCodeAt(0));
+	BG = Uint8Array.from(Array.from(zip.files['zz_6.1h'].inflate().substring(0, 0x800) + zip.files['zz_5.1k'].inflate().substring(0, 0x800), c => c.charCodeAt(0)));
+	OBJ = Uint8Array.from(Array.from(zip.files['zz_6.1h'].inflate().substring(0x800) + zip.files['zz_5.1k'].inflate().substring(0x800), c => c.charCodeAt(0)));
+	RGB = Uint8Array.from(zip.files['zzbpr_e9.bin'].inflate(), c => c.charCodeAt(0));
+	game = new ZigZag();
+	sound = new AY_3_8910(3072000, game.psg);
+	init();
+	loop();
+}
 
 </script>
 </body>

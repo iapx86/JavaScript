@@ -21,43 +21,37 @@ class AY_3_8910 {
 		this.resolution = resolution;
 		this.se = se;
 		this.gainNode = audioCtx.createGain();
-		this.gainNode.connect(audioCtx.destination);
 		this.merger = audioCtx.createChannelMerger(1);
-		this.merger.connect(this.gainNode);
+		this.merger.connect(this.gainNode).connect(audioCtx.destination);
 		this.channel = [];
 		for (let i = 0; i < psg.length; i++) {
 			this.channel[i] = [];
 			for (let j = 0; j < 3; j++) {
 				const ch = {freq: 0, vol: 0, gainNode: audioCtx.createGain(), oscillator: audioCtx.createOscillator()};
 				ch.gainNode.gain.value = 0;
-				ch.gainNode.connect(this.merger);
 				ch.oscillator.type = 'square';
 				ch.oscillator.frequency.value = 0;
-				ch.oscillator.connect(ch.gainNode);
+				ch.oscillator.connect(ch.gainNode).connect(this.merger);
 				ch.oscillator.start();
-				this.channel[i][j] = ch;
+				this.channel[i].push(ch);
 			}
-			for (let j = 3; j < 6; j++) {
+			for (let j = 0; j < 3; j++) {
 				const ch = {freq: 0, vol: 0, gainNode: audioCtx.createGain(), audioBufferSource: audioCtx.createBufferSource()};
 				ch.gainNode.gain.value = 0;
-				ch.gainNode.connect(this.merger);
 				ch.audioBufferSource.buffer = this.noiseBuffer;
 				ch.audioBufferSource.loop = true;
 				ch.audioBufferSource.playbackRate.value = 0;
-				ch.audioBufferSource.connect(ch.gainNode);
+				ch.audioBufferSource.connect(ch.gainNode).connect(this.merger);
 				ch.audioBufferSource.start();
-				this.channel[i][j] = ch;
+				this.channel[i].push(ch);
 			}
 		}
-		for (let i = 0; i < se.length; i++) {
-			const n = se[i].buf.length;
-			se[i].audioBuffer = audioCtx.createBuffer(1, n, 44100);
-			se[i].playbackRate = freq / 44100;
-			const data = se[i].audioBuffer.getChannelData(0);
-			for (let j = 0; j < n; j++)
-				data[j] = se[i].buf[j] / 32767;
-			se[i].audioBufferSource = null;
-		}
+		se.forEach(se => {
+			se.audioBuffer = audioCtx.createBuffer(1, se.buf.length, 44100);
+			se.audioBuffer.getChannelData(0).forEach((x, i, data) => data[i] = se.buf[i] / 32767);
+			se.playbackRate = freq / 44100;
+			se.audioBufferSource = null;
+		});
 	}
 
 	output() {
@@ -76,8 +70,8 @@ class AY_3_8910 {
 			}
 			for (let j = 0; j < 3; j++)
 				this.channel[i][j].oscillator.frequency.cancelScheduledValues(now);
-			for (let j = 3; j < 6; j++)
-				this.channel[i][j].audioBufferSource.playbackRate.cancelScheduledValues(now);
+			for (let j = 0; j < 3; j++)
+				this.channel[i][j + 3].audioBufferSource.playbackRate.cancelScheduledValues(now);
 			for (let j = 0; j < 6; j++)
 				this.channel[i][j].gainNode.gain.cancelScheduledValues(now);
 		}
@@ -135,8 +129,7 @@ class AY_3_8910 {
 				}
 			}
 		}
-		for (let i = 0, n = this.se.length; i < n; i++) {
-			const se = this.se[i];
+		this.se.forEach(se => {
 			if (se.stop && se.audioBufferSource) {
 				se.audioBufferSource.stop();
 				se.audioBufferSource = null;
@@ -149,9 +142,8 @@ class AY_3_8910 {
 				se.audioBufferSource.connect(this.merger);
 				se.audioBufferSource.start();
 			}
-			se.start = false;
-			se.stop = false;
-		}
+			se.start = se.stop = false;
+		});
 	}
 
 	static getToneParameter(base, index) {

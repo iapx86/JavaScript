@@ -66,10 +66,10 @@ class PacMan {
 				case 0x30:
 					switch (addr & 7) {
 					case 0:
-						this.fInterruptEnable = data !== 0;
+						this.fInterruptEnable = (data & 1) !== 0;
 						break;
 					case 1:
-						this.fSoundEnable = data !== 0;
+						this.fSoundEnable = (data & 1) !== 0;
 						break;
 					}
 					break;
@@ -527,9 +527,8 @@ let BG, COLOR, OBJ, RGB, PRG, SND;
 $.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
 
 function success(zip) {
-	PRG = zip.files['pm1_prg1.6e'].inflate() + zip.files['pm1_prg2.6k'].inflate() + zip.files['pm1_prg3.6f'].inflate() + zip.files['pm1_prg4.6m'].inflate();
-	PRG += zip.files['pm1_prg5.6h'].inflate() + zip.files['pm1_prg6.6n'].inflate() + zip.files['pm1_prg7.6j'].inflate() + zip.files['pm1_prg8.6p'].inflate();
-	PRG = Uint8Array.from(PRG, c => c.charCodeAt(0));
+	PRG = zip.files['pm1_prg1.6e'].inflate() + zip.files['pm1_prg2.6k'].inflate() + zip.files['pm1_prg3.6f'].inflate() + zip.files['pm1_prg4.6m'].inflate() + zip.files['pm1_prg5.6h'].inflate();
+	PRG = Uint8Array.from(PRG + zip.files['pm1_prg6.6n'].inflate() + zip.files['pm1_prg7.6j'].inflate() + zip.files['pm1_prg8.6p'].inflate(), c => c.charCodeAt(0));
 	BG = Uint8Array.from(zip.files['pm1_chg1.5e'].inflate() + zip.files['pm1_chg2.5h'].inflate(), c => c.charCodeAt(0));
 	OBJ = Uint8Array.from(zip.files['pm1_chg3.5f'].inflate() + zip.files['pm1_chg4.5j'].inflate(), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['pm1-1.7f'].inflate(), c => c.charCodeAt(0));

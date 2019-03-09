@@ -85,15 +85,15 @@ class Galaga {
 		for (let i = 0; i < 3; i++) {
 			for (let j = 0; j < 8; j++) {
 				this.cpu[i].memorymap[0x80 + j].base = this.ram.subarray(j * 0x100);
-				this.cpu[i].memorymap[0x80 + j].write = null; // bgarea
+				this.cpu[i].memorymap[0x80 + j].write = null;
 			}
 			for (let j = 0; j < 4; j++) {
 				this.cpu[i].memorymap[0x88 + j].base = this.ram.subarray(0x0800 + j * 0x100);
-				this.cpu[i].memorymap[0x88 + j].write = null; // ramarea
+				this.cpu[i].memorymap[0x88 + j].write = null;
 				this.cpu[i].memorymap[0x90 + j].base = this.ram.subarray(0x0c00 + j * 0x100);
-				this.cpu[i].memorymap[0x90 + j].write = null; // ramarea
+				this.cpu[i].memorymap[0x90 + j].write = null;
 				this.cpu[i].memorymap[0x98 + j].base = this.ram.subarray(0x1000 + j * 0x100);
-				this.cpu[i].memorymap[0x98 + j].write = null; // ramarea
+				this.cpu[i].memorymap[0x98 + j].write = null;
 			}
 		}
 		this.cpu[0].memorymap[0x68].base = this.mmi;
@@ -123,7 +123,7 @@ class Galaga {
 		// Videoの初期化
 		this.stars = [];
 		for (let i = 0; i < 1024; i++)
-			this.stars[i] = {x: 0, y: 0, color: 0, blk: 0};
+			this.stars.push({x: 0, y: 0, color: 0, blk: 0});
 		this.fFlip = true;
 		this.fStarEnable = false;
 		this.bg = new Uint32Array(0x100000);
@@ -147,10 +147,10 @@ class Galaga {
 			case 0x20:
 				switch (addr & 0x0f) {
 				case 0:
-					game.fInterruptEnable0 = data !== 0;
+					game.fInterruptEnable0 = (data & 1) !== 0;
 					break;
 				case 1:
-					game.fInterruptEnable1 = data !== 0;
+					game.fInterruptEnable1 = (data & 1) !== 0;
 					break;
 				case 2:
 					if (data)
@@ -238,15 +238,8 @@ class Galaga {
 
 		function starctrl(addr, data, game) {
 			switch (addr & 0xff) {
-			case 0x00:
-			case 0x01:
-			case 0x02:
-			case 0x03:
-			case 0x04:
-				this.base[addr & 0xff] = data;
-				break;
 			case 0x05:
-				game.fStarEnable = data !== 0;
+				game.fStarEnable = (data & 1) !== 0;
 				break;
 			case 0x07:
 				game.fFlip = !game.fTest && (data & 1) !== 0;
@@ -2089,8 +2082,7 @@ wv+1/4f/dP9u/0z/UP9M/1L/Zf8=
 `), c => c.charCodeAt(0))).buffer);
 
 (function () {
-	for (let i = 0, n = BOMB.length; i < n; i++)
-		BOMB[i] >>= 1;
+	BOMB.forEach((x, i, a) => a[i] >>= 1);
 })();
 
 /*
@@ -2102,27 +2094,23 @@ wv+1/4f/dP9u/0z/UP9M/1L/Zf8=
 const filename = 'galaga.zip';
 let BG, OBJ, BGCOLOR, OBJCOLOR, RGB, SND, PRG1, PRG2, PRG3;
 
-$.ajax({
-	url: filename,
-	success: function(zip) {
-		PRG1 = Uint8Array.from(zip.files['gg1_1b.3p'].inflate() + zip.files['gg1_2b.3m'].inflate() + zip.files['gg1_3.2m'].inflate() + zip.files['gg1_4b.2l'].inflate(), c => c.charCodeAt(0));
-		PRG2 = Uint8Array.from(zip.files['gg1_5b.3f'].inflate(), c => c.charCodeAt(0));
-		PRG3 = Uint8Array.from(zip.files['gg1_7b.2c'].inflate(), c => c.charCodeAt(0));
-		BG = Uint8Array.from(zip.files['gg1_9.4l'].inflate(), c => c.charCodeAt(0));
-		OBJ = Uint8Array.from(zip.files['gg1_11.4d'].inflate() + zip.files['gg1_10.4f'].inflate(), c => c.charCodeAt(0));
-		RGB = Uint8Array.from(zip.files['prom-5.5n'].inflate(), c => c.charCodeAt(0));
-		BGCOLOR = Uint8Array.from(zip.files['prom-4.2n'].inflate(), c => c.charCodeAt(0));
-		OBJCOLOR = Uint8Array.from(zip.files['prom-3.1c'].inflate(), c => c.charCodeAt(0));
-		SND = Uint8Array.from(zip.files['prom-1.1d'].inflate(), c => c.charCodeAt(0));
-		game = new Galaga();
-		sound = new PacManSound(SND, game.mmo0, game.mmo, game.se);
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+
+function success(zip) {
+	PRG1 = Uint8Array.from(zip.files['gg1_1b.3p'].inflate() + zip.files['gg1_2b.3m'].inflate() + zip.files['gg1_3.2m'].inflate() + zip.files['gg1_4b.2l'].inflate(), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['gg1_5b.3f'].inflate(), c => c.charCodeAt(0));
+	PRG3 = Uint8Array.from(zip.files['gg1_7b.2c'].inflate(), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['gg1_9.4l'].inflate(), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from(zip.files['gg1_11.4d'].inflate() + zip.files['gg1_10.4f'].inflate(), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['prom-5.5n'].inflate(), c => c.charCodeAt(0));
+	BGCOLOR = Uint8Array.from(zip.files['prom-4.2n'].inflate(), c => c.charCodeAt(0));
+	OBJCOLOR = Uint8Array.from(zip.files['prom-3.1c'].inflate(), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['prom-1.1d'].inflate(), c => c.charCodeAt(0));
+	game = new Galaga();
+	sound = new PacManSound(SND, game.mmo0, game.mmo, game.se);
+	init();
+	loop();
+}
 
 </script>
 </body>

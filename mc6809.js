@@ -97,14 +97,8 @@ class Cpu {
 		this.fSuspend = false;
 		this.pc = 0;
 		this.memorymap = [];
-		for (let i = 0; i < 0x100; i++) {
-			this.memorymap[i] = new (function () {
-				this.base = dummypage;
-				this.read = null;
-				this.write = (addr, data, arg) => data;
-//				this.fetch = null;
-			})();
-		}
+		for (let i = 0; i < 0x100; i++)
+			this.memorymap.push({base: dummypage, read: null, write: (addr, data) => data, fetch: null});
 		this.breakpointmap = new Uint32Array(0x800);
 		this.breakpoint = null;
 		this.undef = null;

@@ -77,7 +77,7 @@ class DigDug {
 		for (let i = 0; i < 3; i++) {
 			for (let j = 0; j < 8; j++) {
 				this.cpu[i].memorymap[0x80 + j].base = this.ram.subarray(j * 0x100);
-				this.cpu[i].memorymap[0x80 + j].write = null; // bgarea
+				this.cpu[i].memorymap[0x80 + j].write = null;
 			}
 			for (let j = 0; j < 4; j++)
 				this.cpu[i].memorymap[0x8c + j].base = this.cpu[i].memorymap[0x88 + j].base = this.ram.subarray(0x0800 + j * 0x100);
@@ -86,13 +86,13 @@ class DigDug {
 			for (let j = 0; j < 4; j++)
 				this.cpu[i].memorymap[0x9c + j].base = this.cpu[i].memorymap[0x98 + j].base = this.ram.subarray(0x1800 + j * 0x100);
 			for (let j = 0; j < 0x18; j++)
-				this.cpu[i].memorymap[0x88 + j].write = null; // ramarea
+				this.cpu[i].memorymap[0x88 + j].write = null;
 		}
 		this.cpu[0].memorymap[0x68].write = systemctrl;
 		this.cpu[1].memorymap[0x68].write = systemctrl;
 		this.cpu[2].memorymap[0x68].write = systemctrl;
 		this.cpu[0].memorymap[0x70].base = this.ioport;
-		this.cpu[0].memorymap[0x70].write = null; // ramarea
+		this.cpu[0].memorymap[0x70].write = null;
 		this.cpu[0].memorymap[0x71].base = this.dmaport;
 		this.cpu[0].memorymap[0x71].write = dmactrl;
 		this.cpu[0].memorymap[0xa0].write = systemctrl1;
@@ -1229,29 +1229,25 @@ bWbF3nu56qgRZi5Wbrqbu4Jmthkb/kS4subp5BS7PusiZptPhag727t2hvxskk2eXHbGx5trm5+2
 const filename = 'digdug.zip';
 let PRG1, PRG2, PRG3, BG2, MAPDATA, BG4, OBJ, SND, BGCOLOR, OBJCOLOR, RGB;
 
-$.ajax({
-	url: filename,
-	success: function(zip) {
-		PRG1 = Uint8Array.from(zip.files['dd1a.1'].inflate() + zip.files['dd1a.2'].inflate() + zip.files['dd1a.3'].inflate() + zip.files['dd1a.4'].inflate(), c => c.charCodeAt(0));
-		PRG2 = Uint8Array.from(zip.files['dd1a.5'].inflate() + zip.files['dd1a.6'].inflate(), c => c.charCodeAt(0));
-		PRG3 = Uint8Array.from(zip.files['dd1.7'].inflate(), c => c.charCodeAt(0));
-		BG2 = Uint8Array.from(zip.files['dd1.9'].inflate(), c => c.charCodeAt(0));
-		OBJ = Uint8Array.from(zip.files['dd1.15'].inflate() + zip.files['dd1.14'].inflate() + zip.files['dd1.13'].inflate() + zip.files['dd1.12'].inflate(), c => c.charCodeAt(0));
-		BG4 = Uint8Array.from(zip.files['dd1.11'].inflate(), c => c.charCodeAt(0));
-		MAPDATA = Uint8Array.from(zip.files['dd1.10b'].inflate(), c => c.charCodeAt(0));
-		RGB = Uint8Array.from(zip.files['136007.113'].inflate(), c => c.charCodeAt(0));
-		OBJCOLOR = Uint8Array.from(zip.files['136007.111'].inflate(), c => c.charCodeAt(0));
-		BGCOLOR = Uint8Array.from(zip.files['136007.112'].inflate(), c => c.charCodeAt(0));
-		SND = Uint8Array.from(zip.files['136007.110'].inflate(), c => c.charCodeAt(0));
-		game = new DigDug();
-		sound = new PacManSound(SND, game.mmo0, game.mmo);
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+
+function success(zip) {
+	PRG1 = Uint8Array.from(zip.files['dd1a.1'].inflate() + zip.files['dd1a.2'].inflate() + zip.files['dd1a.3'].inflate() + zip.files['dd1a.4'].inflate(), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['dd1a.5'].inflate() + zip.files['dd1a.6'].inflate(), c => c.charCodeAt(0));
+	PRG3 = Uint8Array.from(zip.files['dd1.7'].inflate(), c => c.charCodeAt(0));
+	BG2 = Uint8Array.from(zip.files['dd1.9'].inflate(), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from(zip.files['dd1.15'].inflate() + zip.files['dd1.14'].inflate() + zip.files['dd1.13'].inflate() + zip.files['dd1.12'].inflate(), c => c.charCodeAt(0));
+	BG4 = Uint8Array.from(zip.files['dd1.11'].inflate(), c => c.charCodeAt(0));
+	MAPDATA = Uint8Array.from(zip.files['dd1.10b'].inflate(), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['136007.113'].inflate(), c => c.charCodeAt(0));
+	OBJCOLOR = Uint8Array.from(zip.files['136007.111'].inflate(), c => c.charCodeAt(0));
+	BGCOLOR = Uint8Array.from(zip.files['136007.112'].inflate(), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['136007.110'].inflate(), c => c.charCodeAt(0));
+	game = new DigDug();
+	sound = new PacManSound(SND, game.mmo0, game.mmo);
+	init();
+	loop();
+}
 
 </script>
 </body>

@@ -102,22 +102,21 @@ class Bosconian {
 			this.cpu[2].memorymap[i].base = PRG3.subarray(i * 0x100);
 
 		// CPU[012] RAM AREA SETUP
-		for (let i = 0; i < 3; i++) {
+		for (let i = 0; i < 3; i++)
 			for (let j = 0; j < 4; j++) {
 				this.cpu[i].memorymap[0x78 + j].base = this.ram.subarray(j * 0x100);
-				this.cpu[i].memorymap[0x78 + j].write = null; // ramarea
+				this.cpu[i].memorymap[0x78 + j].write = null;
 				this.cpu[i].memorymap[0x7c + j].base = this.ram.subarray(0x0400 + j * 0x100);
-				this.cpu[i].memorymap[0x7c + j].write = null; // ramarea
+				this.cpu[i].memorymap[0x7c + j].write = null;
 				this.cpu[i].memorymap[0x80 + j].base = this.ram.subarray(0x0800 + j * 0x100);
-				this.cpu[i].memorymap[0x80 + j].write = null; // ramarea
+				this.cpu[i].memorymap[0x80 + j].write = null;
 				this.cpu[i].memorymap[0x84 + j].base = this.ram.subarray(0x0c00 + j * 0x100);
-				this.cpu[i].memorymap[0x84 + j].write = null; // ramarea
+				this.cpu[i].memorymap[0x84 + j].write = null;
 				this.cpu[i].memorymap[0x88 + j].base = this.ram.subarray(0x1000 + j * 0x100);
-				this.cpu[i].memorymap[0x88 + j].write = null; // ramarea
+				this.cpu[i].memorymap[0x88 + j].write = null;
 				this.cpu[i].memorymap[0x8c + j].base = this.ram.subarray(0x1400 + j * 0x100);
-				this.cpu[i].memorymap[0x8c + j].write = null; // ramarea
+				this.cpu[i].memorymap[0x8c + j].write = null;
 			}
-		}
 		this.cpu[0].memorymap[0x68].base = this.mmi;
 		this.cpu[0].memorymap[0x68].write = systemctrl0;
 		this.cpu[1].memorymap[0x68].base = this.mmi;
@@ -132,19 +131,19 @@ class Bosconian {
 		this.cpu[0].memorymap[0x91].base = this.dmaport1;
 		this.cpu[0].memorymap[0x91].write = dmactrl1;
 		this.cpu[0].memorymap[0x98].base = this.mmi.subarray(0x100);
-		this.cpu[0].memorymap[0x98].write = null; // ramarea
+		this.cpu[0].memorymap[0x98].write = null;
 
 		this.cpu[1].memorymap[0x90].base = this.starport;
-		this.cpu[1].memorymap[0x90].write = null; // ramarea
+		this.cpu[1].memorymap[0x90].write = null;
 		this.cpu[1].memorymap[0x91].base = this.dmaport1;
 		this.cpu[1].memorymap[0x91].write = dmactrl1;
 		this.cpu[1].memorymap[0x98].base = this.mmi.subarray(0x100);
-		this.cpu[1].memorymap[0x98].write = null; // ramarea
+		this.cpu[1].memorymap[0x98].write = null;
 
 		// Videoの初期化
 		this.stars = [];
 		for (let i = 0; i < 1024; i++)
-			this.stars[i] = {x:0, y:0, color:0, blk:0};
+			this.stars.push({x:0, y:0, color:0, blk:0});
 		this.bg = new Uint32Array(0x100000);
 		this.obj = new Uint8Array(0x4000);
 		this.color = new Uint32Array(0x100);
@@ -155,15 +154,7 @@ class Bosconian {
 		this.initializeStar();
 
 		// 効果音の初期化
-		const table = [SND12, SND13, SND14, SND15, SND16, SND17, SND18, SND19];
-		this.se = [];
-		for (let i = 0; i < table.length; i++)
-			this.se[i] = new (function(buf) {
-				this.buf = buf;
-				this.loop = false;
-				this.start = false;
-				this.stop = false;
-			})(table[i]);
+		this.se = [SND12, SND13, SND14, SND15, SND16, SND17, SND18, SND19].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
 
 		// ライトハンドラ
 		function systemctrl0(addr, data, game) {
@@ -174,10 +165,10 @@ class Bosconian {
 			case 0x20:
 				switch (addr & 0x0f) {
 				case 0:
-					game.fInterruptEnable0 = data !== 0;
+					game.fInterruptEnable0 = (data & 1) !== 0;
 					break;
 				case 1:
-					game.fInterruptEnable1 = data !== 0;
+					game.fInterruptEnable1 = (data & 1) !== 0;
 					break;
 				case 2:
 					if (data)
@@ -537,82 +528,82 @@ class Bosconian {
 			this.fDIPSwitchChanged = false;
 			// DIPSW SETUP A:0x01 B:0x02
 			switch (this.nMyShip) {
-				case 1:
-					this.mmi[6] &= ~1;
-					this.mmi[7] &= ~1;
-					break;
-				case 2:
-					this.mmi[6] |= 1;
-					this.mmi[7] &= ~1;
-					break;
-				case 3:
-					this.mmi[6] &= ~1;
-					this.mmi[7] |= 1;
-					break;
-				case 5:
-					this.mmi[6] |= 1;
-					this.mmi[7] |= 1;
-					break;
+			case 1:
+				this.mmi[6] &= ~1;
+				this.mmi[7] &= ~1;
+				break;
+			case 2:
+				this.mmi[6] |= 1;
+				this.mmi[7] &= ~1;
+				break;
+			case 3:
+				this.mmi[6] &= ~1;
+				this.mmi[7] |= 1;
+				break;
+			case 5:
+				this.mmi[6] |= 1;
+				this.mmi[7] |= 1;
+				break;
 			}
 			switch (this.nRank) {
-				case 'A':
-					this.mmi[0] |= 2;
-					this.mmi[1] |= 2;
-					break;
-				case 'AUTO':
-					this.mmi[0] &= ~2;
-					this.mmi[1] &= ~2;
-					break;
-				case 'B':
-					this.mmi[0] |= 2;
-					this.mmi[1] &= ~2;
-					break;
-				case 'C':
-					this.mmi[0] &= ~2;
-					this.mmi[1] |= 2;
-					break;
+			case 'A':
+				this.mmi[0] |= 2;
+				this.mmi[1] |= 2;
+				break;
+			case 'AUTO':
+				this.mmi[0] &= ~2;
+				this.mmi[1] &= ~2;
+				break;
+			case 'B':
+				this.mmi[0] |= 2;
+				this.mmi[1] &= ~2;
+				break;
+			case 'C':
+				this.mmi[0] &= ~2;
+				this.mmi[1] |= 2;
+				break;
 			}
 			switch (this.nBonus) {
-				case 'A':
-					this.mmi[3] &= ~1;
-					this.mmi[4] |= 1;
-					this.mmi[5] |= 1;
-					break;
-				case 'B':
-					this.mmi[3] |= 1;
-					this.mmi[4] |= 1;
-					this.mmi[5] |= 1;
-					break;
-				case 'C':
-					this.mmi[3] |= 1;
-					this.mmi[4] &= ~1;
-					this.mmi[5] &= ~1;
-					break;
-				case 'D':
-					this.mmi[3] &= ~1;
-					this.mmi[4] |= 1;
-					this.mmi[5] &= ~1;
-					break;
-				case 'E':
-					this.mmi[3] |= 1;
-					this.mmi[4] |= 1;
-					this.mmi[5] &= ~1;
-					break;
-				case 'F':
-					this.mmi[3] &= ~1;
-					this.mmi[4] &= ~1;
-					this.mmi[5] |= 1;
-					break;
-				case 'G':
-					this.mmi[3] |= 1;
-					this.mmi[4] &= ~1;
-					this.mmi[5] |= 1;
-					break;
-				case 'NONE':
-					this.mmi[3] &= ~1;
-					this.mmi[4] &= ~1;
-					this.mmi[5] &= ~1;
-					break;
+			case 'A':
+				this.mmi[3] &= ~1;
+				this.mmi[4] |= 1;
+				this.mmi[5] |= 1;
+				break;
+			case 'B':
+				this.mmi[3] |= 1;
+				this.mmi[4] |= 1;
+				this.mmi[5] |= 1;
+				break;
+			case 'C':
+				this.mmi[3] |= 1;
+				this.mmi[4] &= ~1;
+				this.mmi[5] &= ~1;
+				break;
+			case 'D':
+				this.mmi[3] &= ~1;
+				this.mmi[4] |= 1;
+				this.mmi[5] &= ~1;
+				break;
+			case 'E':
+				this.mmi[3] |= 1;
+				this.mmi[4] |= 1;
+				this.mmi[5] &= ~1;
+				break;
+			case 'F':
+				this.mmi[3] &= ~1;
+				this.mmi[4] &= ~1;
+				this.mmi[5] |= 1;
+				break;
+			case 'G':
+				this.mmi[3] |= 1;
+				this.mmi[4] &= ~1;
+				this.mmi[5] |= 1;
+				break;
+			case 'NONE':
+				this.mmi[3] &= ~1;
+				this.mmi[4] &= ~1;
+				this.mmi[5] &= ~1;
+				break;
 			}
 			if (this.fContinue)
 				this.mmi[2] |= 2;
@@ -5554,22 +5545,7 @@ Q/9B/zD/Pv8K/xv/Kv8i/xb/qf77/iL/R/9Y/7P/6f+Y/5n/vf+5/4n/hf+u/7X/yf+z/7P/wf+6
 `), c => c.charCodeAt(0))).buffer);
 
 (function () {
-	for (let i = 0, n = SND12.length; i < n; i++)
-		SND12[i] >>= 1;
-	for (let i = 0, n = SND13.length; i < n; i++)
-		SND13[i] >>= 1;
-	for (let i = 0, n = SND14.length; i < n; i++)
-		SND14[i] >>= 1;
-	for (let i = 0, n = SND15.length; i < n; i++)
-		SND15[i] >>= 1;
-	for (let i = 0, n = SND16.length; i < n; i++)
-		SND16[i] >>= 1;
-	for (let i = 0, n = SND17.length; i < n; i++)
-		SND17[i] >>= 1;
-	for (let i = 0, n = SND18.length; i < n; i++)
-		SND18[i] >>= 1;
-	for (let i = 0, n = SND19.length; i < n; i++)
-		SND19[i] >>= 1;
+	[SND12, SND13, SND14, SND15, SND16, SND17, SND18, SND19].forEach(buf => buf.forEach((x, i, a) => a[i] >>= 1));
 })();
 
 /*
@@ -5581,27 +5557,23 @@ Q/9B/zD/Pv8K/xv/Kv8i/xb/qf77/iL/R/9Y/7P/6f+Y/5n/vf+5/4n/hf+u/7X/yf+z/7P/wf+6
 const filename = 'bosco.zip';
 let PRG1, PRG2, PRG3, RGB, SND, BGCOLOR, BG, OBJ;
 
-$.ajax({
-	url: filename,
-	success: function (zip) {
-		PRG1 = Uint8Array.from(zip.files['bos3_1.3n'].inflate() + zip.files['bos1_2.3m'].inflate() + zip.files['bos1_3.3l'].inflate() + zip.files['bos1_4b.3k'].inflate(), c => c.charCodeAt(0));
-		PRG2 = Uint8Array.from(zip.files['bos1_5c.3j'].inflate() + zip.files['bos3_6.3h'].inflate(), c => c.charCodeAt(0));
-		PRG3 = Uint8Array.from(zip.files['bos1_7.3e'].inflate(), c => c.charCodeAt(0));
-		BG = Uint8Array.from(zip.files['bos1_14.5d'].inflate(), c => c.charCodeAt(0));
-		OBJ = Uint8Array.from(zip.files['bos1_13.5e'].inflate(), c => c.charCodeAt(0));
-		RGB = Uint8Array.from(zip.files['bos1-6.6b'].inflate(), c => c.charCodeAt(0));
-		BGCOLOR = Uint8Array.from(zip.files['bos1-5.4m'].inflate(), c => c.charCodeAt(0));
-		SND = Uint8Array.from(zip.files['bos1-1.1d'].inflate(), c => c.charCodeAt(0));
-		rotate = true;
-		game = new Bosconian();
-		sound = new PacManSound(SND, game.mmo0, game.mmo, game.se);
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+
+function success(zip) {
+	PRG1 = Uint8Array.from(zip.files['bos3_1.3n'].inflate() + zip.files['bos1_2.3m'].inflate() + zip.files['bos1_3.3l'].inflate() + zip.files['bos1_4b.3k'].inflate(), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['bos1_5c.3j'].inflate() + zip.files['bos3_6.3h'].inflate(), c => c.charCodeAt(0));
+	PRG3 = Uint8Array.from(zip.files['bos1_7.3e'].inflate(), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['bos1_14.5d'].inflate(), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from(zip.files['bos1_13.5e'].inflate(), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['bos1-6.6b'].inflate(), c => c.charCodeAt(0));
+	BGCOLOR = Uint8Array.from(zip.files['bos1-5.4m'].inflate(), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['bos1-1.1d'].inflate(), c => c.charCodeAt(0));
+	rotate = true;
+	game = new Bosconian();
+	sound = new PacManSound(SND, game.mmo0, game.mmo, game.se);
+	init();
+	loop();
+}
 
 </script>
 </body>

@@ -51,12 +51,12 @@ class KingAndBalloon {
 			this.cpu.memorymap[i].base = PRG.subarray(i * 0x100);
 		for (let i = 0; i < 4; i++) {
 			this.cpu.memorymap[0x80 + i].base = this.ram.subarray(i * 0x100);
-			this.cpu.memorymap[0x80 + i].write = null; // ramarea
+			this.cpu.memorymap[0x80 + i].write = null;
 			this.cpu.memorymap[0x90 + i].base = this.ram.subarray(0x400 + i * 0x100);
-			this.cpu.memorymap[0x90 + i].write = null; // ramarea
+			this.cpu.memorymap[0x90 + i].write = null;
 		}
 		this.cpu.memorymap[0x98].base = this.ram.subarray(0x800);
-		this.cpu.memorymap[0x98].write = null; // ramarea;
+		this.cpu.memorymap[0x98].write = null;
 		this.cpu.memorymap[0xa0].base = this.ioport;
 		this.cpu.memorymap[0xa0].write = systemctrl0;
 		this.cpu.memorymap[0xa8].base = this.ioport.subarray(0x10);
@@ -74,15 +74,7 @@ class KingAndBalloon {
 		this.convertOBJ();
 
 		// 効果音の初期化
-		const table = [BOMB, SHOT, WAVE1111, HELP, THANKYOU, BYEBYE];
-		this.se = [];
-		for (let i = 0; i < table.length; i++)
-			this.se[i] = new (function (buf) {
-				this.buf = buf;
-				this.loop = false;
-				this.start = false;
-				this.stop = false;
-			})(table[i]);
+		this.se = [BOMB, SHOT, WAVE1111, HELP, THANKYOU, BYEBYE].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
 		this.se[2].loop = this.se[3].loop = true;
 
 		// ライトハンドラ
@@ -101,16 +93,12 @@ class KingAndBalloon {
 		function systemctrl1(addr, data, game) {
 			switch (addr & 0x0f) {
 			case 0x03: // BOMB
-				if ((data & 1) !== 0) {
-					game.se[0].stop = true;
-					game.se[0].start = true;
-				}
+				if ((data & 1) !== 0)
+					game.se[0].start = game.se[0].stop = true;
 				break;
 			case 0x05: // SHOT
-				if ((data & 1) !== 0 && !game.mmo[addr & 0x0f | 0x10]) {
-					game.se[1].stop = true;
-					game.se[1].start = true;
-				}
+				if ((data & 1) !== 0 && !game.mmo[addr & 0x0f | 0x10])
+					game.se[1].start = game.se[1].stop = true;
 				break;
 			}
 			game.mmo[addr & 0x0f | 0x10] = data & 1;
@@ -119,7 +107,7 @@ class KingAndBalloon {
 		function systemctrl2(addr, data, game) {
 			switch (addr & 0x0f) {
 			case 0x01:
-				game.fInterruptEnable = data !== 0;
+				game.fInterruptEnable = (data & 1) !== 0;
 				break;
 			case 0x02:
 				// VOICE OUTPUT
@@ -151,7 +139,7 @@ class KingAndBalloon {
 			case 0x04:
 				if (!game.fSoundEnable)
 					game.mmo[0x30] = 0xff;
-				game.fSoundEnable = data !== 0;
+				game.fSoundEnable = (data & 1) !== 0;
 				break;
 			default:
 				break;
@@ -218,16 +206,11 @@ class KingAndBalloon {
 		if (this.fReset) {
 			this.fReset = false;
 			this.fSoundEnable = false;
-			this.stopSound();
+			this.se.forEach(se => se.stop = true);
 			this.cpu.reset();
 			this.fInterruptEnable = false;
 		}
 		return this;
-	}
-
-	stopSound() {
-		for (let i = 0; i < this.se.length; i++)
-			this.se[i].stop = true;
 	}
 
 	updateInput() {
@@ -2572,12 +2555,7 @@ Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkAtf+4/vP9AP4=
 `), c => c.charCodeAt(0))).buffer);
 
 (function() {
-	for (let i = 0, n = BOMB.length; i < n; i++)
-		BOMB[i] >>= 1;
-	for (let i = 0, n = SHOT.length; i < n; i++)
-		SHOT[i] >>= 1;
-	for (let i = 0, n = WAVE1111.length; i < n; i++)
-		WAVE1111[i] >>= 1;
+	[BOMB, SHOT, WAVE1111].forEach(buf => buf.forEach((x, i, a) => a[i] >>= 1));
 })();
 
 /*
@@ -2586,29 +2564,30 @@ Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkAtf+4/vP9AP4=
  *
  */
 
-const filename = 'kingballj.zip';
+const filename1 = 'kingballj.zip';
+const filename2 = 'kingball.zip';
 const HELP = new Int16Array((0x700 * 2 + 0x1200) * 11025 / 5000 | 0);
 const THANKYOU = new Int16Array(0x800 * 2 * 11025 / 5000 | 0);
 const BYEBYE = new Int16Array(0x800 * 2 * 11025 / 5000 | 0);
 let BG, RGB, PRG, VOICE;
 
-$.ajax({
-	url: filename,
-	success: function(zip) {
-		PRG = Uint8Array.from(zip.files['prg1.7f'].inflate() + zip.files['prg2.7j'].inflate() + zip.files['prg3.7l'].inflate(), c => c.charCodeAt(0));
-		VOICE = Uint8Array.from(zip.files['kbj1.ic4'].inflate() + zip.files['kbj2.ic5'].inflate() + zip.files['kbj3.ic6'].inflate(), c => c.charCodeAt(0));
-		BG = Uint8Array.from(zip.files['chg1.1h'].inflate() + zip.files['chg2.1k'].inflate(), c => c.charCodeAt(0));
-		RGB = Uint8Array.from(zip.files['kb2-1'].inflate(), c => c.charCodeAt(0));
-		KingAndBalloon.convertVOICE();
-		game = new KingAndBalloon();
-		sound = new GalaxianSound(SND, game.mmo, game.se);
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename1, success: success1, error: () => alert(filename1 + ': failed to get')});
+
+function success1(zip) {
+	VOICE = Uint8Array.from(zip.files['kbj1.ic4'].inflate() + zip.files['kbj2.ic5'].inflate() + zip.files['kbj3.ic6'].inflate(), c => c.charCodeAt(0));
+	$.ajax({url: filename2, success: success2, error: () => alert(filename2 + ': failed to get')});
+}
+
+function success2(zip) {
+	PRG = Uint8Array.from(zip.files['prg1.7f'].inflate() + zip.files['prg2.7j'].inflate() + zip.files['prg3.7l'].inflate(), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['chg1.1h'].inflate() + zip.files['chg2.1k'].inflate(), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['kb2-1'].inflate(), c => c.charCodeAt(0));
+	KingAndBalloon.convertVOICE();
+	game = new KingAndBalloon();
+	sound = new GalaxianSound(SND, game.mmo, game.se);
+	init();
+	loop();
+}
 
 </script>
 </body>

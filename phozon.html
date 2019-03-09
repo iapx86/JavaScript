@@ -54,36 +54,36 @@ class Phozon {
 
 		for (let i = 0; i < 8; i++) {
 			this.cpu[0].memorymap[i].base = this.ram.subarray(i * 0x100);
-			this.cpu[0].memorymap[i].write = null; // bgarea
+			this.cpu[0].memorymap[i].write = null;
 		}
 		for (let i = 0; i < 0x18; i++) {
 			this.cpu[0].memorymap[0x08 + i].base = this.ram.subarray(0x800 + i * 0x100);
-			this.cpu[0].memorymap[0x08 + i].write = null; // ramarea
+			this.cpu[0].memorymap[0x08 + i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
 			this.cpu[0].memorymap[0x40 + i].base = this.ram.subarray(0x2800 + i * 0x100);
-			this.cpu[0].memorymap[0x40 + i].write = null; // ramarea
+			this.cpu[0].memorymap[0x40 + i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
 			this.cpu[0].memorymap[0x48 + i].base = this.ram.subarray(0x2c00 + i * 0x100);
-			this.cpu[0].memorymap[0x48 + i].write = null; // ramarea
+			this.cpu[0].memorymap[0x48 + i].write = null;
 		}
 		this.cpu[0].memorymap[0x50].write = systemcontrolarea;
 		for (let i = 0; i < 0x80; i++)
 			this.cpu[0].memorymap[0x80 + i].base = PRG1.subarray(i * 0x100);
 		for (let i = 0; i < 8; i++) {
 			this.cpu[1].memorymap[i].base = this.ram.subarray(0x2800 + i * 0x100);
-			this.cpu[1].memorymap[i].write = null; // ramarea
+			this.cpu[1].memorymap[i].write = null;
 		}
 		for (let i = 0; i < 0x20; i++)
 			this.cpu[1].memorymap[0xe0 + i].base = PRG2.subarray(i * 0x100);
 		for (let i = 0; i < 0x18; i++) {
 			this.cpu[2].memorymap[0x08 + i].base = this.ram.subarray(0x800 + i * 0x100);
-			this.cpu[2].memorymap[0x08 + i].write = null; // ramarea
+			this.cpu[2].memorymap[0x08 + i].write = null;
 		}
 		for (let i = 0; i < 8; i++) {
 			this.cpu[2].memorymap[0xa0 + i].base = this.ram.subarray(0x2000 + i * 0x100);
-			this.cpu[2].memorymap[0xa0 + i].write = null; // ramarea
+			this.cpu[2].memorymap[0xa0 + i].write = null;
 		}
 		for (let i = 0; i < 0x20; i++)
 			this.cpu[2].memorymap[0xe0 + i].base = PRG3.subarray(i * 0x100);
@@ -837,27 +837,23 @@ class Phozon {
 const filename = 'phozon.zip';
 let PRG1, PRG2, PRG3, RGB, SND, BG, BGCOLOR, OBJ, OBJCOLOR;
 
-$.ajax({
-	url: filename,
-	success: function(zip) {
-		PRG1 = Uint8Array.from(zip.files['6e.rom'].inflate() + zip.files['6h.rom'].inflate() + zip.files['6c.rom'].inflate() + zip.files['6d.rom'].inflate(), c => c.charCodeAt(0));
-		PRG2 = Uint8Array.from(zip.files['3b.rom'].inflate(), c => c.charCodeAt(0));
-		PRG3 = Uint8Array.from(zip.files['9r.rom'].inflate(), c => c.charCodeAt(0));
-		BG = Uint8Array.from(zip.files['7j.rom'].inflate() + zip.files['8j.rom'].inflate(), c => c.charCodeAt(0));
-		OBJ = Uint8Array.from(zip.files['5t.rom'].inflate(), c => c.charCodeAt(0));
-		RGB = Uint8Array.from(zip.files['green.prm'].inflate() + zip.files['red.prm'].inflate() + zip.files['blue.prm'].inflate(), c => c.charCodeAt(0));
-		BGCOLOR = Uint8Array.from(zip.files['chr.prm'].inflate(), c => c.charCodeAt(0));
-		OBJCOLOR = Uint8Array.from(zip.files['sprite.prm'].inflate(), c => c.charCodeAt(0));
-		SND = Uint8Array.from(zip.files['sound.prm'].inflate(), c => c.charCodeAt(0));
-		game = new Phozon();
-		sound = new MappySound(SND, game.ram.subarray(0x2800));
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+
+function success(zip) {
+	PRG1 = Uint8Array.from(zip.files['6e.rom'].inflate() + zip.files['6h.rom'].inflate() + zip.files['6c.rom'].inflate() + zip.files['6d.rom'].inflate(), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['3b.rom'].inflate(), c => c.charCodeAt(0));
+	PRG3 = Uint8Array.from(zip.files['9r.rom'].inflate(), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['7j.rom'].inflate() + zip.files['8j.rom'].inflate(), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from(zip.files['5t.rom'].inflate(), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['green.prm'].inflate() + zip.files['red.prm'].inflate() + zip.files['blue.prm'].inflate(), c => c.charCodeAt(0));
+	BGCOLOR = Uint8Array.from(zip.files['chr.prm'].inflate(), c => c.charCodeAt(0));
+	OBJCOLOR = Uint8Array.from(zip.files['sprite.prm'].inflate(), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['sound.prm'].inflate(), c => c.charCodeAt(0));
+	game = new Phozon();
+	sound = new MappySound(SND, game.ram.subarray(0x2800));
+	init();
+	loop();
+}
 
 </script>
 </body>

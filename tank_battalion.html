@@ -43,15 +43,15 @@ class TankBattalion {
 
 		this.cpu = new MCS6502(this);
 		for (let i = 0; i < 8; i++) {
-			this.cpu.memorymap[0x80 + i].write = this.cpu.memorymap[i].write = null; // ramarea
 			this.cpu.memorymap[0x80 + i].base = this.cpu.memorymap[i].base = this.ram.subarray(i * 0x100);
+			this.cpu.memorymap[0x80 + i].write = this.cpu.memorymap[i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x88 + i].write = this.cpu.memorymap[0x08 + i].write = null; // bgarea
 			this.cpu.memorymap[0x88 + i].base = this.cpu.memorymap[0x08 + i].base = this.ram.subarray(0x800 + i * 0x100);
+			this.cpu.memorymap[0x88 + i].write = this.cpu.memorymap[0x08 + i].write = null;
 		}
-		this.cpu.memorymap[0x8c].write = this.cpu.memorymap[0x0c].write = systemcontrolarea;
 		this.cpu.memorymap[0x8c].base = this.cpu.memorymap[0x0c].base = this.rport;
+		this.cpu.memorymap[0x8c].write = this.cpu.memorymap[0x0c].write = systemcontrolarea;
 		for (let i = 0; i < 0x20; i++)
 			this.cpu.memorymap[0xe0 + i].base = this.cpu.memorymap[0x60 + i].base = PRG.subarray(i * 0x100);
 		this.rport[0x1b] = 0x7f;
@@ -65,15 +65,7 @@ class TankBattalion {
 		this.convertBG();
 
 		// 効果音の初期化
-		const table = [BANG, FIRE, ENG2, ENG1, BONUS, COIN];
-		this.se = [];
-		for (let i = 0; i < table.length; i++)
-			this.se[i] = new (function (buf) {
-				this.buf = buf;
-				this.loop = false;
-				this.start = false;
-				this.stop = false;
-			})(table[i]);
+		this.se = [BANG, FIRE, ENG2, ENG1, BONUS, COIN].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
 		this.se[2].loop = this.se[3].loop = true;
 
 		// ライトハンドラ
@@ -5088,21 +5080,17 @@ TP9L/zz/Nv9N/zr/Lv8q/xX/Gf8H//f+5/7j/u3+7/7w/vv+/P4C/xL/MP8=
 const filename = 'tankbatt.zip';
 let PRG, BG, RGB;
 
-$.ajax({
-	url: filename,
-	success: function(zip) {
-		PRG = Uint8Array.from(zip.files['tb1-1.1a'].inflate() + zip.files['tb1-2.1b'].inflate() + zip.files['tb1-3.1c'].inflate() + zip.files['tb1-4.1d'].inflate(), c => c.charCodeAt(0));
-		BG = Uint8Array.from(zip.files['tb1-5.2k'].inflate(), c => c.charCodeAt(0));
-		RGB = Uint8Array.from(zip.files['bct1-1.l3'].inflate(), c => c.charCodeAt(0));
-		game = new TankBattalion();
-		sound = new SoundEffect(game.se);
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+
+function success(zip) {
+	PRG = Uint8Array.from(zip.files['tb1-1.1a'].inflate() + zip.files['tb1-2.1b'].inflate() + zip.files['tb1-3.1c'].inflate() + zip.files['tb1-4.1d'].inflate(), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['tb1-5.2k'].inflate(), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['bct1-1.l3'].inflate(), c => c.charCodeAt(0));
+	game = new TankBattalion();
+	sound = new SoundEffect(game.se);
+	init();
+	loop();
+}
 
 </script>
 </body>

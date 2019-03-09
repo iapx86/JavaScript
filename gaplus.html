@@ -54,42 +54,64 @@ class Gaplus {
 
 		for (let i = 0; i < 0x08; i++) {
 			this.cpu[0].memorymap[i].base = this.ram.subarray(i * 0x100);
-			this.cpu[0].memorymap[i].write = null; // bgarea
+			this.cpu[0].memorymap[i].write = null;
 		}
 		for (let i = 0; i < 0x18; i++) {
 			this.cpu[0].memorymap[0x08 + i].base = this.ram.subarray(0x800 + i * 0x100);
-			this.cpu[0].memorymap[0x08 + i].write = null; // ramarea
+			this.cpu[0].memorymap[0x08 + i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
 			this.cpu[0].memorymap[0x60 + i].base = this.ram.subarray(0x2000 + i * 0x100);
-			this.cpu[0].memorymap[0x60 + i].write = null; // ramarea
+			this.cpu[0].memorymap[0x60 + i].write = null;
 		}
 		this.cpu[0].memorymap[0x68].base = this.ram.subarray(0x2400);
-		this.cpu[0].memorymap[0x68].write = ioarea;
-		this.cpu[0].memorymap[0x74].write = enableinterrupt0area;
-		this.cpu[0].memorymap[0x7c].write = disableinterrupt0area;
-		this.cpu[0].memorymap[0x84].write = enablesubcpuarea;
-		this.cpu[0].memorymap[0x8c].write = disablesubcpuarea;
+		this.cpu[0].memorymap[0x68].write = (addr, data) => {
+			if (addr === 0x682a && this.ram[0x2428] !== 4 && (data - this.ram[0x2429] - 1 & 0x0f) === 0)
+				this.se[0].start = this.se[0].stop = true;
+			this.ram[0x2400 + (addr & 0xff)] = data;
+		};
+		this.cpu[0].memorymap[0x74].write = () => this.fInterruptEnable0 = true;
+		this.cpu[0].memorymap[0x7c].write = () => this.fInterruptEnable0 = false;
+		this.cpu[0].memorymap[0x84].write = () => {
+			this.cpu[1].enable();
+			this.cpu[2].enable();
+		};
+		this.cpu[0].memorymap[0x8c].write = () => {
+			this.cpu[1].disable();
+			this.cpu[2].disable();
+		};
 		for (let i = 0; i < 0x60; i++)
 			this.cpu[0].memorymap[0xa0 + i].base = PRG1.subarray(i * 0x100);
-		this.cpu[0].memorymap[0xa0].write = stararea;
+		this.cpu[0].memorymap[0xa0].write = (addr, data) => this.starport[addr & 0xff] = data;
 		for (let i = 0; i < 0x08; i++) {
 			this.cpu[1].memorymap[i].base = this.ram.subarray(i * 0x100);
-			this.cpu[1].memorymap[i].write = null; // bgarea
+			this.cpu[1].memorymap[i].write = null;
 		}
 		for (let i = 0; i < 0x18; i++) {
 			this.cpu[1].memorymap[0x08 + i].base = this.ram.subarray(0x800 + i * 0x100);
-			this.cpu[1].memorymap[0x08 + i].write = null; // ramarea
+			this.cpu[1].memorymap[0x08 + i].write = null;
 		}
-		this.cpu[1].memorymap[0x60].write = systemcontrolarea1;
+		this.cpu[1].memorymap[0x60].write = (addr) => {
+			switch (addr & 0xff) {
+			case 0x01: // INTERRUPT START
+				this.fInterruptEnable1 = true;
+				break;
+			case 0x80: // INTERRUPT STOP
+				this.fInterruptEnable1 = false;
+				break;
+			case 0x81: // INTERRUPT START
+				this.fInterruptEnable1 = true;
+				break;
+			}
+		};
 		for (let i = 0; i < 0x60; i++)
 			this.cpu[1].memorymap[0xa0 + i].base = PRG2.subarray(i * 0x100);
 		for (let i = 0; i < 4; i++) {
 			this.cpu[2].memorymap[i].base = this.ram.subarray(0x2000 + i * 0x100);
-			this.cpu[2].memorymap[i].write = null; // ramarea
+			this.cpu[2].memorymap[i].write = null;
 		}
-		this.cpu[2].memorymap[0x40].write = enableinterrupt2area;
-		this.cpu[2].memorymap[0x60].write = disableinterrupt2area;
+		this.cpu[2].memorymap[0x40].write = () => this.fInterruptEnable2 = true;
+		this.cpu[2].memorymap[0x60].write = () => this.fInterruptEnable2 = false;
 		for (let i = 0; i < 0x20; i++)
 			this.cpu[2].memorymap[0xe0 + i].base = PRG3.subarray(i * 0x100);
 
@@ -120,57 +142,6 @@ class Gaplus {
 
 		// 効果音の初期化
 		this.se = [{buf: BANG, loop: false, start: false, stop: false}];
-
-		// ライトハンドラ
-		function ioarea(addr, data, game) {
-			if (addr === 0x682a && game.ram[0x2428] !== 4 && (data - game.ram[0x2429] - 1 & 0x0f) === 0)
-				game.se[0].start = game.se[0].stop = true;
-			this.base[addr & 0xff] = data;
-		}
-
-		function enableinterrupt0area(addr, data, game) {
-			game.fInterruptEnable0 = true;
-		}
-
-		function disableinterrupt0area(addr, data, game) {
-			game.fInterruptEnable0 = false;
-		}
-
-		function systemcontrolarea1(addr, data, game) {
-			switch (addr & 0xff) {
-			case 0x01: // INTERRUPT START
-				game.fInterruptEnable1 = true;
-				break;
-			case 0x80: // INTERRUPT STOP
-				game.fInterruptEnable1 = false;
-				break;
-			case 0x81: // INTERRUPT START
-				game.fInterruptEnable1 = true;
-				break;
-			}
-		}
-
-		function enableinterrupt2area(addr, data, game) {
-			game.fInterruptEnable2 = true;
-		}
-
-		function disableinterrupt2area(addr, data, game) {
-			game.fInterruptEnable2 = false;
-		}
-
-		function enablesubcpuarea(addr, data, game) {
-			game.cpu[1].enable();
-			game.cpu[2].enable();
-		}
-
-		function disablesubcpuarea(addr, data, game) {
-			game.cpu[1].disable();
-			game.cpu[2].disable();
-		}
-
-		function stararea(addr, data, game) {
-			game.starport[addr & 0xff] = data;
-		}
 	}
 
 	execute() {
@@ -1766,8 +1737,7 @@ OQA3ADcA
 `), c => c.charCodeAt(0))).buffer);
 
 (function () {
-	for (let i = 0, n = BANG.length; i < n; i++)
-		BANG[i] = BANG[i] * 3 >> 2;
+	BANG.forEach((x, i, a) => a[i] = x * 3 >> 2);
 })();
 
 /*
@@ -1779,31 +1749,27 @@ OQA3ADcA
 const filename = 'gaplus.zip';
 let SND, BGCOLOR, OBJCOLOR_H, OBJCOLOR_L, RED, BLUE, GREEN, BG, OBJ4, OBJ8, PRG1, PRG2, PRG3;
 
-$.ajax({
-	url: filename,
-	success: function(zip) {
-		PRG1 = Uint8Array.from(zip.files['gp2-4.8d'].inflate() + zip.files['gp2-3b.8c'].inflate() + zip.files['gp2-2b.8b'].inflate(), c => c.charCodeAt(0));
-		PRG2 = Uint8Array.from(zip.files['gp2-8.11d'].inflate() + zip.files['gp2-7.11c'].inflate() + zip.files['gp2-6.11b'].inflate(), c => c.charCodeAt(0));
-		PRG3 = Uint8Array.from(zip.files['gp2-1.4b'].inflate(), c => c.charCodeAt(0));
-		BG = Uint8Array.from(zip.files['gp2-5.8s'].inflate(), c => c.charCodeAt(0));
-		OBJ8 = Uint8Array.from(zip.files['gp2-11.11p'].inflate() + zip.files['gp2-10.11n'].inflate() + zip.files['gp2-9.11m'].inflate(), c => c.charCodeAt(0));
-		OBJ4 = Uint8Array.from(zip.files['gp2-12.11r'].inflate(), c => c.charCodeAt(0));
-		RED = Uint8Array.from(zip.files['gp2-3.1p'].inflate(), c => c.charCodeAt(0));
-		GREEN = Uint8Array.from(zip.files['gp2-1.1n'].inflate(), c => c.charCodeAt(0));
-		BLUE = Uint8Array.from(zip.files['gp2-2.2n'].inflate(), c => c.charCodeAt(0));
-		BGCOLOR = Uint8Array.from(zip.files['gp2-7.6s'].inflate(), c => c.charCodeAt(0));
-		OBJCOLOR_L = Uint8Array.from(zip.files['gp2-6.6p'].inflate(), c => c.charCodeAt(0));
-		OBJCOLOR_H = Uint8Array.from(zip.files['gp2-5.6n'].inflate(), c => c.charCodeAt(0));
-		SND = Uint8Array.from(zip.files['gp2-4.3f'].inflate(), c => c.charCodeAt(0));
-		game = new Gaplus();
-		sound = new MappySound(SND, game.ram.subarray(0x2000), game.se);
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+
+function success(zip) {
+	PRG1 = Uint8Array.from(zip.files['gp2-4.8d'].inflate() + zip.files['gp2-3b.8c'].inflate() + zip.files['gp2-2b.8b'].inflate(), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['gp2-8.11d'].inflate() + zip.files['gp2-7.11c'].inflate() + zip.files['gp2-6.11b'].inflate(), c => c.charCodeAt(0));
+	PRG3 = Uint8Array.from(zip.files['gp2-1.4b'].inflate(), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['gp2-5.8s'].inflate(), c => c.charCodeAt(0));
+	OBJ8 = Uint8Array.from(zip.files['gp2-11.11p'].inflate() + zip.files['gp2-10.11n'].inflate() + zip.files['gp2-9.11m'].inflate(), c => c.charCodeAt(0));
+	OBJ4 = Uint8Array.from(zip.files['gp2-12.11r'].inflate(), c => c.charCodeAt(0));
+	RED = Uint8Array.from(zip.files['gp2-3.1p'].inflate(), c => c.charCodeAt(0));
+	GREEN = Uint8Array.from(zip.files['gp2-1.1n'].inflate(), c => c.charCodeAt(0));
+	BLUE = Uint8Array.from(zip.files['gp2-2.2n'].inflate(), c => c.charCodeAt(0));
+	BGCOLOR = Uint8Array.from(zip.files['gp2-7.6s'].inflate(), c => c.charCodeAt(0));
+	OBJCOLOR_L = Uint8Array.from(zip.files['gp2-6.6p'].inflate(), c => c.charCodeAt(0));
+	OBJCOLOR_H = Uint8Array.from(zip.files['gp2-5.6n'].inflate(), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['gp2-4.3f'].inflate(), c => c.charCodeAt(0));
+	game = new Gaplus();
+	sound = new MappySound(SND, game.ram.subarray(0x2000), game.se);
+	init();
+	loop();
+}
 
 </script>
 </body>

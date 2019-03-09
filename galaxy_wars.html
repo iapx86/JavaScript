@@ -41,12 +41,12 @@ class GalaxyWars {
 
 		this.cpu = new I8080(this);
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[i].base = PRG1.subarray(i * 0x100);
+			this.cpu.memorymap[0x80 + i].base = this.cpu.memorymap[i].base = PRG1.subarray(i * 0x100);
 		for (let i = 0; i < 8; i++)
-			this.cpu.memorymap[0x40 + i].base = PRG2.subarray(i * 0x100);
+			this.cpu.memorymap[0xc0 + i].base = this.cpu.memorymap[0x40 + i].base = PRG2.subarray(i * 0x100);
 		for (let i = 0; i < 0x20; i++) {
-			this.cpu.memorymap[0x20 + i].base = this.ram.subarray(i * 0x100);
-			this.cpu.memorymap[0x20 + i].write = null; // ramarea
+			this.cpu.memorymap[0xe0 + i].base = this.cpu.memorymap[0xa0 + i].base = this.cpu.memorymap[0x60 + i].base = this.cpu.memorymap[0x20 + i].base = this.ram.subarray(i * 0x100);
+			this.cpu.memorymap[0xe0 + i].write = this.cpu.memorymap[0xa0 + i].write = this.cpu.memorymap[0x60 + i].write = this.cpu.memorymap[0x20 + i].write = null;
 		}
 		for (let i = 0; i < 0x100; i++) {
 			this.cpu.iomap[i].base = this.io;
@@ -269,19 +269,15 @@ class GalaxyWars {
 const filename = 'galxwars.zip';
 let PRG1, PRG2;
 
-$.ajax({
-	url: filename,
-	success: function(zip) {
-		PRG1 = Uint8Array.from(zip.files['univgw3.0'].inflate() + zip.files['univgw4.1'].inflate() + zip.files['univgw5.2'].inflate() + zip.files['univgw6.3'].inflate(), c => c.charCodeAt(0));
-		PRG2 = Uint8Array.from(zip.files['univgw1.4'].inflate() + zip.files['univgw2.5'].inflate(), c => c.charCodeAt(0));
-		game = new GalaxyWars();
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+
+function success(zip) {
+	PRG1 = Uint8Array.from(zip.files['univgw3.0'].inflate() + zip.files['univgw4.1'].inflate() + zip.files['univgw5.2'].inflate() + zip.files['univgw6.3'].inflate(), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['univgw1.4'].inflate() + zip.files['univgw2.5'].inflate(), c => c.charCodeAt(0));
+	game = new GalaxyWars();
+	init();
+	loop();
+}
 
 </script>
 </body>

@@ -86,16 +86,14 @@ class KorosukeRoller {
 				case 0x30:
 					switch (addr & 7) {
 					case 0:
-						this.fInterruptEnable = data !== 0;
+						this.fInterruptEnable = (data & 1) !== 0;
 						break;
 					case 1:
-						this.fSoundEnable = data !== 0;
+						this.fSoundEnable = (data & 1) !== 0;
 						break;
 					case 4:
-						if (!(this.fProtectEnable = data !== 0)) {
-							this.protect_count = 0;
-							this.protect_index = 0;
-						}
+						if (!(this.fProtectEnable = (data & 1) !== 0))
+							this.protect_count = this.protect_index = 0;
 						else if (++this.protect_count === 0x3c) {
 							this.protect_count = 0;
 							if (++this.protect_index === 0x1e)

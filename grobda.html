@@ -58,24 +58,24 @@ class Grobda {
 			this.cpu[0].memorymap[0xa0 + i].base = PRG1.subarray(i * 0x100);
 		for (let i = 0; i < 8; i++) {
 			this.cpu[0].memorymap[i].base = this.ram.subarray(i * 0x100);
-			this.cpu[0].memorymap[i].write = null; // bgarea
+			this.cpu[0].memorymap[i].write = null;
 		}
 		for (let i = 0; i < 0x18; i++) {
 			this.cpu[0].memorymap[0x08 + i].base = this.ram.subarray(0x0800 + i * 0x100);
-			this.cpu[0].memorymap[0x08 + i].write = null; // ramarea
+			this.cpu[0].memorymap[0x08 + i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
 			this.cpu[0].memorymap[0x40 + i].base = this.ram.subarray(0x2000 + i * 0x100);
-			this.cpu[0].memorymap[0x40 + i].write = null; // ramarea
+			this.cpu[0].memorymap[0x40 + i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
 			this.cpu[0].memorymap[0x48 + i].base = this.ram.subarray(0x2400 + i * 0x100);
-			this.cpu[0].memorymap[0x48 + i].write = null; // ramarea
+			this.cpu[0].memorymap[0x48 + i].write = null;
 		}
 		this.cpu[0].memorymap[0x50].write = systemcontrolarea;
 		for (let i = 0; i < 4; i++) {
 			this.cpu[1].memorymap[i].base = this.ram.subarray(0x2000 + i * 0x100);
-			this.cpu[1].memorymap[i].write = null; // ramarea
+			this.cpu[1].memorymap[i].write = null;
 		}
 		this.cpu[1].memorymap[0x20].write = systemcontrolarea;
 		for (let i = 0; i < 0x20; i++)
@@ -94,12 +94,7 @@ class Grobda {
 		this.convertOBJ();
 
 		// 効果音の初期化
-		this.se = [{
-			buf: GETREADY,
-			loop: false,
-			start: false,
-			stop: false
-		}];
+		this.se = [{buf: GETREADY, loop: false, start: false, stop: false}];
 
 		// ライトハンドラ
 		function systemcontrolarea(addr, data, game) {
@@ -706,27 +701,23 @@ const filename = 'grobda.zip';
 const GETREADY = new Int16Array(Math.ceil(8837 * 22050 / 14800));
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
-$.ajax({
-	url: filename,
-	success: function(zip) {
-		PRG1 = Uint8Array.from(zip.files['gr2-3.1d'].inflate() + zip.files['gr2-2.1c'].inflate() + zip.files['gr2-1.1b'].inflate(), c => c.charCodeAt(0));
-		PRG2 = Uint8Array.from(zip.files['gr1-4.1k'].inflate(), c => c.charCodeAt(0));
-		BG = Uint8Array.from(zip.files['gr1-7.3c'].inflate(), c => c.charCodeAt(0));
-		OBJ = Uint8Array.from(zip.files['gr1-5.3f'].inflate() + zip.files['gr1-6.3e'].inflate(), c => c.charCodeAt(0));
-		RGB = Uint8Array.from(zip.files['gr1-6.4c'].inflate(), c => c.charCodeAt(0));
-		BGCOLOR = Uint8Array.from(zip.files['gr1-5.4e'].inflate(), c => c.charCodeAt(0));
-		OBJCOLOR = Uint8Array.from(zip.files['gr1-4.3l'].inflate(), c => c.charCodeAt(0));
-		SND = Uint8Array.from(zip.files['gr1-3.3m'].inflate(), c => c.charCodeAt(0));
-		Grobda.convertGETREADY();
-		game = new Grobda();
-		sound = new MappySound(SND, game.ram.subarray(0x2000), game.se, 22050);
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+
+function success(zip) {
+	PRG1 = Uint8Array.from(zip.files['gr2-3.1d'].inflate() + zip.files['gr2-2.1c'].inflate() + zip.files['gr2-1.1b'].inflate(), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['gr1-4.1k'].inflate(), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['gr1-7.3c'].inflate(), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from(zip.files['gr1-5.3f'].inflate() + zip.files['gr1-6.3e'].inflate(), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['gr1-6.4c'].inflate(), c => c.charCodeAt(0));
+	BGCOLOR = Uint8Array.from(zip.files['gr1-5.4e'].inflate(), c => c.charCodeAt(0));
+	OBJCOLOR = Uint8Array.from(zip.files['gr1-4.3l'].inflate(), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['gr1-3.3m'].inflate(), c => c.charCodeAt(0));
+	Grobda.convertGETREADY();
+	game = new Grobda();
+	sound = new MappySound(SND, game.ram.subarray(0x2000), game.se, 22050);
+	init();
+	loop();
+}
 
 </script>
 </body>

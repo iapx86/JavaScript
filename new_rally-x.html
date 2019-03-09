@@ -48,29 +48,30 @@ class NewRallyX {
 		this.ram = new Uint8Array(0x1800);
 		this.mmi = new Uint8Array(0x200).fill(0xff);
 		this.mmo = new Uint8Array(0x200);
-		this.io = new Uint8Array(0x100);
 		this.adwCount = new Uint8Array(8);
 		this.mmi[0x100] = 0xc5;
+		this.vector = 0;
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x40; i++)
 			this.cpu.memorymap[i].base = PRG.subarray(i * 0x100);
 		for (let i = 0; i < 0x10; i++) {
 			this.cpu.memorymap[0x80 + i].base = this.ram.subarray(i * 0x100);
-			this.cpu.memorymap[0x80 + i].write = null; // ramarea
+			this.cpu.memorymap[0x80 + i].write = null;
 		}
 		for (let i = 0; i < 0x08; i++) {
 			this.cpu.memorymap[0x98 + i].base = this.ram.subarray(0x1000 + i * 0x100);
-			this.cpu.memorymap[0x98 + i].write = null; // ramarea
+			this.cpu.memorymap[0x98 + i].write = null;
 		}
 		for (let i = 0; i < 0x02; i++) {
 			this.cpu.memorymap[0xa0 + i].base = this.mmi.subarray(i * 0x100);
 			this.cpu.memorymap[0xa0 + i].write = systemcontrolarea;
 		}
-		for (let i = 0; i < 0x100; i++) {
-			this.cpu.iomap[i].base = this.io;
-			this.cpu.iomap[i].write = null; // ramarea
-		}
+		for (let i = 0; i < 0x100; i++)
+			this.cpu.iomap[i].write = (addr, data) => {
+				if ((addr & 0xff) === 0)
+					this.vector = data;
+			};
 
 		this.cpu.breakpoint = hookBreakPoint;
 		this.cpu.set_breakpoint(0x0d39);
@@ -98,13 +99,11 @@ class NewRallyX {
 			case 0xa18:
 				switch (addr & 0xf) {
 				case 0:
-					if (data === 0xff) {
-						game.se[0].stop = true;
-						game.se[0].start = true;
-					}
+					if (data === 0xff)
+						game.se[0].start = game.se[0].stop = true;
 					break;
 				case 1:
-					game.fInterrupt = data !== 0;
+					game.fInterrupt = (data & 1) !== 0;
 					break;
 				}
 				game.mmo[addr & 0x1ff] = data;
@@ -131,7 +130,7 @@ class NewRallyX {
 	}
 
 	execute() {
-		while (this.fInterrupt && !this.cpu.interrupt(this.io[0]))
+		while (this.fInterrupt && !this.cpu.interrupt(this.vector))
 			this.cpu.execute(0x10);
 		this.cpu.execute(0x2400);
 		return this;
@@ -1589,8 +1588,7 @@ l/+b/6j/qv+l/5z/oP+w/77/z//f//3/9f///w==
 `), c => c.charCodeAt(0))).buffer);
 
 (function () {
-	for (let i = 0, n = BANG.length; i < n; i++)
-		BANG[i] = BANG[i] * 9 >> 4;
+	BANG.forEach((x, i, a) => a[i] = x * 9 >> 4);
 })();
 
 /*
@@ -1602,26 +1600,22 @@ l/+b/6j/qv+l/5z/oP+w/77/z//f//3/9f///w==
 const filename = 'nrallyx.zip';
 let SND, BGOBJ, COLOR, RGB, PRG;
 
-$.ajax({
-	url: filename,
-	success: function(zip) {
-		PRG = zip.files['nrx_prg1.1d'].inflate().substring(0, 0x800) + zip.files['nrx_prg2.1e'].inflate().substring(0, 0x800) + zip.files['nrx_prg1.1d'].inflate().substring(0x800);
-		PRG += zip.files['nrx_prg2.1e'].inflate().substring(0x800) + zip.files['nrx_prg3.1k'].inflate().substring(0, 0x800) + zip.files['nrx_prg4.1l'].inflate().substring(0, 0x800);
-		PRG = Uint8Array.from(PRG + zip.files['nrx_prg3.1k'].inflate().substring(0x800) + zip.files['nrx_prg4.1l'].inflate().substring(0x800), c => c.charCodeAt(0));
-		BGOBJ = Uint8Array.from(zip.files['nrx_chg1.8e'].inflate() + zip.files['nrx_chg2.8d'].inflate(), c => c.charCodeAt(0));
-		RGB = Uint8Array.from(zip.files['nrx1-1.11n'].inflate(), c => c.charCodeAt(0));
-		COLOR = Uint8Array.from(zip.files['nrx1-7.8p'].inflate(), c => c.charCodeAt(0));
-		SND = Uint8Array.from(zip.files['rx1-5.3p'].inflate(), c => c.charCodeAt(0));
-		rotate = true;
-		game = new NewRallyX();
-		sound = new PacManSound(SND, game.mmo.subarray(0x100), null, game.se);
-		init();
-		loop();
-	},
-	error: function() {
-		alert(filename + ': failed to get');
-	}
-});
+$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+
+function success(zip) {
+	PRG = zip.files['nrx_prg1.1d'].inflate().substring(0, 0x800) + zip.files['nrx_prg2.1e'].inflate().substring(0, 0x800) + zip.files['nrx_prg1.1d'].inflate().substring(0x800);
+	PRG += zip.files['nrx_prg2.1e'].inflate().substring(0x800) + zip.files['nrx_prg3.1k'].inflate().substring(0, 0x800) + zip.files['nrx_prg4.1l'].inflate().substring(0, 0x800);
+	PRG = new Uint8Array(Array.from(PRG + zip.files['nrx_prg3.1k'].inflate().substring(0x800) + zip.files['nrx_prg4.1l'].inflate().substring(0x800), c => c.charCodeAt(0)));
+	BGOBJ = Uint8Array.from(zip.files['nrx_chg1.8e'].inflate() + zip.files['nrx_chg2.8d'].inflate(), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['nrx1-1.11n'].inflate(), c => c.charCodeAt(0));
+	COLOR = Uint8Array.from(zip.files['nrx1-7.8p'].inflate(), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['rx1-5.3p'].inflate(), c => c.charCodeAt(0));
+	rotate = true;
+	game = new NewRallyX();
+	sound = new PacManSound(SND, game.mmo.subarray(0x100), null, game.se);
+	init();
+	loop();
+}
 
 </script>
 </body>

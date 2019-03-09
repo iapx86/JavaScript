@@ -52,7 +52,7 @@ class JrPacMan {
 			this.cpu.memorymap[0x80 + i].base = PRG.subarray(0x4000 + i * 0x100);
 		for (let i = 0; i < 0x10; i++) {
 			this.cpu.memorymap[0x40 + i].base = this.ram.subarray(i * 0x100);
-			this.cpu.memorymap[0x40 + i].write = null; // ramarea
+			this.cpu.memorymap[0x40 + i].write = null;
 		}
 		this.cpu.memorymap[0x50].read = (addr) => this.in[addr >>> 6 & 3];
 		this.cpu.memorymap[0x50].write = (addr, data) => {
@@ -60,10 +60,10 @@ class JrPacMan {
 			case 0x00:
 				switch (addr & 0x0f) {
 				case 0:
-					this.fInterruptEnable = data !== 0;
+					this.fInterruptEnable = (data & 1) !== 0;
 					break;
 				case 1:
-					this.fSoundEnable = data !== 0;
+					this.fSoundEnable = (data & 1) !== 0;
 					break;
 				}
 				break;
