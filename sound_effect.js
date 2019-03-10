@@ -10,8 +10,9 @@ class SoundEffect {
 	constructor(se, freq = 22050) {
 		this.se = se;
 		this.gainNode = audioCtx.createGain();
+		this.gainNode.connect(audioCtx.destination);
 		this.merger = audioCtx.createChannelMerger(1);
-		this.merger.connect(this.gainNode).connect(audioCtx.destination);
+		this.merger.connect(this.gainNode);
 		se.forEach(se => {
 			se.audioBuffer = audioCtx.createBuffer(1, se.buf.length, 44100);
 			se.audioBuffer.getChannelData(0).forEach((x, i, data) => data[i] = se.buf[i] / 32767);

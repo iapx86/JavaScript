@@ -21,27 +21,30 @@ class AY_3_8910 {
 		this.resolution = resolution;
 		this.se = se;
 		this.gainNode = audioCtx.createGain();
+		this.gainNode.connect(audioCtx.destination);
 		this.merger = audioCtx.createChannelMerger(1);
-		this.merger.connect(this.gainNode).connect(audioCtx.destination);
+		this.merger.connect(this.gainNode);
 		this.channel = [];
 		for (let i = 0; i < psg.length; i++) {
 			this.channel[i] = [];
 			for (let j = 0; j < 3; j++) {
 				const ch = {freq: 0, vol: 0, gainNode: audioCtx.createGain(), oscillator: audioCtx.createOscillator()};
 				ch.gainNode.gain.value = 0;
+				ch.gainNode.connect(this.merger);
 				ch.oscillator.type = 'square';
 				ch.oscillator.frequency.value = 0;
-				ch.oscillator.connect(ch.gainNode).connect(this.merger);
+				ch.oscillator.connect(ch.gainNode);
 				ch.oscillator.start();
 				this.channel[i].push(ch);
 			}
 			for (let j = 0; j < 3; j++) {
 				const ch = {freq: 0, vol: 0, gainNode: audioCtx.createGain(), audioBufferSource: audioCtx.createBufferSource()};
 				ch.gainNode.gain.value = 0;
+				ch.gainNode.connect(this.merger);
 				ch.audioBufferSource.buffer = this.noiseBuffer;
 				ch.audioBufferSource.loop = true;
 				ch.audioBufferSource.playbackRate.value = 0;
-				ch.audioBufferSource.connect(ch.gainNode).connect(this.merger);
+				ch.audioBufferSource.connect(ch.gainNode);
 				ch.audioBufferSource.start();
 				this.channel[i].push(ch);
 			}

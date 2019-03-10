@@ -398,12 +398,14 @@ class WarpAndWarpSound {
 		this.base = base;
 		this.se = se;
 		this.gainNode = audioCtx.createGain();
+		this.gainNode.connect(audioCtx.destination);
 		this.merger = audioCtx.createChannelMerger(1);
+		this.merger.connect(this.gainNode);
 		this.channel = {voice: 0, freq: 0, audioBufferSource: audioCtx.createBufferSource()};
 		this.channel.audioBufferSource.buffer = this.audioBuffer[0];
 		this.channel.audioBufferSource.loop = true;
 		this.channel.audioBufferSource.playbackRate.value = 0;
-		this.channel.audioBufferSource.connect(this.merger).connect(this.gainNode).connect(audioCtx.destination);
+		this.channel.audioBufferSource.connect(this.merger);
 		this.channel.audioBufferSource.start();
 		se.forEach(se => {
 			se.audioBuffer = audioCtx.createBuffer(1, se.buf.length, 44100);
