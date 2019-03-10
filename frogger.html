@@ -44,8 +44,7 @@ class Frogger {
 		this.ram2 = new Uint8Array(0x400);
 		this.psg = [{que: '', addr: 0, reg: new Uint8Array(0x10).fill(0xff), tmp: new Uint8Array(0x10).fill(0xff)}];
 		this.count = 0;
-		this.hibit = 0;
-		this.cycles = 0;
+		this.timer = 0;
 		this.command = '';
 
 		this.cpu = new Z80(this);
@@ -117,19 +116,15 @@ class Frogger {
 		if (this.fInterruptEnable)
 			this.cpu.non_maskable_interrupt();
 		this.cpu.execute(0x2000);
-		for (let i = 0; i < 116; i++) { // 14318181 / 60 / 2048
-			this.count = i;
-			if (this.command !== '' && this.cpu2.iff === 3) {
+		for (this.count = 0; this.count < 116; this.count++) { // 14318181 / 60 / 2048
+			if (this.command !== '' && this.cpu2.interrupt()) {
 				this.psg[0].tmp[0x0e] = this.command.charCodeAt(0);
-				this.cpu2.interrupt(0xff);
 				this.command = this.command.substring(1);
 			}
-			this.psg[0].tmp[0x0f] = this.hibit << 7 | this.cycles << 3 & 0x40 | 0x20 | this.cycles << 4 & 0x10 |  this.cycles << 1 & 8 | 6;
-			this.cpu2.execute(36);
-			if (++this.cycles >= 10) {
-				this.hibit ^= 1;
-				this.cycles = 0;
-			}
+			this.psg[0].tmp[0x0f] = [0x26, 0x36, 0x26, 0x36, 0x2e, 0x3e, 0x2e, 0x3e, 0x66, 0x76, 0xa6, 0xb6, 0xa6, 0xb6, 0xae, 0xbe, 0xae, 0xbe, 0xe6, 0xf6][this.timer];
+            this.cpu2.execute(36);
+			if (++this.timer >= 20)
+				this.timer = 0;
 		}
 		return this;
 	}
@@ -167,8 +162,7 @@ class Frogger {
 			this.fInterruptEnable = false;
 			this.command = '';
 			this.cpu2.reset();
-			this.hibit = 0;
-			this.cycles = 0;
+			this.timer = 0;
 		}
 		return this;
 	}

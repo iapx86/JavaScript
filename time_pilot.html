@@ -47,9 +47,8 @@ class TimePilot {
 		this.psg[0] = {que: '', addr: 0, reg: new Uint8Array(0x10).fill(0xff), tmp: new Uint8Array(0x10).fill(0xff)};
 		this.psg[1] = {que: '', addr: 0, reg: new Uint8Array(0x10).fill(0xff), tmp: new Uint8Array(0x10).fill(0xff)};
 		this.count = 0;
-		this.cycles = 0;
+		this.timer = 0;
 		this.command = '';
-		this.code = 0;
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x60; i++)
@@ -69,11 +68,11 @@ class TimePilot {
 			this.cpu.memorymap[0xc0 + i * 4].write = (addr, data) => this.command += String.fromCharCode(data);
 			this.cpu.memorymap[0xc2 + i * 4].read = () => this.in[4];
 			this.cpu.memorymap[0xc3 + i * 4].read = (addr) => this.in[addr >>> 5 & 3];
-			this.cpu.memorymap[0xc3 + i * 4].write = (addr, data) => {
-				if ((addr >>> 1 & 0x7f) === 0)
-					this.fInterruptEnable = (data & 1) !== 0;
-			};
 		}
+		this.cpu.memorymap[0xc3].write = (addr, data) => {
+			if ((addr >>> 1 & 0x7f) === 0)
+                this.fInterruptEnable = (data & 1) !== 0;
+		};
 
 		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x10; i++)
@@ -122,10 +121,10 @@ class TimePilot {
 				this.psg[0].tmp[0x0e] = this.command.charCodeAt(0);
 				this.command = this.command.substring(1);
 			}
-			this.psg[0].tmp[0x0f] = [0x00, 0x10, 0x20, 0x30, 0x40, 0x90, 0xa0, 0xb0, 0xa0, 0xd0][this.cycles];
+			this.psg[0].tmp[0x0f] = [0x00, 0x10, 0x20, 0x30, 0x40, 0x90, 0xa0, 0xb0, 0xa0, 0xd0][this.timer];
 			this.cpu2.execute(73);
-			if (++this.cycles >= 10)
-				this.cycles = 0;
+			if (++this.timer >= 10)
+				this.timer = 0;
 		}
 		return this;
 	}
@@ -197,7 +196,7 @@ class TimePilot {
 			this.fInterruptEnable = false;
 			this.command = '';
 			this.cpu2.reset();
-			this.cycles = 0;
+			this.timer = 0;
 		}
 		return this;
 	}
