@@ -48,7 +48,6 @@ class RallyX {
 		this.ram = new Uint8Array(0x1800);
 		this.mmi = new Uint8Array(0x200).fill(0xff);
 		this.mmo = new Uint8Array(0x200);
-		this.io = new Uint8Array(0x100);
 		this.adwCount = new Uint8Array(8);
 		this.mmi[0x100] = 0xc5;
 		this.vector = 0;

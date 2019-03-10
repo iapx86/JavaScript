@@ -33,7 +33,7 @@ class MoonCresta {
 		this.fCoin = 0;
 		this.fStart1P = 0;
 		this.fStart2P = 0;
-		this.nBonus = '30000';
+		this.nBonus = 30000;
 
 		// CPU周りの初期化
 		this.fInterruptEnable = false;
@@ -127,10 +127,10 @@ class MoonCresta {
 		if (this.fDIPSwitchChanged) {
 			this.fDIPSwitchChanged = false;
 			switch (this.nBonus) {
-			case '30000':
+			case 30000:
 				this.in[1] &= ~0x40;
 				break;
-			case '50000':
+			case 50000:
 				this.in[1] |= 0x40;
 				break;
 			}

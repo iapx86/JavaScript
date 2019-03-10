@@ -126,68 +126,68 @@ function loop() {
 
 function onkeydown(e) {
 	switch (e.keyCode) {
-		case 37: // left
-			game.left(true);
-			break;
-		case 38: // up
-			game.up(true);
-			break;
-		case 39: // right
-			game.right(true);
-			break;
-		case 40: // down
-			game.down(true);
-			break;
-		case 48: // '0'
-			game.coin();
-			break;
-		case 49: // '1'
-			game.start1P();
-			break;
-		case 50: // '2'
-			game.start2P();
-			break;
-		case 77: // 'M'
-			sound.gainNode.gain.value = sound.gainNode.gain.value ? 0 : 1;
-			break;
-		case 82: // 'R'
-			game.reset();
-			break;
-		case 84: // 'T'
-			if ((game.fTest = !game.fTest) === true)
-				game.fReset = true;
-			break;
-		case 32: // space
-		case 88: // 'X'
-			game.triggerA(true);
-			break;
-		case 90: // 'Z'
-			game.triggerB(true);
-			break;
+	case 37: // left
+		game.left(true);
+		break;
+	case 38: // up
+		game.up(true);
+		break;
+	case 39: // right
+		game.right(true);
+		break;
+	case 40: // down
+		game.down(true);
+		break;
+	case 48: // '0'
+		game.coin();
+		break;
+	case 49: // '1'
+		game.start1P();
+		break;
+	case 50: // '2'
+		game.start2P();
+		break;
+	case 77: // 'M'
+		sound.gainNode.gain.value = sound.gainNode.gain.value ? 0 : 1;
+		break;
+	case 82: // 'R'
+		game.reset();
+		break;
+	case 84: // 'T'
+		if ((game.fTest = !game.fTest) === true)
+			game.fReset = true;
+		break;
+	case 32: // space
+	case 88: // 'X'
+		game.triggerA(true);
+		break;
+	case 90: // 'Z'
+		game.triggerB(true);
+		break;
 	}
 }
 
 function onkeyup(e) {
 	switch (e.keyCode) {
-		case 37: // left
-			game.left(false);
-			break;
-		case 38: // up
-			game.up(false);
-			break;
-		case 39: // right
-			game.right(false);
-			break;
-		case 40: // down
-			game.down(false);
-			break;
-		case 32: // space
-		case 88: // 'X'
-			game.triggerA(false);
-			break;
-		case 90: // 'Z'
-			game.triggerB(false);
-			break;
+	case 37: // left
+		game.left(false);
+		break;
+	case 38: // up
+		game.up(false);
+		break;
+	case 39: // right
+		game.right(false);
+		break;
+	case 40: // down
+		game.down(false);
+		break;
+	case 32: // space
+	case 88: // 'X'
+		game.triggerA(false);
+		break;
+	case 90: // 'Z'
+		game.triggerB(false);
+		break;
 	}
 }
 

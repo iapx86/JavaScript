@@ -118,16 +118,16 @@ class Gaplus {
 		// Videoの初期化
 		this.stars = [];
 		for (let i = 0; i < 256; i++)
-			this.stars[i] = {x: 0, y: 0, color: 0, blk: 0};
+			this.stars.push({x: 0, y: 0, color: 0, blk: 0});
 		this.stars0 = [];
 		for (let i = 0; i < 64; i++)
-			this.stars0[i] = {x: 0, y: 0, color: 0, blk: 0};
+			this.stars0.push({x: 0, y: 0, color: 0, blk: 0});
 		this.stars1 = [];
 		for (let i = 0; i < 32; i++)
-			this.stars1[i] = {x: 0, y: 0, color: 0, blk: 0};
+			this.stars1.push({x: 0, y: 0, color: 0, blk: 0});
 		this.stars2 = [];
 		for (let i = 0; i < 64; i++)
-			this.stars2[i] = {x: 0, y: 0, color: 0, blk: 0};
+			this.stars2.push({x: 0, y: 0, color: 0, blk: 0});
 		this.bg = new Uint32Array(0x200000);
 		this.obj4 = new Uint8Array(0x10000);
 		this.obj8 = new Uint8Array(0x10000);
