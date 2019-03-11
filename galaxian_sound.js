@@ -15,10 +15,8 @@ class GalaxianSound {
 		}
 		this.base = base;
 		this.se = se;
-		this.gainNode = audioCtx.createGain();
-		this.gainNode.connect(audioCtx.destination);
 		this.merger = audioCtx.createChannelMerger(1);
-		this.merger.connect(this.gainNode);
+		this.merger.connect(audioCtx.destination);
 		this.channel = {voice: 0, freq: 0, audioBufferSource: audioCtx.createBufferSource()};
 		this.channel.audioBufferSource.buffer = this.audioBuffer[0];
 		this.channel.audioBufferSource.loop = true;

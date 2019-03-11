@@ -16,10 +16,8 @@ class PacManSound {
 		this.base = base;
 		this.base2 = base2;
 		this.se = se;
-		this.gainNode = audioCtx.createGain();
-		this.gainNode.connect(audioCtx.destination);
 		this.merger = audioCtx.createChannelMerger(1);
-		this.merger.connect(this.gainNode);
+		this.merger.connect(audioCtx.destination);
 		this.channel = [];
 		for (let i = 0; i < 3; i++) {
 			const ch = {voice: 0, freq: 0, vol: 0, merger: audioCtx.createChannelMerger(1), gainNode: [], audioBufferSource: []};

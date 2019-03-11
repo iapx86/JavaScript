@@ -20,10 +20,8 @@ class AY_3_8910 {
 		this.psg = psg;
 		this.resolution = resolution;
 		this.se = se;
-		this.gainNode = audioCtx.createGain();
-		this.gainNode.connect(audioCtx.destination);
 		this.merger = audioCtx.createChannelMerger(1);
-		this.merger.connect(this.gainNode);
+		this.merger.connect(audioCtx.destination);
 		this.channel = [];
 		for (let i = 0; i < psg.length; i++) {
 			this.channel[i] = [];
