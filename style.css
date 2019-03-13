@@ -9,3 +9,8 @@ body {
 	vertical-align: middle;
 	background-color: gray;
 }
+button {
+	position: fixed;
+	right: 1vw;
+	bottom: 1vh;
+}

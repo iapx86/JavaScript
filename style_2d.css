@@ -12,3 +12,8 @@ body {
 canvas {
 	image-rendering: pixelated;
 }
+button {
+	position: fixed;
+	right: 1vw;
+	bottom: 1vh;
+}

@@ -8,9 +8,10 @@ const canvas = document.getElementById('canvas');
 const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
 const cxScreen = canvas.width;
 const cyScreen = canvas.height;
+const button = document.createElement('button');
 let state;
 
-(window.onresize = function() {
+(window.onresize = () => {
 	const zoom = Math.max(1, Math.min(Math.floor(window.innerWidth / cxScreen), Math.floor(window.innerHeight / cyScreen)));
 	canvas.width = cxScreen * zoom;
 	canvas.height = cyScreen * zoom;
@@ -109,9 +110,9 @@ function init() {
 			if (typeof audioCtx === 'undefined')
 				break;
 			if (audioCtx.state === 'suspended')
-				audioCtx.resume();
+				audioCtx.resume().then(button.update);
 			else if (audioCtx.state === 'running')
-				audioCtx.suspend();
+				audioCtx.suspend().then(button.update);
 			break;
 		case 82: // 'R'
 			game.reset();
@@ -154,19 +155,21 @@ function init() {
 	});
 	if (typeof audioCtx === 'undefined')
 		return;
-	canvas.addEventListener('click', () => {
+	(button.update = () => button.innerText = 'audio state: ' + audioCtx.state)();
+	document.body.appendChild(button);
+	button.addEventListener('click', () => {
 		if (audioCtx.state === 'suspended')
-			audioCtx.resume();
+			audioCtx.resume().then(button.update);
 		else if (audioCtx.state === 'running')
-			audioCtx.suspend();
+			audioCtx.suspend().then(button.update);
 	});
 	window.addEventListener('blur', () => {
 		state = audioCtx.state;
-		audioCtx.suspend();
+		audioCtx.suspend().then(button.update);
 	});
 	window.addEventListener('focus', () => {
 		if (state === 'running')
-			audioCtx.resume();
+			audioCtx.resume().then(button.update);
 	});
 }
 
