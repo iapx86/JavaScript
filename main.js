@@ -8,7 +8,7 @@ const canvas = document.getElementById('canvas');
 const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
 const cxScreen = canvas.width;
 const cyScreen = canvas.height;
-const button = document.createElement('button');
+const button = document.createElement('img');
 let state;
 
 (window.onresize = () => {
@@ -75,6 +75,20 @@ const positionBuffer = gl.createBuffer();
 const textureCoordBuffer = gl.createBuffer();
 const texture = gl.createTexture();
 let game, sound, pixel, data, rotate = false;
+
+const volume0 = `data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
+eElEQVR42u3XywrAIAxE0fz/T09XXRRaTCvDnYoBV7o4oHlYkopctQF/B5yBAEQCRAJEAkQBRmED
+dGMaMBtvUvOy7wSok7oOwBPi9rwL0M4YJ6BVsJYGoFeAPkI8DT8VIrwUxzajmHYcM5BEjGQRQ2nE
+WL5/RmsADqNJE6QZh85dAAAAAElFTkSuQmCC
+`;
+
+const volume1 = `data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
+fklEQVR42u2XwQrAIAxD+/8/nZ12GrhoWoolBS9SyEOliQEgOlcY4HaAt1oAQAIs+zLEofRmiEMB
+zhAH+TYkgL9i7/2zrwozAGAA1IrTU6gECOYUDGAAA4ydA9uTsHIUS16gmlGaG+7acVkeOAkk6YlI
+iWQtoXRuLPfPaAbAA72UT2ikWgrdAAAAAElFTkSuQmCC
+`;
 
 function init() {
 	pixel = new Uint8Array(game.width * game.height * 4);
@@ -155,7 +169,10 @@ function init() {
 	});
 	if (typeof audioCtx === 'undefined')
 		return;
-	(button.update = () => button.innerText = 'audio state: ' + audioCtx.state)();
+	(button.update = () => {
+		button.src = audioCtx.state === 'suspended' ? volume0 : volume1;
+		button.alt = 'audio state: ' + audioCtx.state;
+	})();
 	document.body.appendChild(button);
 	button.addEventListener('click', () => {
 		if (audioCtx.state === 'suspended')
