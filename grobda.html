@@ -11,6 +11,7 @@
 <script src="jquery.zip.js"></script>
 <script src="mc6809.js"></script>
 <script src="mappy_sound.js"></script>
+<script src="sound_effect.js"></script>
 <script src="main.js"></script>
 <script>
 /*
@@ -714,7 +715,7 @@ function success(zip) {
 	SND = Uint8Array.from(zip.files['gr1-3.3m'].inflate(), c => c.charCodeAt(0));
 	Grobda.convertGETREADY();
 	game = new Grobda();
-	sound = new MappySound(SND, game.ram.subarray(0x2000), game.se, 22050);
+	sound = [new MappySound(SND, game.ram.subarray(0x2000)), new SoundEffect(game.se, 22050)];
 	init();
 	loop();
 }
