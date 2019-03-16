@@ -11,6 +11,7 @@
 <script src="jquery.zip.js"></script>
 <script src="z80.js"></script>
 <script src="pac-man_sound.js"></script>
+<script src="sound_effect.js"></script>
 <script src="main.js"></script>
 <script>
 /*
@@ -2107,7 +2108,7 @@ function success(zip) {
 	OBJCOLOR = Uint8Array.from(zip.files['prom-3.1c'].inflate(), c => c.charCodeAt(0));
 	SND = Uint8Array.from(zip.files['prom-1.1d'].inflate(), c => c.charCodeAt(0));
 	game = new Galaga();
-	sound = new PacManSound(SND, game.mmo0, game.mmo, game.se);
+	sound = [new PacManSound(SND, game.mmo0, game.mmo), new SoundEffect(game.se, 11025)];
 	init();
 	loop();
 }

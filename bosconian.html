@@ -11,6 +11,7 @@
 <script src="jquery.zip.js"></script>
 <script src="z80.js"></script>
 <script src="pac-man_sound.js"></script>
+<script src="sound_effect.js"></script>
 <script src="main.js"></script>
 <script>
 /*
@@ -5570,7 +5571,7 @@ function success(zip) {
 	SND = Uint8Array.from(zip.files['bos1-1.1d'].inflate(), c => c.charCodeAt(0));
 	rotate = true;
 	game = new Bosconian();
-	sound = new PacManSound(SND, game.mmo0, game.mmo, game.se);
+	sound = [new PacManSound(SND, game.mmo0), new SoundEffect(game.se, 11025)];
 	init();
 	loop();
 }

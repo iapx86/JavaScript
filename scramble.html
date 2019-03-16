@@ -571,7 +571,7 @@ function success(zip) {
 	BG = Uint8Array.from(zip.files['c2.5f'].inflate() + zip.files['c1.5h'].inflate(), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['c01s.6e'].inflate(), c => c.charCodeAt(0));
 	game = new Scramble();
-	sound = new AY_3_8910(14318181 / 8, game.psg, 116);
+	sound = [new AY_3_8910(14318181 / 8, game.psg[0], 116), new AY_3_8910(14318181 / 8, game.psg[1], 116)];
 	init();
 	loop();
 }

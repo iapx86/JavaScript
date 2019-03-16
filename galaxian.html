@@ -11,6 +11,7 @@
 <script src="jquery.zip.js"></script>
 <script src="z80.js"></script>
 <script src="galaxian_sound.js"></script>
+<script src="sound_effect.js"></script>
 <script src="main.js"></script>
 <script>
 /*
@@ -4036,7 +4037,7 @@ function success(zip) {
 	BG = Uint8Array.from(zip.files['1h.bin'].inflate() + zip.files['1k.bin'].inflate(), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['6l.bpr'].inflate(), c => c.charCodeAt(0));
 	game = new Galaxian();
-	sound = new GalaxianSound(SND, game.mmo, game.se);
+	sound = [new GalaxianSound(SND, game.mmo), new SoundEffect(game.se, 11025)];
 	init();
 	loop();
 }

@@ -4,27 +4,21 @@
  *
  */
 
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
 class MappySound {
-	constructor(SND, base, se = [], freq = 11025) {
+	constructor(SND, base) {
 		this.audioBuffer = [];
 		for (let i = 0; i < 8; i++) {
 			this.audioBuffer[i] = audioCtx.createBuffer(1, 32, 48000);
 			this.audioBuffer[i].getChannelData(0).forEach((x, j, data) => data[j] = (SND[i * 32 + j] & 0x0f) * 2 / 15 - 1);
 		}
 		this.base = base;
-		this.se = se;
-		this.merger = audioCtx.createChannelMerger(1);
-		this.merger.connect(audioCtx.destination);
 		this.channel = [];
 		for (let i = 0; i < 8; i++) {
-			const ch = {voice: 0, freq: 0, vol: 0, merger: audioCtx.createChannelMerger(1), gainNode: [], audioBufferSource: []};
-			ch.merger.connect(this.merger);
+			const ch = {voice: 0, freq: 0, vol: 0, gainNode: [], audioBufferSource: []};
 			for (let j = 0; j < 8; j++) {
 				ch.gainNode[j] = audioCtx.createGain();
 				ch.gainNode[j].gain.value = 0;
-				ch.gainNode[j].connect(ch.merger);
+				ch.gainNode[j].connect(audioCtx.destination);
 				ch.audioBufferSource[j] = audioCtx.createBufferSource();
 				ch.audioBufferSource[j].buffer = this.audioBuffer[j];
 				ch.audioBufferSource[j].loop = true;
@@ -34,12 +28,6 @@ class MappySound {
 			}
 			this.channel.push(ch);
 		}
-		se.forEach(se => {
-			se.audioBuffer = audioCtx.createBuffer(1, se.buf.length, 48000);
-			se.audioBuffer.getChannelData(0).forEach((x, i, data) => data[i] = se.buf[i] / 32767);
-			se.playbackRate = freq / 48000;
-			se.audioBufferSource = null;
-		});
 	}
 
 	output() {
@@ -63,21 +51,6 @@ class MappySound {
 				ch.gainNode[voice].gain.value = freq > 0 ? vol / (15 * 10) : 0;
 				ch.vol = vol;
 			}
-		});
-		this.se.forEach(se => {
-			if (se.stop && se.audioBufferSource) {
-				se.audioBufferSource.stop();
-				se.audioBufferSource = null;
-			}
-			if (se.start && !se.audioBufferSource) {
-				se.audioBufferSource = audioCtx.createBufferSource();
-				se.audioBufferSource.buffer = se.audioBuffer;
-				se.audioBufferSource.loop = se.loop;
-				se.audioBufferSource.playbackRate.value = se.playbackRate;
-				se.audioBufferSource.connect(this.merger);
-				se.audioBufferSource.start();
-			}
-			se.start = se.stop = false;
 		});
 	}
 }

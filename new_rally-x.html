@@ -11,6 +11,7 @@
 <script src="jquery.zip.js"></script>
 <script src="z80.js"></script>
 <script src="pac-man_sound.js"></script>
+<script src="sound_effect.js"></script>
 <script src="main.js"></script>
 <script>
 /*
@@ -1612,7 +1613,7 @@ function success(zip) {
 	SND = Uint8Array.from(zip.files['rx1-5.3p'].inflate(), c => c.charCodeAt(0));
 	rotate = true;
 	game = new NewRallyX();
-	sound = new PacManSound(SND, game.mmo.subarray(0x100), null, game.se);
+	sound = [new PacManSound(SND, game.mmo.subarray(0x100)), new SoundEffect(game.se, 11025)];
 	init();
 	loop();
 }

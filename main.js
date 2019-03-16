@@ -4,12 +4,13 @@
  *
  */
 
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 const canvas = document.getElementById('canvas');
 const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
 const cxScreen = canvas.width;
 const cyScreen = canvas.height;
-const button = document.createElement('img');
-let state;
+const button = new Image();
+let state = '';
 
 (window.onresize = () => {
 	const zoom = Math.max(1, Math.min(Math.floor(window.innerWidth / cxScreen), Math.floor(window.innerHeight / cyScreen)));
@@ -217,7 +218,10 @@ function draw() {
 
 function loop() {
 	if (typeof sound !== 'undefined')
-		sound.output(game);
+		if (Array.isArray(sound))
+			sound.forEach(s => s.output(game));
+		else
+			sound.output(game);
 	draw();
 	updateGamepad(game);
 	game.updateStatus().updateInput().execute().makeBitmap(data);

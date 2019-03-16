@@ -744,7 +744,7 @@ function success(zip) {
 	OBJCOLOR = Uint8Array.from(zip.files['timeplt.e9'].inflate(), c => c.charCodeAt(0));
 	BGCOLOR = Uint8Array.from(zip.files['timeplt.e12'].inflate(), c => c.charCodeAt(0));
 	game = new TimePilot();
-	sound = new AY_3_8910(14318181 / 8, game.psg, 58);
+	sound = [new AY_3_8910(14318181 / 8, game.psg[0], 58), new AY_3_8910(14318181 / 8, game.psg[1], 58)];
 	init();
 	loop();
 }

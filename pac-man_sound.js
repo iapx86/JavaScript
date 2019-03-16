@@ -4,8 +4,6 @@
  *
  */
 
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
 class PacManSound {
 	constructor(SND, base, base2 = null, se = [], freq = 11025) {
 		this.audioBuffer = [];
@@ -15,17 +13,13 @@ class PacManSound {
 		}
 		this.base = base;
 		this.base2 = base2;
-		this.se = se;
-		this.merger = audioCtx.createChannelMerger(1);
-		this.merger.connect(audioCtx.destination);
 		this.channel = [];
 		for (let i = 0; i < 3; i++) {
-			const ch = {voice: 0, freq: 0, vol: 0, merger: audioCtx.createChannelMerger(1), gainNode: [], audioBufferSource: []};
-			ch.merger.connect(this.merger);
+			const ch = {voice: 0, freq: 0, vol: 0, gainNode: [], audioBufferSource: []};
 			for (let j = 0; j < 8; j++) {
 				ch.gainNode[j] = audioCtx.createGain();
 				ch.gainNode[j].gain.value = 0;
-				ch.gainNode[j].connect(ch.merger);
+				ch.gainNode[j].connect(audioCtx.destination);
 				ch.audioBufferSource[j] = audioCtx.createBufferSource();
 				ch.audioBufferSource[j].buffer = this.audioBuffer[j];
 				ch.audioBufferSource[j].loop = true;
@@ -35,12 +29,6 @@ class PacManSound {
 			}
 			this.channel.push(ch);
 		}
-		se.forEach(se => {
-			se.audioBuffer = audioCtx.createBuffer(1, se.buf.length, 48000);
-			se.audioBuffer.getChannelData(0).forEach((x, i, data) => data[i] = se.buf[i] / 32767);
-			se.playbackRate = freq / 48000;
-			se.audioBufferSource = null;
-		});
 	}
 
 	output() {
@@ -91,21 +79,6 @@ class PacManSound {
 					ch.vol = vol;
 				}
 			}, this);
-		this.se.forEach(se => {
-			if (se.stop && se.audioBufferSource) {
-				se.audioBufferSource.stop();
-				se.audioBufferSource = null;
-			}
-			if (se.start && !se.audioBufferSource) {
-				se.audioBufferSource = audioCtx.createBufferSource();
-				se.audioBufferSource.buffer = se.audioBuffer;
-				se.audioBufferSource.loop = se.loop;
-				se.audioBufferSource.playbackRate.value = se.playbackRate;
-				se.audioBufferSource.connect(this.merger);
-				se.audioBufferSource.start();
-			}
-			se.start = se.stop = false;
-		});
 	}
 
 	static getParameter(base, index) {

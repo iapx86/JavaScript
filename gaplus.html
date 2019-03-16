@@ -11,6 +11,7 @@
 <script src="jquery.zip.js"></script>
 <script src="mc6809.js"></script>
 <script src="mappy_sound.js"></script>
+<script src="sound_effect.js"></script>
 <script src="main.js"></script>
 <script>
 /*
@@ -1766,7 +1767,7 @@ function success(zip) {
 	OBJCOLOR_H = Uint8Array.from(zip.files['gp2-5.6n'].inflate(), c => c.charCodeAt(0));
 	SND = Uint8Array.from(zip.files['gp2-4.3f'].inflate(), c => c.charCodeAt(0));
 	game = new Gaplus();
-	sound = new MappySound(SND, game.ram.subarray(0x2000), game.se);
+	sound = [new MappySound(SND, game.ram.subarray(0x2000)), new SoundEffect(game.se, 11025)];
 	init();
 	loop();
 }

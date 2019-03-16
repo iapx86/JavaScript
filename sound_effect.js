@@ -4,13 +4,9 @@
  *
  */
 
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
 class SoundEffect {
-	constructor(se, freq = 22050) {
+	constructor(se, freq = 44100) {
 		this.se = se;
-		this.merger = audioCtx.createChannelMerger(1);
-		this.merger.connect(audioCtx.destination);
 		se.forEach(se => {
 			se.audioBuffer = audioCtx.createBuffer(1, se.buf.length, 44100);
 			se.audioBuffer.getChannelData(0).forEach((x, i, data) => data[i] = se.buf[i] / 32767);
@@ -30,7 +26,7 @@ class SoundEffect {
 				se.audioBufferSource.buffer = se.audioBuffer;
 				se.audioBufferSource.loop = se.loop;
 				se.audioBufferSource.playbackRate.value = se.playbackRate;
-				se.audioBufferSource.connect(this.merger);
+				se.audioBufferSource.connect(audioCtx.destination);
 				se.audioBufferSource.start();
 			}
 			se.start = se.stop = false;

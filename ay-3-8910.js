@@ -4,10 +4,8 @@
  *
  */
 
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
 class AY_3_8910 {
-	constructor(clock, psg, resolution = 0, se = [], freq = 11025) {
+	constructor(clock, psg, resolution = 0) {
 		const sampleRate = 96000, repeat = 16;
 		this.noiseBuffer = audioCtx.createBuffer(1, 131071 * repeat, sampleRate);
 		for (let data = this.noiseBuffer.getChannelData(0), rng = 0xffff, i = 0; i < data.length; i++) {
@@ -19,94 +17,73 @@ class AY_3_8910 {
 		this.rate = clock * repeat / 8 / sampleRate;
 		this.psg = psg;
 		this.resolution = resolution;
-		this.se = se;
-		this.merger = audioCtx.createChannelMerger(1);
-		this.merger.connect(audioCtx.destination);
 		this.channel = [];
-		for (let i = 0; i < psg.length; i++) {
-			this.channel[i] = [];
-			for (let j = 0; j < 3; j++) {
-				const ch = {freq: 0, vol: 0, gainNode: audioCtx.createGain(), oscillator: audioCtx.createOscillator()};
-				ch.gainNode.gain.value = 0;
-				ch.gainNode.connect(this.merger);
-				ch.oscillator.type = 'square';
-				ch.oscillator.frequency.value = 0;
-				ch.oscillator.connect(ch.gainNode);
-				ch.oscillator.start();
-				this.channel[i].push(ch);
-			}
-			for (let j = 0; j < 3; j++) {
-				const ch = {freq: 0, vol: 0, gainNode: audioCtx.createGain(), audioBufferSource: audioCtx.createBufferSource()};
-				ch.gainNode.gain.value = 0;
-				ch.gainNode.connect(this.merger);
-				ch.audioBufferSource.buffer = this.noiseBuffer;
-				ch.audioBufferSource.loop = true;
-				ch.audioBufferSource.playbackRate.value = 0;
-				ch.audioBufferSource.connect(ch.gainNode);
-				ch.audioBufferSource.start();
-				this.channel[i].push(ch);
-			}
+		for (let i = 0; i < 3; i++) {
+			const ch = {freq: 0, vol: 0, gainNode: audioCtx.createGain(), oscillator: audioCtx.createOscillator()};
+			ch.gainNode.gain.value = 0;
+			ch.gainNode.connect(audioCtx.destination);
+			ch.oscillator.type = 'square';
+			ch.oscillator.frequency.value = 0;
+			ch.oscillator.connect(ch.gainNode);
+			ch.oscillator.start();
+			this.channel.push(ch);
 		}
-		se.forEach(se => {
-			se.audioBuffer = audioCtx.createBuffer(1, se.buf.length, 44100);
-			se.audioBuffer.getChannelData(0).forEach((x, i, data) => data[i] = se.buf[i] / 32767);
-			se.playbackRate = freq / 44100;
-			se.audioBufferSource = null;
-		});
+		for (let i = 0; i < 3; i++) {
+			const ch = {freq: 0, vol: 0, gainNode: audioCtx.createGain(), audioBufferSource: audioCtx.createBufferSource()};
+			ch.gainNode.gain.value = 0;
+			ch.gainNode.connect(audioCtx.destination);
+			ch.audioBufferSource.buffer = this.noiseBuffer;
+			ch.audioBufferSource.loop = true;
+			ch.audioBufferSource.playbackRate.value = 0;
+			ch.audioBufferSource.connect(ch.gainNode);
+			ch.audioBufferSource.start();
+			this.channel.push(ch);
+		}
 	}
 
 	output() {
 		const now = audioCtx.currentTime;
-		const que = [];
-		let freq, vol;
-		for (let i = 0; i < this.psg.length; i++) {
-			const base = this.psg[i].reg;
-			if (typeof this.psg[i].que !== 'undefined') {
-				que[i] = this.psg[i].que;
-				this.psg[i].que = '';
-				while (que[i] !== '' && que[i].charCodeAt(0) === 0) {
-					base[que[i].charCodeAt(1)] = que[i].charCodeAt(2);
-					que[i] = que[i].substring(3);
-				}
-			}
-			for (let j = 0; j < 3; j++)
-				this.channel[i][j].oscillator.frequency.cancelScheduledValues(now);
-			for (let j = 0; j < 3; j++)
-				this.channel[i][j + 3].audioBufferSource.playbackRate.cancelScheduledValues(now);
-			for (let j = 0; j < 6; j++)
-				this.channel[i][j].gainNode.gain.cancelScheduledValues(now);
-		}
-		for (let i = 0; i < this.psg.length; i++) {
-			const base = this.psg[i].reg;
-			for (let j = 0; j < 3; j++) {
-				[freq, vol] = AY_3_8910.getToneParameter(base, j);
-				const ch = this.channel[i][j];
-				ch.oscillator.frequency.setValueAtTime(this.clock / 16 / (freq === 0 ? 1 : freq), now);
-				ch.gainNode.gain.setValueAtTime(vol === 0 ? 0 : Math.pow(2, (vol - 15) / 2) / 10, now);
-				[ch.freq, ch.vol] = [freq, vol];
-			}
-			for (let j = 0; j < 3; j++) {
-				[freq, vol] = AY_3_8910.getNoiseParameter(base, j);
-				const ch = this.channel[i][j + 3];
-				ch.audioBufferSource.playbackRate.setValueAtTime(this.rate / 2 / (freq === 0 ? 1 : freq), now);
-				ch.gainNode.gain.setValueAtTime(vol === 0 ? 0 : Math.pow(2, (vol - 15) / 2) / 10, now);
-				[ch.freq, ch.vol] = [freq, vol];
+		const base = this.psg.reg;
+		let que, freq, vol;
+		if (typeof this.psg.que !== 'undefined') {
+			que = this.psg.que;
+			this.psg.que = '';
+			while (que !== '' && que.charCodeAt(0) === 0) {
+				base[que.charCodeAt(1)] = que.charCodeAt(2);
+				que = que.substring(3);
 			}
 		}
-		for (let i = 0; i < this.psg.length; i++) {
-			const base = this.psg[i].reg;
-			if (typeof this.psg[i].que === 'undefined')
-				continue;
-			while (que[i] !== '') {
-				const count = que[i].charCodeAt(0);
+		for (let i = 0; i < 3; i++)
+			this.channel[i].oscillator.frequency.cancelScheduledValues(now);
+		for (let i = 0; i < 3; i++)
+			this.channel[i + 3].audioBufferSource.playbackRate.cancelScheduledValues(now);
+		for (let i = 0; i < 6; i++)
+			this.channel[i].gainNode.gain.cancelScheduledValues(now);
+		for (let i = 0; i < 3; i++) {
+			[freq, vol] = AY_3_8910.getToneParameter(base, i);
+			const ch = this.channel[i];
+			ch.oscillator.frequency.setValueAtTime(this.clock / 16 / (freq === 0 ? 1 : freq), now);
+			ch.gainNode.gain.setValueAtTime(vol === 0 ? 0 : Math.pow(2, (vol - 15) / 2) / 10, now);
+			[ch.freq, ch.vol] = [freq, vol];
+		}
+		for (let i = 0; i < 3; i++) {
+			[freq, vol] = AY_3_8910.getNoiseParameter(base, i);
+			const ch = this.channel[i + 3];
+			ch.audioBufferSource.playbackRate.setValueAtTime(this.rate / 2 / (freq === 0 ? 1 : freq), now);
+			ch.gainNode.gain.setValueAtTime(vol === 0 ? 0 : Math.pow(2, (vol - 15) / 2) / 10, now);
+			[ch.freq, ch.vol] = [freq, vol];
+		}
+		if (typeof this.psg.que !== 'undefined')
+			while (que !== '') {
+				const count = que.charCodeAt(0);
 				do {
-					base[que[i].charCodeAt(1)] = que[i].charCodeAt(2);
-					que[i] = que[i].substring(3);
-				} while (que[i] !== '' && que[i].charCodeAt(0) === count);
+					base[que.charCodeAt(1)] = que.charCodeAt(2);
+					que = que.substring(3);
+				} while (que !== '' && que.charCodeAt(0) === count);
 				const time = now + count / 60 / this.resolution;
-				for (let j = 0; j < 3; j++) {
-					[freq, vol] = AY_3_8910.getToneParameter(base, j);
-					const ch = this.channel[i][j];
+				for (let i = 0; i < 3; i++) {
+					[freq, vol] = AY_3_8910.getToneParameter(base, i);
+					const ch = this.channel[i];
 					if (freq !== ch.freq) {
 						ch.oscillator.frequency.setValueAtTime(this.clock / 16 / (freq === 0 ? 1 : freq), time);
 						ch.freq = freq;
@@ -116,9 +93,9 @@ class AY_3_8910 {
 						ch.vol = vol;
 					}
 				}
-				for (let j = 0; j < 3; j++) {
-					[freq, vol] = AY_3_8910.getNoiseParameter(base, j);
-					const ch = this.channel[i][j + 3];
+				for (let i = 0; i < 3; i++) {
+					[freq, vol] = AY_3_8910.getNoiseParameter(base, i);
+					const ch = this.channel[i + 3];
 					if (freq !== ch.freq) {
 						ch.audioBufferSource.playbackRate.setValueAtTime(this.rate / 2 / (freq === 0 ? 1 : freq), time);
 						ch.freq = freq;
@@ -129,22 +106,6 @@ class AY_3_8910 {
 					}
 				}
 			}
-		}
-		this.se.forEach(se => {
-			if (se.stop && se.audioBufferSource) {
-				se.audioBufferSource.stop();
-				se.audioBufferSource = null;
-			}
-			if (se.start && !se.audioBufferSource) {
-				se.audioBufferSource = audioCtx.createBufferSource();
-				se.audioBufferSource.buffer = se.audioBuffer;
-				se.audioBufferSource.loop = se.loop;
-				se.audioBufferSource.playbackRate.value = se.playbackRate;
-				se.audioBufferSource.connect(this.merger);
-				se.audioBufferSource.start();
-			}
-			se.start = se.stop = false;
-		});
 	}
 
 	static getToneParameter(base, index) {

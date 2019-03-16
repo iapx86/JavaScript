@@ -42,7 +42,7 @@ class Frogger {
 		this.ppi0 = new Uint8Array([0xff, 0xfc, 0xf1, 0]);
 		this.ppi1 = new Uint8Array(4);
 		this.ram2 = new Uint8Array(0x400);
-		this.psg = [{que: '', addr: 0, reg: new Uint8Array(0x10).fill(0xff), tmp: new Uint8Array(0x10).fill(0xff)}];
+		this.psg = {que: '', addr: 0, reg: new Uint8Array(0x10).fill(0xff), tmp: new Uint8Array(0x10).fill(0xff)};
 		this.count = 0;
 		this.timer = 0;
 		this.command = '';
@@ -92,14 +92,14 @@ class Frogger {
 			this.cpu2.memorymap[0x5c + i].write = this.cpu2.memorymap[0x58 + i].write = this.cpu2.memorymap[0x54 + i].write = this.cpu2.memorymap[0x50 + i].write = null;
 		}
 		for (let i = 0; i < 0x100; i++) {
-			this.cpu2.iomap[i].read = (addr) => (addr & 0x40) !== 0 ? this.psg[0].tmp[this.psg[0].addr] : 0xff;
+			this.cpu2.iomap[i].read = (addr) => (addr & 0x40) !== 0 ? this.psg.tmp[this.psg.addr] : 0xff;
 			this.cpu2.iomap[i].write = (addr, data) => {
 				if ((addr & 0x40) !== 0) {
-					this.psg[0].tmp[this.psg[0].addr] = data;
-					this.psg[0].que += String.fromCharCode(this.count, this.psg[0].addr, data);
+					this.psg.tmp[this.psg.addr] = data;
+					this.psg.que += String.fromCharCode(this.count, this.psg.addr, data);
 				}
 				else if ((addr & 0x80) !== 0)
-					this.psg[0].addr = data & 0x0f;
+					this.psg.addr = data & 0x0f;
 			};
 		}
 
@@ -118,10 +118,10 @@ class Frogger {
 		this.cpu.execute(0x2000);
 		for (this.count = 0; this.count < 116; this.count++) { // 14318181 / 60 / 2048
 			if (this.command !== '' && this.cpu2.interrupt()) {
-				this.psg[0].tmp[0x0e] = this.command.charCodeAt(0);
+				this.psg.tmp[0x0e] = this.command.charCodeAt(0);
 				this.command = this.command.substring(1);
 			}
-			this.psg[0].tmp[0x0f] = [0x26, 0x36, 0x26, 0x36, 0x2e, 0x3e, 0x2e, 0x3e, 0x66, 0x76, 0xa6, 0xb6, 0xa6, 0xb6, 0xae, 0xbe, 0xae, 0xbe, 0xe6, 0xf6][this.timer];
+			this.psg.tmp[0x0f] = [0x26, 0x36, 0x26, 0x36, 0x2e, 0x3e, 0x2e, 0x3e, 0x66, 0x76, 0xa6, 0xb6, 0xa6, 0xb6, 0xae, 0xbe, 0xae, 0xbe, 0xe6, 0xf6][this.timer];
 			this.cpu2.execute(36);
 			if (++this.timer >= 20)
 				this.timer = 0;

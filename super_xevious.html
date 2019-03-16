@@ -11,6 +11,7 @@
 <script src="jquery.zip.js"></script>
 <script src="z80.js"></script>
 <script src="pac-man_sound.js"></script>
+<script src="sound_effect.js"></script>
 <script src="main.js"></script>
 <script>
 /*
@@ -2661,7 +2662,7 @@ function success2(zip) {
 	OBJCOLOR_H = Uint8Array.from(zip.files['xvi-5.3m'].inflate(), c => c.charCodeAt(0));
 	SND = Uint8Array.from(zip.files['xvi-2.7n'].inflate(), c => c.charCodeAt(0));
 	game = new SuperXevious();
-	sound = new PacManSound(SND, game.mmo0, game.mmo, game.se);
+	sound = [new PacManSound(SND, game.mmo0, game.mmo), new SoundEffect(game.se, 11025)];
 	init();
 	loop();
 }

@@ -11,6 +11,7 @@
 <script src="jquery.zip.js"></script>
 <script src="z80.js"></script>
 <script src="galaxian_sound.js"></script>
+<script src="sound_effect.js"></script>
 <script src="main.js"></script>
 <script>
 /*
@@ -2281,7 +2282,7 @@ function success(zip) {
 	RGB = Uint8Array.from(zip.files['mmi6331.6l'].inflate(), c => c.charCodeAt(0));
 	MoonCresta.decodeROM();
 	game = new MoonCresta();
-	sound = new GalaxianSound(SND, game.mmo, game.se);
+	sound = [new GalaxianSound(SND, game.mmo), new SoundEffect(game.se, 11025)];
 	init();
 	loop();
 }

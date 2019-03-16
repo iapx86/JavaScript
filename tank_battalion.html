@@ -5087,7 +5087,7 @@ function success(zip) {
 	BG = Uint8Array.from(zip.files['tb1-5.2k'].inflate(), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['bct1-1.l3'].inflate(), c => c.charCodeAt(0));
 	game = new TankBattalion();
-	sound = new SoundEffect(game.se);
+	sound = new SoundEffect(game.se, 22050);
 	init();
 	loop();
 }
