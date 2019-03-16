@@ -394,42 +394,31 @@ class WarpAndWarpSound {
 			this.audioBuffer[i] = audioCtx.createBuffer(1, 32 * (8 - i), 44100);
 			this.audioBuffer[i].getChannelData(0).fill(0.1, 0, 16).fill(-0.1, 16);
 		}
+		this.rate = Math.floor(0x8000000 * (48000 / audioCtx.sampleRate));
 		this.base = base;
-		this.channel = {voice: 0, freq: 0, audioBufferSource: audioCtx.createBufferSource()};
-		this.channel.audioBufferSource.buffer = this.audioBuffer[0];
-		this.channel.audioBufferSource.loop = true;
-		this.channel.audioBufferSource.playbackRate.value = 0;
-		this.channel.audioBufferSource.connect(audioCtx.destination);
-		this.channel.audioBufferSource.start();
+		this.channel = {voice: 0, freq: 0, phase: 0};
+		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
+		this.scriptNode.onaudioprocess = e => {
+			e.outputBuffer.getChannelData(0).forEach((v, i, data) => {
+				data[i] = this.audioBuffer[this.channel.voice].getChannelData(0)[this.channel.phase >>> 23];
+				this.channel.phase += this.channel.freq;
+				this.channel.phase %= this.audioBuffer[this.channel.voice].getChannelData(0).length << 23;
+			});
+		};
+		this.source = audioCtx.createBufferSource();
+		this.source.connect(this.scriptNode);
+		this.scriptNode.connect(audioCtx.destination);
+		this.source.start();
 	}
 
 	output() {
 		const ram = this.base;
-		const ch = this.channel;
-		let voice, freq;
-
 		if ((ram[0xd20] & 0x0f) !== 0x0f && (ram[0xd10] & 0x3f) !== 0 && ram[0xd20] !== 0x2d) {
-			voice = ram[0xd20] >>> 1 & 7;
-			freq = 2173 * 0x10000 / (0x40 - ram[0xd10]) | 0;
+			this.channel.voice = ram[0xd20] >>> 1 & 7;
+			this.channel.freq = this.rate / (0x40 - ram[0xd10]) | 0;
 		}
-		else {
-			voice = ch.voice;
-			freq = 0;
-		}
-		if (voice !== ch.voice) {
-			ch.audioBufferSource.stop();
-			ch.audioBufferSource = audioCtx.createBufferSource();
-			ch.audioBufferSource.buffer = this.audioBuffer[voice];
-			ch.audioBufferSource.loop = true;
-			ch.audioBufferSource.playbackRate.value = freq / (1 << 23);
-			ch.audioBufferSource.connect(audioCtx.destination);
-			ch.audioBufferSource.start();
-			[ch.voice, ch.freq] = [voice, freq];
-		}
-		else if (freq !== ch.freq) {
-			ch.audioBufferSource.playbackRate.value = freq / (1 << 23);
-			ch.freq = freq;
-		}
+		else
+			this.channel.freq = 0;
 	}
 }
 

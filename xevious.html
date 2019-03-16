@@ -49,7 +49,8 @@ class Xevious {
 		this.ram = new Uint8Array(0x4000);
 		this.mmi = new Uint8Array(0x100).fill(0xff);
 		this.mmo = new Uint8Array(0x100);
-		this.mmo0 = new Uint8Array(0x100);
+		this.sound = {que: '', reg: new Uint8Array(0x20)};
+		this.count = 0;
 		this.mapreg = new Uint8Array(0x100);
 		this.dmaport = new Uint8Array(0x100);
 		this.ioport = new Uint8Array(0x100);
@@ -179,6 +180,7 @@ class Xevious {
 			case 0x00:
 			case 0x10:
 				game.mmo[addr & 0xff] = data & 0x0f;
+				game.sound.que += String.fromCharCode(game.count, addr & 0x1f, data & 0x0f);
 				break;
 			case 0x20:
 				break;
@@ -310,13 +312,14 @@ class Xevious {
 	execute() {
 		if (this.fInterruptEnable)
 			this.cpu[0].interrupt();
+		this.count = 0;
 		this.cpu[2].non_maskable_interrupt();			// SOUND INTERRUPT
 		for (let i = 128; i !== 0; --i) {
 			if (this.fNmiEnable)
 				this.cpu[0].non_maskable_interrupt();	// DMA INTERRUPT
 			Cpu.multiple_execute(this.cpu, 32);
 		}
-		this.mmo0.set(this.mmo);
+		this.count = 1;
 		this.cpu[2].non_maskable_interrupt();			// SOUND INTERRUPT
 		for (let i = 128; i !== 0; --i) {
 			if (this.fNmiEnable)
@@ -2669,7 +2672,7 @@ function success(zip) {
 	OBJCOLOR_H = Uint8Array.from(zip.files['xvi-5.3m'].inflate(), c => c.charCodeAt(0));
 	SND = Uint8Array.from(zip.files['xvi-2.7n'].inflate(), c => c.charCodeAt(0));
 	game = new Xevious();
-	sound = [new PacManSound(SND, game.mmo0, game.mmo), new SoundEffect(game.se, 11025)];
+	sound = [new PacManSound(SND, game.sound, 2), new SoundEffect(game.se, 11025)];
 	init();
 	loop();
 }

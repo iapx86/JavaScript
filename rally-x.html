@@ -49,6 +49,7 @@ class RallyX {
 		this.ram = new Uint8Array(0x1800);
 		this.mmi = new Uint8Array(0x200).fill(0xff);
 		this.mmo = new Uint8Array(0x200);
+		this.sound = {reg: new Uint8Array(0x20)};
 		this.adwCount = new Uint8Array(8);
 		this.mmi[0x100] = 0xc5;
 		this.vector = 0;
@@ -95,7 +96,7 @@ class RallyX {
 			switch (addr >>> 4 & 0xfff) {
 			case 0xa10:
 			case 0xa11:
-				game.mmo[addr & 0x1ff] = data & 0x0f;
+				game.sound.reg[addr & 0x1f] = data & 0x0f;
 				break;
 			case 0xa18:
 				switch (addr & 0xf) {
@@ -1641,7 +1642,7 @@ function success(zip) {
 	SND = Uint8Array.from(zip.files['rx1-5.3p'].inflate(), c => c.charCodeAt(0));
 	rotate = true;
 	game = new RallyX();
-	sound = [new PacManSound(SND, game.mmo.subarray(0x100)), new SoundEffect(game.se, 11025)];
+	sound = [new PacManSound(SND, game.sound), new SoundEffect(game.se, 11025)];
 	init();
 	loop();
 }

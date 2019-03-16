@@ -39,7 +39,7 @@ class Pengo {
 
 		// CPU周りの初期化
 		this.ram = new Uint8Array(0x1100);
-		this.sound = new Uint8Array(0x20);
+		this.sound = {reg: new Uint8Array(0x20)};
 		this.in = new Uint8Array([0xcc, 0xb0, 0xff, 0xff]);
 		this.fInterruptEnable = false;
 		this.fSoundEnable = false;
@@ -56,7 +56,7 @@ class Pengo {
 			switch (addr & 0xf0) {
 			case 0x00:
 			case 0x10:
-				this.sound[addr & 0x1f] = data & 0x0f;
+				this.sound.reg[addr & 0x1f] = data & 0x0f;
 				break;
 			case 0x20:
 				this.ram[0x1020 + (addr & 0x0f)] = data;
@@ -90,7 +90,7 @@ class Pengo {
 
 	execute() {
 		if (!this.fSoundEnable)
-			this.sound.fill(0);
+			this.sound.reg.fill(0);
 		if (this.fInterruptEnable)
 			this.cpu.interrupt();
 		this.cpu.execute(0x2000);

@@ -37,7 +37,7 @@ class CrushRoller {
 
 		// CPU周りの初期化
 		this.ram = new Uint8Array(0xd00);
-		this.sound = new Uint8Array(0x20);
+		this.sound = {reg: new Uint8Array(0x20)};
 		this.in = new Uint8Array([0xef, 0x6f, 0x31, 0x00]);
 		this.vector = 0;
 		this.fInterruptEnable = false;
@@ -104,7 +104,7 @@ class CrushRoller {
 					break;
 				case 0x40:
 				case 0x50:
-					this.sound[addr & 0x1f] = data & 0x0f;
+					this.sound.reg[addr & 0x1f] = data & 0x0f;
 					break;
 				case 0x60:
 					this.ram[0xc60 + (addr & 0x0f)] = data;
@@ -130,7 +130,7 @@ class CrushRoller {
 
 	execute() {
 		if (!this.fSoundEnable)
-			this.sound.fill(0);
+			this.sound.reg.fill(0);
 		if (this.fInterruptEnable)
 			this.cpu.interrupt(this.vector);
 		this.cpu.execute(0x2000);

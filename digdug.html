@@ -61,7 +61,8 @@ class DigDug {
 		this.ram.set(RAM);
 		this.mmi = new Uint8Array(0x100).fill(0xff);
 		this.mmo = new Uint8Array(0x100);
-		this.mmo0 = new Uint8Array(0x100);
+		this.sound = {que: '', reg: new Uint8Array(0x20)};
+		this.count = 0;
 		this.dmaport = new Uint8Array(0x100).fill(0x10);
 		this.ioport = new Uint8Array(0x100).fill(0xff);
 
@@ -123,6 +124,7 @@ class DigDug {
 			case 0x00:
 			case 0x10:
 				game.mmo[addr & 0xff] = data & 0x0f;
+				game.sound.que += String.fromCharCode(game.count, addr & 0x1f, data & 0x0f);
 				return;
 			case 0x20:
 				switch (addr & 0x0f) {
@@ -234,6 +236,7 @@ class DigDug {
 			this.cpu[0].interrupt();
 		if (this.fInterruptEnable1)
 			this.cpu[1].interrupt();
+		this.count = 0;
 		if (this.fInterruptEnable2) {
 			this.fInterruptEnable2 = false;
 			this.cpu[2].non_maskable_interrupt();		// SOUND INTERRUPT
@@ -243,7 +246,7 @@ class DigDug {
 				this.cpu[0].non_maskable_interrupt();	// DMA INTERRUPT
 			Cpu.multiple_execute(this.cpu, 32);
 		}
-		this.mmo0.set(this.mmo);
+		this.count = 1;
 		if (this.fInterruptEnable2) {
 			this.fInterruptEnable2 = false;
 			this.cpu[2].non_maskable_interrupt();		// SOUND INTERRUPT
@@ -1244,7 +1247,7 @@ function success(zip) {
 	BGCOLOR = Uint8Array.from(zip.files['136007.112'].inflate(), c => c.charCodeAt(0));
 	SND = Uint8Array.from(zip.files['136007.110'].inflate(), c => c.charCodeAt(0));
 	game = new DigDug();
-	sound = new PacManSound(SND, game.mmo0, game.mmo);
+	sound = new PacManSound(SND, game.sound, 2);
 	init();
 	loop();
 }
