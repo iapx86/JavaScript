@@ -16,7 +16,7 @@ class PacManSound {
 		this.resolution = resolution;
 		this.count = 0;
 		this.que = '';
-		this.now = 0;
+		this.append = false;
 		this.channel = [];
 		for (let i = 0; i < 3; i++)
 			this.channel.push({voice: 0, freq: 0, vol: 0, phase: 0});
@@ -38,39 +38,40 @@ class PacManSound {
 
 	output() {
 		if (typeof this.sound.que !== 'undefined') {
-			this.now = audioCtx.currentTime;
-			this.que += String.fromCharCode(0xffff, this.now * 120 & 0xffff, this.now * 120 >>> 16) + this.sound.que;
+			if (this.append) {
+				for (; this.que; this.que = this.que.substring(3))
+					if (this.que.charCodeAt(0) !== 0xffff)
+						this.sound.reg[this.que.charCodeAt(1)] = this.que.charCodeAt(2);
+			}
+			else if (this.que) {
+				this.que += String.fromCharCode(0xffff, 0, 0) + this.sound.que;
+				this.sound.que = '';
+				this.append = true;
+				return;
+			}
+			this.que = this.sound.que;
 			this.sound.que = '';
+			this.count = 0;
+			this.append = false;
+			for (; this.que && this.que.charCodeAt(0) === 0; this.que = this.que.substring(3))
+				this.sound.reg[this.que.charCodeAt(1)] = this.que.charCodeAt(2);
 		}
-		else
-			this.update2();
+		this.update2();
 	}
 
 	update1() {
-		this.count += 60 * this.resolution;
-		const count = Math.floor(this.count / audioCtx.sampleRate);
+		let count = Math.floor((this.count += 60 * this.resolution) / audioCtx.sampleRate);
 		if (count >= this.resolution) {
+			count = 0;
 			this.count %= audioCtx.sampleRate;
-			while (this.que !== '' && this.que.charCodeAt(0) < this.resolution)
-				[this.sound.reg[this.que.charCodeAt(1)], this.que] = [this.que.charCodeAt(2), this.que.substring(3)];
-			while (this.que !== '' && this.que.charCodeAt(0) >= this.resolution) {
-				const time = (this.que.charCodeAt(1) | this.que.charCodeAt(2) << 16) / 120;
+			if (this.que && this.que.charCodeAt(0) === 0xffff) {
 				this.que = this.que.substring(3);
-				if (time >= this.now - 4 / 120)
-					break;
-				while (this.que !== '' && this.que.charCodeAt(0) < this.resolution)
-					[this.sound.reg[this.que.charCodeAt(1)], this.que] = [this.que.charCodeAt(2), this.que.substring(3)];
+				this.append = false;
 			}
-			while (this.que !== '' && this.que.charCodeAt(0) === 0)
-				[this.sound.reg[this.que.charCodeAt(1)], this.que] = [this.que.charCodeAt(2), this.que.substring(3)];
-			this.update2();
 		}
-		else if (this.que !== '' && this.que.charCodeAt(0) <= count) {
-			do {
-				[this.sound.reg[this.que.charCodeAt(1)], this.que] = [this.que.charCodeAt(2), this.que.substring(3)];
-			} while (this.que !== '' && this.que.charCodeAt(0) <= count);
-			this.update2();
-		}
+		for (; this.que && this.que.charCodeAt(0) <= count; this.que = this.que.substring(3))
+			this.sound.reg[this.que.charCodeAt(1)] = this.que.charCodeAt(2);
+		this.update2();
 	}
 
 	update2() {

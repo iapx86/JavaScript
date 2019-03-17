@@ -12,17 +12,18 @@ class AY_3_8910 {
 		this.count = 0;
 		this.cycles = 0;
 		this.que = '';
-		this.now = 0;
+		this.append = false;
 		this.channel = [];
 		for (let i = 0; i < 3; i++)
-			this.channel.push({freq: 0xfff, tone: false, noise: false, vol: 0, envelope: true, count: 0, output: 1});
-		Object.assign(this, {noisefreq: 0x1f, envelopefreq: 0xffff, envelopetype: 0x0f, noisecount: 0, rng: 0xffff});
+			this.channel.push({freq: 0, tone: false, noise: false, vol: 0, envelope: true, count: 0, output: 0});
+		Object.assign(this, {noisefreq: 0, envelopefreq: 0, envelopetype: 0, noisecount: 0, rng: 0xffff});
 		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = e => {
 			e.outputBuffer.getChannelData(0).forEach((v, i, data) => {
 				data[i] = 0;
 				this.channel.forEach(ch => {
-					data[i] += (((ch.output | ch.tone) & (this.rng | ch.noise) & 1) * 2 - 1) * Math.pow(2, (ch.vol - 15) / 2) / 10;
+					const vol = ch.vol ? Math.pow(2, (ch.vol - 15) / 2) : 0;
+					data[i] += (((ch.output | ch.tone) & (this.rng | ch.noise) & 1) * 2 - 1) * vol / 10;
 				});
 				if (typeof this.psg.que !== 'undefined')
 					this.update1();
@@ -44,39 +45,40 @@ class AY_3_8910 {
 
 	output() {
 		if (typeof this.psg.que !== 'undefined') {
-			this.now = audioCtx.currentTime;
-			this.que += String.fromCharCode(0xffff, this.now * 120 & 0xffff, this.now * 120 >>> 16) + this.psg.que;
+			if (this.append) {
+				for (; this.que; this.que = this.que.substring(3))
+					if (this.que.charCodeAt(0) !== 0xffff)
+						this.psg.reg[this.que.charCodeAt(1)] = this.que.charCodeAt(2);
+			}
+			else if (this.que) {
+				this.que += String.fromCharCode(0xffff, 0, 0) + this.psg.que;
+				this.psg.que = '';
+				this.append = true;
+				return;
+			}
+			this.que = this.psg.que;
 			this.psg.que = '';
+			this.count = 0;
+			this.append = false;
+			for (; this.que && this.que.charCodeAt(0) === 0; this.que = this.que.substring(3))
+				this.psg.reg[this.que.charCodeAt(1)] = this.que.charCodeAt(2);
 		}
-		else
-			this.update2();
+		this.update2();
 	}
 
 	update1() {
-		this.count += 60 * this.resolution;
-		const count = Math.floor(this.count / audioCtx.sampleRate);
+		let count = Math.floor((this.count += 60 * this.resolution) / audioCtx.sampleRate);
 		if (count >= this.resolution) {
+			count = 0;
 			this.count %= audioCtx.sampleRate;
-			while (this.que !== '' && this.que.charCodeAt(0) < this.resolution)
-				[this.psg.reg[this.que.charCodeAt(1)], this.que] = [this.que.charCodeAt(2), this.que.substring(3)];
-			while (this.que !== '' && this.que.charCodeAt(0) >= this.resolution) {
-				const time = (this.que.charCodeAt(1) | this.que.charCodeAt(2) << 16) / 120;
+			if (this.que && this.que.charCodeAt(0) === 0xffff) {
 				this.que = this.que.substring(3);
-				if (time >= this.now - 4 / 120)
-					break;
-				while (this.que !== '' && this.que.charCodeAt(0) < this.resolution)
-					[this.psg.reg[this.que.charCodeAt(1)], this.que] = [this.que.charCodeAt(2), this.que.substring(3)];
+				this.append = false;
 			}
-			while (this.que !== '' && this.que.charCodeAt(0) === 0)
-				[this.psg.reg[this.que.charCodeAt(1)], this.que] = [this.que.charCodeAt(2), this.que.substring(3)];
-			this.update2();
 		}
-		else if (this.que !== '' && this.que.charCodeAt(0) <= count) {
-			do {
-				[this.psg.reg[this.que.charCodeAt(1)], this.que] = [this.que.charCodeAt(2), this.que.substring(3)];
-			} while (this.que !== '' && this.que.charCodeAt(0) <= count);
-			this.update2();
-		}
+		for (; this.que && this.que.charCodeAt(0) <= count; this.que = this.que.substring(3))
+			this.psg.reg[this.que.charCodeAt(1)] = this.que.charCodeAt(2);
+		this.update2();
 	}
 
 	update2() {
