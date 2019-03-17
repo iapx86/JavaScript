@@ -10,26 +10,31 @@ class AY_3_8910 {
 		this.psg = psg;
 		this.resolution = resolution;
 		this.count = 0;
-		this.cycles = 0;
 		this.que = '';
 		this.append = false;
+		this.cycles = 0;
 		this.channel = [];
 		for (let i = 0; i < 3; i++)
-			this.channel.push({freq: 0, tone: false, noise: false, vol: 0, envelope: true, count: 0, output: 0});
-		Object.assign(this, {noisefreq: 0, envelopefreq: 0, envelopetype: 0, noisecount: 0, rng: 0xffff});
+			this.channel.push({freq: 0, tone: false, noise: false, vol: 0, env: false, count: 0, output: 0});
+		Object.assign(this, {nfreq: 0, efreq: 0, etype: 0, ncount: 0, rng: 0xffff, ecount: 0, step: 0});
 		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = e => {
 			e.outputBuffer.getChannelData(0).forEach((v, i, data) => {
 				data[i] = 0;
+				const envvol = (~this.step ^ ((((this.etype ^ this.etype >> 1) & this.step >> 4 ^ ~this.etype >> 2) & 1) - 1)) & (~this.etype >> 3 & this.step >> 4 & 1) - 1 & 15;
 				this.channel.forEach(ch => {
-					const vol = ch.vol ? Math.pow(2, (ch.vol - 15) / 2) : 0;
-					data[i] += (((ch.output | ch.tone) & (this.rng | ch.noise) & 1) * 2 - 1) * vol / 10;
+					const vol = ch.env ? envvol : ch.vol;
+					data[i] += (((ch.output | ch.tone) & (this.rng | ch.noise) & 1) * 2 - 1) * (vol ? Math.pow(2, (vol - 15) / 2) : 0) / 10;
 				});
 				if (typeof this.psg.que !== 'undefined')
 					this.update1();
 				for (this.cycles += this.rate; this.cycles >= audioCtx.sampleRate; this.cycles -= audioCtx.sampleRate) {
-					if (++this.noisecount >>> 1 >= this.noisefreq)
-						[this.noisecount, this.rng] = [0, (this.rng >> 16 ^ this.rng >> 13 ^ 1) & 1 | this.rng << 1];
+					if (++this.ecount >= this.efreq) {
+						this.ecount = 0;
+						this.step += ((this.step < 16) | this.etype >> 3 & ~this.etype & 1) - (this.step >= 47) * 32;
+					}
+					if (++this.ncount >>> 1 >= this.nfreq)
+						[this.ncount, this.rng] = [0, (this.rng >> 16 ^ this.rng >> 13 ^ 1) & 1 | this.rng << 1];
 					this.channel.forEach(ch => {
 						if (++ch.count >= ch.freq)
 							[ch.count, ch.output] = [0, ~ch.output];
@@ -48,7 +53,7 @@ class AY_3_8910 {
 			if (this.append) {
 				for (; this.que; this.que = this.que.substring(3))
 					if (this.que.charCodeAt(0) !== 0xffff)
-						this.psg.reg[this.que.charCodeAt(1)] = this.que.charCodeAt(2);
+						this.write(this.que.charCodeAt(1), this.que.charCodeAt(2));
 			}
 			else if (this.que) {
 				this.que += String.fromCharCode(0xffff, 0, 0) + this.psg.que;
@@ -61,7 +66,7 @@ class AY_3_8910 {
 			this.count = 0;
 			this.append = false;
 			for (; this.que && this.que.charCodeAt(0) === 0; this.que = this.que.substring(3))
-				this.psg.reg[this.que.charCodeAt(1)] = this.que.charCodeAt(2);
+				this.write(this.que.charCodeAt(1), this.que.charCodeAt(2));
 		}
 		this.update2();
 	}
@@ -77,7 +82,7 @@ class AY_3_8910 {
 			}
 		}
 		for (; this.que && this.que.charCodeAt(0) <= count; this.que = this.que.substring(3))
-			this.psg.reg[this.que.charCodeAt(1)] = this.que.charCodeAt(2);
+			this.write(this.que.charCodeAt(1), this.que.charCodeAt(2));
 		this.update2();
 	}
 
@@ -88,11 +93,17 @@ class AY_3_8910 {
 			ch.tone = base[7] >> i;
 			ch.noise = base[7] >> i + 3;
 			ch.vol = base[8 + i] & 0x0f;
-			ch.envelope = (base[8 + i] & 0x10) !== 0;
+			ch.env = (base[8 + i] & 0x10) !== 0;
 		});
-		this.noisefreq = base[6] & 0x1f;
-		this.envelopefreq = base[11] | base[12] << 8;
-		this.envelopetype = base[13] & 0x0f;
+		this.nfreq = base[6] & 0x1f;
+		this.efreq = base[11] | base[12] << 8;
+		this.etype = base[13];
+	}
+
+	write(addr, data) {
+		this.psg.reg[addr & 0x0f] = data & 0xff;
+		if ((addr & 0x0f) === 13)
+			this.step = 0;
 	}
 }
 

@@ -41,7 +41,7 @@ class ZigZag {
 
 		this.ram = new Uint8Array(0x900);
 		this.in = new Uint8Array([0, 0, 2]);
-		this.psg = [{latch: 0, addr: 0, reg: new Uint8Array(0x10).fill(0xff)}];
+		this.psg = {latch: 0, addr: 0, reg: new Uint8Array(0x10).fill(0xff)};
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x40; i++)
@@ -61,12 +61,12 @@ class ZigZag {
 					if ((addr & 1) === 0)
 						break;
 					if ((addr & 2) === 0)
-						this.psg[0].reg[this.psg[0].addr] = this.psg[0].latch;
+						sound.write(this.psg.addr, this.psg.latch);
 					else
-						this.psg[0].addr = this.psg[0].latch & 0x0f;
+						this.psg.addr = this.psg.latch;
 					break;
 				case 0x0100:
-					this.psg[0].latch = addr & 0xff;
+					this.psg.latch = addr & 0xff;
 					break;
 				}
 			};

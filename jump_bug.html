@@ -67,8 +67,8 @@ class JumpBug {
 			this.cpu.memorymap[0x50 + i].base = this.ram.subarray(0xc00);
 			this.cpu.memorymap[0x50 + i].write = null;
 		}
-		this.cpu.memorymap[0x58].write = (addr, data) => this.psg.reg[this.psg.addr] = data;
-		this.cpu.memorymap[0x59].write = (addr, data) => this.psg.addr = data & 0x0f;
+		this.cpu.memorymap[0x58].write = (addr, data) => sound[0].write(this.psg.addr, data);
+		this.cpu.memorymap[0x59].write = (addr, data) => this.psg.addr = data;
 		for (let i = 0; i < 8; i++) {
 			this.cpu.memorymap[0x60 + i].read = () => this.in[0];
 			this.cpu.memorymap[0x60 + i].write = (addr, data, game) => {
