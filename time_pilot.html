@@ -71,7 +71,7 @@ class TimePilot {
 		}
 		this.cpu.memorymap[0xc3].write = (addr, data) => {
 			if ((addr >>> 1 & 0x7f) === 0)
-                this.fInterruptEnable = (data & 1) !== 0;
+				this.fInterruptEnable = (data & 1) !== 0;
 		};
 
 		this.cpu2 = new Z80(this);
