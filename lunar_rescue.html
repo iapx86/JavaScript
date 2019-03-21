@@ -199,7 +199,7 @@ class LunarRescue {
 	}
 
 	makeBitmap(data) {
-		const rgb = new Uint32Array([
+		const rgb = Uint32Array.of(
 			0xff000000, // black
 			0xff0000ff, // red
 			0xffff0000, // blue
@@ -208,7 +208,7 @@ class LunarRescue {
 			0xff00ffff, // yellow
 			0xffffff00, // cyan
 			0xffffffff, // white
-		]);
+		);
 
 		let k = 0x0400;
 		let p = 256 * 8 * 31;
@@ -268,7 +268,9 @@ class LunarRescue {
 const filename = 'lrescue.zip';
 let PRG1, PRG2, MAP;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG1 = Uint8Array.from(zip.files['lrescue.1'].inflate() + zip.files['lrescue.2'].inflate() + zip.files['lrescue.3'].inflate() + zip.files['lrescue.4'].inflate(), c => c.charCodeAt(0));

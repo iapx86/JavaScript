@@ -53,7 +53,7 @@ class CrazyBalloon {
 		}
 		for (let i = 0; i < 0x100; i++) {
 			this.cpu.iomap[i].base = this.io;
-			this.cpu.iomap[i].read = (addr) => this.io[addr & 3];
+			this.cpu.iomap[i].read = addr => this.io[addr & 3];
 			this.cpu.iomap[i].write = (addr, data) => {
 				switch (addr & 0xff) {
 				case 2:
@@ -78,12 +78,12 @@ class CrazyBalloon {
 		this.io[3] = 0x3f;
 
 		// Videoの初期化
-		this.rgb = new Uint32Array([
+		this.rgb = Uint32Array.of(
 			0xffffffff, 0xffffff00, 0xffff00ff, 0xffff0000,
 			0xff00ffff, 0xff00ff00, 0xff0000ff, 0xff000000,
 			0xff555555, 0xff555500, 0xff550055, 0xff550000,
 			0xff005555, 0xff005500, 0xff000055, 0xff000000,
-		]);
+		);
 		this.bg = new Uint32Array(0x40000);
 		this.obj = new Uint8Array(0x4000);
 		this.objctrl = new Uint8Array(3);
@@ -363,7 +363,9 @@ class CrazyBalloon {
 const filename = 'crbaloon.zip';
 let PRG, BG, OBJ;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG = zip.files['cl01.bin'].inflate() + zip.files['cl02.bin'].inflate() + zip.files['cl03.bin'].inflate() + zip.files['cl04.bin'].inflate();

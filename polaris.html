@@ -192,7 +192,7 @@ class Polaris {
 	}
 
 	makeBitmap(data) {
-		const rgb = new Uint32Array([
+		const rgb = Uint32Array.of(
 			0xff000000, // black
 			0xff0000ff, // red
 			0xffff0000, // blue
@@ -201,7 +201,7 @@ class Polaris {
 			0xff00ffff, // yellow
 			0xffffff00, // cyan
 			0xffffffff, // white
-		]);
+		);
 
 		for (let p = 256 * 8 * 31, k = 0x0400, i = 256 >>> 3; i !== 0; --i) {
 			for (let j = 224 >> 2; j !== 0; k += 0x80, p += 4, --j) {
@@ -259,7 +259,9 @@ class Polaris {
 const filename = 'polaris.zip';
 let PRG1, PRG2, MAP, OBJ;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG1 = Uint8Array.from(zip.files['ps01-1.30'].inflate() + zip.files['ps09.36'].inflate() + zip.files['ps03-1.31'].inflate() + zip.files['ps04.37'].inflate(), c => c.charCodeAt(0));

@@ -197,7 +197,7 @@ class SpaceInvaders {
 	}
 
 	makeBitmap(data) {
-		const rgb = new Uint32Array([
+		const rgb = Uint32Array.of(
 			0xff000000,	// black
 			0xff0000ff,	// red
 			0xffff0000,	// blue
@@ -206,7 +206,7 @@ class SpaceInvaders {
 			0xff00ffff,	// yellow
 			0xffffff00,	// cyan
 			0xffffffff,	// white
-		]);
+		);
 
 		for (let p = 256 * 8 * 31, k = 0x0400, i = 256 >>> 3; i !== 0; --i) {
 			for (let j = 224 >>> 2; j !== 0; k += 0x80, p += 4, --j) {
@@ -264,7 +264,9 @@ class SpaceInvaders {
 const filename = 'sicv.zip';
 let PRG, MAP;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG = Uint8Array.from(zip.files['cv17.36'].inflate() + zip.files['cv18.35'].inflate() + zip.files['cv19.34'].inflate() + zip.files['cv20.33'].inflate(), c => c.charCodeAt(0));

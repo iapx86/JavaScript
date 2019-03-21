@@ -208,7 +208,7 @@ class SpaceChaser {
 	}
 
 	makeBitmap(data) {
-		const rgb = new Uint32Array([
+		const rgb = Uint32Array.of(
 			0xff000000, // black
 			0xff0000ff, // red
 			0xffff0000, // blue
@@ -217,7 +217,7 @@ class SpaceChaser {
 			0xff00ffff, // yellow
 			0xffffff00, // cyan
 			0xffffffff, // white
-		]);
+		);
 
 		for (let p = 256 * 8 * 31, k = 0x0400, i = 256 >>> 3; i !== 0; --i) {
 			for (let j = 224 >>> 2; j !== 0; k += 0x80, p += 4, --j) {
@@ -276,7 +276,9 @@ class SpaceChaser {
 const filename = 'schaser.zip';
 let PRG1, PRG2, MAP;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG1 = zip.files['rt13.bin'].inflate() + zip.files['rt14.bin'].inflate() + zip.files['rt15.bin'].inflate() + zip.files['rt16.bin'].inflate();

@@ -201,7 +201,7 @@ class GalaxyWars {
 	}
 
 	makeBitmap(data) {
-		const rgb = new Uint32Array([
+		const rgb = Uint32Array.of(
 			0xff000000, // black
 			0xff0000ff, // red
 			0xffff0000, // blue
@@ -210,7 +210,7 @@ class GalaxyWars {
 			0xff00ffff, // yellow
 			0xffffff00, // cyan
 			0xffffffff, // white
-		]);
+		);
 
 		for (let p = 256 * 8 * 31, k = 0x0400, i = 256 >>> 3; i !== 0; --i) {
 			for (let j = 224 >>> 2; j !== 0; k += 0x80, p += 4, --j) {
@@ -269,7 +269,9 @@ class GalaxyWars {
 const filename = 'galxwars.zip';
 let PRG1, PRG2;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG1 = Uint8Array.from(zip.files['univgw3.0'].inflate() + zip.files['univgw4.1'].inflate() + zip.files['univgw5.2'].inflate() + zip.files['univgw6.3'].inflate(), c => c.charCodeAt(0));

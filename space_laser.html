@@ -171,7 +171,7 @@ class SpaceLaser {
 	}
 
 	makeBitmap(data) {
-		const rgb = new Uint32Array([
+		const rgb = Uint32Array.of(
 			0xff000000, // black
 			0xff0000ff, // red
 			0xffff0000, // blue
@@ -180,7 +180,7 @@ class SpaceLaser {
 			0xff00ffff, // yellow
 			0xffffff00, // cyan
 			0xffffffff, // white
-		]);
+		);
 
 		for (let p = 256 * 8 * 31, k = 0x0400, i = 256 >>> 3; i !== 0; --i) {
 			for (let j = 224 >>> 2; j !== 0; k += 0x80, p += 4, --j) {
@@ -239,7 +239,9 @@ class SpaceLaser {
 const filename = 'spclaser.zip';
 let PRG;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG = Uint8Array.from(zip.files['la01'].inflate() + zip.files['la02'].inflate() + zip.files['la03'].inflate() + zip.files['la04'].inflate(), c => c.charCodeAt(0));
