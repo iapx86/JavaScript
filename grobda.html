@@ -66,8 +66,8 @@ class Grobda {
 			this.cpu[0].memorymap[0x08 + i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
-			this.cpu[0].memorymap[0x40 + i].base = this.ram.subarray(0x2000 + i * 0x100);
-			this.cpu[0].memorymap[0x40 + i].write = null;
+			this.cpu[0].memorymap[0x40 + i].read = addr => sound[0].read(addr);
+			this.cpu[0].memorymap[0x40 + i].write = (addr, data) => sound[0].write(addr, data);
 		}
 		for (let i = 0; i < 4; i++) {
 			this.cpu[0].memorymap[0x48 + i].base = this.ram.subarray(0x2400 + i * 0x100);
@@ -75,8 +75,8 @@ class Grobda {
 		}
 		this.cpu[0].memorymap[0x50].write = systemcontrolarea;
 		for (let i = 0; i < 4; i++) {
-			this.cpu[1].memorymap[i].base = this.ram.subarray(0x2000 + i * 0x100);
-			this.cpu[1].memorymap[i].write = null;
+			this.cpu[1].memorymap[i].read = addr => sound[0].read(addr);
+			this.cpu[1].memorymap[i].write = (addr, data) => sound[0].write(addr, data);
 		}
 		this.cpu[1].memorymap[0x20].write = systemcontrolarea;
 		for (let i = 0; i < 0x20; i++)
@@ -145,6 +145,7 @@ class Grobda {
 	}
 
 	execute() {
+		sound.mute(!this.fSoundEnable);
 		if (this.fInterruptEnable0)
 			this.cpu[0].interrupt();
 		if (this.fInterruptEnable1)
@@ -702,7 +703,9 @@ const filename = 'grobda.zip';
 const GETREADY = new Int16Array(Math.ceil(8837 * 22050 / 14800));
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG1 = Uint8Array.from(zip.files['gr2-3.1d'].inflate() + zip.files['gr2-2.1c'].inflate() + zip.files['gr2-1.1b'].inflate(), c => c.charCodeAt(0));
@@ -715,7 +718,7 @@ function success(zip) {
 	SND = Uint8Array.from(zip.files['gr1-3.3m'].inflate(), c => c.charCodeAt(0));
 	Grobda.convertGETREADY();
 	game = new Grobda();
-	sound = [new MappySound(SND, game.ram.subarray(0x2000)), new SoundEffect(game.se, 22050)];
+	sound = [new MappySound({SND}), new SoundEffect({se: game.se, freq: 22050})];
 	init();
 	loop();
 }

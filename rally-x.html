@@ -35,21 +35,18 @@ class RallyX {
 		this.fStart1P = 0;
 		this.fStart2P = 0;
 		this.dwStick = 0;
-		this.abStick = new Uint8Array([
-			~0, ~1, ~2, ~0, ~4, ~4, ~2, ~4,
-			~8, ~1, ~8, ~8, ~0, ~1, ~2, ~0
-		]);
+		this.abStick = Uint8Array.of(~0, ~1, ~2, ~0, ~4, ~4, ~2, ~4, ~8, ~1, ~8, ~8, ~0, ~1, ~2, ~0);
 		this.nMyCar = 3;
 		this.nRank = 'A';
 		this.nBonus = 'A';
 
 		// CPU周りの初期化
 		this.fInterrupt = false;
+		this.fSoundEnable = false;
 
 		this.ram = new Uint8Array(0x1800);
 		this.mmi = new Uint8Array(0x200).fill(0xff);
 		this.mmo = new Uint8Array(0x200);
-		this.sound = {reg: new Uint8Array(0x20)};
 		this.adwCount = new Uint8Array(8);
 		this.mmi[0x100] = 0xc5;
 		this.vector = 0;
@@ -96,7 +93,7 @@ class RallyX {
 			switch (addr >>> 4 & 0xfff) {
 			case 0xa10:
 			case 0xa11:
-				game.sound.reg[addr & 0x1f] = data & 0x0f;
+				sound[0].write(addr, data);
 				break;
 			case 0xa18:
 				switch (addr & 0xf) {
@@ -106,6 +103,9 @@ class RallyX {
 					break;
 				case 1:
 					game.fInterrupt = (data & 1) !== 0;
+					break;
+				case 2:
+					game.fSoundEnable = (data & 1) !== 0;
 					break;
 				}
 				game.mmo[addr & 0x1ff] = data;
@@ -132,6 +132,7 @@ class RallyX {
 	}
 
 	execute() {
+		sound[0].mute(!this.fSoundEnable);
 		while (this.fInterrupt && !this.cpu.interrupt(this.vector))
 			this.cpu.execute(0x10);
 		this.cpu.execute(0x2400);
@@ -1632,7 +1633,9 @@ l/+b/6j/qv+l/5z/oP+w/77/z//f//3/9f///w==
 const filename = 'rallyx.zip';
 let SND, BGOBJ, COLOR, RGB, PRG;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG = Uint8Array.from(zip.files['1b'].inflate() + zip.files['rallyxn.1e'].inflate() + zip.files['rallyxn.1h'].inflate() + zip.files['rallyxn.1k'].inflate(), c => c.charCodeAt(0));
@@ -1642,7 +1645,7 @@ function success(zip) {
 	SND = Uint8Array.from(zip.files['rx1-5.3p'].inflate(), c => c.charCodeAt(0));
 	rotate = true;
 	game = new RallyX();
-	sound = [new PacManSound(SND, game.sound), new SoundEffect(game.se, 11025)];
+	sound = [new PacManSound({SND}), new SoundEffect({se: game.se, freq: 11025, gain: 9 / 16})];
 	init();
 	loop();
 }

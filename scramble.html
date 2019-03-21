@@ -37,17 +37,16 @@ class Scramble {
 
 		// CPU周りの初期化
 		this.fInterruptEnable = false;
+		this.fSoundEnable = false;
 
 		this.ram = new Uint8Array(0xd00);
-		this.ppi0 = new Uint8Array([0xff, 0xfc, 0xf1, 0]);
+		this.ppi0 = Uint8Array.of(0xff, 0xfc, 0xf1, 0);
 		this.ppi1 = new Uint8Array(4);
 		this.ram2 = new Uint8Array(0x400);
-		this.psg = [];
-		this.psg[0] = {que: '', addr: 0, reg: new Uint8Array(0x10).fill(0xff), tmp: new Uint8Array(0x10).fill(0xff)};
-		this.psg[1] = {que: '', addr: 0, reg: new Uint8Array(0x10).fill(0xff), tmp: new Uint8Array(0x10).fill(0xff)};
+		this.psg = [{addr: 0}, {addr: 0}];
 		this.count = 0;
 		this.timer = 0;
-		this.command = '';
+		this.command = [];
 		this.state = 0;
 
 		this.cpu = new Z80(this);
@@ -79,7 +78,7 @@ class Scramble {
 			};
 		}
 		for (let i = 0; i < 0x80; i++) {
-			this.cpu.memorymap[0x80 + i].read = (addr) => {
+			this.cpu.memorymap[0x80 + i].read = addr => {
 				let data = 0xff;
 				if ((addr & 0x0100) !== 0)
 					data &= this.ppi0[addr & 3];
@@ -90,9 +89,12 @@ class Scramble {
 			this.cpu.memorymap[0x80 + i].write = (addr, data) => {
 				if ((addr & 0x0200) !== 0)
 					switch (addr & 3) {
-					case 0:
-						this.command += String.fromCharCode(data);
-						break;
+                    case 0:
+                        this.command.push(data);
+                        break;
+                    case 1:
+						this.fSoundEnable = (data & 0x10) === 0;
+                        break;
 					case 2:
 						this.state = this.state << 4 & 0xff0 | data & 0x0f;
 						const index = [0xf09, 0xa49, 0x319, 0x5c9].indexOf(this.state);
@@ -120,27 +122,23 @@ class Scramble {
 			this.cpu2.memorymap[0xec + i].write = this.cpu2.memorymap[0xe8 + i].write = this.cpu2.memorymap[0xe4 + i].write = this.cpu2.memorymap[0xe0 + i].write = null;
 		}
 		for (let i = 0; i < 0x100; i++) {
-			this.cpu2.iomap[i].read = (addr) => {
+			this.cpu2.iomap[i].read = addr => {
 				let data = 0xff;
 				if ((addr & 0x20) !== 0)
-					data &= this.psg[1].tmp[this.psg[1].addr];
+					data &= sound[1].read(this.psg[1].addr);
 				if ((addr & 0x80) !== 0)
-					data &= this.psg[0].tmp[this.psg[0].addr];
+					data &= sound[0].read(this.psg[0].addr);
 				return data;
 			};
 			this.cpu2.iomap[i].write = (addr, data) => {
 				if ((addr & 0x10) !== 0)
-					this.psg[1].addr = data & 0x0f;
-				else if ((addr & 0x20) !== 0) {
-					this.psg[1].tmp[this.psg[1].addr] = data;
-					this.psg[1].que += String.fromCharCode(this.count, this.psg[1].addr, data);
-				}
+					this.psg[1].addr = data;
+				else if ((addr & 0x20) !== 0)
+					sound[1].write(this.psg[1].addr, data, this.count);
 				if ((addr & 0x40) !== 0)
-					this.psg[0].addr = data & 0x0f;
-				else if ((addr & 0x80) !== 0) {
-					this.psg[0].tmp[this.psg[0].addr] = data;
-					this.psg[0].que += String.fromCharCode(this.count, this.psg[0].addr, data);
-				}
+					this.psg[0].addr = data;
+				else if ((addr & 0x80) !== 0)
+					sound[0].write(this.psg[0].addr, data, this.count);
 			};
 		}
 
@@ -161,15 +159,15 @@ class Scramble {
 	}
 
 	execute() {
+		sound[0].mute(!this.fSoundEnable);
+		sound[1].mute(!this.fSoundEnable);
 		if (this.fInterruptEnable)
 			this.cpu.non_maskable_interrupt();
 		this.cpu.execute(0x2000);
 		for (this.count = 0; this.count < 116; this.count++) { // 14318181 / 60 / 2048
-			if (this.command !== '' && this.cpu2.interrupt()) {
-				this.psg[0].tmp[0x0e] = this.command.charCodeAt(0);
-				this.command = this.command.substring(1);
-			}
-			this.psg[0].tmp[0x0f] = [0x0e, 0x1e, 0x0e, 0x1e, 0x2e, 0x3e, 0x2e, 0x3e, 0x4e, 0x5e, 0x8e, 0x9e, 0x8e, 0x9e, 0xae, 0xbe, 0xae, 0xbe, 0xce, 0xde][this.timer];
+			if (this.command.length && this.cpu2.interrupt())
+				sound[0].write(0x0e, this.command.shift());
+			sound[0].write(0x0f, [0x0e, 0x1e, 0x0e, 0x1e, 0x2e, 0x3e, 0x2e, 0x3e, 0x4e, 0x5e, 0x8e, 0x9e, 0x8e, 0x9e, 0xae, 0xbe, 0xae, 0xbe, 0xce, 0xde][this.timer]);
 			this.cpu2.execute(36);
 			if (++this.timer >= 20)
 				this.timer = 0;
@@ -208,9 +206,10 @@ class Scramble {
 			this.fReset = false;
 			this.cpu.reset();
 			this.fInterruptEnable = false;
+			this.fSoundEnable = false;
 			this.fStarEnable = false;
 			this.fBackgroundEnable = false;
-			this.command = '';
+			this.command = [];
 			this.state = 0;
 			this.cpu2.reset();
 			this.timer = 0;
@@ -562,7 +561,9 @@ class Scramble {
 const filename = 'scramble.zip';
 let BG, RGB, PRG1, PRG2;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG1 = zip.files['s1.2d'].inflate() + zip.files['s2.2e'].inflate() + zip.files['s3.2f'].inflate() + zip.files['s4.2h'].inflate() + zip.files['s5.2j'].inflate();
@@ -571,7 +572,7 @@ function success(zip) {
 	BG = Uint8Array.from(zip.files['c2.5f'].inflate() + zip.files['c1.5h'].inflate(), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['c01s.6e'].inflate(), c => c.charCodeAt(0));
 	game = new Scramble();
-	sound = [new AY_3_8910(14318181 / 8, game.psg[0], 116), new AY_3_8910(14318181 / 8, game.psg[1], 116)];
+	sound = [new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.25}), new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.25})];
 	init();
 	loop();
 }

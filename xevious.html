@@ -49,16 +49,12 @@ class Xevious {
 		this.ram = new Uint8Array(0x4000);
 		this.mmi = new Uint8Array(0x100).fill(0xff);
 		this.mmo = new Uint8Array(0x100);
-		this.sound = {que: '', reg: new Uint8Array(0x20)};
 		this.count = 0;
 		this.mapreg = new Uint8Array(0x100);
 		this.dmaport = new Uint8Array(0x100);
 		this.ioport = new Uint8Array(0x100);
 		this.keyport = 0;
-		this.keytbl = new Uint8Array([
-			8, 0, 2, 1, 4, 8, 3, 8,
-			6, 7, 8, 8, 5, 8, 8, 8
-		]);
+		this.keytbl = Uint8Array.of(8, 0, 2, 1, 4, 8, 3, 8, 6, 7, 8, 8, 5, 8, 8, 8);
 
 		this.cpu = [];
 		for (let i = 0; i < 3; i++)
@@ -180,7 +176,7 @@ class Xevious {
 			case 0x00:
 			case 0x10:
 				game.mmo[addr & 0xff] = data & 0x0f;
-				game.sound.que += String.fromCharCode(game.count, addr & 0x1f, data & 0x0f);
+				sound[0].write(addr, data, game.count);
 				break;
 			case 0x20:
 				break;
@@ -310,6 +306,7 @@ class Xevious {
 	}
 
 	execute() {
+		sound[0].mute(!this.fSoundEnable);
 		if (this.fInterruptEnable)
 			this.cpu[0].interrupt();
 		this.count = 0;
@@ -2638,10 +2635,6 @@ AAIAAAAAAAAAAQABAAEAAQABAAEAAAAAAAAA//////7//v/+//7//f/9//3//f/8//v/+//7//v/
 //z/+//8//v//P/8//z//P/8//z/+//8//v/+//8//v/+//8//v/+//7//v/+//7//v/+//6//v/
 `), c => c.charCodeAt(0))).buffer);
 
-(function () {
-	[VX01, VX02, VX80].forEach(buf => buf.forEach((x, i, a) => a[i] <<= 3));
-})();
-
 /*
  *
  *	Xevious
@@ -2651,7 +2644,9 @@ AAIAAAAAAAAAAQABAAEAAQABAAEAAAAAAAAA//////7//v/+//7//f/9//3//f/8//v/+//7//v/
 const filename = 'xevious.zip';
 let BG2, BG4, OBJ4, OBJ8, BGCOLOR_H, BGCOLOR_L, OBJCOLOR_H, OBJCOLOR_L, RED, GREEN, BLUE, SND, PRG1, PRG2, PRG3, MAPTBL, MAPDATA;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG1 = Uint8Array.from(zip.files['xvi_1.3p'].inflate() + zip.files['xvi_2.3m'].inflate() + zip.files['xvi_3.2m'].inflate() + zip.files['xvi_4.2l'].inflate(), c => c.charCodeAt(0));
@@ -2672,7 +2667,7 @@ function success(zip) {
 	OBJCOLOR_H = Uint8Array.from(zip.files['xvi-5.3m'].inflate(), c => c.charCodeAt(0));
 	SND = Uint8Array.from(zip.files['xvi-2.7n'].inflate(), c => c.charCodeAt(0));
 	game = new Xevious();
-	sound = [new PacManSound(SND, game.sound, 2), new SoundEffect(game.se, 11025)];
+	sound = [new PacManSound({SND, resolution: 2}), new SoundEffect({se: game.se, freq: 11025, gain: 8})];
 	init();
 	loop();
 }

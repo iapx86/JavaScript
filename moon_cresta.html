@@ -112,6 +112,7 @@ class MoonCresta {
 	}
 
 	execute() {
+		sound[0].mute(!this.fSoundEnable);
 		if (this.fInterruptEnable)
 			this.cpu.non_maskable_interrupt();
 		this.cpu.execute(0x2000);
@@ -2260,10 +2261,6 @@ AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A
 /wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/
 `), c => c.charCodeAt(0))).buffer);
 
-(function() {
-	[BOMB, SHOT].forEach(buf => buf.forEach((x, i, a) => a[i] >>= 1));
-})();
-
 /*
  *
  *	Moon Cresta
@@ -2273,7 +2270,9 @@ AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A
 const filename = 'mooncrst.zip';
 let BG, RGB, PRG;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG = zip.files['mc1'].inflate() + zip.files['mc2'].inflate() + zip.files['mc3'].inflate() + zip.files['mc4'].inflate() + zip.files['mc5.7r'].inflate();
@@ -2282,7 +2281,7 @@ function success(zip) {
 	RGB = Uint8Array.from(zip.files['mmi6331.6l'].inflate(), c => c.charCodeAt(0));
 	MoonCresta.decodeROM();
 	game = new MoonCresta();
-	sound = [new GalaxianSound(SND, game.mmo), new SoundEffect(game.se, 11025)];
+	sound = [new GalaxianSound({SND}), new SoundEffect({se: game.se, freq: 11025, gain: 0.5})];
 	init();
 	loop();
 }

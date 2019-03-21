@@ -148,6 +148,7 @@ class Galaxian {
 	}
 
 	execute() {
+		sound[0].mute(!this.fSoundEnable);
 		if (this.fInterruptEnable)
 			this.cpu.non_maskable_interrupt();
 		this.cpu.execute(0x2000);
@@ -4016,11 +4017,6 @@ A/uh+Qv5xvjq9xP46ffH+Aj5Bfnu+En5/Pni+g79/P4AAewCPQICAkMB+gDNAOb/EQDw/xQAPf/w
 Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkAtf+4/vP9AP4=
 `), c => c.charCodeAt(0))).buffer);
 
-(function() {
-	const table = [BOMB, SHOT, WAVE0001, WAVE0010, WAVE0011, WAVE0100, WAVE0101, WAVE0110, WAVE0111, WAVE1000, WAVE1001, WAVE1010, WAVE1011, WAVE1100, WAVE1101, WAVE1110, WAVE1111];
-	table.forEach(buf => buf.forEach((x, i, a) => a[i] >>= 1));
-})();
-
 /*
  *
  *	Galaxian
@@ -4030,14 +4026,16 @@ Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkAtf+4/vP9AP4=
 const filename = 'galaxian.zip';
 let BG, RGB, PRG;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG = Uint8Array.from(zip.files['galmidw.u'].inflate() + zip.files['galmidw.v'].inflate() + zip.files['galmidw.w'].inflate() + zip.files['galmidw.y'].inflate() + zip.files['7l'].inflate(), c => c.charCodeAt(0));
 	BG = Uint8Array.from(zip.files['1h.bin'].inflate() + zip.files['1k.bin'].inflate(), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['6l.bpr'].inflate(), c => c.charCodeAt(0));
 	game = new Galaxian();
-	sound = [new GalaxianSound(SND, game.mmo), new SoundEffect(game.se, 11025)];
+	sound = [new GalaxianSound({SND}), new SoundEffect({se: game.se, freq: 11025, gain: 0.5})];
 	init();
 	loop();
 }

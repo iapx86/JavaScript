@@ -39,16 +39,15 @@ class TimePilot {
 
 		// CPU周りの初期化
 		this.fInterruptEnable = false;
+		this.fSoundEnable = false;
 
 		this.ram = new Uint8Array(0x1400);
-		this.in = new Uint8Array([0xff, 0xff, 0xff, 0xff, 0x4b]);
+		this.in = Uint8Array.of(0xff, 0xff, 0xff, 0xff, 0x4b);
 		this.ram2 = new Uint8Array(0x400);
-		this.psg = [];
-		this.psg[0] = {que: '', addr: 0, reg: new Uint8Array(0x10).fill(0xff), tmp: new Uint8Array(0x10).fill(0xff)};
-		this.psg[1] = {que: '', addr: 0, reg: new Uint8Array(0x10).fill(0xff), tmp: new Uint8Array(0x10).fill(0xff)};
+		this.psg = [{addr: 0}, {addr: 0}];
 		this.count = 0;
 		this.timer = 0;
-		this.command = '';
+		this.command = [];
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x60; i++)
@@ -65,13 +64,19 @@ class TimePilot {
 		}
 		for (let i = 0; i < 4; i++) {
 			this.cpu.memorymap[0xc0 + i * 4].read = () => this.vpos;
-			this.cpu.memorymap[0xc0 + i * 4].write = (addr, data) => this.command += String.fromCharCode(data);
+			this.cpu.memorymap[0xc0 + i * 4].write = (addr, data) => this.command.push(data);
 			this.cpu.memorymap[0xc2 + i * 4].read = () => this.in[4];
-			this.cpu.memorymap[0xc3 + i * 4].read = (addr) => this.in[addr >>> 5 & 3];
+			this.cpu.memorymap[0xc3 + i * 4].read = addr => this.in[addr >>> 5 & 3];
 		}
 		this.cpu.memorymap[0xc3].write = (addr, data) => {
-			if ((addr >>> 1 & 0x7f) === 0)
+			switch (addr >>> 1 & 0x7f) {
+			case 0:
 				this.fInterruptEnable = (data & 1) !== 0;
+				break;
+			case 3:
+				this.fSoundEnable = (data & 1) === 0;
+				break;
+			}
 		};
 
 		this.cpu2 = new Z80(this);
@@ -82,18 +87,12 @@ class TimePilot {
 			this.cpu2.memorymap[0x3c + i].write = this.cpu2.memorymap[0x38 + i].write = this.cpu2.memorymap[0x34 + i].write = this.cpu2.memorymap[0x30 + i].write = null;
 		}
 		for (let i = 0; i < 0x10; i++) {
-			this.cpu2.memorymap[0x40 + i].read = () => this.psg[0].tmp[this.psg[0].addr];
-			this.cpu2.memorymap[0x40 + i].write = (addr, data) => {
-				this.psg[0].tmp[this.psg[0].addr] = data;
-				this.psg[0].que += String.fromCharCode(this.count, this.psg[0].addr, data);
-			};
-			this.cpu2.memorymap[0x50 + i].write = (addr, data) => this.psg[0].addr = data & 0xff;
-			this.cpu2.memorymap[0x60 + i].read = () => this.psg[1].tmp[this.psg[1].addr];
-			this.cpu2.memorymap[0x60 + i].write = (addr, data) => {
-				this.psg[1].tmp[this.psg[1].addr] = data;
-				this.psg[1].que += String.fromCharCode(this.count, this.psg[1].addr, data);
-			};
-			this.cpu2.memorymap[0x70 + i].write = (addr, data) => this.psg[1].addr = data & 0xff;
+			this.cpu2.memorymap[0x40 + i].read = () => sound[0].read(this.psg[0].addr);
+			this.cpu2.memorymap[0x40 + i].write = (addr, data) => sound[0].write(this.psg[0].addr, data, this.count);
+			this.cpu2.memorymap[0x50 + i].write = (addr, data) => this.psg[0].addr = data;
+			this.cpu2.memorymap[0x60 + i].read = () => sound[1].read(this.psg[1].addr);
+			this.cpu2.memorymap[0x60 + i].write = (addr, data) => sound[1].write(this.psg[1].addr, data, this.count);
+			this.cpu2.memorymap[0x70 + i].write = (addr, data) => this.psg[1].addr = data;
 		}
 
 		// Videoの初期化
@@ -108,6 +107,8 @@ class TimePilot {
 	}
 
 	execute() {
+		sound[0].mute(!this.fSoundEnable);
+		sound[1].mute(!this.fSoundEnable);
 		for (let i = 0; i < 256; i++) {
 			this.vpos = i + 144 & 0xff;
 			if (this.vpos === 0)
@@ -117,11 +118,9 @@ class TimePilot {
 			this.cpu.execute(32);
 		}
 		for (this.count = 0; this.count < 58; this.count++) { // 14318181 / 8 / 60 / 512
-			if (this.command !== '' && this.cpu2.interrupt()) {
-				this.psg[0].tmp[0x0e] = this.command.charCodeAt(0);
-				this.command = this.command.substring(1);
-			}
-			this.psg[0].tmp[0x0f] = [0x00, 0x10, 0x20, 0x30, 0x40, 0x90, 0xa0, 0xb0, 0xa0, 0xd0][this.timer];
+			if (this.command.length && this.cpu2.interrupt())
+				sound[0].write(0x0e, this.command.shift());
+			sound[0].write(0x0f, [0x00, 0x10, 0x20, 0x30, 0x40, 0x90, 0xa0, 0xb0, 0xa0, 0xd0][this.timer]);
 			this.cpu2.execute(73);
 			if (++this.timer >= 10)
 				this.timer = 0;
@@ -194,7 +193,7 @@ class TimePilot {
 			this.fReset = false;
 			this.cpu.reset();
 			this.fInterruptEnable = false;
-			this.command = '';
+			this.command = [];
 			this.cpu2.reset();
 			this.timer = 0;
 		}
@@ -732,7 +731,9 @@ class TimePilot {
 const filename = 'timeplt.zip';
 let PRG1, PRG2, BG, OBJ, RGB_H, RGB_L, OBJCOLOR, BGCOLOR;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG1 = Uint8Array.from(zip.files['tm1'].inflate() + zip.files['tm2'].inflate() + zip.files['tm3'].inflate(), c => c.charCodeAt(0));
@@ -744,7 +745,7 @@ function success(zip) {
 	OBJCOLOR = Uint8Array.from(zip.files['timeplt.e9'].inflate(), c => c.charCodeAt(0));
 	BGCOLOR = Uint8Array.from(zip.files['timeplt.e12'].inflate(), c => c.charCodeAt(0));
 	game = new TimePilot();
-	sound = [new AY_3_8910(14318181 / 8, game.psg[0], 58), new AY_3_8910(14318181 / 8, game.psg[1], 58)];
+	sound = [new AY_3_8910({clock: 14318181 / 8, resolution: 58, gain: 0.25}), new AY_3_8910({clock: 14318181 / 8, resolution: 58, gain: 0.25})];
 	init();
 	loop();
 }

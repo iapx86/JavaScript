@@ -219,9 +219,9 @@ function draw() {
 function loop() {
 	if (typeof sound !== 'undefined')
 		if (Array.isArray(sound))
-			sound.forEach(s => s.output(game));
+			sound.forEach(s => s.update(game));
 		else
-			sound.output(game);
+			sound.update(game);
 	draw();
 	updateGamepad(game);
 	game.updateStatus().updateInput().execute().makeBitmap(data);

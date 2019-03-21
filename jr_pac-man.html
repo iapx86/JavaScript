@@ -39,8 +39,7 @@ class JrPacMan {
 
 		// CPU周りの初期化
 		this.ram = new Uint8Array(0x1100).fill(0xff);
-		this.sound = {reg: new Uint8Array(0x20)};
-		this.in = new Uint8Array([0xff, 0xff, 0xc9, 0x00]);
+		this.in = Uint8Array.of(0xff, 0xff, 0xc9, 0x00);
 		this.vector = 0;
 		this.fInterruptEnable = false;
 		this.fSoundEnable = false;
@@ -54,7 +53,7 @@ class JrPacMan {
 			this.cpu.memorymap[0x40 + i].base = this.ram.subarray(i * 0x100);
 			this.cpu.memorymap[0x40 + i].write = null;
 		}
-		this.cpu.memorymap[0x50].read = (addr) => this.in[addr >>> 6 & 3];
+		this.cpu.memorymap[0x50].read = addr => this.in[addr >>> 6 & 3];
 		this.cpu.memorymap[0x50].write = (addr, data) => {
 			switch (addr & 0xf0) {
 			case 0x00:
@@ -69,7 +68,7 @@ class JrPacMan {
 				break;
 			case 0x40:
 			case 0x50:
-				this.sound.reg[addr & 0x1f] = data & 0x0f;
+				sound.write(addr, data);
 				break;
 			case 0x60:
 			case 0x70:
@@ -98,8 +97,7 @@ class JrPacMan {
 	}
 
 	execute() {
-		if (!this.fSoundEnable)
-			this.sound.reg.fill(0);
+		sound.mute(!this.fSoundEnable);
 		if (this.fInterruptEnable)
 			this.cpu.interrupt(this.vector);
 		this.cpu.execute(0x2000);
@@ -571,7 +569,9 @@ class JrPacMan {
 const filename = 'jrpacman.zip';
 let BG, COLOR, OBJ, RGB_L, RGB_H, PRG, SND;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG = Uint8Array.from(zip.files['jrp8d.8d'].inflate() + zip.files['jrp8e.8e'].inflate() + zip.files['jrp8h.8h'].inflate() + zip.files['jrp8j.8j'].inflate() + zip.files['jrp8k.8k'].inflate(), c => c.charCodeAt(0));
@@ -583,7 +583,7 @@ function success(zip) {
 	SND = Uint8Array.from(zip.files['a290-27axv-dxhd.7p'].inflate(), c => c.charCodeAt(0));
 	JrPacMan.patchROM();
 	game = new JrPacMan();
-	sound = new PacManSound(SND, game.sound);
+	sound = new PacManSound({SND});
 	init();
 	loop();
 }

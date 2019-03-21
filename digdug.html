@@ -35,14 +35,8 @@ class DigDug {
 		this.fStart2P = false;
 		this.dwCoin = 0;
 		this.dwStick = 0;
-		this.abStick = new Uint8Array([
-			0xf8, 0xf0, 0xf2, 0xf0, 0xf4, 0xf8, 0xf2, 0xf2,
-			0xf6, 0xf6, 0xf8, 0xf0, 0xf4, 0xf6, 0xf4, 0xf8
-		]);
-		this.abStick2 = new Uint8Array([
-			~0, ~1, ~2, ~1, ~4, ~0, ~2, ~2,
-			~8, ~8, ~0, ~1, ~4, ~8, ~4, ~0
-		]);
+		this.abStick = Uint8Array.of(0xf8, 0xf0, 0xf2, 0xf0, 0xf4, 0xf8, 0xf2, 0xf2, 0xf6, 0xf6, 0xf8, 0xf0, 0xf4, 0xf6, 0xf4, 0xf8);
+		this.abStick2 = Uint8Array.of(~0, ~1, ~2, ~1, ~4, ~0, ~2, ~2, ~8, ~8, ~0, ~1, ~4, ~8, ~4, ~0);
 		this.dwButton = 0;
 		this.nDigdug = 3;
 		this.nBonus = 'F';
@@ -61,7 +55,6 @@ class DigDug {
 		this.ram.set(RAM);
 		this.mmi = new Uint8Array(0x100).fill(0xff);
 		this.mmo = new Uint8Array(0x100);
-		this.sound = {que: '', reg: new Uint8Array(0x20)};
 		this.count = 0;
 		this.dmaport = new Uint8Array(0x100).fill(0x10);
 		this.ioport = new Uint8Array(0x100).fill(0xff);
@@ -123,8 +116,7 @@ class DigDug {
 			switch (addr & 0xf0) {
 			case 0x00:
 			case 0x10:
-				game.mmo[addr & 0xff] = data & 0x0f;
-				game.sound.que += String.fromCharCode(game.count, addr & 0x1f, data & 0x0f);
+				sound.write(addr, data, game.count);
 				return;
 			case 0x20:
 				switch (addr & 0x0f) {
@@ -1232,7 +1224,9 @@ bWbF3nu56qgRZi5Wbrqbu4Jmthkb/kS4subp5BS7PusiZptPhag727t2hvxskk2eXHbGx5trm5+2
 const filename = 'digdug.zip';
 let PRG1, PRG2, PRG3, BG2, MAPDATA, BG4, OBJ, SND, BGCOLOR, OBJCOLOR, RGB;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG1 = Uint8Array.from(zip.files['dd1a.1'].inflate() + zip.files['dd1a.2'].inflate() + zip.files['dd1a.3'].inflate() + zip.files['dd1a.4'].inflate(), c => c.charCodeAt(0));
@@ -1247,7 +1241,7 @@ function success(zip) {
 	BGCOLOR = Uint8Array.from(zip.files['136007.112'].inflate(), c => c.charCodeAt(0));
 	SND = Uint8Array.from(zip.files['136007.110'].inflate(), c => c.charCodeAt(0));
 	game = new DigDug();
-	sound = new PacManSound(SND, game.sound, 2);
+	sound = new PacManSound({SND, resolution: 2});
 	init();
 	loop();
 }

@@ -5,13 +5,15 @@
  */
 
 class AY_3_8910 {
-	constructor(clock, psg, resolution = 0) {
+	constructor({clock, resolution = 1, gain = 0.1}) {
+		this.reg = new Uint8Array(0x10);
+		this.tmp = new Uint8Array(0x10);
 		this.rate = Math.floor(clock / 8);
-		this.psg = psg;
 		this.resolution = resolution;
+		this.gain = gain;
 		this.count = 0;
-		this.que = '';
-		this.append = false;
+		this.wheel = [];
+		this.tmpwheel = new Array(this.resolution);
 		this.cycles = 0;
 		this.channel = [];
 		for (let i = 0; i < 3; i++)
@@ -29,10 +31,9 @@ class AY_3_8910 {
 				const evol = (~this.step ^ ((((this.etype ^ this.etype >> 1) & this.step >> 4 ^ ~this.etype >> 2) & 1) - 1)) & (~this.etype >> 3 & this.step >> 4 & 1) - 1 & 15;
 				this.channel.forEach(ch => {
 					const vol = ch.env ? evol : ch.vol;
-					data[i] += (((ch.output | ch.tone) & (this.rng | ch.noise) & 1) * 2 - 1) * (vol ? Math.pow(2, (vol - 15) / 2) : 0) / 10;
+					data[i] += (((ch.output | ch.tone) & (this.rng | ch.noise) & 1) * 2 - 1) * (vol ? Math.pow(2, (vol - 15) / 2) : 0);
 				});
-				if (typeof this.psg.que !== 'undefined')
-					this.update1();
+				this.update1();
 				for (this.cycles += this.rate; this.cycles >= audioCtx.sampleRate; this.cycles -= audioCtx.sampleRate) {
 					this.channel.forEach(ch => {
 						if (++ch.count >= ch.freq) {
@@ -52,51 +53,57 @@ class AY_3_8910 {
 			});
 		};
 		this.source = audioCtx.createBufferSource();
+		this.gainNode = audioCtx.createGain();
+		this.gainNode.gain.value = this.gain;
 		this.source.connect(this.scriptNode);
-		this.scriptNode.connect(audioCtx.destination);
+		this.scriptNode.connect(this.gainNode);
+		this.gainNode.connect(audioCtx.destination);
 		this.source.start();
 	}
 
-	output() {
-		if (typeof this.psg.que !== 'undefined') {
-			if (this.append) {
-				for (; this.que; this.que = this.que.substring(3))
-					if (this.que.charCodeAt(0) !== 0xffff)
-						this.write(this.que.charCodeAt(1), this.que.charCodeAt(2));
-			}
-			else if (this.que) {
-				this.que += String.fromCharCode(0xffff, 0, 0) + this.psg.que;
-				this.psg.que = '';
-				this.append = true;
-				return;
-			}
-			this.que = this.psg.que;
-			this.psg.que = '';
+	mute(flag) {
+		this.gainNode.gain.value = flag ? 0 : this.gain;
+	}
+
+	read(addr) {
+		return this.tmp[addr & 0x0f];
+	}
+
+	write(addr, data, timer = 0) {
+		this.tmp[addr &= 0x0f] = data;
+		if (addr >= 0x0e)
+			return;
+		if (this.tmpwheel[timer])
+			this.tmpwheel[timer].push({addr, data});
+		else
+			this.tmpwheel[timer] = [{addr, data}];
+	}
+
+	update() {
+		if (this.wheel.length >= this.resolution) {
+			this.wheel.forEach(q => q.forEach(e => this.checkwrite(e)));
 			this.count = 0;
-			this.append = false;
-			for (; this.que && this.que.charCodeAt(0) === 0; this.que = this.que.substring(3))
-				this.write(this.que.charCodeAt(1), this.que.charCodeAt(2));
 		}
+		else if (this.wheel.length) {
+			[this.wheel, this.tmpwheel] = [this.wheel.concat(this.tmpwheel), new Array(this.resolution)];
+			return;
+		}
+		[this.wheel, this.tmpwheel] = [this.tmpwheel, new Array(this.resolution)];
+		const q = this.wheel.shift();
+		q && q.forEach(e => this.checkwrite(e));
 		this.update2();
 	}
 
 	update1() {
-		let count = Math.floor((this.count += 60 * this.resolution) / audioCtx.sampleRate);
-		if (count >= this.resolution) {
-			count = 0;
-			this.count %= audioCtx.sampleRate;
-			if (this.que && this.que.charCodeAt(0) === 0xffff) {
-				this.que = this.que.substring(3);
-				this.append = false;
-			}
+		for (this.count += 60 * this.resolution; this.count >= audioCtx.sampleRate; this.count -= audioCtx.sampleRate) {
+			const q = this.wheel.shift();
+			q && q.forEach(e => this.checkwrite(e));
 		}
-		for (; this.que && this.que.charCodeAt(0) <= count; this.que = this.que.substring(3))
-			this.write(this.que.charCodeAt(1), this.que.charCodeAt(2));
 		this.update2();
 	}
 
 	update2() {
-		const reg = this.psg.reg, [ch0, ch1, ch2] = this.channel;
+		const reg = this.reg, [ch0, ch1, ch2] = this.channel;
 		ch0.freq = reg[0] | reg[1] << 8 & 0xf00;
 		ch1.freq = reg[2] | reg[3] << 8 & 0xf00;
 		ch2.freq = reg[4] | reg[5] << 8 & 0xf00;
@@ -116,10 +123,10 @@ class AY_3_8910 {
 		this.efreq = reg[11] | reg[12] << 8;
 		this.etype = reg[13];
 	}
-
-	write(addr, data) {
-		this.psg.reg[addr & 0x0f] = data & 0xff;
-		if ((addr & 0x0f) === 13)
+	
+	checkwrite({addr, data}) {
+		this.reg[addr] = data;
+		if (addr === 13)
 			this.step = 0;
 	}
 }

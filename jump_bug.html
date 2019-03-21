@@ -42,8 +42,8 @@ class JumpBug {
 
 		this.ram = new Uint8Array(0xd00);
 		this.mmo = new Uint8Array(0x100);
-		this.in = new Uint8Array([0, 0, 1]);
-		this.psg = {addr: 0, reg: new Uint8Array(0x10).fill(0xff)};
+		this.in = Uint8Array.of(0, 0, 1);
+		this.psg = {addr: 0};
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x40; i++)
@@ -51,7 +51,7 @@ class JumpBug {
 		for (let i = 0; i < 0x28; i++)
 			this.cpu.memorymap[0x80 + i].base = PRG.subarray(0x4000 + i * 0x100);
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0xb0 + i].read = (addr) => {
+			this.cpu.memorymap[0xb0 + i].read = addr => {
 				const index = [0x114, 0x118, 0x214, 0x235, 0x311].indexOf(addr & 0xfff);
 				return index < 0 ? 0xff : [0x4f, 0xd3, 0xcf, 0x02, 0xff][index];
 			};
@@ -2297,10 +2297,6 @@ AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A
 /wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/
 `), c => c.charCodeAt(0))).buffer);
 
-(function() {
-	[BOMB, SHOT].forEach(buf => buf.forEach((x, i, a) => a[i] >>= 1));
-})();
-
 /*
  *
  *	Jump Bug
@@ -2310,7 +2306,9 @@ AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A
 const filename = 'jumpbug.zip';
 let BG, RGB, PRG;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG = zip.files['jb1'].inflate() + zip.files['jb2'].inflate() + zip.files['jb3'].inflate() + zip.files['jb4'].inflate();
@@ -2319,7 +2317,7 @@ function success(zip) {
 	BG = Uint8Array.from(BG + zip.files['jbi'].inflate() + zip.files['jbk'].inflate() + zip.files['jbj'].inflate(), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['l06_prom.bin'].inflate(), c => c.charCodeAt(0));
 	game = new JumpBug();
-	sound = [new AY_3_8910(1536000, game.psg), new SoundEffect(game.se, 11025)];
+	sound = [new AY_3_8910({clock: 1536000}), new SoundEffect({se: game.se, freq: 11025, gain: 0.5})];
 	init();
 	loop();
 }

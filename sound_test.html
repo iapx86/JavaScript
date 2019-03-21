@@ -4,13 +4,74 @@
 <meta charset="UTF-8">
 <title>Sound Test</title>
 <link href="style.css" rel="stylesheet" type="text/css">
+<style>
+img.keyboard {
+	visibility: hidden;
+}
+</style>
 </head>
 <body>
 <canvas id="canvas" width="224" height="256"></canvas>
+<img id="key0" class="keyboard" alt="keyboard" src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
+KklEQVR42mP4DwYMMIDGhnDxq8FUzzBq6KihQ8dQZM2Us0cNHSqG0gIAAEnPoHxqpiCGAAAAAElF
+TkSuQmCC">
+<img id="key1" class="keyboard" alt="keyboard" src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
+M0lEQVR42mNg+M8AQjDw//9/ZDaEC2dgVYOpnmHU0FFDh5Ch/xGiyAaRxx41dMgYSgMAAPpbWMTb
+VZlAAAAAAElFTkSuQmCC">
+<img id="key2" class="keyboard" alt="keyboard" src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
+L0lEQVR42mP4DwYM/xkgCMSGAagUEgMujosN5Y4aOmro0DEUWTPl7FFDh4qhtAAAUJq7YdAoYr4A
+AAAASUVORK5CYII=">
+<img id="key3" class="keyboard" alt="keyboard" src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
+LUlEQVR42mP4DwYMcIDMhEmhqcHDhnJHDR01dOgYCuPAEKo4qexRQ4eKobQAANCVarLKx68YAAAA
+AElFTkSuQmCC">
+<img id="key4" class="keyboard" alt="keyboard" src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
+LUlEQVR42mP4DwYMMABiA3lgBJfCogYHG8odNXTU0KFjKLJmytmjhg4VQ2kBAA3Pu2EG/1t3AAAA
+AElFTkSuQmCC">
+<img id="key5" class="keyboard" alt="keyboard" src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
+NElEQVR42mP4DwYMMIDMZvgPRmBBXGrQ2FDuqKGjhg4dQyEcZDbURLxqcOsdNXRoGEoLAAAfp1jE
+6RqXRwAAAABJRU5ErkJggg==">
+<img id="key6" class="keyboard" alt="keyboard" src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
+L0lEQVR42mP4DwYMMIDGhnL/gxEONdjUjxo6auiQMRTCwcWGGkqC+lFDh4ahtAAAEOBYxALGuWYA
+AAAASUVORK5CYII=">
+<img id="key7" class="keyboard" alt="keyboard" src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
+LElEQVR42mP4DwYMMIDGhnChDCATjAiqZxg1dNTQoWMosmbK2aOGDhVDaQEAiCq7YfD5Bh4AAAAA
+SUVORK5CYII=">
+<img id="key8" class="keyboard" alt="keyboard" src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
+NElEQVR42mP4DwYMMIDGhnDR1DAgM7GpZxg1dNTQoWMosmb8bJCJ/6Hm4lYzaujQMJQWAABhdWqy
+lhhweQAAAABJRU5ErkJggg==">
+<img id="key9" class="keyboard" alt="keyboard" src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
+LUlEQVR42mP4DwYMMIDGhnCxqAHywAireoZRQ0cNHTqGImumnD1q6FAxlBYAAEVfu2G9TnMkAAAA
+AElFTkSuQmCC">
+<img id="key10" class="keyboard" alt="keyboard" src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
+M0lEQVR42mP4DwYMMIDGhnDxqGFAZsKVjRo6aujQMRRZM/FskIn/oeaiio8aOjQMpQUAAOcLarIZ
+FtLMAAAAAElFTkSuQmCC">
+<img id="key11" class="keyboard" alt="keyboard" src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
+LUlEQVR42mP4DwYMMIDGhnDxq2EA8sAIoWzU0FFDh46hyJopZ48aOlQMpQUAAAKUu2FemwSDAAAA
+AElFTkSuQmCC">
+<img id="key12" class="keyboard" alt="keyboard" src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
+L0lEQVR42mP4DwYMMIDGhnDxq2FAcMCIoIZRQ0cNHUyGImsmjw01cdTQIWUoLQAAkupYxJUtALIA
+AAAASUVORK5CYII=">
+<img id="key13" class="keyboard" alt="keyboard" src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
+K0lEQVR42mM4AAYNMIDGhnDxq8FUzzBq6KihQ8dQZM2Us0cNHSqGNtAAAADZbUjutEi02gAAAABJ
+RU5ErkJggg==">
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
 <script src="mc6809.js"></script>
-<script src="mappy_sound.js"></script>
+<script src="mappy_sound_w.js"></script>
 <script src="main.js"></script>
 <script>
 /*
@@ -33,19 +94,17 @@ class SoundTest {
 		// CPU周りの初期化
 		this.fInterruptEnable = false;
 
-		this.ram = new Uint8Array(0x400);
-
 		this.cpu = new MC6809(this);
 
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[i].base = this.ram.subarray(i * 0x100);
-			this.cpu.memorymap[i].write = null;
+			this.cpu.memorymap[i].read = addr => sound.read(addr);
+			this.cpu.memorymap[i].write = (addr, data) => sound.write(addr, data);
 		}
 		this.cpu.memorymap[0x40].write = () => this.fInterruptEnable = true;
 		this.cpu.memorymap[0x60].write = () => this.fInterruptEnable = false;
 		for (let i = 0; i < 0x20; i++)
 			this.cpu.memorymap[0xe0 + i].base = PRG2.subarray(i * 0x100);
-    }
+	}
 
 	execute() {
 		if (this.fInterruptEnable)
@@ -109,8 +168,9 @@ class SoundTest {
 	triggerA(fDown = false) {
 		if (fDown)
 			return;
-        this.ram.fill(0, 0x40, 0x80);
-        this.ram[0x40 + this.nSound] = 1;
+		for (let addr = 0x40; addr < 0x80; addr ++)
+			sound.write(addr, 0);
+		sound.write(0x40 + this.nSound, 1);
 		return this;
 	}
 
@@ -127,10 +187,13 @@ class SoundTest {
 			for (let j = 0; j < 8; j++)
 				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[13]);
 
+		const reg = [];
+		for (let addr = 0; addr < 0x40; addr++)
+			reg[addr] = sound.read(addr);
+
 		for (let i = 0; i < 8; i++) {
-			const base = this.ram;
-			const freq = base[4 + i * 8] | base[5 + i * 8] << 8 | base[6 + i * 8] << 16 & 0xf0000;
-			const vol =  base[3 + i * 8] & 0x0f;
+			const freq = reg[4 + i * 8] | reg[5 + i * 8] << 8 | reg[6 + i * 8] << 16 & 0xf0000;
+			const vol =  reg[3 + i * 8] & 0x0f;
 			const pitch = Math.floor(Math.log2(freq * 48000 / (1 << 21) / 440) * 12 + 45.5);
 			if (vol === 0 || pitch < 0 || pitch >= 12 * 8)
 				continue;
@@ -142,7 +205,7 @@ class SoundTest {
 		for (let i = 0; i < 16; i++)
 			for (let j = 0; j < 28; j++)
 				data[dst + 256 * i + j] = src[28 * i + j];
-    }
+	}
 }
 
 /*
@@ -151,121 +214,25 @@ class SoundTest {
  *
  */
 
-const KEY0 = `data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
-KklEQVR42mP4DwYMMIDGhnDxq8FUzzBq6KihQ8dQZM2Us0cNHSqG0gIAAEnPoHxqpiCGAAAAAElF
-TkSuQmCC
-`;
-
-const KEY1 = `data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
-M0lEQVR42mNg+M8AQjDw//9/ZDaEC2dgVYOpnmHU0FFDh5Ch/xGiyAaRxx41dMgYSgMAAPpbWMTb
-VZlAAAAAAElFTkSuQmCC
-`;
-
-const KEY2 = `data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
-L0lEQVR42mP4DwYM/xkgCMSGAagUEgMujosN5Y4aOmro0DEUWTPl7FFDh4qhtAAAUJq7YdAoYr4A
-AAAASUVORK5CYII=
-`;
-
-const KEY3 = `data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
-LUlEQVR42mP4DwYMcIDMhEmhqcHDhnJHDR01dOgYCuPAEKo4qexRQ4eKobQAANCVarLKx68YAAAA
-AElFTkSuQmCC
-`;
-
-const KEY4 = `data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
-LUlEQVR42mP4DwYMMABiA3lgBJfCogYHG8odNXTU0KFjKLJmytmjhg4VQ2kBAA3Pu2EG/1t3AAAA
-AElFTkSuQmCC
-`;
-
-const KEY5 = `data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
-NElEQVR42mP4DwYMMIDMZvgPRmBBXGrQ2FDuqKGjhg4dQyEcZDbURLxqcOsdNXRoGEoLAAAfp1jE
-6RqXRwAAAABJRU5ErkJggg==
-`;
-
-const KEY6 = `data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
-L0lEQVR42mP4DwYMMIDGhnL/gxEONdjUjxo6auiQMRTCwcWGGkqC+lFDh4ahtAAAEOBYxALGuWYA
-AAAASUVORK5CYII=
-`;
-
-const KEY7 = `data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
-LElEQVR42mP4DwYMMIDGhnChDCATjAiqZxg1dNTQoWMosmbK2aOGDhVDaQEAiCq7YfD5Bh4AAAAA
-SUVORK5CYII=
-`;
-
-const KEY8 = `data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
-NElEQVR42mP4DwYMMIDGhnDR1DAgM7GpZxg1dNTQoWMosmb8bJCJ/6Hm4lYzaujQMJQWAABhdWqy
-lhhweQAAAABJRU5ErkJggg==
-`;
-
-const KEY9 = `data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
-LUlEQVR42mP4DwYMMIDGhnCxqAHywAireoZRQ0cNHTqGImumnD1q6FAxlBYAAEVfu2G9TnMkAAAA
-AElFTkSuQmCC
-`;
-
-const KEY10 = `data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
-M0lEQVR42mP4DwYMMIDGhnDxqGFAZsKVjRo6aujQMRRZM/FskIn/oeaiio8aOjQMpQUAAOcLarIZ
-FtLMAAAAAElFTkSuQmCC
-`;
-
-const KEY11 = `data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
-LUlEQVR42mP4DwYMMIDGhnDxq2EA8sAIoWzU0FFDh46hyJopZ48aOlQMpQUAAAKUu2FemwSDAAAA
-AElFTkSuQmCC
-`;
-
-const KEY12 = `data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
-L0lEQVR42mP4DwYMMIDGhnDxq2FAcMCIoIZRQ0cNHUyGImsmjw01cdTQIWUoLQAAkupYxJUtALIA
-AAAASUVORK5CYII=
-`;
-
-const KEY13 = `data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAABwAAAAQCAIAAACKrYi4AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
-K0lEQVR42mM4AAYNMIDGhnDxq8FUzzBq6KihQ8dQZM2Us0cNHSqGNtAAAADZbUjutEi02gAAAABJ
-RU5ErkJggg==
-`;
-
-const key = [];
-
-(function () {
-	const canvas = Object.assign(document.createElement('canvas'), {width: 28, height: 16 * 14});
-	const images = [];
-	Promise.all([KEY0, KEY1, KEY2, KEY3, KEY4, KEY5, KEY6, KEY7, KEY8, KEY9, KEY10, KEY11, KEY12, KEY13].map(src => {
-		return new Promise(resolve => images.push(Object.assign(new Image(28, 16), {src: src, onload: resolve})));
-	})).then(() => {
-		images.forEach((image, i) => {
-			canvas.getContext('2d').drawImage(image, 0, 16 * i);
-			key.push(new Uint32Array(canvas.getContext('2d').getImageData(0, 16 * i, 28, 16).data.buffer));
-		});
-	});
-})();
-
-/*
- *
- *	Sound Test
- *
- */
-
 const filename = 'liblrabl.zip';
+const key = [];
 let SND, PRG2;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	const canvas = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
+	const img = document.getElementsByTagName('img');
+	for (let i = 0; i < 14; i++) {
+		canvas.getContext('2d').drawImage(img['key' + i], 0, 0);
+		key.push(new Uint32Array(canvas.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
+	}
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG2 = Uint8Array.from(zip.files['2c.rom'].inflate(), c => c.charCodeAt(0));
 	SND = Uint8Array.from(zip.files['lr1-4.3d'].inflate(), c => c.charCodeAt(0));
 	game = new SoundTest();
-	sound = new MappySound(SND, game.ram);
+	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.triggerA().right());
 	init();
 	loop();

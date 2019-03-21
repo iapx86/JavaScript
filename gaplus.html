@@ -62,8 +62,8 @@ class Gaplus {
 			this.cpu[0].memorymap[0x08 + i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
-			this.cpu[0].memorymap[0x60 + i].base = this.ram.subarray(0x2000 + i * 0x100);
-			this.cpu[0].memorymap[0x60 + i].write = null;
+			this.cpu[0].memorymap[0x60 + i].read = addr => sound[0].read(addr);
+			this.cpu[0].memorymap[0x60 + i].write = (addr, data) => sound[0].write(addr, data);
 		}
 		this.cpu[0].memorymap[0x68].base = this.ram.subarray(0x2400);
 		this.cpu[0].memorymap[0x68].write = (addr, data) => {
@@ -92,7 +92,7 @@ class Gaplus {
 			this.cpu[1].memorymap[0x08 + i].base = this.ram.subarray(0x800 + i * 0x100);
 			this.cpu[1].memorymap[0x08 + i].write = null;
 		}
-		this.cpu[1].memorymap[0x60].write = (addr) => {
+		this.cpu[1].memorymap[0x60].write = addr => {
 			switch (addr & 0xff) {
 			case 0x01: // INTERRUPT START
 				this.fInterruptEnable1 = true;
@@ -108,8 +108,8 @@ class Gaplus {
 		for (let i = 0; i < 0x60; i++)
 			this.cpu[1].memorymap[0xa0 + i].base = PRG2.subarray(i * 0x100);
 		for (let i = 0; i < 4; i++) {
-			this.cpu[2].memorymap[i].base = this.ram.subarray(0x2000 + i * 0x100);
-			this.cpu[2].memorymap[i].write = null;
+			this.cpu[2].memorymap[i].read = addr => sound[0].read(addr);
+			this.cpu[2].memorymap[i].write = (addr, data) => sound[0].write(addr, data);
 		}
 		this.cpu[2].memorymap[0x40].write = () => this.fInterruptEnable2 = true;
 		this.cpu[2].memorymap[0x60].write = () => this.fInterruptEnable2 = false;
@@ -1737,10 +1737,6 @@ ACAAKgA7AEUAQABBAEMAMQAxAE0AUABGAEIALwArADkAJwAxAEMASwAtADAAOwA1AFQASQA7AD8A
 OQA3ADcA
 `), c => c.charCodeAt(0))).buffer);
 
-(function () {
-	BANG.forEach((x, i, a) => a[i] = x * 3 >> 2);
-})();
-
 /*
  *
  *	Gaplus
@@ -1750,7 +1746,9 @@ OQA3ADcA
 const filename = 'gaplus.zip';
 let SND, BGCOLOR, OBJCOLOR_H, OBJCOLOR_L, RED, BLUE, GREEN, BG, OBJ4, OBJ8, PRG1, PRG2, PRG3;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG1 = Uint8Array.from(zip.files['gp2-4.8d'].inflate() + zip.files['gp2-3b.8c'].inflate() + zip.files['gp2-2b.8b'].inflate(), c => c.charCodeAt(0));
@@ -1767,7 +1765,7 @@ function success(zip) {
 	OBJCOLOR_H = Uint8Array.from(zip.files['gp2-5.6n'].inflate(), c => c.charCodeAt(0));
 	SND = Uint8Array.from(zip.files['gp2-4.3f'].inflate(), c => c.charCodeAt(0));
 	game = new Gaplus();
-	sound = [new MappySound(SND, game.ram.subarray(0x2000)), new SoundEffect(game.se, 11025)];
+	sound = [new MappySound({SND}), new SoundEffect({se: game.se, freq: 11025, gain: 0.75})];
 	init();
 	loop();
 }

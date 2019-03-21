@@ -36,14 +36,8 @@ class Galaga {
 		this.fStart2P = false;
 		this.dwCoin = 0;
 		this.dwStick = 0;
-		this.abStick = new Uint8Array([
-			0xff, 0xff, 0xfd, 0xff, 0xff, 0xff, 0xfd, 0xfd,
-			0xf7, 0xf7, 0xff, 0xff, 0xff, 0xf7, 0xff, 0xff
-		]);
-		this.abStick2 = new Uint8Array([
-			~0, ~1, ~2, ~1, ~4, ~0, ~2, ~2,
-			~8, ~8, ~0, ~1, ~4, ~8, ~4, ~0
-		]);
+		this.abStick = Uint8Array.of(0xff, 0xff, 0xfd, 0xff, 0xff, 0xff, 0xfd, 0xfd, 0xf7, 0xf7, 0xff, 0xff, 0xff, 0xf7, 0xff, 0xff);
+		this.abStick2 = Uint8Array.of(~0, ~1, ~2, ~1, ~4, ~0, ~2, ~2, ~8, ~8, ~0, ~1, ~4, ~8, ~4, ~0);
 		this.dwButton = 0;
 		this.nMyShip = 3;
 		this.nRank = 'NORMAL';
@@ -60,7 +54,6 @@ class Galaga {
 		this.ram = new Uint8Array(0x2000);
 		this.mmi = new Uint8Array(0x100).fill(0xff);
 		this.mmo = new Uint8Array(0x100);
-		this.sound = {que: '', reg: new Uint8Array(0x20)};
 		this.count = 0;
 		this.keyport = new Uint8Array(0x100);
 		this.dmaport = new Uint8Array(0x100).fill(0x10);
@@ -183,8 +176,7 @@ class Galaga {
 			switch (addr & 0xf0) {
 			case 0x00:
 			case 0x10:
-				game.mmo[addr & 0xff] = data & 0x0f;
-				game.sound.que += String.fromCharCode(game.count, addr & 0x1f, data & 0x0f);
+				sound[0].write(addr, data, game.count);
 				break;
 			case 0x20:
 				break;
@@ -254,6 +246,7 @@ class Galaga {
 	}
 
 	execute() {
+		sound[0].mute(!this.fSoundEnable);
 		if (this.fInterruptEnable0)
 			this.cpu[0].interrupt();
 		if (this.fInterruptEnable1)
@@ -2085,10 +2078,6 @@ ArIBGwGJAOr/YP/n/oj+P/4P/gv+Iv5G/nn+t/79/k3/n//b/xkAQABlAG0AbABtAFEALQAKAOz/
 wv+1/4f/dP9u/0z/UP9M/1L/Zf8=
 `), c => c.charCodeAt(0))).buffer);
 
-(function () {
-	BOMB.forEach((x, i, a) => a[i] >>= 1);
-})();
-
 /*
  *
  *	Galaga
@@ -2098,7 +2087,9 @@ wv+1/4f/dP9u/0z/UP9M/1L/Zf8=
 const filename = 'galaga.zip';
 let BG, OBJ, BGCOLOR, OBJCOLOR, RGB, SND, PRG1, PRG2, PRG3;
 
-$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+window.addEventListener('load', () => {
+	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+});
 
 function success(zip) {
 	PRG1 = Uint8Array.from(zip.files['gg1_1b.3p'].inflate() + zip.files['gg1_2b.3m'].inflate() + zip.files['gg1_3.2m'].inflate() + zip.files['gg1_4b.2l'].inflate(), c => c.charCodeAt(0));
@@ -2111,7 +2102,7 @@ function success(zip) {
 	OBJCOLOR = Uint8Array.from(zip.files['prom-3.1c'].inflate(), c => c.charCodeAt(0));
 	SND = Uint8Array.from(zip.files['prom-1.1d'].inflate(), c => c.charCodeAt(0));
 	game = new Galaga();
-	sound = [new PacManSound(SND, game.sound, 2), new SoundEffect(game.se, 11025)];
+	sound = [new PacManSound({SND, resolution: 2}), new SoundEffect({se: game.se, freq: 11025, gain: 0.5})];
 	init();
 	loop();
 }

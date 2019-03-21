@@ -133,9 +133,9 @@ function init() {
 function loop() {
 	if (typeof sound !== 'undefined')
 		if (Array.isArray(sound))
-			sound.forEach(s => s.output(game));
+			sound.forEach(s => s.update(game));
 		else
-			sound.output(game);
+			sound.update(game);
 	ctx.putImageData(imageData, -game.xOffset, -game.yOffset);
 	updateGamepad(game);
 	game.updateStatus().updateInput().execute().makeBitmap(data);
