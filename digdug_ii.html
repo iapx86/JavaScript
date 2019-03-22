@@ -611,11 +611,11 @@ class DigDugII {
  *
  */
 
-const filename = 'digdug2.zip';
+const url = 'digdug2.zip';
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

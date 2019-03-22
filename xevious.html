@@ -2641,11 +2641,11 @@ AAIAAAAAAAAAAQABAAEAAQABAAEAAAAAAAAA//////7//v/+//7//f/9//3//f/8//v/+//7//v/
  *
  */
 
-const filename = 'xevious.zip';
+const url = 'xevious.zip';
 let BG2, BG4, OBJ4, OBJ8, BGCOLOR_H, BGCOLOR_L, OBJCOLOR_H, OBJCOLOR_L, RED, GREEN, BLUE, SND, PRG1, PRG2, PRG3, MAPTBL, MAPDATA;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

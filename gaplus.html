@@ -1743,11 +1743,11 @@ OQA3ADcA
  *
  */
 
-const filename = 'gaplus.zip';
+const url = 'gaplus.zip';
 let SND, BGCOLOR, OBJCOLOR_H, OBJCOLOR_L, RED, BLUE, GREEN, BG, OBJ4, OBJ8, PRG1, PRG2, PRG3;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

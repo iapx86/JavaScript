@@ -261,11 +261,11 @@ class SpaceInvaders {
  *
  */
 
-const filename = 'sicv.zip';
+const url = 'sicv.zip';
 let PRG, MAP;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

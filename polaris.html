@@ -256,11 +256,11 @@ class Polaris {
  *
  */
 
-const filename = 'polaris.zip';
+const url = 'polaris.zip';
 let PRG1, PRG2, MAP, OBJ;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

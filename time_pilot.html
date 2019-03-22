@@ -728,11 +728,11 @@ class TimePilot {
  *
  */
 
-const filename = 'timeplt.zip';
+const url = 'timeplt.zip';
 let PRG1, PRG2, BG, OBJ, RGB_H, RGB_L, OBJCOLOR, BGCOLOR;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

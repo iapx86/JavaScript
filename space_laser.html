@@ -236,11 +236,11 @@ class SpaceLaser {
  *
  */
 
-const filename = 'spclaser.zip';
+const url = 'spclaser.zip';
 let PRG;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

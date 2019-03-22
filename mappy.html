@@ -680,17 +680,17 @@ class Mappy {
  *
  */
 
-const filename1 = 'mappyj.zip';
-const filename2 = 'mappy.zip';
+const url1 = 'mappyj.zip';
+const url2 = 'mappy.zip';
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename1, success: success1, error: () => alert(filename1 + ': failed to get')});
+	$.ajax({url: url1, success: success1, error: () => alert(url1 + ': failed to get')});
 });
 
 function success1(zip) {
 	PRG1 = new Uint8Array(Array.from(zip.files['mp1_3.1d'].inflate() + '\xff'.repeat(0x2000) + zip.files['mp1_1.1b'].inflate(), c => c.charCodeAt(0)));
-	$.ajax({url: filename2, success: success2, error: () => alert(filename2 + ': failed to get')});
+	$.ajax({url: url2, success: success2, error: () => alert(url2 + ': failed to get')});
 }
 
 function success2(zip) {

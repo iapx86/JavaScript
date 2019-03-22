@@ -2084,11 +2084,11 @@ wv+1/4f/dP9u/0z/UP9M/1L/Zf8=
  *
  */
 
-const filename = 'galaga.zip';
+const url = 'galaga.zip';
 let BG, OBJ, BGCOLOR, OBJCOLOR, RGB, SND, PRG1, PRG2, PRG3;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

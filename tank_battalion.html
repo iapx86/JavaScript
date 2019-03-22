@@ -5077,11 +5077,11 @@ TP9L/zz/Nv9N/zr/Lv8q/xX/Gf8H//f+5/7j/u3+7/7w/vv+/P4C/xL/MP8=
  *
  */
 
-const filename = 'tankbatt.zip';
+const url = 'tankbatt.zip';
 let PRG, BG, RGB;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

@@ -835,11 +835,11 @@ class Phozon {
  *
  */
 
-const filename = 'phozon.zip';
+const url = 'phozon.zip';
 let PRG1, PRG2, PRG3, RGB, SND, BG, BGCOLOR, OBJ, OBJCOLOR;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

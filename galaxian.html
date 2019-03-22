@@ -4023,11 +4023,11 @@ Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkAtf+4/vP9AP4=
  *
  */
 
-const filename = 'galaxian.zip';
+const url = 'galaxian.zip';
 let BG, RGB, PRG;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

@@ -89,12 +89,12 @@ class Scramble {
 			this.cpu.memorymap[0x80 + i].write = (addr, data) => {
 				if ((addr & 0x0200) !== 0)
 					switch (addr & 3) {
-                    case 0:
-                        this.command.push(data);
-                        break;
-                    case 1:
+					case 0:
+						this.command.push(data);
+						break;
+					case 1:
 						this.fSoundEnable = (data & 0x10) === 0;
-                        break;
+						break;
 					case 2:
 						this.state = this.state << 4 & 0xff0 | data & 0x0f;
 						const index = [0xf09, 0xa49, 0x319, 0x5c9].indexOf(this.state);
@@ -558,11 +558,11 @@ class Scramble {
  *
  */
 
-const filename = 'scramble.zip';
+const url = 'scramble.zip';
 let BG, RGB, PRG1, PRG2;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

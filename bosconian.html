@@ -5550,11 +5550,11 @@ Q/9B/zD/Pv8K/xv/Kv8i/xb/qf77/iL/R/9Y/7P/6f+Y/5n/vf+5/4n/hf+u/7X/yf+z/7P/wf+6
  *
  */
 
-const filename = 'bosco.zip';
+const url = 'bosco.zip';
 let PRG1, PRG2, PRG3, RGB, SND, BGCOLOR, BG, OBJ;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

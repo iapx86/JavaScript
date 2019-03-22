@@ -530,19 +530,19 @@ class KorosukeRoller {
  *
  */
 
-const filename1 = 'korosuke.zip';
-const filename2 = 'crush.zip';
+const url1 = 'korosuke.zip';
+const url2 = 'crush.zip';
 let BG, COLOR, OBJ, RGB, PRG, SND;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename1, success: success1, error: () => alert(filename1 + ': failed to get')});
+	$.ajax({url: url1, success: success1, error: () => alert(url1 + ': failed to get')});
 });
 
 function success1(zip) {
 	PRG = Uint8Array.from(zip.files['kr.6e'].inflate() + zip.files['kr.6f'].inflate() + zip.files['kr.6h'].inflate() + zip.files['kr.6j'].inflate(), c => c.charCodeAt(0));
 	BG = Uint8Array.from(zip.files['kr.5e'].inflate(), c => c.charCodeAt(0));
 	OBJ = Uint8Array.from(zip.files['kr.5f'].inflate(), c => c.charCodeAt(0));
-	$.ajax({url: filename2, success: success2, error: () => alert(filename2 + ': failed to get')});
+	$.ajax({url: url2, success: success2, error: () => alert(url2 + ': failed to get')});
 }
 
 function success2(zip) {

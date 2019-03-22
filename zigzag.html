@@ -496,11 +496,11 @@ class ZigZag {
  *
  */
 
-const filename = 'zigzagb.zip';
+const url = 'zigzagb.zip';
 let BG, OBJ, RGB, PRG;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

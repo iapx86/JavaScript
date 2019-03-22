@@ -265,11 +265,11 @@ class LunarRescue {
  *
  */
 
-const filename = 'lrescue.zip';
+const url = 'lrescue.zip';
 let PRG1, PRG2, MAP;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

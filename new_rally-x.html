@@ -1596,11 +1596,11 @@ l/+b/6j/qv+l/5z/oP+w/77/z//f//3/9f///w==
  *
  */
 
-const filename = 'nrallyx.zip';
+const url = 'nrallyx.zip';
 let SND, BGOBJ, COLOR, RGB, PRG;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

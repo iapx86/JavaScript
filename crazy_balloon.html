@@ -360,11 +360,11 @@ class CrazyBalloon {
  *
  */
 
-const filename = 'crbaloon.zip';
+const url = 'crbaloon.zip';
 let PRG, BG, OBJ;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

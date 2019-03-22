@@ -385,7 +385,7 @@ class WarpAndWarp {
  */
 
 class WarpAndWarpSound {
-	constructor({gain = 0.1}) {
+	constructor({gain = 0.1} = {}) {
 		this.audioBuffer = [];
 		for (let i = 0; i < 8; i++) {
 			this.audioBuffer[i] = audioCtx.createBuffer(1, 32 * (8 - i), 44100);
@@ -5419,18 +5419,18 @@ CAANAAsABgALAAcAAQAJABAACQAPABkA9/8ZAC0AGAASABkAFAAJAAMABwAJAAAA9v8KAAkA+P/8
  *
  */
 
-const filename = 'warpwarp.zip';
+const url = 'warpwarp.zip';
 let PRG, BG;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {
 	PRG = Uint8Array.from(zip.files['ww1_prg1.s10'].inflate() + zip.files['ww1_prg2.s8'].inflate() + zip.files['ww1_prg3.s4'].inflate(), c => c.charCodeAt(0));
 	BG = Uint8Array.from(zip.files['ww1_chg1.s12'].inflate(), c => c.charCodeAt(0));
 	game = new WarpAndWarp();
-	sound = [new WarpAndWarpSound({}), new SoundEffect({se: game.se, freq: 22050})];
+	sound = [new WarpAndWarpSound(), new SoundEffect({se: game.se, freq: 22050})];
 	init();
 	loop();
 }

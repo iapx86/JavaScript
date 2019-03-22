@@ -266,11 +266,11 @@ class GalaxyWars {
  *
  */
 
-const filename = 'galxwars.zip';
+const url = 'galxwars.zip';
 let PRG1, PRG2;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

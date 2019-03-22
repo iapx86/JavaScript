@@ -526,11 +526,11 @@ class CrushRoller {
  *
  */
 
-const filename = 'crush.zip';
+const url = 'crush.zip';
 let BG, COLOR, OBJ, RGB, PRG, SND;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

@@ -71,7 +71,7 @@ RU5ErkJggg==">
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
 <script src="mc6809.js"></script>
-<script src="mappy_sound_w.js"></script>
+<script src="mappy_sound.js"></script>
 <script src="main.js"></script>
 <script>
 /*
@@ -214,7 +214,7 @@ class SoundTest {
  *
  */
 
-const filename = 'liblrabl.zip';
+const url = 'liblrabl.zip';
 const key = [];
 let SND, PRG2;
 
@@ -225,7 +225,7 @@ window.addEventListener('load', () => {
 		canvas.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(canvas.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

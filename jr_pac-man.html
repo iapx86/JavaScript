@@ -566,11 +566,11 @@ class JrPacMan {
  *
  */
 
-const filename = 'jrpacman.zip';
+const url = 'jrpacman.zip';
 let BG, COLOR, OBJ, RGB_L, RGB_H, PRG, SND;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

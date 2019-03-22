@@ -467,11 +467,11 @@ class Frogger {
  *
  */
 
-const filename = 'frogger.zip';
+const url = 'frogger.zip';
 let BG, RGB, PRG1, PRG2;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename, success: success, error: () => alert(filename + ': failed to get')});
+	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });
 
 function success(zip) {

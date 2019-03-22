@@ -2562,20 +2562,20 @@ Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkAtf+4/vP9AP4=
  *
  */
 
-const filename1 = 'kingballj.zip';
-const filename2 = 'kingball.zip';
+const url1 = 'kingballj.zip';
+const url2 = 'kingball.zip';
 const HELP = new Int16Array((0x700 * 2 + 0x1200) * 11025 / 5000 | 0);
 const THANKYOU = new Int16Array(0x800 * 2 * 11025 / 5000 | 0);
 const BYEBYE = new Int16Array(0x800 * 2 * 11025 / 5000 | 0);
 let BG, RGB, PRG, VOICE;
 
 window.addEventListener('load', () => {
-	$.ajax({url: filename1, success: success1, error: () => alert(filename1 + ': failed to get')});
+	$.ajax({url: url1, success: success1, error: () => alert(url1 + ': failed to get')});
 });
 
 function success1(zip) {
 	VOICE = Uint8Array.from(zip.files['kbj1.ic4'].inflate() + zip.files['kbj2.ic5'].inflate() + zip.files['kbj3.ic6'].inflate(), c => c.charCodeAt(0));
-	$.ajax({url: filename2, success: success2, error: () => alert(filename2 + ': failed to get')});
+	$.ajax({url: url2, success: success2, error: () => alert(url2 + ': failed to get')});
 }
 
 function success2(zip) {
