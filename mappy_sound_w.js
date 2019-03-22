@@ -8,57 +8,75 @@ const mappySound = `
 registerProcessor('MappySound', class extends AudioWorkletProcessor {
 	constructor (options) {
 		super(options);
-		this.snd = new Float32Array(0x100);
-		this.phase = new Uint32Array(8);
-		this.port.onmessage = e => {
-			if (e.data.SND)
-				e.data.SND.forEach((v, i) => this.snd[i] = (v & 0x0f) * 2 / 15 - 1);
-			if (e.data.rate)
-				this.rate = e.data.rate;
-			if (e.data.channel)
-				this.channel = e.data.channel;
+		this.reg = new Uint8Array(0x40);
+		this.channel = [];
+		for (let i = 0; i < 8; i++)
+			this.channel.push({voice: 0, freq: 0, vol: 0, phase: 0});
+		this.port.onmessage = ({data: {SND, sampleRate, wheel}}) => {
+			if (SND)
+				this.snd = Float32Array.from(SND, v => (v & 0x0f) * 2 / 15 - 1);
+			if (sampleRate) {
+				this.sampleRate = sampleRate;
+				this.rate = Math.floor(2048 * 48000 / sampleRate);
+			}
+			if (wheel) {
+				const reg = this.reg;
+				wheel.forEach(({addr, data}) => reg[addr] = data);
+				for (let i = 0; i < 8; i++) {
+					const ch = this.channel[i];
+					ch.voice = reg[6 + i * 8] >> 4 & 7;
+					ch.freq = reg[4 + i * 8] | reg[5 + i * 8] << 8 | reg[6 + i * 8] << 16 & 0xf0000;
+					ch.vol = reg[3 + i * 8] & 0x0f;
+				}
+			}
 		};
 		this.port.start();
 	}
 	process (inputs, outputs) {
-		outputs[0][0].forEach((v, i, data) => {
-			data[i] = 0;
-			this.channel.forEach((ch, j) => {
-				data[i] += this.snd[ch.voice << 5 | this.phase[j] >>> 27] * ch.vol / (15 * 10);
-				this.phase[j] += ch.freq * this.rate;
-			});
+		outputs[0][0].fill(0).forEach((v, i, data) => {
+			this.channel.forEach(ch => data[i] += this.snd[ch.voice << 5 | ch.phase >>> 27] * ch.vol / 15);
+			this.channel.forEach(ch => ch.phase += ch.freq * this.rate);
 		});
 		return true;
 	}
 });
 `;
 
+const MappySoundPromise = audioCtx.audioWorklet.addModule('data:text/javascript,' + mappySound);
+
 class MappySound {
-	constructor(SND, base) {
-		this.rate = Math.floor(2048 * 48000 / audioCtx.sampleRate);
-		this.base = base;
-		this.channel = [];
-		for (let i = 0; i < 8; i++)
-			this.channel.push({voice: 0, freq: 0, vol: 0});
-		audioCtx.audioWorklet.addModule('data:text/javascript,' + encodeURI(mappySound)).then(() => {
+	constructor({SND, gain = 0.1}) {
+		this.reg = new Uint8Array(0x400);
+		this.gain = gain;
+		this.wheel = [];
+		this.source = audioCtx.createBufferSource();
+		this.gainNode = audioCtx.createGain();
+		this.gainNode.gain.value = this.gain;
+		MappySoundPromise.then(() => {
 			this.worklet = new AudioWorkletNode(audioCtx, 'MappySound');
 			this.worklet.port.start();
-			this.worklet.port.postMessage({SND: SND, rate: this.rate, channel: this.channel});
-			this.source = audioCtx.createBufferSource();
-			this.source.connect(this.worklet);
-			this.worklet.connect(audioCtx.destination);
+			this.worklet.port.postMessage({SND, sampleRate: audioCtx.sampleRate});
+			this.source.connect(this.worklet).connect(this.gainNode).connect(audioCtx.destination);
 			this.source.start();
 		});
 	}
 
-	output() {
-		this.channel.forEach((ch, i) => {
-			ch.voice = this.base[6 + i * 8] >>> 4 & 7;
-			ch.freq = this.base[4 + i * 8] | this.base[5 + i * 8] << 8 | this.base[6 + i * 8] << 16 & 0xf0000;
-			ch.vol = this.base[3 + i * 8] & 0x0f;
-		});
-		if (this.worklet)
-			this.worklet.port.postMessage({channel: this.channel});
+	mute(flag) {
+		this.gainNode.gain.value = flag ? 0 : this.gain;
+	}
+
+	read(addr) {
+		return this.reg[addr & 0x3ff];
+	}
+
+	write(addr, data) {
+		this.reg[addr &= 0x3ff] = data;
+		addr < 0x40 && this.wheel.push({addr, data});
+	}
+
+	update() {
+		this.worklet && this.worklet.port.postMessage({wheel: this.wheel});
+		this.wheel = [];
 	}
 }
 
