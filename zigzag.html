@@ -509,7 +509,7 @@ function success(zip) {
 	OBJ = Uint8Array.from(Array.from(zip.files['zz_6.1h'].inflate().substring(0x800) + zip.files['zz_5.1k'].inflate().substring(0x800), c => c.charCodeAt(0)));
 	RGB = Uint8Array.from(zip.files['zzbpr_e9.bin'].inflate(), c => c.charCodeAt(0));
 	game = new ZigZag();
-	sound = new AY_3_8910({clock: 3072000});
+	sound = new AY_3_8910({clock: 1843200});
 	init();
 	loop();
 }
