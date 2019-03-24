@@ -10,17 +10,18 @@ class MappySound {
 		this.snd = Float32Array.from(SND, e => (e & 0x0f) * 2 / 15 - 1);
 		this.rate = Math.floor(2048 * 48000 / audioCtx.sampleRate);
 		this.gain = gain;
-		this.channel = [];
-		for (let i = 0; i < 8; i++)
-			this.channel.push({voice: 0, freq: 0, vol: 0, phase: 0});
+		this.phase = new Uint32Array(8);
 		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = e => {
+			const reg = this.reg;
 			e.outputBuffer.getChannelData(0).fill(0).forEach((e, i, data) => {
-				this.channel.forEach(ch => data[i] += this.snd[ch.voice << 5 | ch.phase >>> 27] * ch.vol / 15);
-				this.channel.forEach(ch => ch.phase += ch.freq * this.rate);
+				for (let j = 0; j < 8; j++) {
+					data[i] += this.snd[reg[6 + j * 8] << 1 & 0xe0 | this.phase[j] >>> 27] * (reg[3 + j * 8] & 0x0f) / 15;
+					this.phase[j] += (reg[4 + j * 8] | reg[5 + j * 8] << 8 | reg[6 + j * 8] << 16 & 0xf0000) * this.rate;
+				}
 			});
 		};
-		this.source = audioCtx.createBufferSource();
+		this.source = new audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = this.gain;
 		this.source.connect(this.scriptNode);
@@ -42,12 +43,6 @@ class MappySound {
 	}
 
 	update() {
-		const reg = this.reg;
-		this.channel.forEach((ch, i) => {
-			ch.voice = reg[6 + i * 8] >>> 4 & 7;
-			ch.freq = reg[4 + i * 8] | reg[5 + i * 8] << 8 | reg[6 + i * 8] << 16 & 0xf0000;
-			ch.vol = reg[3 + i * 8] & 0x0f;
-		});
 	}
 }
 
