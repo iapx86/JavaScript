@@ -9,7 +9,7 @@ class SoundEffect {
 		this.se = se;
 		se.forEach(se => {
 			se.audioBuffer = audioCtx.createBuffer(1, se.buf.length, 44100);
-			se.audioBuffer.copyToChannel(Float32Array.from(se.buf, v => v / 32767), 0);
+			se.audioBuffer.getChannelData(0).forEach((e, i, buf) => buf[i] = se.buf[i] / 32767);
 			se.playbackRate = freq / 44100;
 		});
 		this.merger = audioCtx.createChannelMerger(1);
