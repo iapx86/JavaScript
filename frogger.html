@@ -481,7 +481,7 @@ function success(zip) {
 	RGB = Uint8Array.from(zip.files['pr-91.6l'].inflate(), c => c.charCodeAt(0));
 	Frogger.decodeROM();
 	game = new Frogger();
-	sound = new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.5});
+	sound = new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 1});
 	init();
 	loop();
 }
