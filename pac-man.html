@@ -9,9 +9,9 @@
 <canvas id="canvas" width="224" height="288"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
+<script src="main.js"></script>
 <script src="z80.js"></script>
 <script src="pac-man_sound.js"></script>
-<script src="main.js"></script>
 <script>
 /*
  *
@@ -522,9 +522,7 @@ class PacMan {
 const url = 'puckman.zip';
 let BG, COLOR, OBJ, RGB, PRG, SND;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG = zip.files['pm1_prg1.6e'].inflate() + zip.files['pm1_prg2.6k'].inflate() + zip.files['pm1_prg3.6f'].inflate() + zip.files['pm1_prg4.6m'].inflate() + zip.files['pm1_prg5.6h'].inflate();

@@ -9,9 +9,9 @@
 <canvas id="canvas" width="224" height="256"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
+<script src="main.js"></script>
 <script src="z80.js"></script>
 <script src="ay-3-8910.js"></script>
-<script src="main.js"></script>
 <script>
 /*
  *
@@ -561,9 +561,7 @@ class Scramble {
 const url = 'scramble.zip';
 let BG, RGB, PRG1, PRG2;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG1 = zip.files['s1.2d'].inflate() + zip.files['s2.2e'].inflate() + zip.files['s3.2f'].inflate() + zip.files['s4.2h'].inflate() + zip.files['s5.2j'].inflate();

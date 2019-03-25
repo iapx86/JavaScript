@@ -9,9 +9,9 @@
 <canvas id="canvas" width="224" height="288"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
+<script src="main.js"></script>
 <script src="z80.js"></script>
 <script src="pac-man_sound.js"></script>
-<script src="main.js"></script>
 <script>
 /*
  *
@@ -569,9 +569,7 @@ class JrPacMan {
 const url = 'jrpacman.zip';
 let BG, COLOR, OBJ, RGB_L, RGB_H, PRG, SND;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG = Uint8Array.from(zip.files['jrp8d.8d'].inflate() + zip.files['jrp8e.8e'].inflate() + zip.files['jrp8h.8h'].inflate() + zip.files['jrp8j.8j'].inflate() + zip.files['jrp8k.8k'].inflate(), c => c.charCodeAt(0));

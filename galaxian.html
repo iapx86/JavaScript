@@ -9,10 +9,10 @@
 <canvas id="canvas" width="224" height="256"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
+<script src="main.js"></script>
 <script src="z80.js"></script>
 <script src="galaxian_sound.js"></script>
 <script src="sound_effect.js"></script>
-<script src="main.js"></script>
 <script>
 /*
  *
@@ -4026,9 +4026,7 @@ Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkAtf+4/vP9AP4=
 const url = 'galaxian.zip';
 let BG, RGB, PRG;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG = Uint8Array.from(zip.files['galmidw.u'].inflate() + zip.files['galmidw.v'].inflate() + zip.files['galmidw.w'].inflate() + zip.files['galmidw.y'].inflate() + zip.files['7l'].inflate(), c => c.charCodeAt(0));

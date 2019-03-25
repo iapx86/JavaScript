@@ -9,8 +9,8 @@
 <canvas id="canvas" width="224" height="256"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
-<script src="i8080.js"></script>
 <script src="main.js"></script>
+<script src="i8080.js"></script>
 <script>
 /*
  *
@@ -259,9 +259,7 @@ class Polaris {
 const url = 'polaris.zip';
 let PRG1, PRG2, MAP, OBJ;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG1 = Uint8Array.from(zip.files['ps01-1.30'].inflate() + zip.files['ps09.36'].inflate() + zip.files['ps03-1.31'].inflate() + zip.files['ps04.37'].inflate(), c => c.charCodeAt(0));

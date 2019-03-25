@@ -9,10 +9,10 @@
 <canvas id="canvas" width="285" height="224"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
+<script src="main.js"></script>
 <script src="z80.js"></script>
 <script src="pac-man_sound.js"></script>
 <script src="sound_effect.js"></script>
-<script src="main.js"></script>
 <script>
 /*
  *
@@ -1620,10 +1620,6 @@ OwD8/8n/kP9a/y7/7/67/p3+g/5t/mr+gf5t/mX+aP5z/nr+hf6Q/pj+o/62/s7+3f7b/tP+0f7C
 l/+b/6j/qv+l/5z/oP+w/77/z//f//3/9f///w==
 `), c => c.charCodeAt(0))).buffer);
 
-(function () {
-	BANG.forEach((x, i, a) => a[i] = x * 9 >> 4);
-})();
-
 /*
  *
  *	Rally-X
@@ -1633,9 +1629,7 @@ l/+b/6j/qv+l/5z/oP+w/77/z//f//3/9f///w==
 const url = 'rallyx.zip';
 let SND, BGOBJ, COLOR, RGB, PRG;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG = Uint8Array.from(zip.files['1b'].inflate() + zip.files['rallyxn.1e'].inflate() + zip.files['rallyxn.1h'].inflate() + zip.files['rallyxn.1k'].inflate(), c => c.charCodeAt(0));

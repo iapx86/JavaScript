@@ -9,10 +9,10 @@
 <canvas id="canvas" width="224" height="288"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
+<script src="main.js"></script>
 <script src="z80.js"></script>
 <script src="pac-man_sound.js"></script>
 <script src="sound_effect.js"></script>
-<script src="main.js"></script>
 <script>
 /*
  *
@@ -2087,9 +2087,7 @@ wv+1/4f/dP9u/0z/UP9M/1L/Zf8=
 const url = 'galaga.zip';
 let BG, OBJ, BGCOLOR, OBJCOLOR, RGB, SND, PRG1, PRG2, PRG3;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG1 = Uint8Array.from(zip.files['gg1_1b.3p'].inflate() + zip.files['gg1_2b.3m'].inflate() + zip.files['gg1_3.2m'].inflate() + zip.files['gg1_4b.2l'].inflate(), c => c.charCodeAt(0));

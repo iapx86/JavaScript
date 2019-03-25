@@ -9,8 +9,8 @@
 <canvas id="canvas" width="224" height="256"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
-<script src="i8080.js"></script>
 <script src="main.js"></script>
+<script src="i8080.js"></script>
 <script>
 /*
  *
@@ -266,9 +266,7 @@ class BalloonBomber {
 const url = 'ballbomb.zip';
 let PRG1, PRG2, MAP;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG1 = Uint8Array.from(zip.files['tn01'].inflate() + zip.files['tn02'].inflate() + zip.files['tn03'].inflate() + zip.files['tn04'].inflate(), c => c.charCodeAt(0));

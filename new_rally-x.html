@@ -9,10 +9,10 @@
 <canvas id="canvas" width="285" height="224"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
+<script src="main.js"></script>
 <script src="z80.js"></script>
 <script src="pac-man_sound.js"></script>
 <script src="sound_effect.js"></script>
-<script src="main.js"></script>
 <script>
 /*
  *
@@ -1599,9 +1599,7 @@ l/+b/6j/qv+l/5z/oP+w/77/z//f//3/9f///w==
 const url = 'nrallyx.zip';
 let SND, BGOBJ, COLOR, RGB, PRG;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG = zip.files['nrx_prg1.1d'].inflate().substring(0, 0x800) + zip.files['nrx_prg2.1e'].inflate().substring(0, 0x800) + zip.files['nrx_prg1.1d'].inflate().substring(0x800);

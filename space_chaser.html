@@ -9,8 +9,8 @@
 <canvas id="canvas" width="224" height="256"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
-<script src="i8080.js"></script>
 <script src="main.js"></script>
+<script src="i8080.js"></script>
 <script>
 /*
  *
@@ -276,9 +276,7 @@ class SpaceChaser {
 const url = 'schaser.zip';
 let PRG1, PRG2, MAP;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG1 = zip.files['rt13.bin'].inflate() + zip.files['rt14.bin'].inflate() + zip.files['rt15.bin'].inflate() + zip.files['rt16.bin'].inflate();

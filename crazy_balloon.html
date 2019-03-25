@@ -9,8 +9,8 @@
 <canvas id="canvas" width="224" height="256"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
-<script src="z80.js"></script>
 <script src="main.js"></script>
+<script src="z80.js"></script>
 <script>
 /*
  *
@@ -363,9 +363,7 @@ class CrazyBalloon {
 const url = 'crbaloon.zip';
 let PRG, BG, OBJ;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG = zip.files['cl01.bin'].inflate() + zip.files['cl02.bin'].inflate() + zip.files['cl03.bin'].inflate() + zip.files['cl04.bin'].inflate();

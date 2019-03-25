@@ -9,9 +9,9 @@
 <canvas id="canvas" width="224" height="288"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
+<script src="main.js"></script>
 <script src="mc6809.js"></script>
 <script src="mappy_sound.js"></script>
-<script src="main.js"></script>
 <script>
 /*
  *
@@ -684,9 +684,7 @@ const url1 = 'mappyj.zip';
 const url2 = 'mappy.zip';
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
-window.addEventListener('load', () => {
-	$.ajax({url: url1, success: success1, error: () => alert(url1 + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url: url1, success: success1, error: () => alert(url1 + ': failed to get')}));
 
 function success1(zip) {
 	PRG1 = new Uint8Array(Array.from(zip.files['mp1_3.1d'].inflate() + '\xff'.repeat(0x2000) + zip.files['mp1_1.1b'].inflate(), c => c.charCodeAt(0)));

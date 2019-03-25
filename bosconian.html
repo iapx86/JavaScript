@@ -9,10 +9,10 @@
 <canvas id="canvas" width="285" height="224"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
+<script src="main.js"></script>
 <script src="z80.js"></script>
 <script src="pac-man_sound.js"></script>
 <script src="sound_effect.js"></script>
-<script src="main.js"></script>
 <script>
 /*
  *
@@ -5553,9 +5553,7 @@ Q/9B/zD/Pv8K/xv/Kv8i/xb/qf77/iL/R/9Y/7P/6f+Y/5n/vf+5/4n/hf+u/7X/yf+z/7P/wf+6
 const url = 'bosco.zip';
 let PRG1, PRG2, PRG3, RGB, SND, BGCOLOR, BG, OBJ;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG1 = Uint8Array.from(zip.files['bos3_1.3n'].inflate() + zip.files['bos1_2.3m'].inflate() + zip.files['bos1_3.3l'].inflate() + zip.files['bos1_4b.3k'].inflate(), c => c.charCodeAt(0));

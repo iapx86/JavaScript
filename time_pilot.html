@@ -9,9 +9,9 @@
 <canvas id="canvas" width="224" height="256"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
+<script src="main.js"></script>
 <script src="z80.js"></script>
 <script src="ay-3-8910.js"></script>
-<script src="main.js"></script>
 <script>
 /*
  *
@@ -731,9 +731,7 @@ class TimePilot {
 const url = 'timeplt.zip';
 let PRG1, PRG2, BG, OBJ, RGB_H, RGB_L, OBJCOLOR, BGCOLOR;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG1 = Uint8Array.from(zip.files['tm1'].inflate() + zip.files['tm2'].inflate() + zip.files['tm3'].inflate(), c => c.charCodeAt(0));

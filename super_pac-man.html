@@ -9,9 +9,9 @@
 <canvas id="canvas" width="224" height="288"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
+<script src="main.js"></script>
 <script src="mc6809.js"></script>
 <script src="mappy_sound.js"></script>
-<script src="main.js"></script>
 <script>
 /*
  *
@@ -639,9 +639,7 @@ class SuperPacMan {
 const url = 'superpac.zip';
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG1 = Uint8Array.from(zip.files['sp1-2.1c'].inflate() + zip.files['sp1-1.1b'].inflate(), c => c.charCodeAt(0));

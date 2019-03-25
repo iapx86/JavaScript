@@ -9,9 +9,9 @@
 <canvas id="canvas" width="224" height="288"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
+<script src="main.js"></script>
 <script src="z80.js"></script>
 <script src="pac-man_sound.js"></script>
-<script src="main.js"></script>
 <script>
 /*
  *
@@ -519,9 +519,7 @@ const url1 = 'pengo3u.zip';
 const url2 = 'pengo.zip';
 let BG, COLOR, OBJ, RGB, PRG, SND;
 
-window.addEventListener('load', () => {
-	$.ajax({url: url1, success: success1, error: () => alert(url1 + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url: url1, success: success1, error: () => alert(url1 + ': failed to get')}));
 
 function success1(zip) {
 	PRG = zip.files['ep5120.8'].inflate() + zip.files['ep5121.7'].inflate() + zip.files['ep5122.15'].inflate() + zip.files['ep5123.14'].inflate() + zip.files['ep5124.21'].inflate();

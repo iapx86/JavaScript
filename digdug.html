@@ -9,9 +9,9 @@
 <canvas id="canvas" width="224" height="288"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
+<script src="main.js"></script>
 <script src="z80.js"></script>
 <script src="pac-man_sound.js"></script>
-<script src="main.js"></script>
 <script>
 /*
  *
@@ -1224,9 +1224,7 @@ bWbF3nu56qgRZi5Wbrqbu4Jmthkb/kS4subp5BS7PusiZptPhag727t2hvxskk2eXHbGx5trm5+2
 const url = 'digdug.zip';
 let PRG1, PRG2, PRG3, BG2, MAPDATA, BG4, OBJ, SND, BGCOLOR, OBJCOLOR, RGB;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG1 = Uint8Array.from(zip.files['dd1a.1'].inflate() + zip.files['dd1a.2'].inflate() + zip.files['dd1a.3'].inflate() + zip.files['dd1a.4'].inflate(), c => c.charCodeAt(0));

@@ -9,9 +9,9 @@
 <canvas id="canvas" width="224" height="256"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
+<script src="main.js"></script>
 <script src="mcs6502.js"></script>
 <script src="sound_effect.js"></script>
-<script src="main.js"></script>
 <script>
 /*
  *
@@ -5080,9 +5080,7 @@ TP9L/zz/Nv9N/zr/Lv8q/xX/Gf8H//f+5/7j/u3+7/7w/vv+/P4C/xL/MP8=
 const url = 'tankbatt.zip';
 let PRG, BG, RGB;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG = Uint8Array.from(zip.files['tb1-1.1a'].inflate() + zip.files['tb1-2.1b'].inflate() + zip.files['tb1-3.1c'].inflate() + zip.files['tb1-4.1d'].inflate(), c => c.charCodeAt(0));

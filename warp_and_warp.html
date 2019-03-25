@@ -9,9 +9,9 @@
 <canvas id="canvas" width="224" height="272"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
+<script src="main.js"></script>
 <script src="i8080.js"></script>
 <script src="sound_effect.js"></script>
-<script src="main.js"></script>
 <script>
 /*
  *
@@ -395,8 +395,8 @@ class WarpAndWarpSound {
 		this.gain = gain;
 		this.channel = {voice: 0, freq: 0, phase: 0};
 		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
-		this.scriptNode.onaudioprocess = e => {
-			e.outputBuffer.getChannelData(0).forEach((v, i, data) => {
+		this.scriptNode.onaudioprocess = ({outputBuffer}) => {
+			outputBuffer.getChannelData(0).forEach((v, i, data) => {
 				data[i] = this.audioBuffer[this.channel.voice].getChannelData(0)[this.channel.phase >>> 23];
 				this.channel.phase += this.channel.freq;
 				this.channel.phase %= this.audioBuffer[this.channel.voice].getChannelData(0).length << 23;
@@ -5422,9 +5422,7 @@ CAANAAsABgALAAcAAQAJABAACQAPABkA9/8ZAC0AGAASABkAFAAJAAMABwAJAAAA9v8KAAkA+P/8
 const url = 'warpwarp.zip';
 let PRG, BG;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG = Uint8Array.from(zip.files['ww1_prg1.s10'].inflate() + zip.files['ww1_prg2.s8'].inflate() + zip.files['ww1_prg3.s4'].inflate(), c => c.charCodeAt(0));

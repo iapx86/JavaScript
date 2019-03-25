@@ -9,10 +9,10 @@
 <canvas id="canvas" width="224" height="288"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
+<script src="main.js"></script>
 <script src="z80.js"></script>
 <script src="pac-man_sound.js"></script>
 <script src="sound_effect.js"></script>
-<script src="main.js"></script>
 <script>
 /*
  *
@@ -175,7 +175,6 @@ class Xevious {
 			switch (addr & 0xf0) {
 			case 0x00:
 			case 0x10:
-				game.mmo[addr & 0xff] = data & 0x0f;
 				sound[0].write(addr, data, game.count);
 				break;
 			case 0x20:
@@ -2644,9 +2643,7 @@ AAIAAAAAAAAAAQABAAEAAQABAAEAAAAAAAAA//////7//v/+//7//f/9//3//f/8//v/+//7//v/
 const url = 'xevious.zip';
 let BG2, BG4, OBJ4, OBJ8, BGCOLOR_H, BGCOLOR_L, OBJCOLOR_H, OBJCOLOR_L, RED, GREEN, BLUE, SND, PRG1, PRG2, PRG3, MAPTBL, MAPDATA;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG1 = Uint8Array.from(zip.files['xvi_1.3p'].inflate() + zip.files['xvi_2.3m'].inflate() + zip.files['xvi_3.2m'].inflate() + zip.files['xvi_4.2l'].inflate(), c => c.charCodeAt(0));

@@ -9,9 +9,9 @@
 <canvas id="canvas" width="224" height="288"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="jquery.zip.js"></script>
+<script src="main.js"></script>
 <script src="z80.js"></script>
 <script src="pac-man_sound.js"></script>
-<script src="main.js"></script>
 <script>
 /*
  *
@@ -529,9 +529,7 @@ class CrushRoller {
 const url = 'crush.zip';
 let BG, COLOR, OBJ, RGB, PRG, SND;
 
-window.addEventListener('load', () => {
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
 	PRG = Uint8Array.from(zip.files['crushkrl.6e'].inflate() + zip.files['crushkrl.6f'].inflate() + zip.files['crushkrl.6h'].inflate() + zip.files['crushkrl.6j'].inflate(), c => c.charCodeAt(0));
