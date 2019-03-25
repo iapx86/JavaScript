@@ -10,7 +10,6 @@ let aDaa = []; // [4][0x100];
 let aRl = []; // [2][0x100];
 let aRr = []; // [2][0x100];
 let fLogic = new Uint8Array(0x100);
-let dummypage = new Uint8Array(0x100).fill(0xff);
 
 (function () {
 	let f, i, j, k, r;
@@ -91,134 +90,6 @@ let dummypage = new Uint8Array(0x100).fill(0xff);
 		}
 })();
 
-class Cpu {
-	constructor(arg = null) {
-		this.fActive = false;
-		this.fSuspend = false;
-		this.pc = 0;
-		this.memorymap = [];
-		for (let i = 0; i < 0x100; i++)
-			this.memorymap.push({base: dummypage, read: null, write: (addr, data) => data, fetch: null});
-		this.breakpointmap = new Uint32Array(0x800);
-		this.breakpoint = null;
-		this.undef = null;
-		this.undefsize = 0;
-		this.arg = arg;
-	}
-
-	set_breakpoint(addr) {
-		this.breakpointmap[addr >>> 5] |= 1 << (addr & 0x1f);
-	}
-
-	clear_breakpoint(addr) {
-		this.breakpointmap[addr >>> 5] &= ~(1 << (addr & 0x1f));
-	}
-
-	clear_all_breakpoint() {
-		this.breakpointmap.fill(0);
-	}
-
-	reset() {
-		this.fActive = true;
-		this.fSuspend = false;
-	}
-
-	enable() {
-		if (this.fActive)
-			return;
-		this.reset();
-	}
-
-	disable() {
-		this.fActive = false;
-	}
-
-	suspend() {
-		if (!this.fActive || this.fSuspend)
-			return;
-		this.fSuspend = true;
-	}
-
-	resume() {
-		if (!this.fActive || !this.fSuspend)
-			return;
-		this.fSuspend = false;
-	}
-
-	interrupt() {
-		if (!this.fActive)
-			return false;
-		this.resume();
-		return true;
-	}
-
-	static multiple_execute(cpu, count) {
-		const n = cpu.length;
-		for (let i = 0; i < count; i++)
-			for (let j = 0; j < n; j++) {
-				if (!cpu[j].fActive || cpu[j].fSuspend)
-					continue;
-				if (cpu[j].breakpoint && (cpu[j].breakpointmap[cpu[j].pc >>> 5] & 1 << (cpu[j].pc & 0x1f)) !== 0)
-					cpu[j].breakpoint(cpu[j].pc, cpu[j].arg);
-				cpu[j]._execute();
-			}
-	}
-
-	execute(count) {
-		for (let i = 0; i < count; i++) {
-			if (!this.fActive || this.fSuspend)
-				break;
-			if (this.breakpoint && (this.breakpointmap[this.pc >>> 5] & 1 << (this.pc & 0x1f)) !== 0)
-				this.breakpoint(this.pc, this.arg);
-			this._execute();
-		}
-	}
-
-	_execute() {
-	}
-
-	fetch() {
-//		const page = this.memorymap[this.pc >>> 8];
-//		const data = !page.fetch ? page.base[this.pc & 0xff] : page.fetch(this.pc, this.arg);
-		const data = this.memorymap[this.pc >>> 8].base[this.pc & 0xff];
-
-		this.pc = this.pc + 1 & 0xffff;
-		return data;
-	}
-
-	read(addr) {
-		const page = this.memorymap[addr >>> 8];
-
-		return !page.read ? page.base[addr & 0xff] : page.read(addr, this.arg);
-	}
-
-	read1(addr) {
-		const page = this.memorymap[(addr = addr + 1 & 0xffff) >>> 8];
-
-		return !page.read ? page.base[addr & 0xff] : page.read(addr, this.arg);
-	}
-
-	write(addr, data) {
-		const page = this.memorymap[addr >>> 8];
-
-		if (!page.write)
-			page.base[addr & 0xff] = data;
-		else
-			page.write(addr, data, this.arg);
-		return data;
-	}
-
-	write1(addr, data) {
-		const page = this.memorymap[(addr = addr + 1 & 0xffff) >>> 8];
-
-		if (!page.write)
-			page.base[addr & 0xff] = data;
-		else
-			page.write(addr, data, this.arg);
-		return data;
-	}
-}
-
 class MC6809 extends Cpu {
 	constructor(arg = null) {
 		super(arg);
@@ -238,17 +109,17 @@ class MC6809 extends Cpu {
 		this.dp = 0;
 		this.pc = this.read(0xfffe) << 8 | this.read(0xffff);
 	}
-
-	fast_interrupt() {
-		if (!super.interrupt() || (this.ccr & 0x40) !== 0)
-			return false;
-		this.pshs16(this.pc);
-		this.pshs(this.ccr &= ~0x80);
-		this.ccr |= 0x50;
-		this.pc = this.read(0xfff6) << 8 | this.read(0xfff7);
-		return true;
-	}
-
+/*
+ *	fast_interrupt() {
+ *		if (!super.interrupt() || (this.ccr & 0x40) !== 0)
+ *			return false;
+ *		this.pshs16(this.pc);
+ *		this.pshs(this.ccr &= ~0x80);
+ *		this.ccr |= 0x50;
+ *		this.pc = this.read(0xfff6) << 8 | this.read(0xfff7);
+ *		return true;
+ *	}
+ */
 	interrupt() {
 		if (!super.interrupt() || (this.ccr & 0x10) !== 0)
 			return false;
