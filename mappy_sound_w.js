@@ -7,8 +7,8 @@
 const mappySound = `
 registerProcessor('MappySound', class extends AudioWorkletProcessor {
 	constructor (options) {
-		const {SND, sampleRate} = options.processorOptions;
 		super(options);
+		const {processorOptions: {SND}} = options;
 		this.reg = new Uint8Array(0x40);
 		this.snd = Float32Array.from(SND, e => (e & 0x0f) * 2 / 15 - 1);
 		this.rate = Math.floor(2048 * 48000 / sampleRate);
@@ -42,7 +42,7 @@ class MappySound {
 		this.source = new AudioBufferSourceNode(audioCtx);
 		this.gainNode = new GainNode(audioCtx, {gain});
 		addMappySound.then(() => {
-			this.worklet = new AudioWorkletNode(audioCtx, 'MappySound', {processorOptions: {SND, sampleRate: audioCtx.sampleRate}});
+			this.worklet = new AudioWorkletNode(audioCtx, 'MappySound', {processorOptions: {SND}});
 			this.worklet.port.start();
 			this.source.connect(this.worklet).connect(this.gainNode).connect(audioCtx.destination);
 			this.source.start();

@@ -12,16 +12,16 @@ class MappySound {
 		this.gain = gain;
 		this.phase = new Uint32Array(8);
 		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
-		this.scriptNode.onaudioprocess = e => {
+		this.scriptNode.onaudioprocess = ({outputBuffer}) => {
 			const reg = this.reg;
-			e.outputBuffer.getChannelData(0).fill(0).forEach((e, i, data) => {
+			outputBuffer.getChannelData(0).fill(0).forEach((e, i, data) => {
 				for (let j = 0; j < 8; j++) {
 					data[i] += this.snd[reg[6 + j * 8] << 1 & 0xe0 | this.phase[j] >>> 27] * (reg[3 + j * 8] & 0x0f) / 15;
 					this.phase[j] += (reg[4 + j * 8] | reg[5 + j * 8] << 8 | reg[6 + j * 8] << 16 & 0xf0000) * this.rate;
 				}
 			});
 		};
-		this.source = new audioCtx.createBufferSource();
+		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = this.gain;
 		this.source.connect(this.scriptNode);

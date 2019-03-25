@@ -23,8 +23,8 @@ class AY_3_8910 {
 		this.ecount = 0;
 		this.step = 0;
 		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
-		this.scriptNode.onaudioprocess = e => {
-			e.outputBuffer.getChannelData(0).fill(0).forEach((e, i, data) => {
+		this.scriptNode.onaudioprocess = ({outputBuffer}) => {
+			outputBuffer.getChannelData(0).fill(0).forEach((e, i, data) => {
 				for (this.count += 60 * resolution; this.count >= audioCtx.sampleRate; this.count -= audioCtx.sampleRate) {
 					const q = this.wheel.shift();
 					q && q.forEach(e => this.checkwrite(e));

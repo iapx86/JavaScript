@@ -7,12 +7,11 @@
 const pacmanSound = `
 registerProcessor('PacManSound', class extends AudioWorkletProcessor {
 	constructor (options) {
-		const {SND, sampleRate, resolution} = options.processorOptions;
 		super(options);
+		const {processorOptions: {SND, resolution}} = options;
 		this.reg = new Uint8Array(0x20);
 		this.snd = Float32Array.from(SND, e => (e & 0x0f) * 2 / 15 - 1);
 		this.rate = Math.floor(8192 * 48000 / sampleRate);
-		this.sampleRate = sampleRate;
 		this.resolution = resolution;
 		this.count = sampleRate - 1;
 		this.wheel = [];
@@ -32,7 +31,7 @@ registerProcessor('PacManSound', class extends AudioWorkletProcessor {
 	process (inputs, outputs) {
 		const reg = this.reg;
 		outputs[0][0].fill(0).forEach((e, i, data) => {
-			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate) {
+			for (this.count += 60 * this.resolution; this.count >= sampleRate; this.count -= sampleRate) {
 				const q = this.wheel.shift();
 				q && q.forEach(({addr, data}) => reg[addr] = data);
 			}
@@ -57,7 +56,7 @@ class PacManSound {
 		this.source = new AudioBufferSourceNode(audioCtx);
 		this.gainNode = new GainNode(audioCtx, {gain});
 		addPacManSound.then(() => {
-			this.worklet = new AudioWorkletNode(audioCtx, 'PacManSound', {processorOptions: {SND, sampleRate: audioCtx.sampleRate, resolution}});
+			this.worklet = new AudioWorkletNode(audioCtx, 'PacManSound', {processorOptions: {SND, resolution}});
 			this.worklet.port.start();
 			this.source.connect(this.worklet).connect(this.gainNode).connect(audioCtx.destination);
 			this.source.start();

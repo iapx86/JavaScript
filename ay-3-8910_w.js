@@ -7,11 +7,10 @@
 const ay_3_8910 = `
 registerProcessor('AY_3_8910', class extends AudioWorkletProcessor {
 	constructor (options) {
-		const {clock, sampleRate, resolution} = options.processorOptions;
 		super(options);
+		const {processorOptions: {clock, resolution}} = options;
 		this.reg = new Uint8Array(0x10);
 		this.rate = Math.floor(clock / 8);
-		this.sampleRate = sampleRate;
 		this.resolution = resolution;
 		this.count = sampleRate - 1;
 		this.wheel = [];
@@ -37,7 +36,7 @@ registerProcessor('AY_3_8910', class extends AudioWorkletProcessor {
 	}
 	process (inputs, outputs) {
 		outputs[0][0].fill(0).forEach((e, i, data) => {
-			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate) {
+			for (this.count += 60 * this.resolution; this.count >= sampleRate; this.count -= sampleRate) {
 				const q = this.wheel.shift();
 				q && q.forEach(e => this.write(e));
 			}
@@ -48,7 +47,7 @@ registerProcessor('AY_3_8910', class extends AudioWorkletProcessor {
 				const vol = (reg[8 + j] >> 4 & 1) !== 0 ? evol : reg[8 + j] & 0x0f;
 				data[i] += (((reg[7] >> j | ch.output) & (reg[7] >> j + 3 | this.rng) & 1) * 2 - 1) * (vol ? Math.pow(2, (vol - 15) / 2) : 0);
 			});
-			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {
+			for (this.cycles += this.rate; this.cycles >= sampleRate; this.cycles -= sampleRate) {
 				this.channel.forEach(ch => {
 					if (++ch.count >= ch.freq) {
 						ch.count = 0;
@@ -86,7 +85,7 @@ class AY_3_8910 {
 		this.source = new AudioBufferSourceNode(audioCtx);
 		this.gainNode = new GainNode(audioCtx, {gain});
 		addAY_3_8910.then(() => {
-			this.worklet = new AudioWorkletNode(audioCtx, 'AY_3_8910', {processorOptions: {clock, sampleRate: audioCtx.sampleRate, resolution}});
+			this.worklet = new AudioWorkletNode(audioCtx, 'AY_3_8910', {processorOptions: {clock, resolution}});
 			this.worklet.port.start();
 			this.source.connect(this.worklet).connect(this.gainNode).connect(audioCtx.destination);
 			this.source.start();

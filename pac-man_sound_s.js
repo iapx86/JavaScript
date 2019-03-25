@@ -17,9 +17,9 @@ class PacManSound {
 		this.tmpwheel = new Array(resolution);
 		this.phase = new Uint32Array(3);
 		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
-		this.scriptNode.onaudioprocess = e => {
+		this.scriptNode.onaudioprocess = ({outputBuffer}) => {
 			const reg = this.reg;
-			e.outputBuffer.getChannelData(0).fill(0).forEach((e, i, data) => {
+			outputBuffer.getChannelData(0).fill(0).forEach((e, i, data) => {
 				for (this.count += 60 * resolution; this.count >= audioCtx.sampleRate; this.count -= audioCtx.sampleRate) {
 					const q = this.wheel.shift();
 					q && q.forEach(({addr, data}) => reg[addr] = data);
