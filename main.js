@@ -122,12 +122,10 @@ function init() {
 			game.start2P();
 			break;
 		case 77: // 'M'
-			if (typeof audioCtx === 'undefined')
-				break;
 			if (audioCtx.state === 'suspended')
-				audioCtx.resume().then(button.update);
+				audioCtx.resume().catch();
 			else if (audioCtx.state === 'running')
-				audioCtx.suspend().then(button.update);
+				audioCtx.suspend().catch();
 			break;
 		case 82: // 'R'
 			game.reset();
@@ -168,26 +166,25 @@ function init() {
 			break;
 		}
 	});
-	if (typeof audioCtx === 'undefined')
-		return;
 	(button.update = () => {
 		button.src = audioCtx.state === 'suspended' ? volume0 : volume1;
 		button.alt = 'audio state: ' + audioCtx.state;
 	})();
+	audioCtx.onstatechange = button.update;
 	document.body.appendChild(button);
 	button.addEventListener('click', () => {
 		if (audioCtx.state === 'suspended')
-			audioCtx.resume().then(button.update);
+			audioCtx.resume().catch();
 		else if (audioCtx.state === 'running')
-			audioCtx.suspend().then(button.update);
+			audioCtx.suspend().catch();
 	});
 	window.addEventListener('blur', () => {
 		state = audioCtx.state;
-		audioCtx.suspend().then(button.update);
+		audioCtx.suspend().catch();
 	});
 	window.addEventListener('focus', () => {
 		if (state === 'running')
-			audioCtx.resume().then(button.update);
+			audioCtx.resume().catch();
 	});
 }
 
