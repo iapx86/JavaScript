@@ -617,14 +617,14 @@ let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from(zip.files['d23_3.1d'].inflate() + zip.files['d23_1.1b'].inflate(), c => c.charCodeAt(0));
-	PRG2 = Uint8Array.from(zip.files['d21_4.1k'].inflate(), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['d21_5.3b'].inflate(), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['d21_7.3n'].inflate() + zip.files['d21_6.3m'].inflate(), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['d21-5.5b'].inflate(), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['d21-6.4c'].inflate(), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['d21-7.5k'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['d21-3.3m'].inflate(), c => c.charCodeAt(0));
+	PRG1 = Uint8Array.from((zip.files['d23_3.1d'].inflate() + zip.files['d23_1.1b'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['d21_4.1k'].inflate().split(''), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['d21_5.3b'].inflate().split(''), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from((zip.files['d21_7.3n'].inflate() + zip.files['d21_6.3m'].inflate()).split(''), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['d21-5.5b'].inflate().split(''), c => c.charCodeAt(0));
+	BGCOLOR = Uint8Array.from(zip.files['d21-6.4c'].inflate().split(''), c => c.charCodeAt(0));
+	OBJCOLOR = Uint8Array.from(zip.files['d21-7.5k'].inflate().split(''), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['d21-3.3m'].inflate().split(''), c => c.charCodeAt(0));
 	game = new DigDugII();
 	sound = new MappySound({SND});
 	init();

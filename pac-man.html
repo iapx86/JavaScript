@@ -526,12 +526,12 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG = zip.files['pm1_prg1.6e'].inflate() + zip.files['pm1_prg2.6k'].inflate() + zip.files['pm1_prg3.6f'].inflate() + zip.files['pm1_prg4.6m'].inflate() + zip.files['pm1_prg5.6h'].inflate();
-	PRG = Uint8Array.from(PRG + zip.files['pm1_prg6.6n'].inflate() + zip.files['pm1_prg7.6j'].inflate() + zip.files['pm1_prg8.6p'].inflate(), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['pm1_chg1.5e'].inflate() + zip.files['pm1_chg2.5h'].inflate(), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['pm1_chg3.5f'].inflate() + zip.files['pm1_chg4.5j'].inflate(), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['pm1-1.7f'].inflate(), c => c.charCodeAt(0));
-	COLOR = Uint8Array.from(zip.files['pm1-4.4a'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['pm1-3.1m'].inflate(), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((PRG + zip.files['pm1_prg6.6n'].inflate() + zip.files['pm1_prg7.6j'].inflate() + zip.files['pm1_prg8.6p'].inflate()).split(''), c => c.charCodeAt(0));
+	BG = Uint8Array.from((zip.files['pm1_chg1.5e'].inflate() + zip.files['pm1_chg2.5h'].inflate()).split(''), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from((zip.files['pm1_chg3.5f'].inflate() + zip.files['pm1_chg4.5j'].inflate()).split(''), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['pm1-1.7f'].inflate().split(''), c => c.charCodeAt(0));
+	COLOR = Uint8Array.from(zip.files['pm1-4.4a'].inflate().split(''), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['pm1-3.1m'].inflate().split(''), c => c.charCodeAt(0));
 	game = new PacMan();
 	sound = new PacManSound({SND});
 	init();

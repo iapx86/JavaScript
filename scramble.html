@@ -565,10 +565,10 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG1 = zip.files['s1.2d'].inflate() + zip.files['s2.2e'].inflate() + zip.files['s3.2f'].inflate() + zip.files['s4.2h'].inflate() + zip.files['s5.2j'].inflate();
-	PRG1 = Uint8Array.from(PRG1 + zip.files['s6.2l'].inflate() + zip.files['s7.2m'].inflate() + zip.files['s8.2p'].inflate(), c => c.charCodeAt(0));
-	PRG2 = Uint8Array.from(zip.files['ot1.5c'].inflate() + zip.files['ot2.5d'].inflate() + zip.files['ot3.5e'].inflate(), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['c2.5f'].inflate() + zip.files['c1.5h'].inflate(), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['c01s.6e'].inflate(), c => c.charCodeAt(0));
+	PRG1 = Uint8Array.from((PRG1 + zip.files['s6.2l'].inflate() + zip.files['s7.2m'].inflate() + zip.files['s8.2p'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from((zip.files['ot1.5c'].inflate() + zip.files['ot2.5d'].inflate() + zip.files['ot3.5e'].inflate()).split(''), c => c.charCodeAt(0));
+	BG = Uint8Array.from((zip.files['c2.5f'].inflate() + zip.files['c1.5h'].inflate()).split(''), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['c01s.6e'].inflate().split(''), c => c.charCodeAt(0));
 	game = new Scramble();
 	sound = [new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.5}), new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.5})];
 	init();

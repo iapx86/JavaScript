@@ -272,8 +272,8 @@ let PRG1, PRG2;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from(zip.files['univgw3.0'].inflate() + zip.files['univgw4.1'].inflate() + zip.files['univgw5.2'].inflate() + zip.files['univgw6.3'].inflate(), c => c.charCodeAt(0));
-	PRG2 = Uint8Array.from(zip.files['univgw1.4'].inflate() + zip.files['univgw2.5'].inflate(), c => c.charCodeAt(0));
+	PRG1 = Uint8Array.from((zip.files['univgw3.0'].inflate() + zip.files['univgw4.1'].inflate() + zip.files['univgw5.2'].inflate() + zip.files['univgw6.3'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from((zip.files['univgw1.4'].inflate() + zip.files['univgw2.5'].inflate()).split(''), c => c.charCodeAt(0));
 	game = new GalaxyWars();
 	init();
 	loop();

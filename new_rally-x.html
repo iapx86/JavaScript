@@ -132,7 +132,7 @@ class NewRallyX {
 	}
 
 	execute() {
-		sound[0].mute(!this.fSoundEnable);
+//		sound[0].mute(!this.fSoundEnable);
 		while (this.fInterrupt && !this.cpu.interrupt(this.vector))
 			this.cpu.execute(0x10);
 		this.cpu.execute(0x2400);
@@ -770,7 +770,7 @@ class NewRallyX {
  *
  */
 
-const BANG = new Int16Array(Uint8Array.from(Array.from(window.atob(`
+const BANG = new Int16Array(Uint8Array.from(window.atob(`
 Lf9t/ib+/f0N/rD+KATG/MbpoOCA2nPWhdNb0brPfs57zaLM+stay+TKW8rRyX3DgMXl0EfhpfaX
 CjYWBh5xI2UnXCqeLGQuBDBFMVY3Qy1HMQgzgzSWNXg2Yzd0OJY+MDaxKGwQCAe3BsgL3RMPIvks
 9ynAH5AR5P7X7p7hsuH1597x0f2eCjIb/CPdKdgtozCtMi00WjVHNvw2nDcbOJM4BzlaOcY5ZTpK
@@ -1588,7 +1588,7 @@ wf+n/5f/f/9t/13/R/83/yf/Ff8M/wH/8f7v/uf+7P7y/g3/Kf9L/1f/Y/9m/23/dv9d/0v/WP9R
 OwD8/8n/kP9a/y7/7/67/p3+g/5t/mr+gf5t/mX+aP5z/nr+hf6Q/pj+o/62/s7+3f7b/tP+0f7C
 /rT+uf66/sf+1/7y/gj/B/8I/wb///7//vf+7/7o/ur+6P7y/vj+9P74/v3+/P4D/x3/M/9V/4X/
 l/+b/6j/qv+l/5z/oP+w/77/z//f//3/9f///w==
-`), c => c.charCodeAt(0))).buffer);
+`).split(''), c => c.charCodeAt(0)).buffer);
 
 /*
  *
@@ -1604,11 +1604,11 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 function success(zip) {
 	PRG = zip.files['nrx_prg1.1d'].inflate().substring(0, 0x800) + zip.files['nrx_prg2.1e'].inflate().substring(0, 0x800) + zip.files['nrx_prg1.1d'].inflate().substring(0x800);
 	PRG += zip.files['nrx_prg2.1e'].inflate().substring(0x800) + zip.files['nrx_prg3.1k'].inflate().substring(0, 0x800) + zip.files['nrx_prg4.1l'].inflate().substring(0, 0x800);
-	PRG = new Uint8Array(Array.from(PRG + zip.files['nrx_prg3.1k'].inflate().substring(0x800) + zip.files['nrx_prg4.1l'].inflate().substring(0x800), c => c.charCodeAt(0)));
-	BGOBJ = Uint8Array.from(zip.files['nrx_chg1.8e'].inflate() + zip.files['nrx_chg2.8d'].inflate(), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['nrx1-1.11n'].inflate(), c => c.charCodeAt(0));
-	COLOR = Uint8Array.from(zip.files['nrx1-7.8p'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['rx1-5.3p'].inflate(), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((PRG + zip.files['nrx_prg3.1k'].inflate().substring(0x800) + zip.files['nrx_prg4.1l'].inflate().substring(0x800)).split(''), c => c.charCodeAt(0));
+	BGOBJ = Uint8Array.from((zip.files['nrx_chg1.8e'].inflate() + zip.files['nrx_chg2.8d'].inflate()).split(''), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['nrx1-1.11n'].inflate().split(''), c => c.charCodeAt(0));
+	COLOR = Uint8Array.from(zip.files['nrx1-7.8p'].inflate().split(''), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['rx1-5.3p'].inflate().split(''), c => c.charCodeAt(0));
 	rotate = true;
 	game = new NewRallyX();
 	sound = [new PacManSound({SND}), new SoundEffect({se:game.se, freq: 11025, gain: 9 / 16})];

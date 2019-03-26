@@ -229,8 +229,8 @@ window.addEventListener('load', () => {
 });
 
 function success(zip) {
-	PRG2 = Uint8Array.from(zip.files['2c.rom'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['lr1-4.3d'].inflate(), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['2c.rom'].inflate().split(''), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['lr1-4.3d'].inflate().split(''), c => c.charCodeAt(0));
 	game = new SoundTest();
 	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.triggerA().right());

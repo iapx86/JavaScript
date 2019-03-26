@@ -267,8 +267,8 @@ let PRG, MAP;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG = Uint8Array.from(zip.files['cv17.36'].inflate() + zip.files['cv18.35'].inflate() + zip.files['cv19.34'].inflate() + zip.files['cv20.33'].inflate(), c => c.charCodeAt(0));
-	MAP = Uint8Array.from(zip.files['cv01.1'].inflate(), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((zip.files['cv17.36'].inflate() + zip.files['cv18.35'].inflate() + zip.files['cv19.34'].inflate() + zip.files['cv20.33'].inflate()).split(''), c => c.charCodeAt(0));
+	MAP = Uint8Array.from(zip.files['cv01.1'].inflate().split(''), c => c.charCodeAt(0));
 	game = new SpaceInvaders();
 	init();
 	loop();

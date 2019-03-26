@@ -841,15 +841,15 @@ let PRG1, PRG2, PRG3, RGB, SND, BG, BGCOLOR, OBJ, OBJCOLOR;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from(zip.files['6e.rom'].inflate() + zip.files['6h.rom'].inflate() + zip.files['6c.rom'].inflate() + zip.files['6d.rom'].inflate(), c => c.charCodeAt(0));
-	PRG2 = Uint8Array.from(zip.files['3b.rom'].inflate(), c => c.charCodeAt(0));
-	PRG3 = Uint8Array.from(zip.files['9r.rom'].inflate(), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['7j.rom'].inflate() + zip.files['8j.rom'].inflate(), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['5t.rom'].inflate(), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['green.prm'].inflate() + zip.files['red.prm'].inflate() + zip.files['blue.prm'].inflate(), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['chr.prm'].inflate(), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['sprite.prm'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['sound.prm'].inflate(), c => c.charCodeAt(0));
+	PRG1 = Uint8Array.from((zip.files['6e.rom'].inflate() + zip.files['6h.rom'].inflate() + zip.files['6c.rom'].inflate() + zip.files['6d.rom'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['3b.rom'].inflate().split(''), c => c.charCodeAt(0));
+	PRG3 = Uint8Array.from(zip.files['9r.rom'].inflate().split(''), c => c.charCodeAt(0));
+	BG = Uint8Array.from((zip.files['7j.rom'].inflate() + zip.files['8j.rom'].inflate()).split(''), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from(zip.files['5t.rom'].inflate().split(''), c => c.charCodeAt(0));
+	RGB = Uint8Array.from((zip.files['green.prm'].inflate() + zip.files['red.prm'].inflate() + zip.files['blue.prm'].inflate()).split(''), c => c.charCodeAt(0));
+	BGCOLOR = Uint8Array.from(zip.files['chr.prm'].inflate().split(''), c => c.charCodeAt(0));
+	OBJCOLOR = Uint8Array.from(zip.files['sprite.prm'].inflate().split(''), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['sound.prm'].inflate().split(''), c => c.charCodeAt(0));
 	game = new Phozon();
 	sound = new MappySound({SND});
 	init();

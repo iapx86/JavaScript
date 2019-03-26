@@ -386,7 +386,7 @@ class TankBattalion {
  *
  */
 
-const COIN = new Int16Array(Uint8Array.from(Array.from(window.atob(`
+const COIN = new Int16Array(Uint8Array.from(window.atob(`
 bAA6BfIjhQs1Bff6f/8518DZEfkD+IUALQQLJHkMgAU1+/b/Edgh2EH5kPfCAEYD1CNKDZgFePtC
 AGXZstZK+Sj3MwG8ApIjDA6GBbn7KgDK26TVC/n+9jQB0QFWIxEPuAUW/FkAUd1c1BL5yfaTAWgB
 8iIIEL0FXPxtAF7eGNPt+JT2lAGVAJ8iGBHlBdj8nABM4PrR1vhf9tUBXwABIgMS1AUy/YUA3OH/
@@ -400,9 +400,9 @@ IgcI8gQb/Qv7p8zp6tj4hf61/0sR1iJ7CFUFAP0p/EHNgOkx+Qn+SQA2EG4jzgi0BcH8FP08zxvo
 ivm0/UsA/Q4LJGYJEwbY/Ar+ZM+g5sv5J/3cAP8NYCTMCUEGxPzF/jLQLuUZ+tb8/gCzDPckZQqg
 Bsn8cP9S0rzjVPpP/GsBvQsBJe0KtQbA/Pj/SNJM4p369fuXAYUKkCW0CxYH+/y4AJLTxuDv+nH7
 HQKdCZYlKQwfB+P8FAHT1CjfBvsG+w==
-`), c => c.charCodeAt(0))).buffer);
+`).split(''), c => c.charCodeAt(0)).buffer);
 
-const BONUS = new Int16Array(Uint8Array.from(Array.from(window.atob(`
+const BONUS = new Int16Array(Uint8Array.from(window.atob(`
 x/+2Gq0UPPLq1ffukQ7OHNQGmd453sv+ThpWFarzs9Ut7sAN9Rz5B03fU90Z/s0ZNxbh9EbVX+3f
 DCcdJQkP4F/cTP0yGewWLfYv1XPsEAxLHUAK8+CI24T8ixi9F3P3FdWJ6zQLcx13C7DhmtrL+9sX
 bhi9+ArViuovCl4dfwz04vzZ1vppF/oYcPrS1pfpZAmJHSwNWOUZ2qf55RaPGaj7Cdex6HwIlx1P
@@ -410,9 +410,9 @@ DkvmPNnt+C4WRhrw/ALXzeewB5IdXw8554DYHPiBFfMaL/4b19fmzAZzHYcQPOjq12T33RSTG5f/
 8NgV5hAGix04EWbqENha9kgUChzeAC7ZEOVFBWwdRhKF61bXmfWbE5ocJAJV2RTkigQlHTgTpeyr
 1tP02xLtHFgDvNtP44cDKx3XEwPvbNev81USRR29BPLbS+LwAsYcphQ08NLW0vKREaAd6wWZ3E3h
 KAJfHI0VevFN1uzx0BDkHTEHQt1A4IgB6xuAFrjywtUv8QIQNh5NCJDfrt8=
-`), c => c.charCodeAt(0))).buffer);
+`).split(''), c => c.charCodeAt(0)).buffer);
 
-const ENG1 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
+const ENG1 = new Int16Array(Uint8Array.from(window.atob(`
 9AbzBbcBvQB9/UL7Cfhc9XbyvO8F7ZLqEOis5YHjauGF36jd+9th2vDYpNdr1j/VUNRm04nS1NEu
 0ZXQH9C5z0vPBM/Dzo/OdM5mzlvOUM5pznvOoc7DzvnOLs9pz6vP9c9M0JXQ9dBc0bbRGdKF0vXS
 YdPY01HU19RN1cPVS9bC1k7X0tdf2OTYcdn42YDaF9uk2yrcwNxK3dfdYt703obfHeCi4DzhyeFc
@@ -557,9 +557,9 @@ WvZi9nH2iPaH9qH2m/ax9sP20fbn9uz2+PYQ9xT3Hfcu9yr3QPdS91b3Z/ds9273g/eQ95T3nPek
 +cj5yvna+eb58PkK+gv6Hvop+i76P/pT+lb6ZPpw+nf6jPqP+pH6q/q8+sH62fru+uv6BvsM+xj7
 Ifs3+zb7Q/tV+177dPt1+4P7lvud+6H7w/vI+8P7yPvR+9D71Pvm++v7+vv5+xP8EPwC/CD8Ivwm
 /C38Ovw4/EX8T/xR/FD8W/xi/HX8OfyY/DP85Pzz+xf+
-`), c => c.charCodeAt(0))).buffer);
+`).split(''), c => c.charCodeAt(0)).buffer);
 
-const ENG2 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
+const ENG2 = new Int16Array(Uint8Array.from(window.atob(`
 NvtP//YB2APbBm4JhQxUD0gSCRXKF2sa5BxJH4chqSOZJW8nPynqKm8s0y0vL0gwXzFVMjYzHTS7
 NGQ1/DV3NuU2LDeJN8s3DDgjOFg4XzhTOFw4SDgvOBE48De1N4M3TjfzNrU2aTYjNss1ajUdNbY0
 TDTkM3gzDDOGMiIyujE1MbgwTzDAL0MvzC47LsstOy2wLDMsqCsvK6cqDCqPKQcpeSjvJ2Mn3iZe
@@ -807,9 +807,9 @@ jc3QzRzOZM69zh7PdM/BzxrQitDp0FvRt9Eq0onS8dJh05rTI9Sh1AzVitUC1n7W7tZw1+vXdNjr
 L+aV5vnmZufN5zjokuj/6GHpyukr6pPq+upQ67LrD+x57MvsKe2C7d3tOu6K7uHuOu+a7+/vRPCU
 8OfwQPGT8eXxP/KD8tLyMfNv88bzFfRW9Kn08fQ79Y31zPUX9mP2pvb09jn3d/e/9wL4RfiH+Lz4
 A/lG+Yb5vvkD+j36gvq0+vb6Lvtc+5X70vsC/Dz8e/yS/BP93Pyh/cj85/4=
-`), c => c.charCodeAt(0))).buffer);
+`).split(''), c => c.charCodeAt(0)).buffer);
 
-const FIRE = new Int16Array(Uint8Array.from(Array.from(window.atob(`
+const FIRE = new Int16Array(Uint8Array.from(window.atob(`
 NP82AS8CrgEEAdH/eP6y/Oz6MPlK98P1BfEf7uLt7u0m767w1/JT9RT46vrI/YsAOgPaBRoIMwru
 C0kNkA5EDwUQlA+uFPcWpBTsEFkNYwZv+nr1+PBH7sPs1+s+7Nzsr+7m7/Dzwvzi/tj/Hf+g/mr3
 aPEm8c3wLvLl84v2wfng/L8ALgOFDLoTahRDFJESUA7xAnH+DvyO+jT6c/qU++z8mP54AGUCTwRC
@@ -1971,9 +1971,9 @@ V/+D/6n/rv+6/7z/vf+//6//m/+J/4X/av85/y//K/8h/y//PP80/zn/Nv89/1D/c/95/3n/df92
 yf7N/sD+uP7W/tf++P4N/xP/If89/yr/Kf8t/zP/U/9g/27/e/96/4r/ov+n/6j/rP+p/8H/sf+w
 /6n/nP+g/5j/o/+s/4//c/9o/1f/LP8X//n+5P7J/sL+qv6Y/pr+n/6e/n/+lf6d/rX+3/7y/hD/
 Lf9M/3L/lf+0/8L/z//m/+z/GQAjAAsABAD5/+f/wP8=
-`), c => c.charCodeAt(0))).buffer);
+`).split(''), c => c.charCodeAt(0)).buffer);
 
-const BANG = new Int16Array(Uint8Array.from(Array.from(window.atob(`
+const BANG = new Int16Array(Uint8Array.from(window.atob(`
 kQClAFQA//9k/Y370/r6+Yr5DfnP+Lf4q/jJ+MT4afw4/r79E/2B+6L5NfeK9LrxoO5u6xfolOQP
 4Tfbp9a80xTRE89SzejLzcp9yevIrMfpx9fEF8LYxzvI2Md8xrbFK8WwxEHE/sOAw2bDRMJ1u+W5
 Z7uIvIfFHs0o0GrTS9UH1/LX2tiC2frZatq02t7aJ9t727vbHNyO3Mfcjd2L3R7fMNrc1UHY0dp7
@@ -5069,7 +5069,7 @@ K/8g/0L/Tv9B/0//P/85/yb/Fv8Q/wz///4J/xn/Cf8g/xT/DP/z/u3+6v7f/uf+AP8H/wr/Dv//
 H/8f/xv/Jf8Z/yj/Jv8W/xv/Ef8N/x//F/8q/0T/Pv9O/2T/gP+T/4j/j/+e/5T/fv+J/4b/iv+W
 /6r/uP++/7D/0f+3/6j/qP+O/5r/sv+1/7//vv+t/7//ov+u/57/mP+W/6b/kv92/3X/Zv9l/1T/
 TP9L/zz/Nv9N/zr/Lv8q/xX/Gf8H//f+5/7j/u3+7/7w/vv+/P4C/xL/MP8=
-`), c => c.charCodeAt(0))).buffer);
+`).split(''), c => c.charCodeAt(0)).buffer);
 
 /*
  *
@@ -5083,9 +5083,9 @@ let PRG, BG, RGB;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG = Uint8Array.from(zip.files['tb1-1.1a'].inflate() + zip.files['tb1-2.1b'].inflate() + zip.files['tb1-3.1c'].inflate() + zip.files['tb1-4.1d'].inflate(), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['tb1-5.2k'].inflate(), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['bct1-1.l3'].inflate(), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((zip.files['tb1-1.1a'].inflate() + zip.files['tb1-2.1b'].inflate() + zip.files['tb1-3.1c'].inflate() + zip.files['tb1-4.1d'].inflate()).split(''), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['tb1-5.2k'].inflate().split(''), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['bct1-1.l3'].inflate().split(''), c => c.charCodeAt(0));
 	game = new TankBattalion();
 	sound = new SoundEffect({se: game.se, freq: 22050});
 	init();

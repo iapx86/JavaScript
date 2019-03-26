@@ -607,14 +607,14 @@ let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from(zip.files['pap1-3b.1d'].inflate() + zip.files['pap1-2b.1c'].inflate() + zip.files['pap3-1.1b'].inflate(), c => c.charCodeAt(0));
-	PRG2 = Uint8Array.from(zip.files['pap1-4.1k'].inflate(), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['pap1-6.3c'].inflate(), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['pap1-5.3f'].inflate(), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['pap1-6.4c'].inflate(), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['pap1-5.4e'].inflate(), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['pap1-4.3l'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['pap1-3.3m'].inflate(), c => c.charCodeAt(0));
+	PRG1 = Uint8Array.from((zip.files['pap1-3b.1d'].inflate() + zip.files['pap1-2b.1c'].inflate() + zip.files['pap3-1.1b'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['pap1-4.1k'].inflate().split(''), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['pap1-6.3c'].inflate().split(''), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from(zip.files['pap1-5.3f'].inflate().split(''), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['pap1-6.4c'].inflate().split(''), c => c.charCodeAt(0));
+	BGCOLOR = Uint8Array.from(zip.files['pap1-5.4e'].inflate().split(''), c => c.charCodeAt(0));
+	OBJCOLOR = Uint8Array.from(zip.files['pap1-4.3l'].inflate().split(''), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['pap1-3.3m'].inflate().split(''), c => c.charCodeAt(0));
 	game = new PacAndPal();
 	sound = new MappySound({SND});
 	init();

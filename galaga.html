@@ -1040,7 +1040,7 @@ class Galaga {
  *
  */
 
-const BOMB = new Int16Array(Uint8Array.from(Array.from(window.atob(`
+const BOMB = new Int16Array(Uint8Array.from(window.atob(`
 /P/k+eLojdBmvBO1wa8ErZ6yc7eQu6LBSMhWz1rWz9wL42XnDviPC7MZLyfZMqo8EEXlS1hRFlbH
 WF9cC1UKR9FHrEZZQYM+ykJ+RFRFfj4OKuYLP+4a2YLTjtyB437oY+xu7w3y5/R/+lLzZu599Uz4
 1/O/6CDh7Non1urS4M4CzXHMTMpEyGrGQMXixCPFZsiwzbPTxtrD4j/r3PN+/NIEuQwcFHcaWCBr
@@ -2076,7 +2076,7 @@ IgEqASQBCAHUAKYAXgAqAPD/vv+f/2//w/+MAAABRwFfAUwBKgHwAKAARADl/4T/J//i/qf+gv5o
 IAJYAmsCMgLgAXIB/QB0AOn/cP/7/qn+Wf5u/br8bfxQ/JP85fyE/eP+HgAlAewBawKqArgCfQIn
 ArIBGwGJAOr/YP/n/oj+P/4P/gv+Iv5G/nn+t/79/k3/n//b/xkAQABlAG0AbABtAFEALQAKAOz/
 wv+1/4f/dP9u/0z/UP9M/1L/Zf8=
-`), c => c.charCodeAt(0))).buffer);
+`).split(''), c => c.charCodeAt(0)).buffer);
 
 /*
  *
@@ -2090,15 +2090,15 @@ let BG, OBJ, BGCOLOR, OBJCOLOR, RGB, SND, PRG1, PRG2, PRG3;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from(zip.files['gg1_1b.3p'].inflate() + zip.files['gg1_2b.3m'].inflate() + zip.files['gg1_3.2m'].inflate() + zip.files['gg1_4b.2l'].inflate(), c => c.charCodeAt(0));
-	PRG2 = Uint8Array.from(zip.files['gg1_5b.3f'].inflate(), c => c.charCodeAt(0));
-	PRG3 = Uint8Array.from(zip.files['gg1_7b.2c'].inflate(), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['gg1_9.4l'].inflate(), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['gg1_11.4d'].inflate() + zip.files['gg1_10.4f'].inflate(), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['prom-5.5n'].inflate(), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['prom-4.2n'].inflate(), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['prom-3.1c'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['prom-1.1d'].inflate(), c => c.charCodeAt(0));
+	PRG1 = Uint8Array.from((zip.files['gg1_1b.3p'].inflate() + zip.files['gg1_2b.3m'].inflate() + zip.files['gg1_3.2m'].inflate() + zip.files['gg1_4b.2l'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['gg1_5b.3f'].inflate().split(''), c => c.charCodeAt(0));
+	PRG3 = Uint8Array.from(zip.files['gg1_7b.2c'].inflate().split(''), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['gg1_9.4l'].inflate().split(''), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from((zip.files['gg1_11.4d'].inflate() + zip.files['gg1_10.4f'].inflate()).split(''), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['prom-5.5n'].inflate().split(''), c => c.charCodeAt(0));
+	BGCOLOR = Uint8Array.from(zip.files['prom-4.2n'].inflate().split(''), c => c.charCodeAt(0));
+	OBJCOLOR = Uint8Array.from(zip.files['prom-3.1c'].inflate().split(''), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['prom-1.1d'].inflate().split(''), c => c.charCodeAt(0));
 	game = new Galaga();
 	sound = [new PacManSound({SND, resolution: 2}), new SoundEffect({se: game.se, freq: 11025, gain: 0.5})];
 	init();

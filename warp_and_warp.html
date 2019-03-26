@@ -428,7 +428,7 @@ class WarpAndWarpSound {
  *
  */
 
-const WAVE02 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
+const WAVE02 = new Int16Array(Uint8Array.from(window.atob(`
 PwGt/2X8Zv2W+x79u/re/ZT5X/7D93cBFewX1yw5fFy2YGBrXnIgdUpzxnRqc7d0X3OfdeJzM3Hv
 cDFwKnFCZ8RsWnFDb6Nw+m+vcgRzU3QHdZt2VnMZc51ybXFTcqZvDHQITl0fhgDP8+u0SNSHF/cg
 0zgEP+hPDFI1WFRbsl+9X1ZhCGO5XttdbVv0cLklXuVqC1YS3AvdFd4rEzFXOE07gD5PQE9A+EUc
@@ -523,9 +523,9 @@ MqVvog2ei50Gm/GaYZ3pnnKg86GIow2lqKYnqKypMauvrCmuoq8asZey/bNutem2Q7ixuRK7bbzF
 vQ6/WcCmwd3CHMRdxY/GvcftyC/KT8t5zKjN2s7+zyrRStJo03zUhNWf1qTXp9i72cLautvF3MPd
 zN7U38bg0eHH4rnjtuSn5aDmjOeA6F7pQeob6/Lr0Oyc7XzuSO8b8Onwt/GJ8k7zF/TZ9JP1SvYJ
 9733aPgS+bv5YPoF+6L7OPzM/GT9/v2M/hj/n/8=
-`), c => c.charCodeAt(0))).buffer);
+`).split(''), c => c.charCodeAt(0)).buffer);
 
-const WAVE10 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
+const WAVE10 = new Int16Array(Uint8Array.from(window.atob(`
 5P7QAKb9wP8O/x7+Fv/z/qL9Q/9+/hns4h+C/lcOkz3Q/CQyzTVEBIhFoicKD71NjxSkHgpKIgWd
 MRs7i/94QuAjcQjiL04xwDu8PmdCukNvR0VFAEhjR9dFxklORkZGR0buQjhEUUILQQVAJkFUOl5Y
 Wx2CD/dDjfUPGCMrEeb5I5kS6uU8K7z4qvBlLLHlQgSsIgrajhrnC1/huQwNEYYbESAgJO4lZyrs
@@ -1294,9 +1294,9 @@ AE0ASgBPAF8ANgCRADEApf9aAIf//v9rAI7/9/8nAHD/FgDh/2X/OQCU/5z/LgBu/8L/RwBX/2f/
 AEcAUQAtAHgARACO/0YAxP9+/zoAfv+r/x4AVP/Z/+X/Rf8RALP/Xv8uAHD/o/8UAF7/uP/v/wIA
 FwAYAB8AMQA2ADcANwAzAEEAPQA5ADYAOwAjAE0AUgAvAEQAJABhAEwAff8gAN//XP8hAID/fv8Y
 AE7/pv/k/yX/
-`), c => c.charCodeAt(0))).buffer);
+`).split(''), c => c.charCodeAt(0)).buffer);
 
-const WAVE11 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
+const WAVE11 = new Int16Array(Uint8Array.from(window.atob(`
 wgDX/9n+3P7+/Sz+2/y7/8H93QBO/aoDCvWU8/cZaSU6NN43LVe9Pw0o+By2GPkEWPqXJEMrtDh9
 OKVXyD5pI4AYOxMYAMPybR6PJWUzxDJxUhQ7yh0LEwUN4fop6+QXxB8FLjUtPk3CN5UYCw5OB1b2
 Q+TTEZUaFSktKFtI3zTtE6YJNQJR8v3dIwzPFZIkmiPFQ20yqg+kBWH9se4m2LoGeRFOIHIfZj9u
@@ -3345,9 +3345,9 @@ MQAtAA8ACwACAPH/2/8AAA8AGgAbADUAKwASAAYA///x/9r/BAALABkAFwAuACkAEAAEAPv/9//a
 /wQADgAUABoALAAuABcAAQADAO7/0/8EAAcAGAAXACYALwAWAAMA8f/s/9P/+/8FABIAEQAsAC0A
 EAABAPT/9P/P/wMACgAVACAAIgAlAAoADQABAPn/2v/2/woAFQAQACEAJwALAAwA9v/t/9j/8f8M
 AAwAEAAfACYADgABAPH/8v/S//n/BQAWABkAIAAtAAcAAQDz/+//
-`), c => c.charCodeAt(0))).buffer);
+`).split(''), c => c.charCodeAt(0)).buffer);
 
-const WAVE14 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
+const WAVE14 = new Int16Array(Uint8Array.from(window.atob(`
 lAAIANT+4/7q/WX+SP1s/o/8cv6n+4v/n/YE7wMSmCI2L1s4Tz/ZRIJIxEthTTJPj0/MUDlQGE80
 TlNNWUxKS1BKP0kwSBxHC0b/ROhD4ELWQbtAqD+kPpg9lzyeO4c6gDmGOIw3jDaVNZ80rzPBMtYx
 8DAOMBwvOS5XLXkspSvFKuwpCSk/KHAnlybUJQUlOiR0I6ci6yEfIV0gnh/eHigecB2rHOsbQRs9
@@ -5325,9 +5325,9 @@ AA8AEgAqAB0A+f/n/97/1//N/8H/v/+3/8L/q//M/97/3f/6/wMACgALAA0AFwAXACMAIAD3/+v/
 6//X/7r/5f/u//b/BgAfABkA8f/n/9b/0/+//9z//P8FAAkADwAcABcAGQAhACMAKgAUAPn/6//d
 /9b/xv/K/9L/x/+0/6n/1P/u/wEABgASABcAHgAhACEAIQAzABwABQDy/+3/0v/V//T//P8IAA0A
 HwAbACIAJwAnACYAKQA1ACMAKwApADUAHwD7/wgAyf+u/8j/5P8AAAEAEwATAC4A9v8zAA==
-`), c => c.charCodeAt(0))).buffer);
+`).split(''), c => c.charCodeAt(0)).buffer);
 
-const WAVE16 = new Int16Array(Uint8Array.from(Array.from(window.atob(`
+const WAVE16 = new Int16Array(Uint8Array.from(window.atob(`
 W/6c/oP9Bf4S/Sb+lPzZ/Tn8mf2Y+rbqBA9pJ2cxkT03Qu5JvEsjUPJQXlN8ZRlGQykqHr4PSwq7
 ABL+HPh/9iLyCN/S/zEaciRnMRs2+T0sQERE0UUIR8RZ8DxgHjETbwTP/m/1TvLw7Inq3edf0xPy
 2A71GJkmditzMyI27zlbPGY87k/9NZEVggpn+5T1ZuzT6BPk0uCw3zjKIOYyBScPSx15Ikgq3i0x
@@ -5411,7 +5411,7 @@ CAANAAsABgALAAcAAQAJABAACQAPABkA9/8ZAC0AGAASABkAFAAJAAMABwAJAAAA9v8KAAkA+P/8
 8v/1/+j/6f/6//X/9v/x//D/8//8//T/9v/1//v////4//f/9//t/+z/9f/n/+3/3//a/+r/5P/n
 /+v/7P/h/+X/5v/l/+L/4P/m/9v/3f/l/9f/0//b/9z/4P/Y/9L/3f/e/9//4P/d/9r/3v/e/93/
 5P/h/9v/4//a/9v/3//Y/9T/1//k/9P/0f/f/+D/1//c/97/1v/h/w==
-`), c => c.charCodeAt(0))).buffer);
+`).split(''), c => c.charCodeAt(0)).buffer);
 
 /*
  *
@@ -5425,8 +5425,8 @@ let PRG, BG;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG = Uint8Array.from(zip.files['ww1_prg1.s10'].inflate() + zip.files['ww1_prg2.s8'].inflate() + zip.files['ww1_prg3.s4'].inflate(), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['ww1_chg1.s12'].inflate(), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((zip.files['ww1_prg1.s10'].inflate() + zip.files['ww1_prg2.s8'].inflate() + zip.files['ww1_prg3.s4'].inflate()).split(''), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['ww1_chg1.s12'].inflate().split(''), c => c.charCodeAt(0));
 	game = new WarpAndWarp();
 	sound = [new WarpAndWarpSound(), new SoundEffect({se: game.se, freq: 22050})];
 	init();

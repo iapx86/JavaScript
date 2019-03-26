@@ -242,7 +242,7 @@ let PRG;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG = Uint8Array.from(zip.files['la01'].inflate() + zip.files['la02'].inflate() + zip.files['la03'].inflate() + zip.files['la04'].inflate(), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((zip.files['la01'].inflate() + zip.files['la02'].inflate() + zip.files['la03'].inflate() + zip.files['la04'].inflate()).split(''), c => c.charCodeAt(0));
 	game = new SpaceLaser();
 	init();
 	loop();

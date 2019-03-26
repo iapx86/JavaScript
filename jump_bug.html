@@ -546,7 +546,7 @@ class JumpBug {
  *
  */
 
-const BOMB = new Int16Array(Uint8Array.from(Array.from(window.atob(`
+const BOMB = new Int16Array(Uint8Array.from(window.atob(`
 AAD//wEA/f8EAPf/EADA/+/+CP/7/gP///4A/wL//f4G//f+E/++/vf93f2n/AT89PtA/Hf86PpO
 +f33PfYP9SLzWfK+8UTz+PVP+On6dP0p/rr87vpx+3D+3gArANb9C/01/zsCyAUICPgJ/AsCDlAP
 rBDXEXISwxIEExATthLvET0O4AcSAvL7KPY88tHyMPW+9QXyA+4f6hLodeUE6D7tjvCN8L/uM+9e
@@ -1944,9 +1944,9 @@ AP8A///+Af/+/gP/+/4I/+/+P/8SAPX/CAD3/w0AR//e/sj/CwD8/wAAAgD5/xAAwP/x/gX/AP/6
 AP8A/wD/AP///gL/+/4H//P+Gf+v/i/+Gf/z/gf/+/6C/v/+AP8A/wD/AP///gH//f4F//b+Ef/f
 /l7/t/83/17/3/4R//b+Bf/9/gH///4A/wD/AP8A/4D/AP8A/wD/AP8A/wD///4C//v+B//z/hn/
 r/6v/hn/8/4H//3+AP8E//j+EP/B/u39C/72/Qv+7v1A/hP/8/4M/3D+G/+u/rD+Gf/z/gf/
-`), c => c.charCodeAt(0))).buffer);
+`).split(''), c => c.charCodeAt(0)).buffer);
 
-const SHOT = new Int16Array(Uint8Array.from(Array.from(window.atob(`
+const SHOT = new Int16Array(Uint8Array.from(window.atob(`
 AAD//wEA/f8EAPf/EADA/+/+Bv/9/v3+Cf/u/h//xf7Q//ABwABP/W/8XgYlAPj2igNFB73z0v+v
 CUoAEfUI+RYQ3/VD9X0Pwf/i7ecHaAyA614D1Qvp/SnsGgJIDpf84eu2AWcQ/Og8/54SjfCe8V8U
 GftA7O8SMv2s6GkIhw8K6rP6chWx80buNBXP/hrrshCrBkfvhPLNE/oDJ+669PIYHfCj868ZqfXH
@@ -2295,7 +2295,7 @@ AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP///gL/+/4I//H+G/+r/rf+DP8M
 /7f+K/4b//H+CP/7/gL/f/8A/wD/AP8A/wD/AP8A/wD/AP8A/4D/gP8A/4D/AP8A/wD/AP8A/wD/
 AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A
 /wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/
-`), c => c.charCodeAt(0))).buffer);
+`).split(''), c => c.charCodeAt(0)).buffer);
 
 /*
  *
@@ -2310,10 +2310,10 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG = zip.files['jb1'].inflate() + zip.files['jb2'].inflate() + zip.files['jb3'].inflate() + zip.files['jb4'].inflate();
-	PRG = Uint8Array.from(PRG + zip.files['jb5'].inflate() + zip.files['jb6'].inflate() + zip.files['jb7'].inflate(), c => c.charCodeAt(0));
-	BG = zip.files['jbl'].inflate() + zip.files['jbn'].inflate() + zip.files['jbm'].inflate();
-	BG = Uint8Array.from(BG + zip.files['jbi'].inflate() + zip.files['jbk'].inflate() + zip.files['jbj'].inflate(), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['l06_prom.bin'].inflate(), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((PRG + zip.files['jb5'].inflate() + zip.files['jb6'].inflate() + zip.files['jb7'].inflate()).split(''), c => c.charCodeAt(0));
+	BG = zip.files['jbl'].inflate() + zip.files['jbn'].inflate() + zip.files['jbm'].inflate() + zip.files['jbi'].inflate();
+	BG = Uint8Array.from((BG + zip.files['jbk'].inflate() + zip.files['jbj'].inflate()).split(''), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['l06_prom.bin'].inflate().split(''), c => c.charCodeAt(0));
 	game = new JumpBug();
 	sound = [new AY_3_8910({clock: 1536000}), new SoundEffect({se: game.se, freq: 11025, gain: 0.5})];
 	init();

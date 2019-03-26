@@ -537,16 +537,16 @@ let BG, COLOR, OBJ, RGB, PRG, SND;
 window.addEventListener('load', () => $.ajax({url: url1, success: success1, error: () => alert(url1 + ': failed to get')}));
 
 function success1(zip) {
-	PRG = Uint8Array.from(zip.files['kr.6e'].inflate() + zip.files['kr.6f'].inflate() + zip.files['kr.6h'].inflate() + zip.files['kr.6j'].inflate(), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['kr.5e'].inflate(), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['kr.5f'].inflate(), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((zip.files['kr.6e'].inflate() + zip.files['kr.6f'].inflate() + zip.files['kr.6h'].inflate() + zip.files['kr.6j'].inflate()).split(''), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['kr.5e'].inflate().split(''), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from(zip.files['kr.5f'].inflate().split(''), c => c.charCodeAt(0));
 	$.ajax({url: url2, success: success2, error: () => alert(url2 + ': failed to get')});
 }
 
 function success2(zip) {
-	RGB = Uint8Array.from(zip.files['82s123.7f'].inflate(), c => c.charCodeAt(0));
-	COLOR = Uint8Array.from(zip.files['2s140.4a'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['82s126.1m'].inflate(), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['82s123.7f'].inflate().split(''), c => c.charCodeAt(0));
+	COLOR = Uint8Array.from(zip.files['2s140.4a'].inflate().split(''), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['82s126.1m'].inflate().split(''), c => c.charCodeAt(0));
 	game = new KorosukeRoller();
 	sound = new PacManSound({SND});
 	init();

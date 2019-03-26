@@ -271,9 +271,9 @@ let PRG1, PRG2, MAP;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from(zip.files['lrescue.1'].inflate() + zip.files['lrescue.2'].inflate() + zip.files['lrescue.3'].inflate() + zip.files['lrescue.4'].inflate(), c => c.charCodeAt(0));
-	PRG2 = Uint8Array.from(zip.files['lrescue.5'].inflate() + zip.files['lrescue.6'].inflate(), c => c.charCodeAt(0));
-	MAP = Uint8Array.from(zip.files['7643-1.cpu'].inflate(), c => c.charCodeAt(0));
+	PRG1 = Uint8Array.from((zip.files['lrescue.1'].inflate() + zip.files['lrescue.2'].inflate() + zip.files['lrescue.3'].inflate() + zip.files['lrescue.4'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from((zip.files['lrescue.5'].inflate() + zip.files['lrescue.6'].inflate()).split(''), c => c.charCodeAt(0));
+	MAP = Uint8Array.from(zip.files['7643-1.cpu'].inflate().split(''), c => c.charCodeAt(0));
 	game = new LunarRescue();
 	init();
 	loop();

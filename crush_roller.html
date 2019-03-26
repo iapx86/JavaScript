@@ -532,12 +532,12 @@ let BG, COLOR, OBJ, RGB, PRG, SND;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG = Uint8Array.from(zip.files['crushkrl.6e'].inflate() + zip.files['crushkrl.6f'].inflate() + zip.files['crushkrl.6h'].inflate() + zip.files['crushkrl.6j'].inflate(), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['maketrax.5e'].inflate(), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['maketrax.5f'].inflate(), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['82s123.7f'].inflate(), c => c.charCodeAt(0));
-	COLOR = Uint8Array.from(zip.files['2s140.4a'].inflate(), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['82s126.1m'].inflate(), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((zip.files['crushkrl.6e'].inflate() + zip.files['crushkrl.6f'].inflate() + zip.files['crushkrl.6h'].inflate() + zip.files['crushkrl.6j'].inflate()).split(''), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['maketrax.5e'].inflate().split(''), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from(zip.files['maketrax.5f'].inflate().split(''), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['82s123.7f'].inflate().split(''), c => c.charCodeAt(0));
+	COLOR = Uint8Array.from(zip.files['2s140.4a'].inflate().split(''), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['82s126.1m'].inflate().split(''), c => c.charCodeAt(0));
 	game = new CrushRoller();
 	sound = new PacManSound({SND});
 	init();

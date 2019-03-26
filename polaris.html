@@ -262,10 +262,10 @@ let PRG1, PRG2, MAP, OBJ;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from(zip.files['ps01-1.30'].inflate() + zip.files['ps09.36'].inflate() + zip.files['ps03-1.31'].inflate() + zip.files['ps04.37'].inflate(), c => c.charCodeAt(0));
-	PRG2 = Uint8Array.from(zip.files['ps05.32'].inflate() + zip.files['ps10.38'].inflate() + zip.files['ps26'].inflate(), c => c.charCodeAt(0));
-	MAP = Uint8Array.from(zip.files['ps08.1b'].inflate(), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['ps07.2c'].inflate(), c => c.charCodeAt(0));
+	PRG1 = Uint8Array.from((zip.files['ps01-1.30'].inflate() + zip.files['ps09.36'].inflate() + zip.files['ps03-1.31'].inflate() + zip.files['ps04.37'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from((zip.files['ps05.32'].inflate() + zip.files['ps10.38'].inflate() + zip.files['ps26'].inflate()).split(''), c => c.charCodeAt(0));
+	MAP = Uint8Array.from(zip.files['ps08.1b'].inflate().split(''), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from(zip.files['ps07.2c'].inflate().split(''), c => c.charCodeAt(0));
 	game = new Polaris();
 	init();
 	loop();

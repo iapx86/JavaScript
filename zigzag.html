@@ -502,10 +502,10 @@ let BG, OBJ, RGB, PRG;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG = Uint8Array.from(zip.files['zz_d1.7l'].inflate() + zip.files['zz_d2.7k'].inflate() + zip.files['zz_d4.7f'].inflate() + zip.files['zz_d3.7h'].inflate(), c => c.charCodeAt(0));
-	BG = Uint8Array.from(Array.from(zip.files['zz_6.1h'].inflate().substring(0, 0x800) + zip.files['zz_5.1k'].inflate().substring(0, 0x800), c => c.charCodeAt(0)));
-	OBJ = Uint8Array.from(Array.from(zip.files['zz_6.1h'].inflate().substring(0x800) + zip.files['zz_5.1k'].inflate().substring(0x800), c => c.charCodeAt(0)));
-	RGB = Uint8Array.from(zip.files['zzbpr_e9.bin'].inflate(), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((zip.files['zz_d1.7l'].inflate() + zip.files['zz_d2.7k'].inflate() + zip.files['zz_d4.7f'].inflate() + zip.files['zz_d3.7h'].inflate()).split(''), c => c.charCodeAt(0));
+	BG = Uint8Array.from((zip.files['zz_6.1h'].inflate().substring(0, 0x800) + zip.files['zz_5.1k'].inflate().substring(0, 0x800)).split(''), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from((zip.files['zz_6.1h'].inflate().substring(0x800) + zip.files['zz_5.1k'].inflate().substring(0x800)).split(''), c => c.charCodeAt(0));
+	RGB = Uint8Array.from(zip.files['zzbpr_e9.bin'].inflate().split(''), c => c.charCodeAt(0));
 	game = new ZigZag();
 	sound = new AY_3_8910({clock: 1843200});
 	init();
