@@ -24,12 +24,13 @@ class AY_3_8910 {
 		this.step = 0;
 		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => {
+			const reg = this.reg;
 			outputBuffer.getChannelData(0).fill(0).forEach((e, i, data) => {
 				for (this.count += 60 * resolution; this.count >= audioCtx.sampleRate; this.count -= audioCtx.sampleRate) {
 					const q = this.wheel.shift();
 					q && q.forEach(e => this.checkwrite(e));
 				}
-				const reg = this.reg, nfreq = reg[6] & 0x1f, efreq = reg[11] | reg[12] << 8, etype = reg[13];
+				const nfreq = reg[6] & 0x1f, efreq = reg[11] | reg[12] << 8, etype = reg[13];
 				const evol = (~this.step ^ ((((etype ^ etype >> 1) & this.step >> 4 ^ ~etype >> 2) & 1) - 1)) & (~etype >> 3 & this.step >> 4 & 1) - 1 & 15;
 				this.channel.forEach((ch, j) => {
 					ch.freq = reg[j * 2] | reg[1 + j * 2] << 8 & 0xf00;

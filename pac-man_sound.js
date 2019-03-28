@@ -16,7 +16,7 @@ class PacManSound {
 		this.rate = 48000 / audioCtx.sampleRate / (1 << 14);
 		this.resolution = resolution;
 		this.gain = gain;
-		this.wheel = new Array(this.resolution);
+		this.wheel = new Array(resolution);
 		this.merger = audioCtx.createChannelMerger(24);
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
@@ -24,7 +24,7 @@ class PacManSound {
 		this.gainNode.connect(audioCtx.destination);
 		this.channel = [];
 		for (let i = 0; i < 3; i++) {
-			const ch = {voice: 0, freq: 0, vol: 0, source: [], gainNode: []};
+			const ch = {source: [], gainNode: []};
 			for (let j = 0; j < 8; j++) {
 				ch.source[j] = audioCtx.createBufferSource();
 				ch.source[j].buffer = this.audioBuffer[j];

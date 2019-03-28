@@ -35,12 +35,13 @@ registerProcessor('AY_3_8910', class extends AudioWorkletProcessor {
 		this.port.start();
 	}
 	process (inputs, outputs) {
+		const reg = this.reg;
 		outputs[0][0].fill(0).forEach((e, i, data) => {
 			for (this.count += 60 * this.resolution; this.count >= sampleRate; this.count -= sampleRate) {
 				const q = this.wheel.shift();
 				q && q.forEach(e => this.write(e));
 			}
-			const reg = this.reg, nfreq = reg[6] & 0x1f, efreq = reg[11] | reg[12] << 8, etype = reg[13];
+			const nfreq = reg[6] & 0x1f, efreq = reg[11] | reg[12] << 8, etype = reg[13];
 			const evol = (~this.step ^ ((((etype ^ etype >> 1) & this.step >> 4 ^ ~etype >> 2) & 1) - 1)) & (~etype >> 3 & this.step >> 4 & 1) - 1 & 15;
 			this.channel.forEach((ch, j) => {
 				ch.freq = reg[j * 2] | reg[1 + j * 2] << 8 & 0xf00;

@@ -21,7 +21,7 @@ class AY_3_8910 {
 		this.resolution = resolution;
 		this.gain = gain;
 		this.count = 0;
-		this.wheel = new Array(this.resolution);
+		this.wheel = new Array(resolution);
 		this.cycles = 0;
 		this.ecount = 0;
 		this.step = 0;
