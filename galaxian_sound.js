@@ -6,12 +6,13 @@
 
 class GalaxianSound {
 	constructor({SND, gain = 0.1}) {
+		const repeat = 8;
 		this.audioBuffer = [];
 		for (let i = 0; i < 2; i++) {
-			this.audioBuffer[i] = audioCtx.createBuffer(1, 32, audioCtx.sampleRate);
-			this.audioBuffer[i].getChannelData(0).forEach((e, j, buf) => buf[j] = (SND[i << 5 | j] & 0x0f) * 2 / 15 - 1);
+			this.audioBuffer[i] = audioCtx.createBuffer(1, 32 * repeat, audioCtx.sampleRate);
+			this.audioBuffer[i].getChannelData(0).forEach((e, j, buf) => buf[j] = (SND[i << 5 | Math.floor(j / repeat)] & 0x0f) * 2 / 15 - 1);
 		}
-		this.rate = 48000 / audioCtx.sampleRate * (1 << 7);
+		this.rate = 48000 * repeat / audioCtx.sampleRate * (1 << 7);
 		this.gain = gain;
 		this.muteflag = false;
 		this.channel = {source: [], gainNode: []};

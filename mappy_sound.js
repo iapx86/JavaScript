@@ -8,12 +8,13 @@ class MappySound {
 	constructor({SND, resolution = 1, gain = 0.1}) {
 		this.reg = new Uint8Array(0x40);
 		this.tmp = new Uint8Array(0x400);
+		const repeat = 8;
 		this.audioBuffer = [];
 		for (let i = 0; i < 8; i++) {
-			this.audioBuffer[i] = audioCtx.createBuffer(1, 32, audioCtx.sampleRate);
-			this.audioBuffer[i].getChannelData(0).forEach((e, j, buf) => buf[j] = (SND[i << 5 | j] & 0x0f) * 2 / 15 - 1);
+			this.audioBuffer[i] = audioCtx.createBuffer(1, 32 * repeat, audioCtx.sampleRate);
+			this.audioBuffer[i].getChannelData(0).forEach((e, j, buf) => buf[j] = (SND[i << 5 | Math.floor(j / repeat)] & 0x0f) * 2 / 15 - 1);
 		}
-		this.rate = 48000 / audioCtx.sampleRate / (1 << 16);
+		this.rate = 48000 * repeat / audioCtx.sampleRate / (1 << 16);
 		this.resolution = resolution;
 		this.gain = gain;
 		this.muteflag = false;
