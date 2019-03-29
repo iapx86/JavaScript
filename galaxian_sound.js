@@ -13,11 +13,7 @@ class GalaxianSound {
 		}
 		this.rate = 48000 / audioCtx.sampleRate * (1 << 7);
 		this.gain = gain;
-		this.merger = audioCtx.createChannelMerger(2);
-		this.gainNode = audioCtx.createGain();
-		this.gainNode.gain.value = gain;
-		this.merger.connect(this.gainNode);
-		this.gainNode.connect(audioCtx.destination);
+		this.muteflag = false;
 		this.channel = {source: [], gainNode: []};
 		for (let i = 0; i < 2; i++) {
 			this.channel.source[i] = audioCtx.createBufferSource();
@@ -25,13 +21,13 @@ class GalaxianSound {
 			this.channel.source[i].loop = true;
 			this.channel.gainNode[i] = audioCtx.createGain();
 			this.channel.source[i].connect(this.channel.gainNode[i]);
-			this.channel.gainNode[i].connect(this.merger);
+			this.channel.gainNode[i].connect(audioCtx.destination);
 			this.channel.source[i].start();
 		}
 	}
 
 	mute(flag) {
-		this.gainNode.gain.value = flag ? 0 : this.gain;
+		this.muteflag = flag;
 	}
 
 	update(game) {
@@ -39,7 +35,7 @@ class GalaxianSound {
 		const voice = reg[0x17] & 1;
 		const freq = (reg[0x17] + 1) * (256 - reg[0x30]);
 		this.channel.source.forEach(n => n.playbackRate.value = this.rate / freq);
-		this.channel.gainNode.forEach((n, i) => n.gain.value = i === voice);
+		this.channel.gainNode.forEach((n, i) => n.gain.value = i === voice && !this.muteflag ? this.gain : 0);
 	}
 }
 

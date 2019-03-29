@@ -16,12 +16,8 @@ class PacManSound {
 		this.rate = 48000 / audioCtx.sampleRate / (1 << 14);
 		this.resolution = resolution;
 		this.gain = gain;
+		this.muteflag = false;
 		this.wheel = new Array(resolution);
-		this.merger = audioCtx.createChannelMerger(24);
-		this.gainNode = audioCtx.createGain();
-		this.gainNode.gain.value = gain;
-		this.merger.connect(this.gainNode);
-		this.gainNode.connect(audioCtx.destination);
 		this.channel = [];
 		for (let i = 0; i < 3; i++) {
 			const ch = {source: [], gainNode: []};
@@ -31,7 +27,7 @@ class PacManSound {
 				ch.source[j].loop = true;
 				ch.gainNode[j] = audioCtx.createGain();
 				ch.source[j].connect(ch.gainNode[j]);
-				ch.gainNode[j].connect(this.merger);
+				ch.gainNode[j].connect(audioCtx.destination);
 				ch.source[j].start();
 			}
 			this.channel.push(ch);
@@ -39,7 +35,7 @@ class PacManSound {
 	}
 
 	mute(flag) {
-		this.gainNode.gain.value = flag ? 0 : this.gain;
+		this.muteflag = flag;
 	}
 
 	read(addr) {
@@ -68,7 +64,7 @@ class PacManSound {
 				const freq = (i ? 0 : reg[0x10]) | reg[0x11 + i * 5] << 4 | reg[0x12 + i * 5] << 8 | reg[0x13 + i * 5] << 12 | reg[0x14 + i * 5] << 16;
 				const vol = reg[0x15 + i * 5];
 				ch.source.forEach(n => n.playbackRate.setValueAtTime(this.rate * freq, start));
-				ch.gainNode.forEach((n, j) => n.gain.setValueAtTime(j === voice && freq ? vol / 15 : 0, start));
+				ch.gainNode.forEach((n, j) => n.gain.setValueAtTime(j === voice && freq && !this.muteflag ? vol / 15 * this.gain : 0, start));
 			});
 		}
 		this.wheel = new Array(this.resolution);

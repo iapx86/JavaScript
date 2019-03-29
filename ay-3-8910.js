@@ -20,23 +20,19 @@ class AY_3_8910 {
 		this.pbRate = this.rate * repeat / audioCtx.sampleRate / 2;
 		this.resolution = resolution;
 		this.gain = gain;
+		this.muteflag = false;
 		this.count = 0;
 		this.wheel = new Array(resolution);
 		this.cycles = 0;
 		this.ecount = 0;
 		this.step = 0;
-		this.merger = audioCtx.createChannelMerger(4);
-		this.gainNode = audioCtx.createGain();
-		this.gainNode.gain.value = gain;
-		this.merger.connect(this.gainNode);
-		this.gainNode.connect(audioCtx.destination);
 		this.channel = [];
 		for (let i = 0; i < 3; i++) {
 			const ch = {oscillator: audioCtx.createOscillator(), gainNode: audioCtx.createGain()};
 			ch.oscillator.type = 'square';
 			ch.gainNode.gain.value = 0;
 			ch.oscillator.connect(ch.gainNode);
-			ch.gainNode.connect(this.merger);
+			ch.gainNode.connect(audioCtx.destination);
 			ch.oscillator.start();
 			this.channel.push(ch);
 		}
@@ -45,12 +41,12 @@ class AY_3_8910 {
 		this.noise.source.loop = true;
 		this.noise.gainNode.gain.value = 0;
 		this.noise.source.connect(this.noise.gainNode);
-		this.noise.gainNode.connect(this.merger);
+		this.noise.gainNode.connect(audioCtx.destination);
 		this.noise.source.start();
 	}
 
 	mute(flag) {
-		this.gainNode.gain.value = flag ? 0 : this.gain;
+		this.muteflag = flag;
 	}
 
 	read(addr) {
@@ -88,14 +84,14 @@ class AY_3_8910 {
 				const freq = reg[i * 2] | reg[1 + i * 2] << 8 & 0xf00;
 				ch.oscillator.frequency.setValueAtTime(this.clock / 16 / (freq ? freq : 1), start);
 				const vol = (reg[7] >> i & 1) !== 0 ? 0 : (reg[8 + i] >> 4 & 1) !== 0 ? evol : reg[8 + i] & 0x0f;
-				ch.gainNode.gain.setValueAtTime(vol ? Math.pow(2, (vol - 15) / 2) : 0, start);
+				ch.gainNode.gain.setValueAtTime(vol && !this.muteflag ? Math.pow(2, (vol - 15) / 2) : 0, start);
 			});
 			const nfreq = reg[6] & 0x1f;
 			this.noise.source.playbackRate.setValueAtTime(this.pbRate / (nfreq ? nfreq : 1), start);
 			let nvol = 0;
 			for (let i = 0; i < 3; i++) {
 				const vol = (reg[7] >> i + 3 & 1) !== 0 ? 0 : (reg[8 + i] >> 4 & 1) !== 0 ? evol : reg[8 + i] & 0x0f;
-				nvol += vol ? Math.pow(2, (vol - 15) / 2) : 0;
+				nvol += vol && !this.muteflag ? Math.pow(2, (vol - 15) / 2) : 0;
 			}
 			this.noise.gainNode.gain.setValueAtTime(nvol, start);
 			for (this.count += this.rate; this.count >= 60 * this.resolution; this.count -= 60 * this.resolution)

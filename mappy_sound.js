@@ -16,24 +16,18 @@ class MappySound {
 		this.rate = 48000 / audioCtx.sampleRate / (1 << 16);
 		this.resolution = resolution;
 		this.gain = gain;
+		this.muteflag = false;
 		this.wheel = new Array(resolution);
-		this.merger = audioCtx.createChannelMerger(8);
-		this.gainNode = audioCtx.createGain();
-		this.gainNode.gain.value = gain;
-		this.merger.connect(this.gainNode);
-		this.gainNode.connect(audioCtx.destination);
 		this.channel = [];
 		for (let i = 0; i < 8; i++) {
 			const ch = {source: [], gainNode: []};
-			ch.merger = audioCtx.createChannelMerger(8);
-			ch.merger.connect(this.merger);
 			for (let j = 0; j < 8; j++) {
 				ch.source[j] = audioCtx.createBufferSource();
 				ch.source[j].buffer = this.audioBuffer[j];
 				ch.source[j].loop = true;
 				ch.gainNode[j] = audioCtx.createGain();
 				ch.source[j].connect(ch.gainNode[j]);
-				ch.gainNode[j].connect(ch.merger);
+				ch.gainNode[j].connect(audioCtx.destination);
 				ch.source[j].start();
 			}
 			this.channel.push(ch);
@@ -41,7 +35,7 @@ class MappySound {
 	}
 
 	mute(flag) {
-		this.gainNode.gain.value = flag ? 0 : this.gain;
+		this.muteflag = flag;
 	}
 
 	read(addr) {
@@ -72,7 +66,7 @@ class MappySound {
 				const freq = reg[4 + i * 8] | reg[5 + i * 8] << 8 | reg[6 + i * 8] << 16 & 0xf0000;
 				const vol = reg[3 + i * 8] & 0x0f;
 				ch.source.forEach(n => n.playbackRate.setValueAtTime(this.rate * freq, start));
-				ch.gainNode.forEach((n, j) => n.gain.setValueAtTime(j === voice && freq ? vol / 15 : 0, start));
+				ch.gainNode.forEach((n, j) => n.gain.setValueAtTime(j === voice && freq && !this.muteflag ? vol / 15 * this.gain : 0, start));
 			});
 		}
 		this.wheel = new Array(this.resolution);
