@@ -84,14 +84,14 @@ class AY_3_8910 {
 				const freq = reg[i * 2] | reg[1 + i * 2] << 8 & 0xf00;
 				ch.oscillator.frequency.setValueAtTime(this.clock / 16 / (freq ? freq : 1), start);
 				const vol = (reg[7] >> i & 1) !== 0 ? 0 : (reg[8 + i] >> 4 & 1) !== 0 ? evol : reg[8 + i] & 0x0f;
-				ch.gainNode.gain.setValueAtTime(vol && !this.muteflag ? Math.pow(2, (vol - 15) / 2) : 0, start);
+				ch.gainNode.gain.setValueAtTime(vol && !this.muteflag ? Math.pow(2, (vol - 15) / 2) * this.gain : 0, start);
 			});
 			const nfreq = reg[6] & 0x1f;
 			this.noise.source.playbackRate.setValueAtTime(this.pbRate / (nfreq ? nfreq : 1), start);
 			let nvol = 0;
 			for (let i = 0; i < 3; i++) {
 				const vol = (reg[7] >> i + 3 & 1) !== 0 ? 0 : (reg[8 + i] >> 4 & 1) !== 0 ? evol : reg[8 + i] & 0x0f;
-				nvol += vol && !this.muteflag ? Math.pow(2, (vol - 15) / 2) : 0;
+				nvol += vol && !this.muteflag ? Math.pow(2, (vol - 15) / 2) * this.gain : 0;
 			}
 			this.noise.gainNode.gain.setValueAtTime(nvol, start);
 			for (this.count += this.rate; this.count >= 60 * this.resolution; this.count -= 60 * this.resolution)
