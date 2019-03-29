@@ -6,7 +6,7 @@
 
 class GalaxianSound {
 	constructor({SND, gain = 0.1}) {
-		const repeat = 8;
+		const repeat = 16;
 		this.audioBuffer = [];
 		for (let i = 0; i < 2; i++) {
 			this.audioBuffer[i] = audioCtx.createBuffer(1, 32 * repeat, audioCtx.sampleRate);

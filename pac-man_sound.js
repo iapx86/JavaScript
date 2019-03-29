@@ -8,7 +8,7 @@ class PacManSound {
 	constructor({SND, resolution = 1, gain = 0.1}) {
 		this.reg = new Uint8Array(0x20);
 		this.tmp = new Uint8Array(0x20);
-		const repeat = 8;
+		const repeat = 16;
 		this.audioBuffer = [];
 		for (let i = 0; i < 8; i++) {
 			this.audioBuffer[i] = audioCtx.createBuffer(1, 32 * repeat, audioCtx.sampleRate);
