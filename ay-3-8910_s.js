@@ -6,12 +6,13 @@
 
 class AY_3_8910 {
 	constructor({clock, resolution = 1, gain = 0.1}) {
+		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.reg = new Uint8Array(0x10);
 		this.tmp = new Uint8Array(0x10);
 		this.rate = Math.floor(clock / 8);
 		this.resolution = resolution;
 		this.gain = gain;
-		this.count = audioCtx.sampleRate - 1;
+		this.count = this.sampleRate - 1;
 		this.wheel = [];
 		this.tmpwheel = new Array(resolution);
 		this.cycles = 0;
@@ -26,7 +27,7 @@ class AY_3_8910 {
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => {
 			const reg = this.reg;
 			outputBuffer.getChannelData(0).fill(0).forEach((e, i, data) => {
-				for (this.count += 60 * resolution; this.count >= audioCtx.sampleRate; this.count -= audioCtx.sampleRate) {
+				for (this.count += 60 * resolution; this.count >= this.sampleRate; this.count -= this.sampleRate) {
 					const q = this.wheel.shift();
 					q && q.forEach(e => this.checkwrite(e));
 				}
@@ -37,7 +38,7 @@ class AY_3_8910 {
 					const vol = (reg[8 + j] >> 4 & 1) !== 0 ? evol : reg[8 + j] & 0x0f;
 					data[i] += (((reg[7] >> j | ch.output) & (reg[7] >> j + 3 | this.rng) & 1) * 2 - 1) * (vol ? Math.pow(2, (vol - 15) / 2) : 0);
 				});
-				for (this.cycles += this.rate; this.cycles >= audioCtx.sampleRate; this.cycles -= audioCtx.sampleRate) {
+				for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {
 					this.channel.forEach(ch => {
 						if (++ch.count >= ch.freq) {
 							ch.count = 0;
@@ -85,7 +86,7 @@ class AY_3_8910 {
 	update() {
 		if (this.wheel.length >= this.resolution) {
 			this.wheel.forEach(q => q.forEach(e => this.checkwrite(e)));
-			this.count = audioCtx.sampleRate - 1;
+			this.count = this.sampleRate - 1;
 			this.wheel = [];
 		}
 		this.wheel = this.wheel.concat(this.tmpwheel);

@@ -5,18 +5,16 @@
  */
 
 class SoundEffect {
-	constructor({se, freq = 44100, gain = 1}) {
+	constructor({se, freq = audioCtx.sampleRate, gain = 1}) {
 		this.se = se;
 		se.forEach(se => {
-			se.audioBuffer = audioCtx.createBuffer(1, se.buf.length, 44100);
+			se.audioBuffer = audioCtx.createBuffer(1, se.buf.length, audioCtx.sampleRate);
 			se.audioBuffer.getChannelData(0).forEach((e, i, buf) => buf[i] = se.buf[i] / 32767);
-			se.playbackRate = freq / 44100;
+			se.playbackRate = freq / audioCtx.sampleRate;
+			se.gainNode = audioCtx.createGain();
+			se.gainNode.gain.value = gain;
+			se.gainNode.connect(audioCtx.destination);
 		});
-		this.merger = audioCtx.createChannelMerger(1);
-		this.gain = audioCtx.createGain();
-		this.gain.gain.value = gain;
-		this.merger.connect(this.gain);
-		this.gain.connect(audioCtx.destination);
 	}
 
 	update() {
@@ -30,7 +28,7 @@ class SoundEffect {
 				se.audioBufferSource.buffer = se.audioBuffer;
 				se.audioBufferSource.loop = se.loop;
 				se.audioBufferSource.playbackRate.value = se.playbackRate;
-				se.audioBufferSource.connect(this.merger);
+				se.audioBufferSource.connect(se.gainNode);
 				se.audioBufferSource.start();
 			}
 			se.start = se.stop = false;

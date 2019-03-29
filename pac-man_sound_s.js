@@ -6,13 +6,14 @@
 
 class PacManSound {
 	constructor({SND, resolution = 1, gain = 0.1}) {
+		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.reg = new Uint8Array(0x20);
 		this.tmp = new Uint8Array(0x20);
 		this.snd = Float32Array.from(SND, e => (e & 0x0f) * 2 / 15 - 1);
 		this.rate = Math.floor(8192 * 48000 / audioCtx.sampleRate);
 		this.resolution = resolution;
 		this.gain = gain;
-		this.count = audioCtx.sampleRate - 1;
+		this.count = this.sampleRate - 1;
 		this.wheel = [];
 		this.tmpwheel = new Array(resolution);
 		this.phase = new Uint32Array(3);
@@ -20,7 +21,7 @@ class PacManSound {
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => {
 			const reg = this.reg;
 			outputBuffer.getChannelData(0).fill(0).forEach((e, i, data) => {
-				for (this.count += 60 * resolution; this.count >= audioCtx.sampleRate; this.count -= audioCtx.sampleRate) {
+				for (this.count += 60 * resolution; this.count >= this.sampleRate; this.count -= this.sampleRate) {
 					const q = this.wheel.shift();
 					q && q.forEach(({addr, data}) => reg[addr] = data);
 				}
@@ -58,7 +59,7 @@ class PacManSound {
 	update() {
 		if (this.wheel.length >= this.resolution) {
 			this.wheel.forEach(q => q.forEach(({addr, data}) => this.reg[addr] = data));
-			this.count = audioCtx.sampleRate - 1;
+			this.count = this.sampleRate - 1;
 			this.wheel = [];
 		}
 		this.wheel = this.wheel.concat(this.tmpwheel);

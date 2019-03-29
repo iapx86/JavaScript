@@ -9,11 +9,12 @@ registerProcessor('MappySound', class extends AudioWorkletProcessor {
 	constructor (options) {
 		super(options);
 		const {processorOptions: {SND, resolution}} = options;
+		this.sampleRate = Math.floor(sampleRate);
 		this.reg = new Uint8Array(0x40);
 		this.snd = Float32Array.from(SND, e => (e & 0x0f) * 2 / 15 - 1);
 		this.rate = Math.floor(2048 * 48000 / sampleRate);
 		this.resolution = resolution;
-		this.count = sampleRate - 1;
+		this.count = this.sampleRate - 1;
 		this.wheel = [];
 		this.phase = new Uint32Array(8);
 		this.port.onmessage = ({data: {wheel}}) => {
@@ -21,7 +22,7 @@ registerProcessor('MappySound', class extends AudioWorkletProcessor {
 				return;
 			if (this.wheel.length >= resolution) {
 				this.wheel.forEach(q => q.forEach(({addr, data}) => this.reg[addr] = data));
-				this.count = sampleRate - 1;
+				this.count = this.sampleRate - 1;
 				this.wheel = [];
 			}
 			this.wheel = this.wheel.concat(wheel);
@@ -31,7 +32,7 @@ registerProcessor('MappySound', class extends AudioWorkletProcessor {
 	process (inputs, outputs) {
 		const reg = this.reg;
 		outputs[0][0].fill(0).forEach((e, i, data) => {
-			for (this.count += 60 * this.resolution; this.count >= sampleRate; this.count -= sampleRate) {
+			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate) {
 				const q = this.wheel.shift();
 				q && q.forEach(({addr, data}) => reg[addr] = data);
 			}

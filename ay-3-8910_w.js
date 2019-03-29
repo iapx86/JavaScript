@@ -9,10 +9,11 @@ registerProcessor('AY_3_8910', class extends AudioWorkletProcessor {
 	constructor (options) {
 		super(options);
 		const {processorOptions: {clock, resolution}} = options;
+		this.sampleRate = Math.floor(sampleRate);
 		this.reg = new Uint8Array(0x10);
 		this.rate = Math.floor(clock / 8);
 		this.resolution = resolution;
-		this.count = sampleRate - 1;
+		this.count = this.sampleRate - 1;
 		this.wheel = [];
 		this.cycles = 0;
 		this.channel = [];
@@ -27,7 +28,7 @@ registerProcessor('AY_3_8910', class extends AudioWorkletProcessor {
 				return;
 			if (this.wheel.length >= resolution) {
 				this.wheel.forEach(q => q.forEach(e => this.write(e)));
-				this.count = sampleRate - 1;
+				this.count = this.sampleRate - 1;
 				this.wheel = [];
 			}
 			this.wheel = this.wheel.concat(wheel);
@@ -37,7 +38,7 @@ registerProcessor('AY_3_8910', class extends AudioWorkletProcessor {
 	process (inputs, outputs) {
 		const reg = this.reg;
 		outputs[0][0].fill(0).forEach((e, i, data) => {
-			for (this.count += 60 * this.resolution; this.count >= sampleRate; this.count -= sampleRate) {
+			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate) {
 				const q = this.wheel.shift();
 				q && q.forEach(e => this.write(e));
 			}
@@ -48,7 +49,7 @@ registerProcessor('AY_3_8910', class extends AudioWorkletProcessor {
 				const vol = (reg[8 + j] >> 4 & 1) !== 0 ? evol : reg[8 + j] & 0x0f;
 				data[i] += (((reg[7] >> j | ch.output) & (reg[7] >> j + 3 | this.rng) & 1) * 2 - 1) * (vol ? Math.pow(2, (vol - 15) / 2) : 0);
 			});
-			for (this.cycles += this.rate; this.cycles >= sampleRate; this.cycles -= sampleRate) {
+			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {
 				this.channel.forEach(ch => {
 					if (++ch.count >= ch.freq) {
 						ch.count = 0;
