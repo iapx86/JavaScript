@@ -6,41 +6,67 @@
 
 class AY_3_8910 {
 	constructor({clock, resolution = 1, gain = 0.1}) {
+		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.reg = new Uint8Array(0x10);
 		this.tmp = new Uint8Array(0x10);
-		const repeat = 16;
-		this.noiseBuffer = new AudioBuffer({length: 131071 * repeat, sampleRate: audioCtx.sampleRate});
-		for (let data = this.noiseBuffer.getChannelData(0), rng = 0xffff, i = 0; i < data.length; i++) {
-			if (i % repeat === 0)
-				rng = (rng >>> 16 ^ rng >>> 13 ^ 1) & 1 | rng << 1;
-			data[i] = (rng & 1) * 2 - 1;
-		}
-		this.clock = clock;
 		this.rate = Math.floor(clock / 8);
-		this.minfreq = Math.ceil(clock / 8 / audioCtx.sampleRate);
-		this.pbRate = clock * repeat / 16 / audioCtx.sampleRate;
 		this.resolution = resolution;
 		this.gain = gain;
-		this.muteflag = false;
-		this.count = 0;
-		this.wheel = new Array(resolution);
+		this.count = this.sampleRate - 1;
+		this.wheel = [];
+		this.tmpwheel = new Array(resolution);
 		this.cycles = 0;
+		this.channel = [];
+		for (let i = 0; i < 3; i++)
+			this.channel.push({freq: 0, count: 0, output: 0});
+		this.ncount = 0;
+		this.rng = 0xffff;
 		this.ecount = 0;
 		this.step = 0;
-		this.channel = [];
-		for (let i = 0; i < 3; i++) {
-			const ch = {oscillator: new OscillatorNode(audioCtx, {type: 'square'}), gainNode: new GainNode(audioCtx, {gain: 0})};
-			ch.oscillator.connect(ch.gainNode).connect(audioCtx.destination);
-			ch.oscillator.start();
-			this.channel.push(ch);
-		}
-		this.noise = {source: new AudioBufferSourceNode(audioCtx, {buffer: this.noiseBuffer, loop: true}), gainNode: new GainNode(audioCtx, {gain: 0})};
-		this.noise.source.connect(this.noise.gainNode).connect(audioCtx.destination);
-		this.noise.source.start();
+		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
+		this.scriptNode.onaudioprocess = ({outputBuffer}) => {
+			const reg = this.reg;
+			outputBuffer.getChannelData(0).fill(0).forEach((e, i, data) => {
+				for (this.count += 60 * resolution; this.count >= this.sampleRate; this.count -= this.sampleRate) {
+					const q = this.wheel.shift();
+					q && q.forEach(e => this.checkwrite(e));
+				}
+				const nfreq = reg[6] & 0x1f, efreq = reg[11] | reg[12] << 8, etype = reg[13];
+				const evol = (~this.step ^ ((((etype ^ etype >> 1) & this.step >> 4 ^ ~etype >> 2) & 1) - 1)) & (~etype >> 3 & this.step >> 4 & 1) - 1 & 15;
+				this.channel.forEach((ch, j) => {
+					ch.freq = reg[j * 2] | reg[1 + j * 2] << 8 & 0xf00;
+					const vol = (reg[8 + j] >> 4 & 1) !== 0 ? evol : reg[8 + j] & 0x0f;
+					data[i] += (((reg[7] >> j | ch.output) & (reg[7] >> j + 3 | this.rng) & 1) * 2 - 1) * (vol ? Math.pow(2, (vol - 15) / 2) : 0);
+				});
+				for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {
+					this.channel.forEach(ch => {
+						if (++ch.count >= ch.freq) {
+							ch.count = 0;
+							ch.output = ~ch.output;
+						}
+					});
+					if (++this.ncount >= nfreq << 1) {
+						this.ncount = 0;
+						this.rng = (this.rng >> 16 ^ this.rng >> 13 ^ 1) & 1 | this.rng << 1;
+					}
+					if (++this.ecount >= efreq) {
+						this.ecount = 0;
+						this.step += ((this.step < 16) | etype >> 3 & ~etype & 1) - (this.step >= 47) * 32;
+					}
+				}
+			});
+		};
+		this.source = audioCtx.createBufferSource();
+		this.gainNode = audioCtx.createGain();
+		this.gainNode.gain.value = this.gain;
+		this.source.connect(this.scriptNode);
+		this.scriptNode.connect(this.gainNode);
+		this.gainNode.connect(audioCtx.destination);
+		this.source.start();
 	}
 
 	mute(flag) {
-		this.muteflag = flag;
+		this.gainNode.gain.value = flag ? 0 : this.gain;
 	}
 
 	read(addr) {
@@ -51,50 +77,26 @@ class AY_3_8910 {
 		this.tmp[addr &= 0x0f] = data;
 		if (addr >= 0x0e)
 			return;
-		if (this.wheel[timer])
-			this.wheel[timer].push({addr, data});
+		if (this.tmpwheel[timer])
+			this.tmpwheel[timer].push({addr, data});
 		else
-			this.wheel[timer] = [{addr, data}];
+			this.tmpwheel[timer] = [{addr, data}];
 	}
 
 	update() {
-		const now = audioCtx.currentTime;
-		this.channel.forEach(ch => {
-			ch.oscillator.frequency.cancelScheduledValues(0);
-			ch.gainNode.gain.cancelScheduledValues(0);
-		});
-		this.noise.source.playbackRate.cancelScheduledValues(0);
-		this.noise.gainNode.gain.cancelScheduledValues(0);
-		for (let timer = 0; timer < this.resolution; timer++) {
-			const reg = this.reg, q = this.wheel.shift(), start = now + timer / this.resolution / 60;
-			q && q.forEach(({addr, data}) => {
-				reg[addr] = data;
-				if (addr === 13)
-					this.step = 0;
-			});
-			const efreq = reg[11] | reg[12] << 8, etype = reg[13];
-			const evol = (~this.step ^ ((((etype ^ etype >> 1) & this.step >> 4 ^ ~etype >> 2) & 1) - 1)) & (~etype >> 3 & this.step >> 4 & 1) - 1 & 15;
-			this.channel.forEach((ch, i) => {
-				const freq = reg[i * 2] | reg[1 + i * 2] << 8 & 0xf00;
-				freq >= this.minfreq && ch.oscillator.frequency.setValueAtTime(this.clock / 16 / (freq ? freq : 1), start);
-				const vol = (reg[7] >> i & 1) !== 0 ? 0 : (reg[8 + i] >> 4 & 1) !== 0 ? evol : reg[8 + i] & 0x0f;
-				ch.gainNode.gain.setValueAtTime(vol && !this.muteflag && freq >= this.minfreq ? Math.pow(2, (vol - 15) / 2) * this.gain : 0, start);
-			});
-			const nfreq = reg[6] & 0x1f;
-			this.noise.source.playbackRate.setValueAtTime(this.pbRate / (nfreq ? nfreq : 1), start);
-			let nvol = 0;
-			for (let i = 0; i < 3; i++) {
-				const vol = (reg[7] >> i + 3 & 1) !== 0 ? 0 : (reg[8 + i] >> 4 & 1) !== 0 ? evol : reg[8 + i] & 0x0f;
-				nvol += vol && !this.muteflag ? Math.pow(2, (vol - 15) / 2) * this.gain : 0;
-			}
-			this.noise.gainNode.gain.setValueAtTime(nvol, start);
-			for (this.count += this.rate; this.count >= 60 * this.resolution; this.count -= 60 * this.resolution)
-				if (++this.ecount >= efreq) {
-					this.ecount = 0;
-					this.step += ((this.step < 16) | etype >> 3 & ~etype & 1) - (this.step >= 47) * 32;
-				}
+		if (this.wheel.length >= this.resolution) {
+			this.wheel.forEach(q => q.forEach(e => this.checkwrite(e)));
+			this.count = this.sampleRate - 1;
+			this.wheel.splice(0);
 		}
-		this.wheel = new Array(this.resolution);
+		this.wheel = this.wheel.concat(this.tmpwheel);
+		this.tmpwheel = new Array(this.resolution);
+	}
+
+	checkwrite({addr, data}) {
+		this.reg[addr] = data;
+		if (addr === 13)
+			this.step = 0;
 	}
 }
 

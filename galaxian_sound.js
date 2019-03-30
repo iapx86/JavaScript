@@ -6,37 +6,34 @@
 
 class GalaxianSound {
 	constructor({SND, gain = 0.1}) {
-		const repeat = 16;
-		this.audioBuffer = [];
-		for (let i = 0; i < 2; i++) {
-			this.audioBuffer[i] = audioCtx.createBuffer(1, 32 * repeat, audioCtx.sampleRate);
-			this.audioBuffer[i].getChannelData(0).forEach((e, j, buf) => buf[j] = (SND[i << 5 | Math.floor(j / repeat)] & 0x0f) * 2 / 15 - 1);
-		}
-		this.rate = 48000 * repeat / audioCtx.sampleRate * (1 << 7);
+		this.snd = Float32Array.from(SND, e => (e & 0x0f) * 2 / 15 - 1);
+		this.rate = Math.floor(0x10000000 * (48000 / audioCtx.sampleRate));
 		this.gain = gain;
-		this.muteflag = false;
-		this.channel = {source: [], gainNode: []};
-		for (let i = 0; i < 2; i++) {
-			this.channel.source[i] = audioCtx.createBufferSource();
-			this.channel.source[i].buffer = this.audioBuffer[i];
-			this.channel.source[i].loop = true;
-			this.channel.gainNode[i] = audioCtx.createGain();
-			this.channel.source[i].connect(this.channel.gainNode[i]);
-			this.channel.gainNode[i].connect(audioCtx.destination);
-			this.channel.source[i].start();
-		}
+		this.channel = {voice: 0, freq: 0, phase: 0};
+		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
+		this.scriptNode.onaudioprocess = ({outputBuffer}) => {
+			outputBuffer.getChannelData(0).forEach((e, i, data) => {
+				data[i] = this.snd[this.channel.voice << 5 | this.channel.phase >>> 21 & 31];
+				this.channel.phase += this.channel.freq;
+			});
+		};
+		this.source = audioCtx.createBufferSource();
+		this.gainNode = audioCtx.createGain();
+		this.gainNode.gain.value = this.gain;
+		this.source.connect(this.scriptNode);
+		this.scriptNode.connect(this.gainNode);
+		this.gainNode.connect(audioCtx.destination);
+		this.source.start();
 	}
 
 	mute(flag) {
-		this.muteflag = flag;
+		this.gainNode.gain.value = flag ? 0 : this.gain;
 	}
 
 	update(game) {
 		const reg = game.mmo;
-		const voice = reg[0x17] & 1;
-		const freq = (reg[0x17] + 1) * (256 - reg[0x30]);
-		this.channel.source.forEach(n => n.playbackRate.value = this.rate / freq);
-		this.channel.gainNode.forEach((n, i) => n.gain.value = i === voice && !this.muteflag ? this.gain : 0);
+		this.channel.voice = reg[0x17] & 1;
+		this.channel.freq = Math.floor(this.rate / ((reg[0x17] + 1) * (256 - reg[0x30])));
 	}
 }
 
