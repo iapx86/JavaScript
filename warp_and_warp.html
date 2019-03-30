@@ -404,7 +404,7 @@ class WarpAndWarpSound {
 		};
 		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
-		this.gainNode.gain.value = this.gain;
+		this.gainNode.gain.value = gain;
 		this.source.connect(this.scriptNode);
 		this.scriptNode.connect(this.gainNode);
 		this.gainNode.connect(audioCtx.destination);

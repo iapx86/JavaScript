@@ -136,16 +136,13 @@ class Grobda {
 
 		// ブレークポイントコールバック
 		function hookBreakPoint1(addr, game) {
-			switch (addr) {
-			case 0xea2c:
+			if (addr === 0xea2c)
 				game.se[0].start = game.se[0].stop = true;
-				break;
-			}
 		}
 	}
 
 	execute() {
-		sound.mute(!this.fSoundEnable);
+		sound[0].mute(!this.fSoundEnable);
 		if (this.fInterruptEnable0)
 			this.cpu[0].interrupt();
 		if (this.fInterruptEnable1)
@@ -295,13 +292,11 @@ class Grobda {
 				this.ram[0x2401] = i & 0x0f;
 				break;
 			}
-			switch (this.ram[0x2418] & 0x0f) {
-			case 8:
+			if ((this.ram[0x2418] & 0x0f) === 8) {
 				for (i = 0, p = 0x2419; p < 0x2420; p++)
 					i += this.ram[p] & 0x0f;
 				this.ram[0x2410] = i >>> 4 & 0x0f;
 				this.ram[0x2411] = i & 0x0f;
-				break;
 			}
 		}
 		return this;
@@ -699,8 +694,8 @@ class Grobda {
  *
  */
 
-const url = 'grobda.zip';
 const GETREADY = new Int16Array(Math.ceil(8837 * 22050 / 14800));
+const url = 'grobda.zip';
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));

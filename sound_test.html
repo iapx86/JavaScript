@@ -149,7 +149,7 @@ class SoundTest {
 
 	right(fDown = false) {
 		if (fDown)
-			return;
+			return this;
 		this.nSound = this.nSound + 1 & 0x1f;
 		return this;
 	}
@@ -160,21 +160,25 @@ class SoundTest {
 
 	left(fDown = false) {
 		if (fDown)
-			return;
+			return this;
 		this.nSound = this.nSound - 1 & 0x1f;
 		return this;
 	}
 
 	triggerA(fDown = false) {
 		if (fDown)
-			return;
+			return this;
 		for (let addr = 0x40; addr < 0x80; addr ++)
 			sound.write(addr, 0);
 		sound.write(0x40 + this.nSound, 1);
 		return this;
 	}
 
-	triggerB() {
+	triggerB(fDown = false) {
+		if (fDown)
+			return this;
+		for (let addr = 0x40; addr < 0x80; addr ++)
+			sound.write(addr, 0);
 		return this;
 	}
 
@@ -214,8 +218,8 @@ class SoundTest {
  *
  */
 
-const url = 'liblrabl.zip';
 const key = [];
+const url = 'liblrabl.zip';
 let SND, PRG2;
 
 window.addEventListener('load', () => {

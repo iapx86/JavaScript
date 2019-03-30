@@ -2562,11 +2562,11 @@ Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkAtf+4/vP9AP4=
  *
  */
 
-const url1 = 'kingballj.zip';
-const url2 = 'kingball.zip';
 const HELP = new Int16Array((0x700 * 2 + 0x1200) * 11025 / 5000 | 0);
 const THANKYOU = new Int16Array(0x800 * 2 * 11025 / 5000 | 0);
 const BYEBYE = new Int16Array(0x800 * 2 * 11025 / 5000 | 0);
+const url1 = 'kingballj.zip';
+const url2 = 'kingball.zip';
 let BG, RGB, PRG, VOICE;
 
 window.addEventListener('load', () => $.ajax({url: url1, success: success1, error: () => alert(url1 + ': failed to get')}));

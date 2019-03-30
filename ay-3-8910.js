@@ -17,7 +17,8 @@ class AY_3_8910 {
 		}
 		this.clock = clock;
 		this.rate = Math.floor(clock / 8);
-		this.pbRate = this.rate * repeat / audioCtx.sampleRate / 2;
+		this.minfreq = Math.ceil(clock / 8 / audioCtx.sampleRate);
+		this.pbRate = clock * repeat / 16 / audioCtx.sampleRate;
 		this.resolution = resolution;
 		this.gain = gain;
 		this.muteflag = false;
@@ -82,9 +83,9 @@ class AY_3_8910 {
 			const evol = (~this.step ^ ((((etype ^ etype >> 1) & this.step >> 4 ^ ~etype >> 2) & 1) - 1)) & (~etype >> 3 & this.step >> 4 & 1) - 1 & 15;
 			this.channel.forEach((ch, i) => {
 				const freq = reg[i * 2] | reg[1 + i * 2] << 8 & 0xf00;
-				ch.oscillator.frequency.setValueAtTime(this.clock / 16 / (freq ? freq : 1), start);
+				freq >= this.minfreq && ch.oscillator.frequency.setValueAtTime(this.clock / 16 / (freq ? freq : 1), start);
 				const vol = (reg[7] >> i & 1) !== 0 ? 0 : (reg[8 + i] >> 4 & 1) !== 0 ? evol : reg[8 + i] & 0x0f;
-				ch.gainNode.gain.setValueAtTime(vol && !this.muteflag ? Math.pow(2, (vol - 15) / 2) * this.gain : 0, start);
+				ch.gainNode.gain.setValueAtTime(vol && !this.muteflag && freq >= this.minfreq ? Math.pow(2, (vol - 15) / 2) * this.gain : 0, start);
 			});
 			const nfreq = reg[6] & 0x1f;
 			this.noise.source.playbackRate.setValueAtTime(this.pbRate / (nfreq ? nfreq : 1), start);

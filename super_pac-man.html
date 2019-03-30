@@ -279,13 +279,11 @@ class SuperPacMan {
 				this.ram[0x2401] = i & 0x0f;
 				break;
 			}
-			switch (this.ram[0x2418] & 0x0f) {
-			case 8:
+			if ((this.ram[0x2418] & 0x0f) === 8) {
 				for (i = 0, p = 0x2419; p < 0x2420; p++)
 					i += this.ram[p] & 0x0f;
 				this.ram[0x2410] = i >>> 4 & 0x0f;
 				this.ram[0x2411] = i & 0x0f;
-				break;
 			}
 			this.port[5] &= ~1;
 		}
@@ -345,8 +343,8 @@ class SuperPacMan {
 	convertRGB() {
 		for (let i = 0; i < 0x20; i++)
 			this.rgb[i] = (RGB[i] & 7) * 255 / 7	// Red
-				| (RGB[i] >>> 3 & 7) * 255 / 7 << 8 // Green
-				| (RGB[i] >>> 6) * 255 / 3 << 16;   // Blue
+				| (RGB[i] >>> 3 & 7) * 255 / 7 << 8	// Green
+				| (RGB[i] >>> 6) * 255 / 3 << 16;	// Blue
 	}
 
 	convertBG() {

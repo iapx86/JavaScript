@@ -255,11 +255,8 @@ class Bosconian {
 					}
 					break;
 				case 0x16d3:
-					switch (game.cpu[0].c_prime) {
-					case 0x02:
+					if (game.cpu[0].c_prime === 0x02)
 						game.se[2].start = game.se[2].stop = true;
-						break;
-					}
 					break;
 				}
 				break;

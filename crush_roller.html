@@ -340,18 +340,18 @@ class CrushRoller {
 				continue;
 			const y = (-this.ram[p + 0x71] & 0xff) + 32;
 			switch (this.ram[p] & 3) {
-				case 0: // ノーマル
-					this.xfer16x16(data, x | y << 8, this.ram[p] | this.ram[p + 1] << 8);
-					break;
-				case 1: // V反転
-					this.xfer16x16V(data, x | y << 8, this.ram[p] | this.ram[p + 1] << 8);
-					break;
-				case 2: // H反転
-					this.xfer16x16H(data, x | y << 8, this.ram[p] | this.ram[p + 1] << 8);
-					break;
-				case 3: // HV反転
-					this.xfer16x16HV(data, x | y << 8, this.ram[p] | this.ram[p + 1] << 8);
-					break;
+			case 0: // ノーマル
+				this.xfer16x16(data, x | y << 8, this.ram[p] | this.ram[p + 1] << 8);
+				break;
+			case 1: // V反転
+				this.xfer16x16V(data, x | y << 8, this.ram[p] | this.ram[p + 1] << 8);
+				break;
+			case 2: // H反転
+				this.xfer16x16H(data, x | y << 8, this.ram[p] | this.ram[p + 1] << 8);
+				break;
+			case 3: // HV反転
+				this.xfer16x16HV(data, x | y << 8, this.ram[p] | this.ram[p + 1] << 8);
+				break;
 			}
 		}
 

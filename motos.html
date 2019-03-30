@@ -223,21 +223,17 @@ class Motos {
 			let i, p;
 			this.ram.set(this.port.subarray(0, 8), 0x2c00);
 			this.ram.set(this.port.subarray(0x10, 0x18), 0x2c10);
-			switch (this.ram[0x2c08] & 0x0f) {
-			case 8:
+			if ((this.ram[0x2c08] & 0x0f) === 8) {
 				for (i = 0, p = 0x2c09; p < 0x2c10; p++)
 					i += this.ram[p] & 0x0f;
 				this.ram[0x2c00] = i >>> 4 & 0x0f;
 				this.ram[0x2c01] = i & 0x0f;
-				break;
 			}
-			switch (this.ram[0x2c18] & 0x0f) {
-			case 8:
+			if ((this.ram[0x2c18] & 0x0f) === 8) {
 				for (i = 0, p = 0x2c19; p < 0x2c20; p++)
 					i += this.ram[p] & 0x0f;
 				this.ram[0x2c10] = i >>> 4 & 0x0f;
 				this.ram[0x2c11] = i & 0x0f;
-				break;
 			}
 		}
 		return this;
