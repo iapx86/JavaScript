@@ -193,7 +193,7 @@ class TimePilot {
 			this.fReset = false;
 			this.cpu.reset();
 			this.fInterruptEnable = false;
-			this.command = [];
+			this.command.splice(0);
 			this.cpu2.reset();
 			this.timer = 0;
 		}

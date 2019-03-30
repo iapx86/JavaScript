@@ -23,7 +23,7 @@ registerProcessor('MappySound', class extends AudioWorkletProcessor {
 			if (this.wheel.length >= resolution) {
 				this.wheel.forEach(q => q.forEach(({addr, data}) => this.reg[addr] = data));
 				this.count = this.sampleRate - 1;
-				this.wheel = [];
+				this.wheel.splice(0);
 			}
 			this.wheel = this.wheel.concat(wheel);
 		};

@@ -87,7 +87,7 @@ class AY_3_8910 {
 		if (this.wheel.length >= this.resolution) {
 			this.wheel.forEach(q => q.forEach(e => this.checkwrite(e)));
 			this.count = this.sampleRate - 1;
-			this.wheel = [];
+			this.wheel.splice(0);
 		}
 		this.wheel = this.wheel.concat(this.tmpwheel);
 		this.tmpwheel = new Array(this.resolution);

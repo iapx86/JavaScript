@@ -29,7 +29,7 @@ registerProcessor('AY_3_8910', class extends AudioWorkletProcessor {
 			if (this.wheel.length >= resolution) {
 				this.wheel.forEach(q => q.forEach(e => this.write(e)));
 				this.count = this.sampleRate - 1;
-				this.wheel = [];
+				this.wheel.splice(0);
 			}
 			this.wheel = this.wheel.concat(wheel);
 		};

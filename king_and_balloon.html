@@ -80,13 +80,11 @@ class KingAndBalloon {
 
 		// ライトハンドラ
 		function systemctrl0(addr, data, game) {
-			switch (addr & 0x0f) {
-			case 0x04:
+			if ((addr & 0x0f) === 4) {
 				if ((data & 1) !== 0)
 					game.se[2].start = true;
 				else
 					game.se[2].stop = true;
-				break;
 			}
 			game.mmo[addr & 0x0f] = data;
 		}
@@ -149,11 +147,8 @@ class KingAndBalloon {
 		}
 
 		function systemctrl3(addr, data, game) {
-			switch (addr & 0x0f) {
-			case 0x00:
+			if ((addr & 0x0f) === 0)
 				game.mmo[0x30] = data; // SOUND FREQUENCY
-				break;
-			}
 		}
 	}
 

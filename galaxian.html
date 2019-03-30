@@ -124,13 +124,8 @@ class Galaxian {
 		}
 
 		function systemctrl3(addr, data, game) {
-			switch (addr & 0xff) {
-			case 0x00:
+			if ((addr & 0xff) === 0)
 				game.mmo[0x30] = data; // SOUND FREQUENCY
-				break;
-			default:
-				break;
-			}
 		}
 
 		// ブレークポイントコールバック
