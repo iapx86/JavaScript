@@ -295,22 +295,15 @@ class Frogger {
 
 	makeBitmap(data) {
 		// bg 描画
-		let p = 256 * 16;
-		let k = 0xbe0;
-		for (let i = 0; i < 32; p += 256 * 8, k += 0x401, i++) {
+		let p = 256 * 32;
+		let k = 0xbe2;
+		for (let i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0xc00 + i * 2] >>> 4 | this.ram[0xc00 + i * 2] << 4 & 0xf0;
 			for (let j = 0; j < 32; k -= 0x20, j++) {
 				this.xfer8x8(data, p + dwScroll, k, i);
 				dwScroll = dwScroll + 8 & 0xff;
 			}
 		}
-
-		// 背景色変更
-		p = 256 * 16 + 16;
-		for (let i = 0; i < 128; p += 256 - 224, i++)
-			for (let j = 0; j < 224; p++, j++)
-				if (data[p] === 0)
-					data[p] = this.rgb[2];
 
 		// obj 描画
 		for (let k = 0xc5c, i = 7; i >= 0; k -= 4, --i) {
@@ -331,6 +324,24 @@ class Frogger {
 				break;
 			}
 		}
+
+		// bg 描画
+		p = 256 * 16;
+		k = 0xbe0;
+		for (let i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
+			let dwScroll = this.ram[0xc00 + i * 2] >>> 4 | this.ram[0xc00 + i * 2] << 4 & 0xf0;
+			for (let j = 0; j < 32; k -= 0x20, j++) {
+				this.xfer8x8(data, p + dwScroll, k, i);
+				dwScroll = dwScroll + 8 & 0xff;
+			}
+		}
+
+		// 背景色変更
+		p = 256 * 16 + 16;
+		for (let i = 0; i < 128; p += 256 - 224, i++)
+			for (let j = 0; j < 224; p++, j++)
+				if (data[p] === 0)
+					data[p] = this.rgb[2];
 
 		// alphaチャンネル修正
 		p = 256 * 16 + 16;
