@@ -9,7 +9,7 @@ class AY_3_8910 {
 		this.reg = new Uint8Array(0x10);
 		this.tmp = new Uint8Array(0x10);
 		const repeat = 16;
-		this.noiseBuffer = audioCtx.createBuffer(1, 131071 * repeat, audioCtx.sampleRate);
+		this.noiseBuffer = new AudioBuffer({length: 131071 * repeat, sampleRate: audioCtx.sampleRate});
 		for (let data = this.noiseBuffer.getChannelData(0), rng = 0xffff, i = 0; i < data.length; i++) {
 			if (i % repeat === 0)
 				rng = (rng >>> 16 ^ rng >>> 13 ^ 1) & 1 | rng << 1;
@@ -29,20 +29,13 @@ class AY_3_8910 {
 		this.step = 0;
 		this.channel = [];
 		for (let i = 0; i < 3; i++) {
-			const ch = {oscillator: audioCtx.createOscillator(), gainNode: audioCtx.createGain()};
-			ch.oscillator.type = 'square';
-			ch.gainNode.gain.value = 0;
-			ch.oscillator.connect(ch.gainNode);
-			ch.gainNode.connect(audioCtx.destination);
+			const ch = {oscillator: new OscillatorNode(audioCtx, {type: 'square'}), gainNode: new GainNode(audioCtx, {gain: 0})};
+			ch.oscillator.connect(ch.gainNode).connect(audioCtx.destination);
 			ch.oscillator.start();
 			this.channel.push(ch);
 		}
-		this.noise = {source: audioCtx.createBufferSource(), gainNode: audioCtx.createGain()};
-		this.noise.source.buffer = this.noiseBuffer;
-		this.noise.source.loop = true;
-		this.noise.gainNode.gain.value = 0;
-		this.noise.source.connect(this.noise.gainNode);
-		this.noise.gainNode.connect(audioCtx.destination);
+		this.noise = {source: new AudioBufferSourceNode(audioCtx, {buffer: this.noiseBuffer, loop: true}), gainNode: new GainNode(audioCtx, {gain: 0})};
+		this.noise.source.connect(this.noise.gainNode).connect(audioCtx.destination);
 		this.noise.source.start();
 	}
 

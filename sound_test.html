@@ -223,11 +223,11 @@ const url = 'liblrabl.zip';
 let SND, PRG2;
 
 window.addEventListener('load', () => {
-	const canvas = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
+	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
-		canvas.getContext('2d').drawImage(img['key' + i], 0, 0);
-		key.push(new Uint32Array(canvas.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
+		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
+		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
 	$.ajax({url, success, error: () => alert(url + ': failed to get')});
 });

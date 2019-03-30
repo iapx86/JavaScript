@@ -11,7 +11,7 @@ class MappySound {
 		const repeat = 16;
 		this.audioBuffer = [];
 		for (let i = 0; i < 8; i++) {
-			this.audioBuffer[i] = audioCtx.createBuffer(1, 32 * repeat, audioCtx.sampleRate);
+			this.audioBuffer[i] = new AudioBuffer({length: 32 * repeat, sampleRate: audioCtx.sampleRate});
 			this.audioBuffer[i].getChannelData(0).forEach((e, j, buf) => buf[j] = (SND[i << 5 | Math.floor(j / repeat)] & 0x0f) * 2 / 15 - 1);
 		}
 		this.rate = 48000 * repeat / audioCtx.sampleRate / (1 << 16);
@@ -23,12 +23,9 @@ class MappySound {
 		for (let i = 0; i < 8; i++) {
 			const ch = {source: [], gainNode: []};
 			for (let j = 0; j < 8; j++) {
-				ch.source[j] = audioCtx.createBufferSource();
-				ch.source[j].buffer = this.audioBuffer[j];
-				ch.source[j].loop = true;
-				ch.gainNode[j] = audioCtx.createGain();
-				ch.source[j].connect(ch.gainNode[j]);
-				ch.gainNode[j].connect(audioCtx.destination);
+				ch.source[j] = new AudioBufferSourceNode(audioCtx, {buffer: this.audioBuffer[j], loop: true});
+				ch.gainNode[j] = new GainNode(audioCtx, {gain: 0});
+				ch.source[j].connect(ch.gainNode[j]).connect(audioCtx.destination);
 				ch.source[j].start();
 			}
 			this.channel.push(ch);
