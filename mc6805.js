@@ -57,13 +57,15 @@ let fLogic = new Uint8Array(0x100);
 	}
 	for (i = 0; i < 2; i++)
 		for (j = 0; j < 0x100; j++) {
-			r = j << 1 | i;
-			aRl[i][j] = fLogic[r & 0xff] << 8 | r;
+			r = (j << 1 | i) & 0xff;
+			f = fLogic[r] | j >>> 7;
+			aRl[i][j] = f << 8 | r;
 		}
 	for (i = 0; i < 2; i++)
 		for (j = 0; j < 0x100; j++) {
 			r = j >>> 1 | i << 7;
-			aRr[i][j] = (fLogic[r] | j & 1) << 8 | r;
+			f = fLogic[r] | j & 1;
+			aRr[i][j] = f << 8 | r;
 		}
 })();
 
@@ -72,8 +74,8 @@ class MC6805 extends Cpu {
 		super(arg);
 		this.a = 0;
 		this.x = 0;
-		this.sp = 0xff;
-		this.ccr = 0xe8; // ccr:111hinzc
+		this.sp = 0;
+		this.ccr = 0; // ccr:111hinzc
 		this.int = false;
 	}
 
@@ -428,7 +430,7 @@ class MC6805 extends Cpu {
 			this.pc = (this.pull() << 8 | this.pull()) & 0x1fff;
 			break;
 		case 0x83: // SWI
-			this.push(++this.pc);
+			this.push(this.pc);
 			this.push(this.pc >>> 8);
 			this.push(this.x);
 			this.push(this.a);
@@ -825,13 +827,15 @@ class MC6805 extends Cpu {
 	}
 
 	deca(r) {
-		this.ccr = this.ccr & ~6 | fLogic[r = r - 1 & 0xff];
-		return r;
+		r = aSub[0][1][r];
+		this.ccr = this.ccr & ~6 | r >>> 8 & 6;
+		return r & 0xff;
 	}
 
 	inca(r) {
-		this.ccr = this.ccr & ~6 | fLogic[r = r + 1 & 0xff];
-		return r;
+		r = aAdd[0][1][r];
+		this.ccr = this.ccr & ~6 | r >>> 8 & 6;
+		return r & 0xff;
 	}
 
 	tsta(r) {
@@ -887,15 +891,15 @@ class MC6805 extends Cpu {
 	}
 
 	dec(ea) {
-		const r = this.read(ea) - 1 & 0xff;
-		this.ccr = this.ccr & ~6 | fLogic[r];
-		this.write(ea, r);
+		const r = aSub[0][1][this.read(ea)];
+		this.ccr = this.ccr & ~6 | r >>> 8 & 6;
+		this.write(ea, r & 0xff);
 	}
 
 	inc(ea) {
-		const r = this.read(ea) + 1 & 0xff;
-		this.ccr = this.ccr & ~6 | fLogic[r];
-		this.write(ea, r);
+		const r = aAdd[0][1][this.read(ea)];
+		this.ccr = this.ccr & ~6 | r >>> 8 & 6;
+		this.write(ea, r & 0xff);
 	}
 
 	tst(ea) {

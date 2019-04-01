@@ -64,29 +64,28 @@ let fLogic = new Uint8Array(0x100);
 	}
 	for (i = 0; i < 4; i++)
 		for (j = 0; j < 0x100; j++) {
-			f = i << 4 & 0x20 | i & 1;
+			f = i & 1;
 			r = j;
 			k = 0;
-			if ((f & 0x20) !== 0 || (r & 0x0f) > 9)
+			if ((i & 2) !== 0 || (r & 0x0f) > 9)
 				k = 6;
-			if ((f & 1) !== 0 || (r & 0xf0) > 0x90 || (r & 0xf0) > 0x80 && (r & 0x0f) > 9)
+			if ((i & 1) !== 0 || (r & 0xf0) > 0x90 || (r & 0xf0) > 0x80 && (r & 0x0f) > 9)
 				k += 0x60;
-			if ((r += k) >= 0x100)
-				f |= 1;
-			f |= fLogic[r & 0xff];
+			f |= fLogic[(r += k) & 0xff] | (r >= 0x100);
 			aDaa[i][j] = f << 8 | r & 0xff;
 		}
 	for (i = 0; i < 2; i++)
 		for (j = 0; j < 0x100; j++) {
-			r = j << 1 | i;
-			aRl[i][j] = fLogic[r & 0xff] << 8 | r;
-			if (((j ^ j << 1) & 0x80) !== 0)
-				aRl[i][j] |= 0x0200;
+			r = (j << 1 | i) & 0xff;
+			f = fLogic[r] | j >>> 7;
+			f |= (f >>> 2 ^ f << 1) & 2;
+			aRl[i][j] = f << 8 | r;
 		}
 	for (i = 0; i < 2; i++)
 		for (j = 0; j < 0x100; j++) {
 			r = j >>> 1 | i << 7;
-			aRr[i][j] = (fLogic[r] | j & 1) << 8 | r;
+			f = fLogic[r] | j & 1;
+			aRr[i][j] = f << 8 | r;
 		}
 })();
 
@@ -380,7 +379,7 @@ class MC6809 extends Cpu {
 			break;
 		case 0x19: // DAA
 			this.a = (v = aDaa[this.ccr >>> 4 & 2 | this.ccr & 1][this.a]) & 0xff;
-			this.ccr = this.ccr & ~0x2f | v >>> 8;
+			this.ccr = this.ccr & ~0x0f | v >>> 8;
 			break;
 		case 0x1a: // ORCC
 			this.ccr |= this.fetch();
@@ -1911,7 +1910,7 @@ class MC6809 extends Cpu {
 
 	nega(r) {
 		r = aSub[0][r][0];
-		this.ccr = this.ccr & ~0x2f | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
@@ -1934,13 +1933,13 @@ class MC6809 extends Cpu {
 
 	asra(r) {
 		r = aRr[r >>> 7][r];
-		this.ccr = this.ccr & ~0x2d | r >>> 8;
+		this.ccr = this.ccr & ~0x0d | r >>> 8;
 		return r & 0xff;
 	}
 
 	lsla(r) {
 		r = aRl[0][r];
-		this.ccr = this.ccr & ~0x2f | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
@@ -1973,7 +1972,7 @@ class MC6809 extends Cpu {
 
 	neg(ea) {
 		const r = aSub[0][this.read(ea)][0];
-		this.ccr = this.ccr & ~0x2f | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		this.write(ea, r & 0xff);
 	}
 
@@ -1998,13 +1997,13 @@ class MC6809 extends Cpu {
 	asr(ea) {
 		let r = this.read(ea);
 		r = aRr[r >>> 7][r];
-		this.ccr = this.ccr & ~0x2d | r >>> 8;
+		this.ccr = this.ccr & ~0x0d | r >>> 8;
 		this.write(ea, r & 0xff);
 	}
 
 	lsl(ea) {
 		const r = aRl[0][this.read(ea)];
-		this.ccr = this.ccr & ~0x2f | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		this.write(ea, r & 0xff);
 	}
 
@@ -2037,17 +2036,17 @@ class MC6809 extends Cpu {
 
 	sub(r, ea) {
 		r = aSub[0][this.readf(ea)][r];
-		this.ccr = this.ccr & ~0x2f | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
 	cmp(r, ea) {
-		this.ccr = this.ccr & ~0x2f | aSub[0][this.readf(ea)][r] >>> 8;
+		this.ccr = this.ccr & ~0x0f | aSub[0][this.readf(ea)][r] >>> 8;
 	}
 
 	sbc(r, ea) {
 		r = aSub[this.ccr & 1][this.readf(ea)][r];
-		this.ccr = this.ccr & ~0x2f | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
@@ -2102,7 +2101,7 @@ class MC6809 extends Cpu {
 		v = this.readf(ea);
 		this.b = (w = aSub[0][this.readf1(ea)][this.b]) & 0xff;
 		this.a = (v = aSub[w >>> 8 & 1][v][this.a]) & 0xff;
-		this.ccr = this.ccr & ~0x0f | v >>> 8 & 0x0f;
+		this.ccr = this.ccr & ~0x0f | v >>> 8;
 		this.ccr &= !this.b << 2 | ~4;
 	}
 
@@ -2118,19 +2117,19 @@ class MC6809 extends Cpu {
 	ldd(ea) {
 		this.a = this.readf(ea);
 		this.b = this.readf1(ea);
-		this.ccr = this.ccr & ~0x0e | ((this.a | this.b) === 0) << 2 | this.a >>> 4 & 8;
+		this.ccr = this.ccr & ~0x0e | !(this.a | this.b) << 2 | this.a >>> 4 & 8;
 	}
 
 	std(ea) {
 		this.write(ea, this.a);
 		this.write1(ea, this.b);
-		this.ccr = this.ccr & ~0x0e | ((this.a | this.b) === 0) << 2 | this.a >>> 4 & 8;
+		this.ccr = this.ccr & ~0x0e | !(this.a | this.b) << 2 | this.a >>> 4 & 8;
 	}
 
 	cmp16(r, ea) {
 		const v = this.readf(ea);
 		const w = aSub[0][this.readf1(ea)][r & 0xff];
-		this.ccr = this.ccr & ~0x0f | aSub[w >>> 8 & 1][v][r >>> 8] >>> 8 & 0x0f;
+		this.ccr = this.ccr & ~0x0f | aSub[w >>> 8 & 1][v][r >>> 8] >>> 8;
 		this.ccr &= ((w & 0xff) === 0) << 2 | ~4;
 	}
 
