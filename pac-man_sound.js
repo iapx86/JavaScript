@@ -56,7 +56,7 @@ class PacManSound {
 		this.tmpwheel = new Array(resolution);
 		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
-		this.gainNode.gain.value = this.gain;
+		this.gainNode.gain.value = gain;
 		addPacManSound.then(() => {
 			this.worklet = new AudioWorkletNode(audioCtx, 'PacManSound', {processorOptions: {SND, resolution}});
 			this.worklet.port.start();

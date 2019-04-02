@@ -50,13 +50,13 @@ const addMappySound = audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('d
 
 class MappySound {
 	constructor({SND, resolution = 1, gain = 0.1}) {
-		this.tmp = new Uint8Array(0x400);
+		this.ram = new Uint8Array(0x400);
 		this.resolution = resolution;
 		this.gain = gain;
 		this.tmpwheel = new Array(resolution);
 		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
-		this.gainNode.gain.value = this.gain;
+		this.gainNode.gain.value = gain;
 		addMappySound.then(() => {
 			this.worklet = new AudioWorkletNode(audioCtx, 'MappySound', {processorOptions: {SND, resolution}});
 			this.worklet.port.start();
@@ -96,11 +96,11 @@ class MappySound {
 	}
 
 	read(addr) {
-		return this.tmp[addr & 0x3ff];
+		return this.ram[addr & 0x3ff];
 	}
 
 	write(addr, data, timer = 0) {
-		this.tmp[addr &= 0x3ff] = data;
+		this.ram[addr &= 0x3ff] = data;
 		if (addr >= 0x40)
 			return;
 		if (this.tmpwheel[timer])

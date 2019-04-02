@@ -46,9 +46,8 @@ registerProcessor('C30', class extends AudioWorkletProcessor {
 				else {
 					data[i] += (ch.output * 2 - 1) * (reg[0x100 + j * 8] & 0x0f) / 15;
 					for (ch.ncount += reg[0x103 + j * 8] * this.rate; ch.ncount >= 0x80000; ch.ncount -= 0x80000) {
-						ch.output ^= ch.rng + 1 >> 1 & 1;
-						ch.rng ^= 0x28000 & (~ch.rng & 1) - 1;
-						ch.rng >>= 1;
+						ch.output ^= ch.rng + 1 >>> 1 & 1;
+						ch.rng = (ch.rng ^ (~ch.rng & 1) - 1 & 0x28000) >>> 1;
 					}
 				}
 			});
@@ -69,7 +68,7 @@ const addC30 = audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:tex
 
 class C30 {
 	constructor({resolution = 1, gain = 0.1} = {}) {
-		this.tmp = new Uint8Array(0x400);
+		this.ram = new Uint8Array(0x400);
 		this.resolution = resolution;
 		this.gain = gain;
 		this.tmpwheel = new Array(resolution);
@@ -97,7 +96,7 @@ class C30 {
 				outputBuffer.getChannelData(0).fill(0).forEach((e, i, data) => {
 					for (this.count += 60 * resolution; this.count >= this.sampleRate; this.count -= this.sampleRate) {
 						const q = this.wheel.shift();
-						q && q.forEach(e => this.checkwrite(e));
+						q && q.forEach(e => this.regwrite(e));
 					}
 					this.channel.forEach((ch, j) => {
 						if (j >= 4 || (reg[0x100 | -4 + j * 8 & 0x3f] & 0x80) === 0) {
@@ -107,9 +106,8 @@ class C30 {
 						else {
 							data[i] += (ch.output * 2 - 1) * (reg[0x100 + j * 8] & 0x0f) / 15;
 							for (ch.ncount += reg[0x103 + j * 8] * this.rate; ch.ncount >= 0x80000; ch.ncount -= 0x80000) {
-								ch.output ^= ch.rng + 1 >> 1 & 1;
-								ch.rng ^= 0x28000 & (~ch.rng & 1) - 1;
-								ch.rng >>= 1;
+								ch.output ^= ch.rng + 1 >>> 1 & 1;
+								ch.rng = (ch.rng ^ (~ch.rng & 1) - 1 & 0x28000) >>> 1;
 							}
 						}
 					});
@@ -127,11 +125,11 @@ class C30 {
 	}
 
 	read(addr) {
-		return this.tmp[addr & 0x3ff];
+		return this.ram[addr & 0x3ff];
 	}
 
 	write(addr, data, timer = 0) {
-		this.tmp[addr &= 0x3ff] = data;
+		this.ram[addr &= 0x3ff] = data;
 		if (addr >= 0x140)
 			return;
 		if (this.tmpwheel[timer])
@@ -145,7 +143,7 @@ class C30 {
 			this.worklet.port.postMessage({wheel: this.tmpwheel});
 		else if (this.wheel) {
 			if (this.wheel.length >= this.resolution) {
-				this.wheel.forEach(q => q.forEach(e => this.checkwrite(e)));
+				this.wheel.forEach(q => q.forEach(e => this.regwrite(e)));
 				this.count = this.sampleRate - 1;
 				this.wheel.splice(0);
 			}
@@ -154,7 +152,7 @@ class C30 {
 		this.tmpwheel = new Array(this.resolution);
 	}
 
-	checkwrite({addr, data}) {
+	regwrite({addr, data}) {
 		this.reg[addr] = data;
 		if (addr >= 0x100)
 			return;

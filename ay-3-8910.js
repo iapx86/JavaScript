@@ -86,7 +86,7 @@ class AY_3_8910 {
 		this.tmpwheel = new Array(resolution);
 		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
-		this.gainNode.gain.value = this.gain;
+		this.gainNode.gain.value = gain;
 		addAY_3_8910.then(() => {
 			this.worklet = new AudioWorkletNode(audioCtx, 'AY_3_8910', {processorOptions: {clock, resolution}});
 			this.worklet.port.start();
