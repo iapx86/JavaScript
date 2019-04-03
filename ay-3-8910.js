@@ -27,7 +27,7 @@ registerProcessor('AY_3_8910', class extends AudioWorkletProcessor {
 			if (!wheel)
 				return;
 			if (this.wheel.length >= resolution) {
-				this.wheel.forEach(q => q.forEach(e => this.write(e)));
+				this.wheel.forEach(q => q.forEach(e => this.regwrite(e)));
 				this.count = this.sampleRate - 1;
 				this.wheel.splice(0);
 			}
@@ -40,7 +40,7 @@ registerProcessor('AY_3_8910', class extends AudioWorkletProcessor {
 		outputs[0][0].fill(0).forEach((e, i, data) => {
 			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate) {
 				const q = this.wheel.shift();
-				q && q.forEach(e => this.write(e));
+				q && q.forEach(e => this.regwrite(e));
 			}
 			const nfreq = reg[6] & 0x1f, efreq = reg[11] | reg[12] << 8, etype = reg[13];
 			const evol = (~this.step ^ ((((etype ^ etype >> 1) & this.step >> 4 ^ ~etype >> 2) & 1) - 1)) & (~etype >> 3 & this.step >> 4 & 1) - 1 & 15;
@@ -68,7 +68,7 @@ registerProcessor('AY_3_8910', class extends AudioWorkletProcessor {
 		});
 		return true;
 	}
-	write({addr, data}) {
+	regwrite({addr, data}) {
 		this.reg[addr] = data;
 		if (addr === 13)
 			this.step = 0;
@@ -112,7 +112,7 @@ class AY_3_8910 {
 				outputBuffer.getChannelData(0).fill(0).forEach((e, i, data) => {
 					for (this.count += 60 * resolution; this.count >= this.sampleRate; this.count -= this.sampleRate) {
 						const q = this.wheel.shift();
-						q && q.forEach(e => this.checkwrite(e));
+						q && q.forEach(e => this.regwrite(e));
 					}
 					const nfreq = reg[6] & 0x1f, efreq = reg[11] | reg[12] << 8, etype = reg[13];
 					const evol = (~this.step ^ ((((etype ^ etype >> 1) & this.step >> 4 ^ ~etype >> 2) & 1) - 1)) & (~etype >> 3 & this.step >> 4 & 1) - 1 & 15;
@@ -169,7 +169,7 @@ class AY_3_8910 {
 			this.worklet.port.postMessage({wheel: this.tmpwheel});
 		else if (this.wheel) {
 			if (this.wheel.length >= this.resolution) {
-				this.wheel.forEach(q => q.forEach(e => this.checkwrite(e)));
+				this.wheel.forEach(q => q.forEach(e => this.regwrite(e)));
 				this.count = this.sampleRate - 1;
 				this.wheel.splice(0);
 			}
@@ -178,7 +178,7 @@ class AY_3_8910 {
 		this.tmpwheel = new Array(this.resolution);
 	}
 
-	checkwrite({addr, data}) {
+	regwrite({addr, data}) {
 		this.reg[addr] = data;
 		if (addr === 13)
 			this.step = 0;

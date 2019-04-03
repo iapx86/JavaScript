@@ -18,12 +18,12 @@ registerProcessor('C30', class extends AudioWorkletProcessor {
 		this.wheel = [];
 		this.channel = [];
 		for (let i = 0; i < 8; i++)
-			this.channel.push({phase: 0, ncount: 0, rng: 1, state: 0});
+			this.channel.push({phase: 0, ncount: 0, rng: 1, output: 0});
 		this.port.onmessage = ({data: {wheel}}) => {
 			if (!wheel)
 				return;
 			if (this.wheel.length >= resolution) {
-				this.wheel.forEach(q => q.forEach(e => this.write(e)));
+				this.wheel.forEach(q => q.forEach(e => this.regwrite(e)));
 				this.count = this.sampleRate - 1;
 				this.wheel.splice(0);
 			}
@@ -36,7 +36,7 @@ registerProcessor('C30', class extends AudioWorkletProcessor {
 		outputs[0][0].fill(0).forEach((e, i, data) => {
 			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate) {
 				const q = this.wheel.shift();
-				q && q.forEach(e => this.write(e));
+				q && q.forEach(e => this.regwrite(e));
 			}
 			this.channel.forEach((ch, j) => {
 				if (j >= 4 || (reg[0x100 | -4 + j * 8 & 0x3f] & 0x80) === 0) {
@@ -54,7 +54,7 @@ registerProcessor('C30', class extends AudioWorkletProcessor {
 		});
 		return true;
 	}
-	write({addr, data}) {
+	regwrite({addr, data}) {
 		this.reg[addr] = data;
 		if (addr >= 0x100)
 			return;
@@ -89,7 +89,7 @@ class C30 {
 			this.wheel = [];
 			this.channel = [];
 			for (let i = 0; i < 8; i++)
-				this.channel.push({phase: 0, ncount: 0, rng: 1, state: 0});
+				this.channel.push({phase: 0, ncount: 0, rng: 1, output: 0});
 			this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 			this.scriptNode.onaudioprocess = ({outputBuffer}) => {
 				const reg = this.reg;
