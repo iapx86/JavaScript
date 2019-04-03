@@ -32,10 +32,10 @@ let fLogic = new Uint8Array(0x100);
 		for (j = 0; j < 0x100; j++)
 			for (k = 0; k < 0x100; k++) {
 				r = j - (j << 1 & 0x100) + k - (k << 1 & 0x100) + i;
-				f = r >>> 5 & 4;
+				f = r >>> 4 & 8;
 				if ((r & 0xff) === 0)
-					f |= 2;
-				f |= (r ^ j ^ k) & 0x10;
+					f |= 4;
+				f |= (r ^ j ^ k) << 1 & 0x20;
 				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
 				aAdd[i][k][j] = f << 8 | r & 0xff;
 			}
@@ -43,16 +43,16 @@ let fLogic = new Uint8Array(0x100);
 		for (j = 0; j < 0x100; j++)
 			for (k = 0; k < 0x100; k++) {
 				r = j - (j << 1 & 0x100) - k + (k << 1 & 0x100) - i;
-				f = r >>> 5 & 4;
+				f = r >>> 4 & 8;
 				if ((r & 0xff) === 0)
-					f |= 2;
+					f |= 4;
 				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
 				aSub[i][k][j] = f << 8 | r & 0xff;
 			}
 	for (i = 0; i < 0x100; i++) {
-		f = i >>> 5 & 4;
+		f = i >>> 4 & 8;
 		if (!i)
-			f |= 2;
+			f |= 4;
 		fLogic[i] = f;
 	}
 	for (i = 0; i < 2; i++)
@@ -73,32 +73,31 @@ class MC6805 extends Cpu {
 	constructor(arg = null) {
 		super(arg);
 		this.a = 0;
-		this.x = 0;
-		this.sp = 0;
 		this.ccr = 0; // ccr:111hinzc
+		this.x = 0;
+		this.s = 0;
 		this.int = false;
 	}
 
 	reset() {
 		super.reset();
 		this.a = 0;
+		this.ccr = 0xd0;
 		this.x = 0;
-		this.sp = 0xff;
-		this.pc = (this.read(0x1ffe) << 8 | this.read(0x1fff)) & 0x1fff;
-		this.ccr = 0xe8;
+		this.s = 0x7f;
+		this.pc = (this.read(0x7fe) << 8 | this.read(0x7ff)) & 0x7ff;
 		this.int = false;
 	}
 
 	interrupt() {
-		if (!super.interrupt() || (this.ccr & 8) !== 0)
+		if (!super.interrupt() || (this.ccr & 0x10) !== 0)
 			return false;
-		this.push(this.pc);
-		this.push(this.pc >>> 8);
-		this.push(this.x);
-		this.push(this.a);
-		this.push(this.ccr);
-		this.ccr |= 0x08;
-		this.pc = (this.read(0x1ffa) << 8 | this.read(0x1ffb)) & 0x1fff;
+		this.psh16(this.pc);
+		this.psh(this.x);
+		this.psh(this.a);
+		this.psh(0xe0 | this.ccr >> 1 & 0x1e | this.ccr & 1);
+		this.ccr |= 0x10;
+		this.pc = (this.read(0x7fa) << 8 | this.read(0x7fb)) & 0x7ff;
 		return true;
 	}
 
@@ -209,10 +208,10 @@ class MC6805 extends Cpu {
 			this.bcc(false);
 			break;
 		case 0x22: // BHI
-			this.bcc(((this.ccr >>> 1 | this.ccr) & 1) === 0);
+			this.bcc(((this.ccr >>> 2 | this.ccr) & 1) === 0);
 			break;
 		case 0x23: // BLS
-			this.bcc(((this.ccr >>> 1 | this.ccr) & 1) !== 0);
+			this.bcc(((this.ccr >>> 2 | this.ccr) & 1) !== 0);
 			break;
 		case 0x24: // BCC
 			this.bcc((this.ccr & 1) === 0);
@@ -221,28 +220,28 @@ class MC6805 extends Cpu {
 			this.bcc((this.ccr & 1) !== 0);
 			break;
 		case 0x26: // BNE
-			this.bcc((this.ccr & 2) === 0);
-			break;
-		case 0x27: // BEQ
-			this.bcc((this.ccr & 2) !== 0);
-			break;
-		case 0x28: // BHCC
-			this.bcc((this.ccr & 0x10) === 0);
-			break;
-		case 0x29: // BHCS
-			this.bcc((this.ccr & 0x10) !== 0);
-			break;
-		case 0x2a: // BPL
 			this.bcc((this.ccr & 4) === 0);
 			break;
-		case 0x2b: // BMI
+		case 0x27: // BEQ
 			this.bcc((this.ccr & 4) !== 0);
 			break;
-		case 0x2c: // BMC
+		case 0x28: // BHCC
+			this.bcc((this.ccr & 0x20) === 0);
+			break;
+		case 0x29: // BHCS
+			this.bcc((this.ccr & 0x20) !== 0);
+			break;
+		case 0x2a: // BPL
 			this.bcc((this.ccr & 8) === 0);
 			break;
-		case 0x2d: // BMS
+		case 0x2b: // BMI
 			this.bcc((this.ccr & 8) !== 0);
+			break;
+		case 0x2c: // BMC
+			this.bcc((this.ccr & 0x10) === 0);
+			break;
+		case 0x2d: // BMS
+			this.bcc((this.ccr & 0x10) !== 0);
 			break;
 		case 0x2e: // BIL
 			this.bcc(!this.int);
@@ -289,7 +288,7 @@ class MC6805 extends Cpu {
 		case 0x42: // MUL
 			this.x = (v = this.x * this.a) >>> 8;
 			this.a = v & 0xff;
-			this.ccr &= ~0x11;
+			this.ccr &= ~0x21;
 			break;
 		case 0x43: // COMA
 			this.a = this.coma(this.a);
@@ -421,26 +420,25 @@ class MC6805 extends Cpu {
 			this.clr(this.index());
 			break;
 		case 0x80: // RTI
-			this.ccr = this.pull();
-			this.a = this.pull();
-			this.x = this.pull();
-			this.pc = (this.pull() << 8 | this.pull()) & 0x1fff;
+			this.ccr = (v = this.pul()) << 1 & 0x2c | v & 1;
+			this.a = this.pul();
+			this.x = this.pul();
+			this.pc = this.pul16() & 0x7ff;
 			break;
 		case 0x81: // RTS
-			this.pc = (this.pull() << 8 | this.pull()) & 0x1fff;
+			this.pc = this.pul16() & 0x7ff;
 			break;
 		case 0x83: // SWI
-			this.push(this.pc);
-			this.push(this.pc >>> 8);
-			this.push(this.x);
-			this.push(this.a);
-			this.push(this.ccr);
-			this.ccr |= 8;
-			this.pc = (this.read(0x1ffc) << 8 | this.read(0x1ffc)) & 0x1fff;
+			this.psh16(this.pc);
+			this.psh(this.x);
+			this.psh(this.a);
+			this.psh(0xe0 | this.ccr >> 1 & 0x1e | this.ccr & 1);
+			this.ccr |= 0x10;
+			this.pc = (this.read(0x7fc) << 8 | this.read(0x7fd)) & 0x7ff;
 			break;
 		case 0x8e: // STOP
 		case 0x8f: // WAIT
-			this.ccr &= ~8;
+			this.ccr &= ~0x10;
 			this.suspend();
 			break;
 		case 0x97: // TAX
@@ -453,13 +451,13 @@ class MC6805 extends Cpu {
 			this.ccr |= 1;
 			break;
 		case 0x9a: // CLI
-			this.ccr &= ~8;
+			this.ccr &= ~0x10;
 			break;
 		case 0x9b: // SEI
-			this.ccr |= 8;
+			this.ccr |= 0x10;
 			break;
 		case 0x9c: // RSP
-			this.sp = 0xff;
+			this.s = 0x7f;
 			break;
 		case 0x9d: // NOP
 			break;
@@ -762,7 +760,7 @@ class MC6805 extends Cpu {
 	}
 
 	index2() {
-		return this.x + (this.fetch() << 8 | this.fetch()) & 0x1fff;
+		return this.x + (this.fetch() << 8 | this.fetch()) & 0x7ff;
 	}
 
 	direct() {
@@ -770,225 +768,237 @@ class MC6805 extends Cpu {
 	}
 
 	extend() {
-		return (this.fetch() << 8 | this.fetch()) & 0x1fff;
+		return (this.fetch() << 8 | this.fetch()) & 0x7ff;
 	}
 
 	bcc(cond) {
 		const n = this.fetch();
-		if (cond) this.pc = this.pc + n - (n << 1 & 0x100) & 0x1fff;
+		if (cond) this.pc = this.pc + n - (n << 1 & 0x100) & 0x7ff;
 	}
 
 	bsr() {
 		const n = this.fetch();
-		this.push(this.pc);
-		this.push(this.pc >>> 8);
-		this.pc = this.pc + n - (n << 1 & 0x100) & 0x1fff;
+		this.psh16(this.pc);
+		this.pc = this.pc + n - (n << 1 & 0x100) & 0x7ff;
 	}
 
 	nega(r) {
 		r = aSub[0][r][0];
-		this.ccr = this.ccr & ~7 | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
 	coma(r) {
-		this.ccr = this.ccr & ~7 | 1 | fLogic[r = ~r & 0xff];
+		this.ccr = this.ccr & ~0x0f | 1 | fLogic[r = ~r & 0xff];
 		return r;
 	}
 
 	lsra(r) {
 		r = aRr[0][r];
-		this.ccr = this.ccr & ~7 | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
 	rora(r) {
 		r = aRr[this.ccr & 1][r];
-		this.ccr = this.ccr & ~7 | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
 	asra(r) {
 		r = aRr[r >>> 7][r];
-		this.ccr = this.ccr & ~7 | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
 	lsla(r) {
 		r = aRl[0][r];
-		this.ccr = this.ccr & ~7 | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
 	rola(r) {
 		r = aRl[this.ccr & 1][r];
-		this.ccr = this.ccr & ~7 | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
 	deca(r) {
 		r = aSub[0][1][r];
-		this.ccr = this.ccr & ~6 | r >>> 8 & 6;
+		this.ccr = this.ccr & ~0x0e | r >>> 8 & 0x0e;
 		return r & 0xff;
 	}
 
 	inca(r) {
 		r = aAdd[0][1][r];
-		this.ccr = this.ccr & ~6 | r >>> 8 & 6;
+		this.ccr = this.ccr & ~0x0e | r >>> 8 & 0x0e;
 		return r & 0xff;
 	}
 
 	tsta(r) {
-		this.ccr = this.ccr & ~6 | fLogic[r];
+		this.ccr = this.ccr & ~0x0e | fLogic[r];
 	}
 
 	clra() {
-		this.ccr = this.ccr & ~6 | 2;
+		this.ccr = this.ccr & ~0x0e | 4;
 		return 0;
 	}
 
 	neg(ea) {
 		const r = aSub[0][this.read(ea)][0];
-		this.ccr = this.ccr & ~7 | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		this.write(ea, r & 0xff);
 	}
 
 	com(ea) {
 		const r = ~this.read(ea) & 0xff;
-		this.ccr = this.ccr & ~7 | 1 | fLogic[r];
+		this.ccr = this.ccr & ~0x0f | 1 | fLogic[r];
 		this.write(ea, r);
 	}
 
 	lsr(ea) {
 		const r = aRr[0][this.read(ea)];
-		this.ccr = this.ccr & ~7 | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		this.write(ea, r & 0xff);
 	}
 
 	ror(ea) {
 		const r = aRr[this.ccr & 1][this.read(ea)];
-		this.ccr = this.ccr & ~7 | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		this.write(ea, r & 0xff);
 	}
 
 	asr(ea) {
 		let r = this.read(ea);
 		r = aRr[r >>> 7][r];
-		this.ccr = this.ccr & ~7 | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		this.write(ea, r & 0xff);
 	}
 
 	lsl(ea) {
 		const r = aRl[0][this.read(ea)];
-		this.ccr = this.ccr & ~7 | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		this.write(ea, r & 0xff);
 	}
 
 	rol(ea) {
 		const r = aRl[this.ccr & 1][this.read(ea)];
-		this.ccr = this.ccr & ~7 | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		this.write(ea, r & 0xff);
 	}
 
 	dec(ea) {
 		const r = aSub[0][1][this.read(ea)];
-		this.ccr = this.ccr & ~6 | r >>> 8 & 6;
+		this.ccr = this.ccr & ~0x0e | r >>> 8 & 0x0e;
 		this.write(ea, r & 0xff);
 	}
 
 	inc(ea) {
 		const r = aAdd[0][1][this.read(ea)];
-		this.ccr = this.ccr & ~6 | r >>> 8 & 6;
+		this.ccr = this.ccr & ~0x0e | r >>> 8 & 0x0e;
 		this.write(ea, r & 0xff);
 	}
 
 	tst(ea) {
-		this.ccr = this.ccr & ~6 | fLogic[this.read(ea)];
+		this.ccr = this.ccr & ~0x0e | fLogic[this.read(ea)];
 	}
 
 	clr(ea) {
-		this.ccr = this.ccr & ~6 | 2;
+		this.ccr = this.ccr & ~0x0e | 4;
 		this.write(ea, 0);
 	}
 
 	sub(r, ea) {
 		r = aSub[0][this.readf(ea)][r];
-		this.ccr = this.ccr & ~7 | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
 	cmp(r, ea) {
-		this.ccr = this.ccr & ~7 | aSub[0][this.readf(ea)][r] >>> 8;
+		this.ccr = this.ccr & ~0x0f | aSub[0][this.readf(ea)][r] >>> 8;
 	}
 
 	sbc(r, ea) {
 		r = aSub[this.ccr & 1][this.readf(ea)][r];
-		this.ccr = this.ccr & ~7 | r >>> 8;
+		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
 	and(r, ea) {
-		this.ccr = this.ccr & ~6 | fLogic[r &= this.readf(ea)];
+		this.ccr = this.ccr & ~0x0e | fLogic[r &= this.readf(ea)];
 		return r;
 	}
 
 	bit(r, ea) {
-		this.ccr = this.ccr & ~6 | fLogic[r & this.readf(ea)];
+		this.ccr = this.ccr & ~0x0e | fLogic[r & this.readf(ea)];
 	}
 
 	ld(ea) {
 		const r = this.readf(ea);
-		this.ccr = this.ccr & ~6 | fLogic[r];
+		this.ccr = this.ccr & ~0x0e | fLogic[r];
 		return r;
 	}
 
 	st(r, ea) {
-		this.ccr = this.ccr & ~6 | fLogic[this.write(ea, r)];
+		this.ccr = this.ccr & ~0x0e | fLogic[this.write(ea, r)];
 	}
 
 	eor(r, ea) {
-		this.ccr = this.ccr & ~6 | fLogic[r ^= this.readf(ea)];
+		this.ccr = this.ccr & ~0x0e | fLogic[r ^= this.readf(ea)];
 		return r;
 	}
 
 	adc(r, ea) {
 		r = aAdd[this.ccr & 1][this.readf(ea)][r];
-		this.ccr = this.ccr & ~0x17 | r >>> 8;
+		this.ccr = this.ccr & ~0x2f | r >>> 8;
 		return r & 0xff;
 	}
 
 	or(r, ea) {
-		this.ccr = this.ccr & ~6 | fLogic[r |= this.readf(ea)];
+		this.ccr = this.ccr & ~0x0e | fLogic[r |= this.readf(ea)];
 		return r;
 	}
 
 	add(r, ea) {
 		r = aAdd[0][this.readf(ea)][r];
-		this.ccr = this.ccr & ~0x17 | r >>> 8;
+		this.ccr = this.ccr & ~0x2f | r >>> 8;
 		return r & 0xff;
 	}
 
 	jsr(ea) {
-		this.push(this.pc);
-		this.push(this.pc >>> 8);
+		this.psh16(this.pc);
 		this.pc = ea;
 	}
 
-	push(r) {
+	psh(r) {
 		this.write(this.s, r);
-		this.s = this.s - 1 & 0xff;
+		this.s = this.s - 1 & 0x1f | 0x60;
 	}
 
-	pull() {
-		this.s = this.s + 1 & 0xff;
+	pul() {
+		this.s = this.s + 1 & 0x1f | 0x60;
 		return this.read(this.s);
+	}
+
+	psh16(r) {
+		this.write(this.s, r & 0xff);
+		this.s = this.s - 1 & 0x1f | 0x60;
+		this.write(this.s, r >>> 8);
+		this.s = this.s - 1 & 0x1f | 0x60;
+	}
+
+	pul16() {
+		this.s = this.s + 1 & 0x1f | 0x60;
+		const r = this.read(this.s) << 8;
+		this.s = this.s + 1 & 0x1f | 0x60;
+		return r | this.read(this.s);
 	}
 
 	readf(addr) {
 		if (addr === null) {
 //			data = !(page = this.memorymap[this.pc >>> 8]).fetch ? page.base[this.pc & 0xff] : page.fetch(this.pc, this.arg);
 			const data = this.memorymap[this.pc >>> 8].base[this.pc & 0xff];
-			this.pc = this.pc + 1 & 0x1fff;
+			this.pc = this.pc + 1 & 0x7ff;
 			return data;
 		}
 		const page = this.memorymap[addr >>> 8];
