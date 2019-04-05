@@ -4,92 +4,6 @@
  *
  */
 
-let aAdd = []; // [2][0x100][0x100];
-let aSub = []; // [2][0x100][0x100];
-let aDaa = []; // [4][0x100];
-let aRl = []; // [2][0x100];
-let aRr = []; // [2][0x100];
-let fLogic = new Uint8Array(0x100);
-
-(function () {
-	let f, i, j, k, r;
-
-	for (i = 0; i < 2; i++) {
-		aAdd[i] = [];
-		for (j = 0; j < 0x100; j++)
-			aAdd[i][j] = new Uint16Array(0x100);
-	}
-	for (i = 0; i < 2; i++) {
-		aSub[i] = [];
-		for (j = 0; j < 0x100; j++)
-			aSub[i][j] = new Uint16Array(0x100);
-	}
-	for (i = 0; i < 4; i++)
-		aDaa[i] = new Uint16Array(0x100);
-	for (i = 0; i < 2; i++)
-		aRl[i] = new Uint16Array(0x100);
-	for (i = 0; i < 2; i++)
-		aRr[i] = new Uint16Array(0x100);
-
-	for (i = 0; i < 2; i++)
-		for (j = 0; j < 0x100; j++)
-			for (k = 0; k < 0x100; k++) {
-				r = j - (j << 1 & 0x100) + k - (k << 1 & 0x100) + i;
-				f = r >>> 4 & 8;
-				if ((r & 0xff) === 0)
-					f |= 4;
-				if (r > 0x7f || r < -0x80)
-					f |= 2;
-				f |= (r ^ j ^ k) << 1 & 0x20;
-				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
-				aAdd[i][k][j] = f << 8 | r & 0xff;
-			}
-	for (i = 0; i < 2; i++)
-		for (j = 0; j < 0x100; j++)
-			for (k = 0; k < 0x100; k++) {
-				r = j - (j << 1 & 0x100) - k + (k << 1 & 0x100) - i;
-				f = r >>> 4 & 8;
-				if ((r & 0xff) === 0)
-					f |= 4;
-				if (r > 0x7f || r < -0x80)
-					f |= 2;
-				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
-				aSub[i][k][j] = f << 8 | r & 0xff;
-			}
-	for (i = 0; i < 0x100; i++) {
-		f = i >>> 4 & 8;
-		if (!i)
-			f |= 4;
-		fLogic[i] = f;
-	}
-	for (i = 0; i < 4; i++)
-		for (j = 0; j < 0x100; j++) {
-			f = i & 1;
-			r = j;
-			k = 0;
-			if ((i & 2) !== 0 || (r & 0x0f) > 9)
-				k = 6;
-			if ((i & 1) !== 0 || (r & 0xf0) > 0x90 || (r & 0xf0) > 0x80 && (r & 0x0f) > 9)
-				k += 0x60;
-			f |= fLogic[(r += k) & 0xff] | (r >= 0x100);
-			aDaa[i][j] = f << 8 | r & 0xff;
-		}
-	for (i = 0; i < 2; i++)
-		for (j = 0; j < 0x100; j++) {
-			r = (j << 1 | i) & 0xff;
-			f = fLogic[r] | j >>> 7;
-			f |= (f >>> 2 ^ f << 1) & 2;
-			aRl[i][j] = f << 8 | r;
-		}
-	for (i = 0; i < 2; i++)
-		for (j = 0; j < 0x100; j++) {
-			r = j >>> 1 | i << 7;
-			f = fLogic[r] | j & 1;
-			f |= (f >>> 2 ^ f << 1) & 2;
-			aRr[i][j] = f << 8 | r;
-		}
-})();
-
 class MC6801 extends Cpu {
 	constructor(arg = null) {
 		super(arg);
@@ -155,13 +69,13 @@ class MC6801 extends Cpu {
 		case 0x01: // NOP
 			break;
 		case 0x04: // LSRD
-			this.a = (v = aRr[0][this.a]) & 0xff;
-			this.b = (v = aRr[v >>> 8 & 1][this.b]) & 0xff;
+			this.a = (v = MC6801.aRr[0][this.a]) & 0xff;
+			this.b = (v = MC6801.aRr[v >>> 8 & 1][this.b]) & 0xff;
 			this.ccr = this.ccr & ~0x0f | !(this.a | this.b) << 2 | v >>> 7 & 2 | v >>> 8 & 1;
 			break;
 		case 0x05: // LSLD
-			this.b = (v = aRl[0][this.b]) & 0xff;
-			this.a = (v = aRl[v >>> 8 & 1][this.a]) & 0xff;
+			this.b = (v = MC6801.aRl[0][this.b]) & 0xff;
+			this.a = (v = MC6801.aRl[v >>> 8 & 1][this.a]) & 0xff;
 			this.ccr = this.ccr & ~0x0f | !(this.a | this.b) << 2 | v >>> 8 & 0x0b;
 			break;
 		case 0x06: // TAP
@@ -197,21 +111,21 @@ class MC6801 extends Cpu {
 			this.ccr |= 0x10;
 			break;
 		case 0x10: // SBA
-			this.a = (v = aSub[0][this.b][this.a]) & 0xff;
+			this.a = (v = MC6801.aSub[0][this.b][this.a]) & 0xff;
 			this.ccr = this.ccr & ~0x0f | v >>> 8;
 			break;
 		case 0x11: // CBA
-			this.ccr = this.ccr & ~0x0f | aSub[0][this.b][this.a] >>> 8;
+			this.ccr = this.ccr & ~0x0f | MC6801.aSub[0][this.b][this.a] >>> 8;
 			break;
 		case 0x12: // undocumented instruction
 		case 0x13: // undocumented instruction
 			this.x += this.read1(this.s);
 			break;
 		case 0x16: // TAB
-			this.ccr = this.ccr & ~0x0e | fLogic[this.b = this.a];
+			this.ccr = this.ccr & ~0x0e | MC6801.fLogic[this.b = this.a];
 			break;
 		case 0x17: // TBA
-			this.ccr = this.ccr & ~0x0e | fLogic[this.a = this.b];
+			this.ccr = this.ccr & ~0x0e | MC6801.fLogic[this.a = this.b];
 			break;
 		case 0x18: // XGDX
 			v = this.x;
@@ -220,14 +134,14 @@ class MC6801 extends Cpu {
 			this.a = v >>> 8;
 			break;
 		case 0x19: // DAA
-			this.a = (v = aDaa[this.ccr >>> 4 & 2 | this.ccr & 1][this.a]) & 0xff;
+			this.a = (v = MC6801.aDaa[this.ccr >>> 4 & 2 | this.ccr & 1][this.a]) & 0xff;
 			this.ccr = this.ccr & ~0x0f | v >>> 8;
 			break;
 		case 0x1a: // SLP
 			this.suspend();
 			break;
 		case 0x1b: // ABA
-			this.a = (v = aAdd[0][this.b][this.a]) & 0xff;
+			this.a = (v = MC6801.aAdd[0][this.b][this.a]) & 0xff;
 			this.ccr = this.ccr & ~0x2f | v >>> 8;
 			break;
 		case 0x20: // BRA
@@ -901,60 +815,60 @@ class MC6801 extends Cpu {
 	}
 
 	nega(r) {
-		r = aSub[0][r][0];
+		r = MC6801.aSub[0][r][0];
 		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
 	coma(r) {
-		this.ccr = this.ccr & ~0x0f | 1 | fLogic[r = ~r & 0xff];
+		this.ccr = this.ccr & ~0x0f | 1 | MC6801.fLogic[r = ~r & 0xff];
 		return r;
 	}
 
 	lsra(r) {
-		r = aRr[0][r];
+		r = MC6801.aRr[0][r];
 		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
 	rora(r) {
-		r = aRr[this.ccr & 1][r];
+		r = MC6801.aRr[this.ccr & 1][r];
 		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
 	asra(r) {
-		r = aRr[r >>> 7][r];
+		r = MC6801.aRr[r >>> 7][r];
 		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
 	lsla(r) {
-		r = aRl[0][r];
+		r = MC6801.aRl[0][r];
 		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
 	rola(r) {
-		r = aRl[this.ccr & 1][r];
+		r = MC6801.aRl[this.ccr & 1][r];
 		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
 	deca(r) {
-		r = aSub[0][1][r];
+		r = MC6801.aSub[0][1][r];
 		this.ccr = this.ccr & ~0x0e | r >>> 8 & 0x0e;
 		return r & 0xff;
 	}
 
 	inca(r) {
-		r = aAdd[0][1][r];
+		r = MC6801.aAdd[0][1][r];
 		this.ccr = this.ccr & ~0x0e | r >>> 8 & 0x0e;
 		return r & 0xff;
 	}
 
 	tsta(r) {
-		this.ccr = this.ccr & ~0x0f | fLogic[r];
+		this.ccr = this.ccr & ~0x0f | MC6801.fLogic[r];
 	}
 
 	clra() {
@@ -963,62 +877,62 @@ class MC6801 extends Cpu {
 	}
 
 	neg(ea) {
-		const r = aSub[0][this.read(ea)][0];
+		const r = MC6801.aSub[0][this.read(ea)][0];
 		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		this.write(ea, r & 0xff);
 	}
 
 	com(ea) {
 		const r = ~this.read(ea) & 0xff;
-		this.ccr = this.ccr & ~0x0f | 1 | fLogic[r];
+		this.ccr = this.ccr & ~0x0f | 1 | MC6801.fLogic[r];
 		this.write(ea, r);
 	}
 
 	lsr(ea) {
-		const r = aRr[0][this.read(ea)];
+		const r = MC6801.aRr[0][this.read(ea)];
 		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		this.write(ea, r & 0xff);
 	}
 
 	ror(ea) {
-		const r = aRr[this.ccr & 1][this.read(ea)];
+		const r = MC6801.aRr[this.ccr & 1][this.read(ea)];
 		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		this.write(ea, r & 0xff);
 	}
 
 	asr(ea) {
 		let r = this.read(ea);
-		r = aRr[r >>> 7][r];
+		r = MC6801.aRr[r >>> 7][r];
 		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		this.write(ea, r & 0xff);
 	}
 
 	lsl(ea) {
-		const r = aRl[0][this.read(ea)];
+		const r = MC6801.aRl[0][this.read(ea)];
 		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		this.write(ea, r & 0xff);
 	}
 
 	rol(ea) {
-		const r = aRl[this.ccr & 1][this.read(ea)];
+		const r = MC6801.aRl[this.ccr & 1][this.read(ea)];
 		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		this.write(ea, r & 0xff);
 	}
 
 	dec(ea) {
-		const r = aSub[0][1][this.read(ea)];
+		const r = MC6801.aSub[0][1][this.read(ea)];
 		this.ccr = this.ccr & ~0x0e | r >>> 8 & 0x0e;
 		this.write(ea, r & 0xff);
 	}
 
 	inc(ea) {
-		const r = aAdd[0][1][this.read(ea)];
+		const r = MC6801.aAdd[0][1][this.read(ea)];
 		this.ccr = this.ccr & ~0x0e | r >>> 8 & 0x0e;
 		this.write(ea, r & 0xff);
 	}
 
 	tst(ea) {
-		this.ccr = this.ccr & ~0x0f | fLogic[this.read(ea)];
+		this.ccr = this.ccr & ~0x0f | MC6801.fLogic[this.read(ea)];
 	}
 
 	clr(ea) {
@@ -1027,58 +941,58 @@ class MC6801 extends Cpu {
 	}
 
 	sub(r, ea) {
-		r = aSub[0][this.readf(ea)][r];
+		r = MC6801.aSub[0][this.readf(ea)][r];
 		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
 	cmp(r, ea) {
-		this.ccr = this.ccr & ~0x0f | aSub[0][this.readf(ea)][r] >>> 8;
+		this.ccr = this.ccr & ~0x0f | MC6801.aSub[0][this.readf(ea)][r] >>> 8;
 	}
 
 	sbc(r, ea) {
-		r = aSub[this.ccr & 1][this.readf(ea)][r];
+		r = MC6801.aSub[this.ccr & 1][this.readf(ea)][r];
 		this.ccr = this.ccr & ~0x0f | r >>> 8;
 		return r & 0xff;
 	}
 
 	and(r, ea) {
-		this.ccr = this.ccr & ~0x0e | fLogic[r &= this.readf(ea)];
+		this.ccr = this.ccr & ~0x0e | MC6801.fLogic[r &= this.readf(ea)];
 		return r;
 	}
 
 	bit(r, ea) {
-		this.ccr = this.ccr & ~0x0e | fLogic[r & this.readf(ea)];
+		this.ccr = this.ccr & ~0x0e | MC6801.fLogic[r & this.readf(ea)];
 	}
 
 	ld(ea) {
 		const r = this.readf(ea);
-		this.ccr = this.ccr & ~0x0e | fLogic[r];
+		this.ccr = this.ccr & ~0x0e | MC6801.fLogic[r];
 		return r;
 	}
 
 	st(r, ea) {
-		this.ccr = this.ccr & ~0x0e | fLogic[this.write(ea, r)];
+		this.ccr = this.ccr & ~0x0e | MC6801.fLogic[this.write(ea, r)];
 	}
 
 	eor(r, ea) {
-		this.ccr = this.ccr & ~0x0e | fLogic[r ^= this.readf(ea)];
+		this.ccr = this.ccr & ~0x0e | MC6801.fLogic[r ^= this.readf(ea)];
 		return r;
 	}
 
 	adc(r, ea) {
-		r = aAdd[this.ccr & 1][this.readf(ea)][r];
+		r = MC6801.aAdd[this.ccr & 1][this.readf(ea)][r];
 		this.ccr = this.ccr & ~0x2f | r >>> 8;
 		return r & 0xff;
 	}
 
 	or(r, ea) {
-		this.ccr = this.ccr & ~0x0e | fLogic[r |= this.readf(ea)];
+		this.ccr = this.ccr & ~0x0e | MC6801.fLogic[r |= this.readf(ea)];
 		return r;
 	}
 
 	add(r, ea) {
-		r = aAdd[0][this.readf(ea)][r];
+		r = MC6801.aAdd[0][this.readf(ea)][r];
 		this.ccr = this.ccr & ~0x2f | r >>> 8;
 		return r & 0xff;
 	}
@@ -1091,8 +1005,8 @@ class MC6801 extends Cpu {
 	subd(ea) {
 		let v, w;
 		v = this.readf(ea);
-		this.b = (w = aSub[0][this.readf1(ea)][this.b]) & 0xff;
-		this.a = (v = aSub[w >>> 8 & 1][v][this.a]) & 0xff;
+		this.b = (w = MC6801.aSub[0][this.readf1(ea)][this.b]) & 0xff;
+		this.a = (v = MC6801.aSub[w >>> 8 & 1][v][this.a]) & 0xff;
 		this.ccr = this.ccr & ~0x0f | v >>> 8;
 		this.ccr &= !this.b << 2 | ~4;
 	}
@@ -1100,8 +1014,8 @@ class MC6801 extends Cpu {
 	addd(ea) {
 		let v, w;
 		v = this.readf(ea);
-		this.b = (w = aAdd[0][this.readf1(ea)][this.b]) & 0xff;
-		this.a = (v = aAdd[w >>> 8 & 1][v][this.a]) & 0xff;
+		this.b = (w = MC6801.aAdd[0][this.readf1(ea)][this.b]) & 0xff;
+		this.a = (v = MC6801.aAdd[w >>> 8 & 1][v][this.a]) & 0xff;
 		this.ccr = this.ccr & ~0x0f | v >>> 8 & 0x0f;
 		this.ccr &= !this.b << 2 | ~4;
 	}
@@ -1120,8 +1034,8 @@ class MC6801 extends Cpu {
 
 	cmp16(r, ea) {
 		const v = this.readf(ea);
-		const w = aSub[0][this.readf1(ea)][r & 0xff];
-		this.ccr = this.ccr & ~0x0f | aSub[w >>> 8 & 1][v][r >>> 8] >>> 8;
+		const w = MC6801.aSub[0][this.readf1(ea)][r & 0xff];
+		this.ccr = this.ccr & ~0x0f | MC6801.aSub[w >>> 8 & 1][v][r >>> 8] >>> 8;
 		this.ccr &= ((w & 0xff) === 0) << 2 | ~4;
 	}
 
@@ -1139,24 +1053,24 @@ class MC6801 extends Cpu {
 
 	aim(imm, ea) {
 		const r = imm & this.read(ea);
-		this.ccr = this.ccr & ~0x0e | fLogic[r];
+		this.ccr = this.ccr & ~0x0e | MC6801.fLogic[r];
 		this.write(ea, r);
 	}
 
 	oim(imm, ea) {
 		const r = imm | this.read(ea);
-		this.ccr = this.ccr & ~0x0e | fLogic[r];
+		this.ccr = this.ccr & ~0x0e | MC6801.fLogic[r];
 		this.write(ea, r);
 	}
 
 	eim(imm, ea) {
 		const r = imm ^ this.read(ea);
-		this.ccr = this.ccr & ~0x0e | fLogic[r];
+		this.ccr = this.ccr & ~0x0e | MC6801.fLogic[r];
 		this.write(ea, r);
 	}
 
 	tim(imm, ea) {
-		this.ccr = this.ccr & ~0x0e | fLogic[imm & this.read(ea)];
+		this.ccr = this.ccr & ~0x0e | MC6801.fLogic[imm & this.read(ea)];
 	}
 
 	psh(r) {
@@ -1205,4 +1119,90 @@ class MC6801 extends Cpu {
 		return !page.read ? page.base[addr & 0xff] : page.read(addr, this.arg);
 	}
 }
+
+void function () {
+	let f, i, j, k, r;
+
+	MC6801.aAdd = []; // [2][0x100][0x100];
+	MC6801.aSub = []; // [2][0x100][0x100];
+	MC6801.aDaa = []; // [4][0x100];
+	MC6801.aRl = []; // [2][0x100];
+	MC6801.aRr = []; // [2][0x100];
+	MC6801.fLogic = new Uint8Array(0x100);
+
+	for (i = 0; i < 2; i++) {
+		MC6801.aAdd[i] = [];
+		for (j = 0; j < 0x100; j++)
+			MC6801.aAdd[i][j] = new Uint16Array(0x100);
+	}
+	for (i = 0; i < 2; i++) {
+		MC6801.aSub[i] = [];
+		for (j = 0; j < 0x100; j++)
+			MC6801.aSub[i][j] = new Uint16Array(0x100);
+	}
+	for (i = 0; i < 4; i++)
+		MC6801.aDaa[i] = new Uint16Array(0x100);
+	for (i = 0; i < 2; i++)
+		MC6801.aRl[i] = new Uint16Array(0x100);
+	for (i = 0; i < 2; i++)
+		MC6801.aRr[i] = new Uint16Array(0x100);
+
+	for (i = 0; i < 2; i++)
+		for (j = 0; j < 0x100; j++)
+			for (k = 0; k < 0x100; k++) {
+				r = j - (j << 1 & 0x100) + k - (k << 1 & 0x100) + i;
+				f = r >>> 4 & 8;
+				if ((r & 0xff) === 0)
+					f |= 4;
+				if (r > 0x7f || r < -0x80)
+					f |= 2;
+				f |= (r ^ j ^ k) << 1 & 0x20;
+				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
+				MC6801.aAdd[i][k][j] = f << 8 | r & 0xff;
+			}
+	for (i = 0; i < 2; i++)
+		for (j = 0; j < 0x100; j++)
+			for (k = 0; k < 0x100; k++) {
+				r = j - (j << 1 & 0x100) - k + (k << 1 & 0x100) - i;
+				f = r >>> 4 & 8;
+				if ((r & 0xff) === 0)
+					f |= 4;
+				if (r > 0x7f || r < -0x80)
+					f |= 2;
+				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
+				MC6801.aSub[i][k][j] = f << 8 | r & 0xff;
+			}
+	for (i = 0; i < 0x100; i++) {
+		f = i >>> 4 & 8;
+		if (!i)
+			f |= 4;
+		MC6801.fLogic[i] = f;
+	}
+	for (i = 0; i < 4; i++)
+		for (j = 0; j < 0x100; j++) {
+			f = i & 1;
+			r = j;
+			k = 0;
+			if ((i & 2) !== 0 || (r & 0x0f) > 9)
+				k = 6;
+			if ((i & 1) !== 0 || (r & 0xf0) > 0x90 || (r & 0xf0) > 0x80 && (r & 0x0f) > 9)
+				k += 0x60;
+			f |= MC6801.fLogic[(r += k) & 0xff] | (r >= 0x100);
+			MC6801.aDaa[i][j] = f << 8 | r & 0xff;
+		}
+	for (i = 0; i < 2; i++)
+		for (j = 0; j < 0x100; j++) {
+			r = (j << 1 | i) & 0xff;
+			f = MC6801.fLogic[r] | j >>> 7;
+			f |= (f >>> 2 ^ f << 1) & 2;
+			MC6801.aRl[i][j] = f << 8 | r;
+		}
+	for (i = 0; i < 2; i++)
+		for (j = 0; j < 0x100; j++) {
+			r = j >>> 1 | i << 7;
+			f = MC6801.fLogic[r] | j & 1;
+			f |= (f >>> 2 ^ f << 1) & 2;
+			MC6801.aRr[i][j] = f << 8 | r;
+		}
+}();
 

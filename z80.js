@@ -4,111 +4,6 @@
  *
  */
 
-let aAdd = []; // [2][0x100][0x100];
-let aSub = []; // [2][0x100][0x100];
-let aDaa = []; // [8][0x100];
-let aRl = []; // [2][0x100];
-let aRr = []; // [2][0x100];
-let fLogic = new Uint8Array(0x100);
-
-(function () {
-	let f, i, j, k, r;
-
-	for (i = 0; i < 2; i++) {
-		aAdd[i] = [];
-		for (j = 0; j < 0x100; j++)
-			aAdd[i][j] = new Uint16Array(0x100);
-	}
-	for (i = 0; i < 2; i++) {
-		aSub[i] = [];
-		for (j = 0; j < 0x100; j++)
-			aSub[i][j] = new Uint16Array(0x100);
-	}
-	for (i = 0; i < 8; i++)
-		aDaa[i] = new Uint16Array(0x100);
-	for (i = 0; i < 2; i++)
-		aRl[i] = new Uint16Array(0x100);
-	for (i = 0; i < 2; i++)
-		aRr[i] = new Uint16Array(0x100);
-
-	for (i = 0; i < 2; i++)
-		for (j = 0; j < 0x100; j++)
-			for (k = 0; k < 0x100; k++) {
-				r = j - (j << 1 & 0x100) + k - (k << 1 & 0x100) + i;
-				f = r & 0x80;
-				if ((r & 0xff) === 0)
-					f |= 0x40;
-				if (r > 0x7f || r < -0x80)
-					f |= 4;
-				f |= (r ^ j ^ k) & 0x10;
-				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
-				aAdd[i][k][j] = r & 0xff | f << 8;
-			}
-	for (i = 0; i < 2; i++)
-		for (j = 0; j < 0x100; j++)
-			for (k = 0; k < 0x100; k++) {
-				r = j - (j << 1 & 0x100) - k + (k << 1 & 0x100) - i;
-				f = r & 0x80 | 2;
-				if ((r & 0xff) === 0)
-					f |= 0x40;
-				if (r > 0x7f || r < -0x80)
-					f |= 4;
-				f |= (r ^ j ^ k) & 0x10;
-				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
-				aSub[i][k][j] = r & 0xff | f << 8;
-			}
-	for (i = 0; i < 0x100; i++) {
-		f = i & 0x80;
-		if (!i)
-			f |= 0x40;
-		r = i ^ i >>> 4;
-		r ^= r >>> 2;
-		r ^= r >>> 1;
-		if ((r & 1) === 0)
-			f |= 0x04;
-		fLogic[i] = f;
-	}
-	for (i = 0; i < 8; i++)
-		for (j = 0; j < 0x100; j++) {
-			f = i << 2 & 0x10 | i & 3;
-			r = j;
-			if ((f & 2) !== 0) {
-				if ((f & 0x10) !== 0 && (r & 0x0f) > 5 || (r & 0x0f) > 9) {
-					r = r - 6 & 0xff;
-					f |= 0x10;
-				}
-				if ((f & 1) !== 0 && (r & 0xf0) > 0x50 || (r & 0xf0) > 0x90) {
-					r = r - 0x60 & 0xff;
-					f |= 1;
-				}
-			}
-			else {
-				if ((f & 0x10) !== 0 && (r & 0x0f) < 4 || (r & 0x0f) > 9) {
-					if ((r += 6) >= 0x100) {
-						r &= 0xff;
-						f |= 0x01;
-					}
-					f |= 0x10;
-				}
-				if ((f & 1) !== 0 && (r & 0xf0) < 0x40 || (r & 0xf0) > 0x90) {
-					r = r + 0x60 & 0xff;
-					f |= 1;
-				}
-			}
-			aDaa[i][j] = r | f << 8 | fLogic[r] << 8;
-		}
-	for (i = 0; i < 2; i++)
-		for (j = 0; j < 0x100; j++) {
-			r = j << 1 | i;
-			aRl[i][j] = r | fLogic[r & 0xff] << 8;
-		}
-	for (i = 0; i < 2; i++)
-		for (j = 0; j < 0x100; j++) {
-			r = j >>> 1 | i << 7;
-			aRr[i][j] = r | (fLogic[r] | j & 1) << 8;
-		}
-})();
-
 class Z80 extends Cpu {
 	constructor(arg = null) {
 		super(arg);
@@ -241,8 +136,8 @@ class Z80 extends Cpu {
 			this.f_prime = v;
 			break;
 		case 0x09: // ADD HL,BC
-			this.l = (v = aAdd[0][this.c][this.l]) & 0xff;
-			this.h = (v = aAdd[v >>> 8 & 1][this.b][this.h]) & 0xff;
+			this.l = (v = Z80.aAdd[0][this.c][this.l]) & 0xff;
+			this.h = (v = Z80.aAdd[v >>> 8 & 1][this.b][this.h]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
 			break;
 		case 0x0a: // LD A,(BC)
@@ -292,8 +187,8 @@ class Z80 extends Cpu {
 			this.jr(true);
 			break;
 		case 0x19: // ADD HL,DE
-			this.l = (v = aAdd[0][this.e][this.l]) & 0xff;
-			this.h = (v = aAdd[v >>> 8 & 1][this.d][this.h]) & 0xff;
+			this.l = (v = Z80.aAdd[0][this.e][this.l]) & 0xff;
+			this.h = (v = Z80.aAdd[v >>> 8 & 1][this.d][this.h]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
 			break;
 		case 0x1a: // LD A,(DE)
@@ -338,15 +233,15 @@ class Z80 extends Cpu {
 			this.h = this.fetch();
 			break;
 		case 0x27: // DAA
-			this.a = (v = aDaa[this.f >>> 2 & 4 | this.f & 3][this.a]) & 0xff;
+			this.a = (v = Z80.aDaa[this.f >>> 2 & 4 | this.f & 3][this.a]) & 0xff;
 			this.f = v >>> 8;
 			break;
 		case 0x28: // JR Z,e
 			this.jr((this.f & 0x40) !== 0);
 			break;
 		case 0x29: // ADD HL,HL
-			this.l = (v = aAdd[0][this.l][this.l]) & 0xff;
-			this.h = (v = aAdd[v >>> 8 & 1][this.h][this.h]) & 0xff;
+			this.l = (v = Z80.aAdd[0][this.l][this.l]) & 0xff;
+			this.h = (v = Z80.aAdd[v >>> 8 & 1][this.h][this.h]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
 			break;
 		case 0x2a: // LD HL,(nn)
@@ -397,8 +292,8 @@ class Z80 extends Cpu {
 			this.jr((this.f & 1) !== 0);
 			break;
 		case 0x39: // ADD HL,SP
-			this.l = (v = aAdd[0][this.sp & 0xff][this.l]) & 0xff;
-			this.h = (v = aAdd[v >>> 8 & 1][this.sp >>> 8][this.h]) & 0xff;
+			this.l = (v = Z80.aAdd[0][this.sp & 0xff][this.l]) & 0xff;
+			this.h = (v = Z80.aAdd[v >>> 8 & 1][this.sp >>> 8][this.h]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
 			break;
 		case 0x3a: // LD A,(nn)
@@ -1787,13 +1682,13 @@ class Z80 extends Cpu {
 
 		switch (this.fetch()) {
 		case 0x09: // ADD IX,BC
-			this.ixl = (v = aAdd[0][this.c][this.ixl]) & 0xff;
-			this.ixh = (v = aAdd[v >>> 8 & 1][this.b][this.ixh]) & 0xff;
+			this.ixl = (v = Z80.aAdd[0][this.c][this.ixl]) & 0xff;
+			this.ixh = (v = Z80.aAdd[v >>> 8 & 1][this.b][this.ixh]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
 			break;
 		case 0x19: // ADD IX,DE
-			this.ixl = (v = aAdd[0][this.e][this.ixl]) & 0xff;
-			this.ixh = (v = aAdd[v >>> 8 & 1][this.d][this.ixh]) & 0xff;
+			this.ixl = (v = Z80.aAdd[0][this.e][this.ixl]) & 0xff;
+			this.ixh = (v = Z80.aAdd[v >>> 8 & 1][this.d][this.ixh]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
 			break;
 		case 0x21: // LD IX,nn
@@ -1818,8 +1713,8 @@ class Z80 extends Cpu {
 			this.ixh = this.fetch();
 			break;
 		case 0x29: // ADD IX,IX
-			this.ixl = (v = aAdd[0][this.ixl][this.ixl]) & 0xff;
-			this.ixh = (v = aAdd[v >>> 8 & 1][this.ixh][this.ixh]) & 0xff;
+			this.ixl = (v = Z80.aAdd[0][this.ixl][this.ixl]) & 0xff;
+			this.ixh = (v = Z80.aAdd[v >>> 8 & 1][this.ixh][this.ixh]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
 			break;
 		case 0x2a: // LD IX,(nn)
@@ -2160,14 +2055,14 @@ class Z80 extends Cpu {
 
 		switch (this.fetch()) {
 		case 0x40: // IN B,(C)
-			this.f = this.f & 1 | fLogic[this.b = this.ioread(this.b, this.c)];
+			this.f = this.f & 1 | Z80.fLogic[this.b = this.ioread(this.b, this.c)];
 			break;
 		case 0x41: // OUT (C),B
 			this.iowrite(this.b, this.c, this.b);
 			break;
 		case 0x42: // SBC HL,BC
-			this.l = (v = aSub[this.f & 1][this.c][this.l]) & 0xff;
-			this.h = (v = aSub[v >>> 8 & 1][this.b][this.h]) & 0xff;
+			this.l = (v = Z80.aSub[this.f & 1][this.c][this.l]) & 0xff;
+			this.h = (v = Z80.aSub[v >>> 8 & 1][this.b][this.h]) & 0xff;
 			this.f = v >>> 8 & ~((this.l !== 0) << 6);
 			break;
 		case 0x43: // LD (nn),BC
@@ -2175,7 +2070,7 @@ class Z80 extends Cpu {
 			this.write1(v, this.b);
 			break;
 		case 0x44: // NEG
-			this.a = (v = aSub[0][this.a][0]) & 0xff;
+			this.a = (v = Z80.aSub[0][this.a][0]) & 0xff;
 			this.f = v >>> 8;
 			break;
 		case 0x45: // RETN
@@ -2189,14 +2084,14 @@ class Z80 extends Cpu {
 			this.i = this.a;
 			break;
 		case 0x48: // IN C,(C)
-			this.f = this.f & 1 | fLogic[this.c = this.ioread(this.b, this.c)];
+			this.f = this.f & 1 | Z80.fLogic[this.c = this.ioread(this.b, this.c)];
 			break;
 		case 0x49: // OUT (C),C
 			this.iowrite(this.b, this.c, this.c);
 			break;
 		case 0x4a: // ADC HL,BC
-			this.l = (v = aAdd[this.f & 1][this.c][this.l]) & 0xff;
-			this.h = (v = aAdd[v >>> 8 & 1][this.b][this.h]) & 0xff;
+			this.l = (v = Z80.aAdd[this.f & 1][this.c][this.l]) & 0xff;
+			this.h = (v = Z80.aAdd[v >>> 8 & 1][this.b][this.h]) & 0xff;
 			this.f = v >>> 8 & ~((this.l !== 0) << 6);
 			break;
 		case 0x4b: // LD BC,(nn)
@@ -2210,14 +2105,14 @@ class Z80 extends Cpu {
 			this.r = this.a & 0x7f;
 			break;
 		case 0x50: // IN D,(C)
-			this.f = this.f & 1 | fLogic[this.d = this.ioread(this.b, this.c)];
+			this.f = this.f & 1 | Z80.fLogic[this.d = this.ioread(this.b, this.c)];
 			break;
 		case 0x51: // OUT (C),D
 			this.iowrite(this.b, this.c, this.d);
 			break;
 		case 0x52: // SBC HL,DE
-			this.l = (v = aSub[this.f & 1][this.e][this.l]) & 0xff;
-			this.h = (v = aSub[v >>> 8 & 1][this.d][this.h]) & 0xff;
+			this.l = (v = Z80.aSub[this.f & 1][this.e][this.l]) & 0xff;
+			this.h = (v = Z80.aSub[v >>> 8 & 1][this.d][this.h]) & 0xff;
 			this.f = v >>> 8 & ~((this.l !== 0) << 6);
 			break;
 		case 0x53: // LD (nn),DE
@@ -2228,17 +2123,17 @@ class Z80 extends Cpu {
 			this.im = 1;
 			break;
 		case 0x57: // LD A,I
-			this.f = this.f & 1 | fLogic[this.a = this.i] & 0xc0 | this.iff << 1 & 4;
+			this.f = this.f & 1 | Z80.fLogic[this.a = this.i] & 0xc0 | this.iff << 1 & 4;
 			break;
 		case 0x58: // IN E,(C)
-			this.f = this.f & 1 | fLogic[this.e = this.ioread(this.b, this.c)];
+			this.f = this.f & 1 | Z80.fLogic[this.e = this.ioread(this.b, this.c)];
 			break;
 		case 0x59: // OUT (C),E
 			this.iowrite(this.b, this.c, this.e);
 			break;
 		case 0x5a: // ADC HL,DE
-			this.l = (v = aAdd[this.f & 1][this.e][this.l]) & 0xff;
-			this.h = (v = aAdd[v >>> 8 & 1][this.d][this.h]) & 0xff;
+			this.l = (v = Z80.aAdd[this.f & 1][this.e][this.l]) & 0xff;
+			this.h = (v = Z80.aAdd[v >>> 8 & 1][this.d][this.h]) & 0xff;
 			this.f = v >>> 8 & ~((this.l !== 0) << 6);
 			break;
 		case 0x5b: // LD DE,(nn)
@@ -2249,41 +2144,41 @@ class Z80 extends Cpu {
 			this.im = 2;
 			break;
 		case 0x5f: // LD A,R
-			this.f = this.f & 1 | fLogic[this.a = this.r] & 0xc0 | this.iff << 1 & 4;
+			this.f = this.f & 1 | Z80.fLogic[this.a = this.r] & 0xc0 | this.iff << 1 & 4;
 			break;
 		case 0x60: // IN H,(C)
-			this.f = this.f & 1 | fLogic[this.h = this.ioread(this.b, this.c)];
+			this.f = this.f & 1 | Z80.fLogic[this.h = this.ioread(this.b, this.c)];
 			break;
 		case 0x61: // OUT (C),H
 			this.iowrite(this.b, this.c, this.h);
 			break;
 		case 0x62: // SBC HL,HL
-			this.l = (v = aSub[this.f & 1][this.l][this.l]) & 0xff;
-			this.h = (v = aSub[v >>> 8 & 1][this.h][this.h]) & 0xff;
+			this.l = (v = Z80.aSub[this.f & 1][this.l][this.l]) & 0xff;
+			this.h = (v = Z80.aSub[v >>> 8 & 1][this.h][this.h]) & 0xff;
 			this.f = v >>> 8 & ~((this.l !== 0) << 6);
 			break;
 		case 0x67: // RRD
 			this.a = this.a & 0xf0 | (v = this.read(this.l | this.h << 8) | this.a << 8) & 0x0f;
-			this.f = this.f & 1 | fLogic[this.write(this.l | this.h << 8, v >>> 4 & 0xff)] & 0xc4;
+			this.f = this.f & 1 | Z80.fLogic[this.write(this.l | this.h << 8, v >>> 4 & 0xff)] & 0xc4;
 			break;
 		case 0x68: // IN L,(C)
-			this.f = this.f & 1 | fLogic[this.l = this.ioread(this.b, this.c)];
+			this.f = this.f & 1 | Z80.fLogic[this.l = this.ioread(this.b, this.c)];
 			break;
 		case 0x69: // OUT (C),L
 			this.iowrite(this.b, this.c, this.l);
 			break;
 		case 0x6a: // ADC HL,HL
-			this.l = (v = aAdd[this.f & 1][this.l][this.l]) & 0xff;
-			this.h = (v = aAdd[v >>> 8 & 1][this.h][this.h]) & 0xff;
+			this.l = (v = Z80.aAdd[this.f & 1][this.l][this.l]) & 0xff;
+			this.h = (v = Z80.aAdd[v >>> 8 & 1][this.h][this.h]) & 0xff;
 			this.f = v >>> 8 & ~((this.l !== 0) << 6);
 			break;
 		case 0x6f: // RLD
 			this.a = this.a & 0xf0 | (v = this.read(this.l | this.h << 8) << 4 | this.a & 0x0f) >>> 8;
-			this.f = this.f & 1 | fLogic[this.write(this.l | this.h << 8, v & 0xff)] & 0xc4;
+			this.f = this.f & 1 | Z80.fLogic[this.write(this.l | this.h << 8, v & 0xff)] & 0xc4;
 			break;
 		case 0x72: // SBC HL,SP
-			this.l = (v = aSub[this.f & 1][this.sp & 0xff][this.l]) & 0xff;
-			this.h = (v = aSub[v >>> 8 & 1][this.sp >>> 8][this.h]) & 0xff;
+			this.l = (v = Z80.aSub[this.f & 1][this.sp & 0xff][this.l]) & 0xff;
+			this.h = (v = Z80.aSub[v >>> 8 & 1][this.sp >>> 8][this.h]) & 0xff;
 			this.f = v >>> 8 & ~((this.l !== 0) << 6);
 			break;
 		case 0x73: // LD (nn),SP
@@ -2291,14 +2186,14 @@ class Z80 extends Cpu {
 			this.write1(v, this.sp >>> 8);
 			break;
 		case 0x78: // IN A,(C)
-			this.f = this.f & 1 | fLogic[this.a = this.ioread(this.b, this.c)];
+			this.f = this.f & 1 | Z80.fLogic[this.a = this.ioread(this.b, this.c)];
 			break;
 		case 0x79: // OUT (C),A
 			this.iowrite(this.b, this.c, this.a);
 			break;
 		case 0x7a: // ADC HL,SP
-			this.l = (v = aAdd[this.f & 1][this.sp & 0xff][this.l]) & 0xff;
-			this.h = (v = aAdd[v >>> 8 & 1][this.sp >>> 8][this.h]) & 0xff;
+			this.l = (v = Z80.aAdd[this.f & 1][this.sp & 0xff][this.l]) & 0xff;
+			this.h = (v = Z80.aAdd[v >>> 8 & 1][this.sp >>> 8][this.h]) & 0xff;
 			this.f = v >>> 8 & ~((this.l !== 0) << 6);
 			break;
 		case 0x7b: // LD SP,(nn)
@@ -2381,13 +2276,13 @@ class Z80 extends Cpu {
 
 		switch (this.fetch()) {
 		case 0x09: // ADD IY,BC
-			this.iyl = (v = aAdd[0][this.c][this.iyl]) & 0xff;
-			this.iyh = (v = aAdd[v >>> 8 & 1][this.b][this.iyh]) & 0xff;
+			this.iyl = (v = Z80.aAdd[0][this.c][this.iyl]) & 0xff;
+			this.iyh = (v = Z80.aAdd[v >>> 8 & 1][this.b][this.iyh]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
 			break;
 		case 0x19: // ADD IY,DE
-			this.iyl = (v = aAdd[0][this.e][this.iyl]) & 0xff;
-			this.iyh = (v = aAdd[v >>> 8 & 1][this.d][this.iyh]) & 0xff;
+			this.iyl = (v = Z80.aAdd[0][this.e][this.iyl]) & 0xff;
+			this.iyh = (v = Z80.aAdd[v >>> 8 & 1][this.d][this.iyh]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
 			break;
 		case 0x21: // LD IY,nn
@@ -2412,8 +2307,8 @@ class Z80 extends Cpu {
 			this.iyh = this.fetch();
 			break;
 		case 0x29: // ADD IY,IY
-			this.iyl = (v = aAdd[0][this.iyl][this.iyl]) & 0xff;
-			this.iyh = (v = aAdd[v >>> 8 & 1][this.iyh][this.iyh]) & 0xff;
+			this.iyl = (v = Z80.aAdd[0][this.iyl][this.iyl]) & 0xff;
+			this.iyh = (v = Z80.aAdd[v >>> 8 & 1][this.iyh][this.iyh]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
 			break;
 		case 0x2a: // LD IY,(nn)
@@ -2791,77 +2686,77 @@ class Z80 extends Cpu {
 	}
 
 	add(r) {
-		const v = aAdd[0][r][this.a];
+		const v = Z80.aAdd[0][r][this.a];
 		this.f = v >>> 8;
 		this.a = v & 0xff;
 	}
 
 	adc(r) {
-		const v = aAdd[this.f & 1][r][this.a];
+		const v = Z80.aAdd[this.f & 1][r][this.a];
 		this.f = v >>> 8;
 		this.a = v & 0xff;
 	}
 
 	sub(r) {
-		const v = aSub[0][r][this.a];
+		const v = Z80.aSub[0][r][this.a];
 		this.f = v >>> 8;
 		this.a = v & 0xff;
 	}
 
 	sbc(r) {
-		const v = aSub[this.f & 1][r][this.a];
+		const v = Z80.aSub[this.f & 1][r][this.a];
 		this.f = v >>> 8;
 		this.a = v & 0xff;
 	}
 
 	and(r) {
-		this.f = fLogic[this.a &= r] | 0x10;
+		this.f = Z80.fLogic[this.a &= r] | 0x10;
 	}
 
 	xor(r) {
-		this.f = fLogic[this.a ^= r];
+		this.f = Z80.fLogic[this.a ^= r];
 	}
 
 	or(r) {
-		this.f = fLogic[this.a |= r];
+		this.f = Z80.fLogic[this.a |= r];
 	}
 
 	cp(r) {
-		this.f = aSub[0][r][this.a] >>> 8;
+		this.f = Z80.aSub[0][r][this.a] >>> 8;
 	}
 
 	inc(r) {
-		const v = aAdd[0][1][r];
+		const v = Z80.aAdd[0][1][r];
 		this.f = this.f & 1 | v >>> 8 & 0xd6;
 		return v & 0xff;
 	}
 
 	dec(r) {
-		const v = aSub[0][1][r];
+		const v = Z80.aSub[0][1][r];
 		this.f = this.f & 1 | v >>> 8 & 0xd6;
 		return v & 0xff;
 	}
 
 	rlca() {
-		const v = aRl[this.a >>> 7][this.a];
+		const v = Z80.aRl[this.a >>> 7][this.a];
 		this.f = this.f & 0xc4 | v >>> 8 & 1;
 		this.a = v & 0xff;
 	}
 
 	rrca() {
-		const v = aRr[this.a & 1][this.a];
+		const v = Z80.aRr[this.a & 1][this.a];
 		this.f = this.f & 0xc4 | v >>> 8 & 1;
 		this.a = v & 0xff;
 	}
 
 	rla() {
-		const v = aRl[this.f & 1][this.a];
+		const v = Z80.aRl[this.f & 1][this.a];
 		this.f = this.f & 0xc4 | v >>> 8 & 1;
 		this.a = v & 0xff;
 	}
 
 	rra() {
-		const v = aRr[this.f & 1][this.a];
+		const v = Z80.aRr[this.f & 1][this.a];
 		this.f = this.f & 0xc4 | v >>> 8 & 1;
 		this.a = v & 0xff;
 	}
@@ -2904,43 +2799,43 @@ class Z80 extends Cpu {
 	}
 
 	rlc(r) {
-		const v = aRl[r >>> 7][r];
+		const v = Z80.aRl[r >>> 7][r];
 		this.f = v >>> 8;
 		return v & 0xff;
 	}
 
 	rrc(r) {
-		const v = aRr[r & 1][r];
+		const v = Z80.aRr[r & 1][r];
 		this.f = v >>> 8;
 		return v & 0xff;
 	}
 
 	rl(r) {
-		const v = aRl[this.f & 1][r];
+		const v = Z80.aRl[this.f & 1][r];
 		this.f = v >>> 8;
 		return v & 0xff;
 	}
 
 	rr(r) {
-		const v = aRr[this.f & 1][r];
+		const v = Z80.aRr[this.f & 1][r];
 		this.f = v >>> 8;
 		return v & 0xff;
 	}
 
 	sla(r) {
-		const v = aRl[0][r];
+		const v = Z80.aRl[0][r];
 		this.f = v >>> 8;
 		return v & 0xff;
 	}
 
 	sra(r) {
-		const v = aRr[r >>> 7][r];
+		const v = Z80.aRr[r >>> 7][r];
 		this.f = v >>> 8;
 		return v & 0xff;
 	}
 
 	srl(r) {
-		const v = aRr[0][r];
+		const v = Z80.aRr[0][r];
 		this.f = v >>> 8;
 		return v & 0xff;
 	}
@@ -2972,13 +2867,13 @@ class Z80 extends Cpu {
 	}
 
 	cpi() {
-		this.f = this.f & 1 | aSub[0][this.read(this.l | this.h << 8)][this.a] >>> 8 & 0xd2;
+		this.f = this.f & 1 | Z80.aSub[0][this.read(this.l | this.h << 8)][this.a] >>> 8 & 0xd2;
 		this.inchl();
 		this.f |= (this.decbc() !== 0) << 2;
 	}
 
 	cpd() {
-		this.f = this.f & 1 | aSub[0][this.read(this.l | this.h << 8)][this.a] >>> 8 & 0xd2;
+		this.f = this.f & 1 | Z80.aSub[0][this.read(this.l | this.h << 8)][this.a] >>> 8 & 0xd2;
 		this.dechl();
 		this.f |= (this.decbc() !== 0) << 2;
 	}
@@ -3020,4 +2915,109 @@ class Z80 extends Cpu {
 			page.write(l | h << 8, data, this.arg);
 	}
 }
+
+void function () {
+	let f, i, j, k, r;
+
+	Z80.aAdd = []; // [2][0x100][0x100];
+	Z80.aSub = []; // [2][0x100][0x100];
+	Z80.aDaa = []; // [8][0x100];
+	Z80.aRl = []; // [2][0x100];
+	Z80.aRr = []; // [2][0x100];
+	Z80.fLogic = new Uint8Array(0x100);
+
+	for (i = 0; i < 2; i++) {
+		Z80.aAdd[i] = [];
+		for (j = 0; j < 0x100; j++)
+			Z80.aAdd[i][j] = new Uint16Array(0x100);
+	}
+	for (i = 0; i < 2; i++) {
+		Z80.aSub[i] = [];
+		for (j = 0; j < 0x100; j++)
+			Z80.aSub[i][j] = new Uint16Array(0x100);
+	}
+	for (i = 0; i < 8; i++)
+		Z80.aDaa[i] = new Uint16Array(0x100);
+	for (i = 0; i < 2; i++)
+		Z80.aRl[i] = new Uint16Array(0x100);
+	for (i = 0; i < 2; i++)
+		Z80.aRr[i] = new Uint16Array(0x100);
+
+	for (i = 0; i < 2; i++)
+		for (j = 0; j < 0x100; j++)
+			for (k = 0; k < 0x100; k++) {
+				r = j - (j << 1 & 0x100) + k - (k << 1 & 0x100) + i;
+				f = r & 0x80;
+				if ((r & 0xff) === 0)
+					f |= 0x40;
+				if (r > 0x7f || r < -0x80)
+					f |= 4;
+				f |= (r ^ j ^ k) & 0x10;
+				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
+				Z80.aAdd[i][k][j] = r & 0xff | f << 8;
+			}
+	for (i = 0; i < 2; i++)
+		for (j = 0; j < 0x100; j++)
+			for (k = 0; k < 0x100; k++) {
+				r = j - (j << 1 & 0x100) - k + (k << 1 & 0x100) - i;
+				f = r & 0x80 | 2;
+				if ((r & 0xff) === 0)
+					f |= 0x40;
+				if (r > 0x7f || r < -0x80)
+					f |= 4;
+				f |= (r ^ j ^ k) & 0x10;
+				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
+				Z80.aSub[i][k][j] = r & 0xff | f << 8;
+			}
+	for (i = 0; i < 0x100; i++) {
+		f = i & 0x80;
+		if (!i)
+			f |= 0x40;
+		r = i ^ i >>> 4;
+		r ^= r >>> 2;
+		r ^= r >>> 1;
+		if ((r & 1) === 0)
+			f |= 0x04;
+		Z80.fLogic[i] = f;
+	}
+	for (i = 0; i < 8; i++)
+		for (j = 0; j < 0x100; j++) {
+			f = i << 2 & 0x10 | i & 3;
+			r = j;
+			if ((f & 2) !== 0) {
+				if ((f & 0x10) !== 0 && (r & 0x0f) > 5 || (r & 0x0f) > 9) {
+					r = r - 6 & 0xff;
+					f |= 0x10;
+				}
+				if ((f & 1) !== 0 && (r & 0xf0) > 0x50 || (r & 0xf0) > 0x90) {
+					r = r - 0x60 & 0xff;
+					f |= 1;
+				}
+			}
+			else {
+				if ((f & 0x10) !== 0 && (r & 0x0f) < 4 || (r & 0x0f) > 9) {
+					if ((r += 6) >= 0x100) {
+						r &= 0xff;
+						f |= 0x01;
+					}
+					f |= 0x10;
+				}
+				if ((f & 1) !== 0 && (r & 0xf0) < 0x40 || (r & 0xf0) > 0x90) {
+					r = r + 0x60 & 0xff;
+					f |= 1;
+				}
+			}
+			Z80.aDaa[i][j] = r | f << 8 | Z80.fLogic[r] << 8;
+		}
+	for (i = 0; i < 2; i++)
+		for (j = 0; j < 0x100; j++) {
+			r = j << 1 | i;
+			Z80.aRl[i][j] = r | Z80.fLogic[r & 0xff] << 8;
+		}
+	for (i = 0; i < 2; i++)
+		for (j = 0; j < 0x100; j++) {
+			r = j >>> 1 | i << 7;
+			Z80.aRr[i][j] = r | (Z80.fLogic[r] | j & 1) << 8;
+		}
+}();
 

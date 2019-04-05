@@ -4,99 +4,6 @@
  *
  */
 
-let aAdd = []; // [2][0x100][0x100];
-let aSub = []; // [2][0x100][0x100];
-let aDaa = []; // [4][0x100];
-let aRl = []; // [2][0x100];
-let aRr = []; // [2][0x100];
-let fLogic = new Uint8Array(0x100);
-
-(function () {
-	let f, i, j, k, r;
-
-	for (i = 0; i < 2; i++) {
-		aAdd[i] = [];
-		for (j = 0; j < 0x100; j++)
-			aAdd[i][j] = new Uint16Array(0x100);
-	}
-	for (i = 0; i < 2; i++) {
-		aSub[i] = [];
-		for (j = 0; j < 0x100; j++)
-			aSub[i][j] = new Uint16Array(0x100);
-	}
-	for (i = 0; i < 8; i++)
-		aDaa[i] = new Uint16Array(0x100);
-	for (i = 0; i < 2; i++)
-		aRl[i] = new Uint16Array(0x100);
-	for (i = 0; i < 2; i++)
-		aRr[i] = new Uint16Array(0x100);
-
-	for (i = 0; i < 2; i++)
-		for (j = 0; j < 0x100; j++)
-			for (k = 0; k < 0x100; k++) {
-				r = j - (j << 1 & 0x100) + k - (k << 1 & 0x100) + i;
-				f = r & 0x80;
-				if ((r & 0xff) === 0)
-					f |= 0x40;
-				if (r > 0x7f || r < -0x80)
-					f |= 4;
-				f |= (r ^ j ^ k) & 0x10;
-				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
-				aAdd[i][k][j] = r & 0xff | f << 8;
-			}
-	for (i = 0; i < 2; i++)
-		for (j = 0; j < 0x100; j++)
-			for (k = 0; k < 0x100; k++) {
-				r = j - (j << 1 & 0x100) - k + (k << 1 & 0x100) - i;
-				f = r & 0x80;
-				if ((r & 0xff) === 0)
-					f |= 0x40;
-				if (r > 0x7f || r < -0x80)
-					f |= 4;
-				f |= (r ^ j ^ k) & 0x10;
-				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
-				aSub[i][k][j] = r & 0xff | f << 8;
-			}
-	for (i = 0; i < 0x100; i++) {
-		f = i & 0x80;
-		if (!i)
-			f |= 0x40;
-		r = i ^ i >>> 4;
-		r ^= r >>> 2;
-		r ^= r >>> 1;
-		if ((r & 1) === 0)
-			f |= 0x04;
-		fLogic[i] = f;
-	}
-	for (i = 0; i < 4; i++)
-		for (j = 0; j < 0x100; j++) {
-			f = i << 3 & 0x10 | i & 1;
-			r = j;
-			if ((f & 0x10) !== 0 && (r & 0x0f) < 4 || (r & 0x0f) > 9) {
-				if ((r += 6) >= 0x100) {
-					r &= 0xff;
-					f |= 0x01;
-				}
-				f |= 0x10;
-			}
-			if ((f & 1) !== 0 && (r & 0xf0) < 0x40 || (r & 0xf0) > 0x90) {
-				r = r + 0x60 & 0xff;
-				f |= 1;
-			}
-			aDaa[i][j] = r | f << 8 | fLogic[r] << 8;
-		}
-	for (i = 0; i < 2; i++)
-		for (j = 0; j < 0x100; j++) {
-			r = j << 1 | i;
-			aRl[i][j] = r | fLogic[r & 0xff] << 8;
-		}
-	for (i = 0; i < 2; i++)
-		for (j = 0; j < 0x100; j++) {
-			r = j >>> 1 | i << 7;
-			aRr[i][j] = r | (fLogic[r] | j & 1) << 8;
-		}
-})();
-
 class I8080 extends Cpu {
 	constructor(arg = null) {
 		super(arg);
@@ -185,8 +92,8 @@ class I8080 extends Cpu {
 			this.rlca();
 			break;
 		case 0x09: // DAD B
-			this.l = (v = aAdd[0][this.c][this.l]) & 0xff;
-			this.h = (v = aAdd[v >>> 8 & 1][this.b][this.h]) & 0xff;
+			this.l = (v = I8080.aAdd[0][this.c][this.l]) & 0xff;
+			this.h = (v = I8080.aAdd[v >>> 8 & 1][this.b][this.h]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
 			break;
 		case 0x0a: // LDAX B
@@ -230,8 +137,8 @@ class I8080 extends Cpu {
 			this.rla();
 			break;
 		case 0x19: // DAD D
-			this.l = (v = aAdd[0][this.e][this.l]) & 0xff;
-			this.h = (v = aAdd[v >>> 8 & 1][this.d][this.h]) & 0xff;
+			this.l = (v = I8080.aAdd[0][this.e][this.l]) & 0xff;
+			this.h = (v = I8080.aAdd[v >>> 8 & 1][this.d][this.h]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
 			break;
 		case 0x1a: // LDAX D
@@ -273,12 +180,12 @@ class I8080 extends Cpu {
 			this.h = this.fetch();
 			break;
 		case 0x27: // DAA
-			this.a = (v = aDaa[this.f >>> 3 & 2 | this.f & 1][this.a]) & 0xff;
+			this.a = (v = I8080.aDaa[this.f >>> 3 & 2 | this.f & 1][this.a]) & 0xff;
 			this.f = v >>> 8;
 			break;
 		case 0x29: // DAD H
-			this.l = (v = aAdd[0][this.l][this.l]) & 0xff;
-			this.h = (v = aAdd[v >>> 8 & 1][this.h][this.h]) & 0xff;
+			this.l = (v = I8080.aAdd[0][this.l][this.l]) & 0xff;
+			this.h = (v = I8080.aAdd[v >>> 8 & 1][this.h][this.h]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
 			break;
 		case 0x2a: // LHLD addr
@@ -323,8 +230,8 @@ class I8080 extends Cpu {
 			this.f = this.f & 0xc4 | 1;
 			break;
 		case 0x39: // DAD SP
-			this.l = (v = aAdd[0][this.sp & 0xff][this.l]) & 0xff;
-			this.h = (v = aAdd[v >>> 8 & 1][this.sp >>> 8][this.h]) & 0xff;
+			this.l = (v = I8080.aAdd[0][this.sp & 0xff][this.l]) & 0xff;
+			this.h = (v = I8080.aAdd[v >>> 8 & 1][this.sp >>> 8][this.h]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
 			break;
 		case 0x3a: // LDA addr
@@ -957,77 +864,77 @@ class I8080 extends Cpu {
 	}
 
 	add(r) {
-		const v = aAdd[0][r][this.a];
+		const v = I8080.aAdd[0][r][this.a];
 		this.f = v >>> 8;
 		this.a = v & 0xff;
 	}
 
 	adc(r) {
-		const v = aAdd[this.f & 1][r][this.a];
+		const v = I8080.aAdd[this.f & 1][r][this.a];
 		this.f = v >>> 8;
 		this.a = v & 0xff;
 	}
 
 	sub(r) {
-		const v = aSub[0][r][this.a];
+		const v = I8080.aSub[0][r][this.a];
 		this.f = v >>> 8;
 		this.a = v & 0xff;
 	}
 
 	sbc(r) {
-		const v = aSub[this.f & 1][r][this.a];
+		const v = I8080.aSub[this.f & 1][r][this.a];
 		this.f = v >>> 8;
 		this.a = v & 0xff;
 	}
 
 	and(r) {
-		this.f = fLogic[this.a &= r] | 0x10;
+		this.f = I8080.fLogic[this.a &= r] | 0x10;
 	}
 
 	xor(r) {
-		this.f = fLogic[this.a ^= r];
+		this.f = I8080.fLogic[this.a ^= r];
 	}
 
 	or(r) {
-		this.f = fLogic[this.a |= r];
+		this.f = I8080.fLogic[this.a |= r];
 	}
 
 	cp(r) {
-		this.f = aSub[0][r][this.a] >>> 8;
+		this.f = I8080.aSub[0][r][this.a] >>> 8;
 	}
 
 	inc(r) {
-		const v = aAdd[0][1][r];
+		const v = I8080.aAdd[0][1][r];
 		this.f = this.f & 1 | v >>> 8 & 0xd6;
 		return v & 0xff;
 	}
 
 	dec(r) {
-		const v = aSub[0][1][r];
+		const v = I8080.aSub[0][1][r];
 		this.f = this.f & 1 | v >>> 8 & 0xd6;
 		return v & 0xff;
 	}
 
 	rlca() {
-		const v = aRl[this.a >>> 7][this.a];
+		const v = I8080.aRl[this.a >>> 7][this.a];
 		this.f = this.f & 0xc4 | v >>> 8 & 1;
 		this.a = v & 0xff;
 	}
 
 	rrca() {
-		const v = aRr[this.a & 1][this.a];
+		const v = I8080.aRr[this.a & 1][this.a];
 		this.f = this.f & 0xc4 | v >>> 8 & 1;
 		this.a = v & 0xff;
 	}
 
 	rla() {
-		const v = aRl[this.f & 1][this.a];
+		const v = I8080.aRl[this.f & 1][this.a];
 		this.f = this.f & 0xc4 | v >>> 8 & 1;
 		this.a = v & 0xff;
 	}
 
 	rra() {
-		const v = aRr[this.f & 1][this.a];
+		const v = I8080.aRr[this.f & 1][this.a];
 		this.f = this.f & 0xc4 | v >>> 8 & 1;
 		this.a = v & 0xff;
 	}
@@ -1082,4 +989,97 @@ class I8080 extends Cpu {
 			page.write(l | h << 8, data, this.arg);
 	}
 }
+
+void function () {
+	let f, i, j, k, r;
+
+	I8080.aAdd = []; // [2][0x100][0x100];
+	I8080.aSub = []; // [2][0x100][0x100];
+	I8080.aDaa = []; // [4][0x100];
+	I8080.aRl = []; // [2][0x100];
+	I8080.aRr = []; // [2][0x100];
+	I8080.fLogic = new Uint8Array(0x100);
+
+	for (i = 0; i < 2; i++) {
+		I8080.aAdd[i] = [];
+		for (j = 0; j < 0x100; j++)
+			I8080.aAdd[i][j] = new Uint16Array(0x100);
+	}
+	for (i = 0; i < 2; i++) {
+		I8080.aSub[i] = [];
+		for (j = 0; j < 0x100; j++)
+			I8080.aSub[i][j] = new Uint16Array(0x100);
+	}
+	for (i = 0; i < 8; i++)
+		I8080.aDaa[i] = new Uint16Array(0x100);
+	for (i = 0; i < 2; i++)
+		I8080.aRl[i] = new Uint16Array(0x100);
+	for (i = 0; i < 2; i++)
+		I8080.aRr[i] = new Uint16Array(0x100);
+
+	for (i = 0; i < 2; i++)
+		for (j = 0; j < 0x100; j++)
+			for (k = 0; k < 0x100; k++) {
+				r = j - (j << 1 & 0x100) + k - (k << 1 & 0x100) + i;
+				f = r & 0x80;
+				if ((r & 0xff) === 0)
+					f |= 0x40;
+				if (r > 0x7f || r < -0x80)
+					f |= 4;
+				f |= (r ^ j ^ k) & 0x10;
+				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
+				I8080.aAdd[i][k][j] = r & 0xff | f << 8;
+			}
+	for (i = 0; i < 2; i++)
+		for (j = 0; j < 0x100; j++)
+			for (k = 0; k < 0x100; k++) {
+				r = j - (j << 1 & 0x100) - k + (k << 1 & 0x100) - i;
+				f = r & 0x80;
+				if ((r & 0xff) === 0)
+					f |= 0x40;
+				if (r > 0x7f || r < -0x80)
+					f |= 4;
+				f |= (r ^ j ^ k) & 0x10;
+				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
+				I8080.aSub[i][k][j] = r & 0xff | f << 8;
+			}
+	for (i = 0; i < 0x100; i++) {
+		f = i & 0x80;
+		if (!i)
+			f |= 0x40;
+		r = i ^ i >>> 4;
+		r ^= r >>> 2;
+		r ^= r >>> 1;
+		if ((r & 1) === 0)
+			f |= 0x04;
+		I8080.fLogic[i] = f;
+	}
+	for (i = 0; i < 4; i++)
+		for (j = 0; j < 0x100; j++) {
+			f = i << 3 & 0x10 | i & 1;
+			r = j;
+			if ((f & 0x10) !== 0 && (r & 0x0f) < 4 || (r & 0x0f) > 9) {
+				if ((r += 6) >= 0x100) {
+					r &= 0xff;
+					f |= 0x01;
+				}
+				f |= 0x10;
+			}
+			if ((f & 1) !== 0 && (r & 0xf0) < 0x40 || (r & 0xf0) > 0x90) {
+				r = r + 0x60 & 0xff;
+				f |= 1;
+			}
+			I8080.aDaa[i][j] = r | f << 8 | I8080.fLogic[r] << 8;
+		}
+	for (i = 0; i < 2; i++)
+		for (j = 0; j < 0x100; j++) {
+			r = j << 1 | i;
+			I8080.aRl[i][j] = r | I8080.fLogic[r & 0xff] << 8;
+		}
+	for (i = 0; i < 2; i++)
+		for (j = 0; j < 0x100; j++) {
+			r = j >>> 1 | i << 7;
+			I8080.aRr[i][j] = r | (I8080.fLogic[r] | j & 1) << 8;
+		}
+}();
 
