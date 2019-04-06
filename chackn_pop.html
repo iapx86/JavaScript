@@ -40,9 +40,12 @@ class ChacknPop {
 		// CPU周りの初期化
 		this.ram = new Uint8Array(0xd00);
 		this.vram = new Uint8Array(0x8000);
-//		this.ram2 = new Uint8Array(0x80);
+		this.ram2 = new Uint8Array(0x80);
 		this.in = Uint8Array.of(0x7d, 0xff, 0xff, 0xff, 0, 0x4f);
 		this.psg = [{addr: 0}, {addr: 0}];
+		this.mcu_command = 0;
+		this.mcu_result = 0;
+		this.mcu_flag = 0;
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x80; i++)
@@ -54,15 +57,13 @@ class ChacknPop {
 		this.cpu.memorymap[0x88].read = addr => {
 			switch (addr & 0xff) {
 			case 0x00:
-				// result
-				return 0;
+				this.mcu_flag &= ~2;
+				return this.mcu_result;
 			case 0x01:
-				return 0xff;
-			case 0x02:
-				return 0;
+				return this.mcu_flag ^ 1 | 0xfc;
 			case 0x04:
 			case 0x05:
-				return this.psg[0].addr >= 0x0e ? this.in[4 | this.psg[0].addr & 1] : sound[0].read(this.psg[0].addr);
+				return sound[0].read(this.psg[0].addr);
 			case 0x06:
 			case 0x07:
 				return sound[1].read(this.psg[1].addr);
@@ -79,13 +80,15 @@ class ChacknPop {
 		this.cpu.memorymap[0x88].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0x00:
-				// command
+				this.mcu_command = data;
+				this.mcu_flag |= 1;
+				this.mcu.int = true;
 				break;
 			case 0x04:
 				this.psg[0].addr = data;
 				break;
 			case 0x05:
-				sound[0].write(this.psg[0].addr, data);
+				(this.psg[0].addr & 0x0f) < 0x0e && sound[0].write(this.psg[0].addr, data);
 				break;
 			case 0x06:
 				this.psg[1].addr = data;
@@ -110,23 +113,38 @@ class ChacknPop {
 			this.cpu.memorymap[0xc0 + i].read = addr => this.vram[addr & 0x3fff | this.mode << 12 & 0x4000];
 			this.cpu.memorymap[0xc0 + i].write = (addr, data) => this.vram[addr & 0x3fff | this.mode << 12 & 0x4000] = data;
 		}
-/*
- *		this.cpu2 = new MC6805(this);
- *		this.cpu2.memorymap[0].read = addr => {
- *			if (addr >= 0x80)
- *				return PRG2[addr];
- *			return this.ram2[addr];
- *		};
- *		this.cpu2.memorymap[0].write = (addr, data) => {
- *			if (addr >= 0x80)
- *				return;
- *			this.ram2[addr] = data;
- *		};
- *		for (let i = 1; i < 8; i++)
- *			this.cpu2.memorymap[i].base = PRG2.subarray(i * 0x100);
- */
+
+		this.mcu = new MC6805(this);
+		this.mcu.memorymap[0].fetch = addr => addr >= 0x80 ? PRG2[addr] : this.ram2[addr];
+		this.mcu.memorymap[0].read = addr => {
+			if (addr >= 0x80)
+				return PRG2[addr];
+			switch (addr) {
+			case 0:
+				return this.mcu_command;
+			case 2:
+				return this.mcu_flag ^ 2 | 0xfc;
+			}
+			return this.ram2[addr];
+		};
+		this.mcu.memorymap[0].write = (addr, data) => {
+			if (addr >= 0x80)
+				return;
+			if (addr === 1 && (~this.ram2[1] & data & 2) !== 0) {
+				this.mcu_flag &= ~1;
+				this.mcu.int = false;
+			}
+			if (addr === 1 && (this.ram2[1] & ~data & 4) !== 0) {
+				this.mcu_result = this.ram2[0];
+				this.mcu_flag |= 2;
+			}
+			this.ram2[addr] = data;
+		};
+		for (let i = 1; i < 8; i++)
+			this.mcu.memorymap[i].base = PRG2.subarray(i * 0x100);
+
 		// Videoの初期化
-		this.bg = new Uint32Array(0x10000);
+		this.bg = new Uint8Array(0x10000);
 		this.obj = new Uint8Array(0x10000);
 		this.rgb = new Uint32Array(0x400);
 		this.mode = 0;
@@ -137,7 +155,7 @@ class ChacknPop {
 
 	execute() {
 		this.cpu.interrupt();
-		this.cpu.execute(0x2000);
+		Cpu.multiple_execute([this.cpu, this.mcu], 0x2000);
 		return this;
 	}
 
@@ -177,6 +195,8 @@ class ChacknPop {
 				this.in[5] |= 3;
 				break;
 			}
+			sound[0].write(0x0e, this.in[4]);
+			sound[0].write(0x0f, this.in[5]);
 			if (!this.fTest)
 				this.fReset = true;
 		}
@@ -185,7 +205,10 @@ class ChacknPop {
 		if (this.fReset) {
 			this.fReset = false;
 			this.cpu.reset();
-//			this.cpu2.reset();
+			this.mcu.reset();
+			this.mcu_command = 0;
+			this.mcu_result = 0;
+			this.mcu_flag = 0;
 		}
 		return this;
 	}
@@ -194,16 +217,16 @@ class ChacknPop {
 		// クレジット/スタートボタン処理
 		if (this.fCoin) {
 			--this.fCoin;
-			this.in[2] &= ~(1 << 6);
+			this.in[2] &= ~(1 << 2);
 		}
 		else
-			this.in[2] |= 1 << 6;
+			this.in[2] |= 1 << 2;
 		if (this.fStart1P) {
 			--this.fStart1P;
 			this.in[2] &= ~(1 << 4);
 		}
 		else
-			this.in[2] |= ~(1 << 4);
+			this.in[2] |= 1 << 4;
 		if (this.fStart2P) {
 			--this.fStart2P;
 			this.in[2] &= ~(1 << 5);
@@ -509,7 +532,7 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 function success(zip) {
 	PRG1 = zip.files['ao4_01.ic28'].inflate() + zip.files['ao4_02.ic27'].inflate() + zip.files['ao4_03.ic26'].inflate();
 	PRG1 = Uint8Array.from((PRG1 + zip.files['ao4_04.ic25'].inflate() + zip.files['ao4_05.ic3'].inflate()).split(''), c => c.charCodeAt(0));
-//	PRG2 = Uint8Array.from(zip.files['ao4_06.ic23'].inflate().split(''), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['ao4_06.ic23'].inflate().split(''), c => c.charCodeAt(0));
 	OBJ = Uint8Array.from((zip.files['ao4_08.ic14'].inflate() + zip.files['ao4_07.ic15'].inflate()).split(''), c => c.charCodeAt(0));
 	BG = Uint8Array.from((zip.files['ao4_09.ic98'].inflate() + zip.files['ao4_10.ic97'].inflate()).split(''), c => c.charCodeAt(0));
 	RGB_L = Uint8Array.from(zip.files['ao4-11.ic96'].inflate().split(''), c => c.charCodeAt(0));

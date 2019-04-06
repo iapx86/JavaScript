@@ -24,7 +24,7 @@ class MC6805 extends Cpu {
 		this.int = false;
 	}
 
-	interrupt() {
+	interrupt(vector) {
 		if (!super.interrupt() || (this.ccr & 0x10) !== 0)
 			return false;
 		this.psh16(this.pc);
@@ -32,13 +32,23 @@ class MC6805 extends Cpu {
 		this.psh(this.a);
 		this.psh(0xe0 | this.ccr >> 1 & 0x1e | this.ccr & 1);
 		this.ccr |= 0x10;
-		this.pc = (this.read(0x7fa) << 8 | this.read(0x7fb)) & 0x7ff;
+		switch (vector) {
+		case 'timer':
+			this.pc = (this.read(0x7f8) << 8 | this.read(0x7f9)) & 0x7ff;
+			break;
+		default:
+		case 'external':
+			this.pc = (this.read(0x7fa) << 8 | this.read(0x7fb)) & 0x7ff;
+			break;
+		}
 		return true;
 	}
 
 	_execute() {
 		let v;
 
+		if (this.int && this.interrupt())
+			return;
 		switch (this.fetch()) {
 		case 0x00: // BRSET0
 			this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.direct()) & 1) & 1) !== 0);
@@ -179,10 +189,10 @@ class MC6805 extends Cpu {
 			this.bcc((this.ccr & 0x10) !== 0);
 			break;
 		case 0x2e: // BIL
-			this.bcc(!this.int);
+			this.bcc(this.int);
 			break;
 		case 0x2f: // BIH
-			this.bcc(this.int);
+			this.bcc(!this.int);
 			break;
 		case 0x30: // NEG <n
 			this.neg(this.direct());
@@ -929,14 +939,20 @@ class MC6805 extends Cpu {
 		return r | this.read(this.s);
 	}
 
+	fetch() {
+		const page = this.memorymap[this.pc >>> 8];
+		const data = !page.fetch ? page.base[this.pc & 0xff] : page.fetch(this.pc, this.arg);
+		this.pc = this.pc + 1 & 0x7ff;
+		return data;
+	}
+
 	readf(addr) {
+		const page = this.memorymap[addr >>> 8];
 		if (addr === null) {
-//			data = !(page = this.memorymap[this.pc >>> 8]).fetch ? page.base[this.pc & 0xff] : page.fetch(this.pc, this.arg);
-			const data = this.memorymap[this.pc >>> 8].base[this.pc & 0xff];
+			const data = !page.fetch ? page.base[this.pc & 0xff] : page.fetch(this.pc, this.arg);
 			this.pc = this.pc + 1 & 0x7ff;
 			return data;
 		}
-		const page = this.memorymap[addr >>> 8];
 		return !page.read ? page.base[addr & 0xff] : page.read(addr, this.arg);
 	}
 }
