@@ -20,7 +20,7 @@ class I8080 extends Cpu {
 		this.sp = 0;
 		this.iomap = [];
 		for (let i = 0; i < 0x100; i++)
-			this.iomap.push({base: dummypage, read: null, write: (addr, data) => data});
+			this.iomap.push({base: dummypage, read: null, write: () => {}});
 	}
 
 	reset() {
