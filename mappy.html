@@ -680,19 +680,13 @@ class Mappy {
  *
  */
 
-const url1 = 'mappyj.zip';
-const url2 = 'mappy.zip';
+const url = 'mappy.zip';
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
-window.addEventListener('load', () => $.ajax({url: url1, success: success1, error: () => alert(url1 + ': failed to get')}));
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
-function success1(zip) {
-	PRG1 = Uint8Array.from((zip.files['mp1_3.1d'].inflate() + '\xff'.repeat(0x2000) + zip.files['mp1_1.1b'].inflate()).split(''), c => c.charCodeAt(0));
-	$.ajax({url: url2, success: success2, error: () => alert(url2 + ': failed to get')});
-}
-
-function success2(zip) {
-	PRG1.set(Uint8Array.from(zip.files['mp1_2.1c'].inflate().split(''), c => c.charCodeAt(0)), 0x2000);
+function success(zip) {
+	PRG1 = Uint8Array.from((zip.files['mappyj/mp1_3.1d'].inflate() + zip.files['mp1_2.1c'].inflate() + zip.files['mappyj/mp1_1.1b'].inflate()).split(''), c => c.charCodeAt(0));
 	PRG2 = Uint8Array.from(zip.files['mp1_4.1k'].inflate().split(''), c => c.charCodeAt(0));
 	BG = Uint8Array.from(zip.files['mp1_5.3b'].inflate().split(''), c => c.charCodeAt(0));
 	OBJ = Uint8Array.from((zip.files['mp1_7.3n'].inflate() + zip.files['mp1_6.3m'].inflate()).split(''), c => c.charCodeAt(0));

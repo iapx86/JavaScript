@@ -530,20 +530,15 @@ class KorosukeRoller {
  *
  */
 
-const url1 = 'korosuke.zip';
-const url2 = 'crush.zip';
+const url = 'crush.zip';
 let BG, COLOR, OBJ, RGB, PRG, SND;
 
-window.addEventListener('load', () => $.ajax({url: url1, success: success1, error: () => alert(url1 + ': failed to get')}));
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
-function success1(zip) {
-	PRG = Uint8Array.from((zip.files['kr.6e'].inflate() + zip.files['kr.6f'].inflate() + zip.files['kr.6h'].inflate() + zip.files['kr.6j'].inflate()).split(''), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['kr.5e'].inflate().split(''), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['kr.5f'].inflate().split(''), c => c.charCodeAt(0));
-	$.ajax({url: url2, success: success2, error: () => alert(url2 + ': failed to get')});
-}
-
-function success2(zip) {
+function success(zip) {
+	PRG = Uint8Array.from((zip.files['korosuke/kr.6e'].inflate() + zip.files['korosuke/kr.6f'].inflate() + zip.files['korosuke/kr.6h'].inflate() + zip.files['korosuke/kr.6j'].inflate()).split(''), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['korosuke/kr.5e'].inflate().split(''), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from(zip.files['korosuke/kr.5f'].inflate().split(''), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['82s123.7f'].inflate().split(''), c => c.charCodeAt(0));
 	COLOR = Uint8Array.from(zip.files['2s140.4a'].inflate().split(''), c => c.charCodeAt(0));
 	SND = Uint8Array.from(zip.files['82s126.1m'].inflate().split(''), c => c.charCodeAt(0));

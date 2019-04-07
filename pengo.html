@@ -515,19 +515,14 @@ class Pengo {
  *
  */
 
-const url1 = 'pengo3u.zip';
-const url2 = 'pengo.zip';
+const url = 'pengo.zip';
 let BG, COLOR, OBJ, RGB, PRG, SND;
 
-window.addEventListener('load', () => $.ajax({url: url1, success: success1, error: () => alert(url1 + ': failed to get')}));
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
-function success1(zip) {
-	PRG = zip.files['ep5120.8'].inflate() + zip.files['ep5121.7'].inflate() + zip.files['ep5122.15'].inflate() + zip.files['ep5123.14'].inflate() + zip.files['ep5124.21'].inflate();
-	PRG = Uint8Array.from((PRG + zip.files['ep5125.20'].inflate() + zip.files['ep5126.32'].inflate() + zip.files['ep5127.31'].inflate()).split(''), c => c.charCodeAt(0));
-	$.ajax({url: url2, success: success2, error: () => alert(url2 + ': failed to get')});
-}
-
-function success2(zip) {
+function success(zip) {
+	PRG = zip.files['pengo3u/ep5120.8'].inflate() + zip.files['pengo3u/ep5121.7'].inflate() + zip.files['pengo3u/ep5122.15'].inflate() + zip.files['pengo3u/ep5123.14'].inflate() + zip.files['pengo2u/ep5124.21'].inflate();
+	PRG = Uint8Array.from((PRG + zip.files['pengo3u/ep5125.20'].inflate() + zip.files['pengo2u/ep5126.32'].inflate() + zip.files['pengo3u/ep5127.31'].inflate()).split(''), c => c.charCodeAt(0));
 	BG = Uint8Array.from((zip.files['ep1640.92'].inflate().substring(0, 0x1000) + zip.files['ep1695.105'].inflate().substring(0, 0x1000)).split(''), c => c.charCodeAt(0));
 	OBJ = Uint8Array.from((zip.files['ep1640.92'].inflate().substring(0x1000) + zip.files['ep1695.105'].inflate().substring(0x1000)).split(''), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['pr1633.78'].inflate().split(''), c => c.charCodeAt(0));
