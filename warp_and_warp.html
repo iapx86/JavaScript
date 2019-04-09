@@ -39,7 +39,7 @@ class WarpAndWarp {
 		this.nBonus = 'A';
 
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0xe00).fill(0xff);
+		this.ram = new Uint8Array(0xe00).fill(0xff).addBase();
 		this.ram[0xc21] = 0xfe;
 		this.ram[0xc23] = 0xfe;
 		this.ram[0xc24] = 0xfe;
@@ -47,18 +47,18 @@ class WarpAndWarp {
 
 		this.cpu = new I8080(this);
 		for (let i = 0; i < 0x30; i++)
-			this.cpu.memorymap[i].base = PRG.subarray(i * 0x100);
+			this.cpu.memorymap[i].base = PRG.base[i];
 		for (let i = 0; i < 8; i++) {
-			this.cpu.memorymap[0x40 + i].base = this.ram.subarray(i * 0x100);
+			this.cpu.memorymap[0x40 + i].base = this.ram.base[i];
 			this.cpu.memorymap[0x40 + i].write = null;
 		}
 		for (let i = 0; i < 8; i++)
-			this.cpu.memorymap[0x48 + i].base = BG.subarray(i * 0x100);
+			this.cpu.memorymap[0x48 + i].base = BG.base[i];
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x80 + i].base = this.ram.subarray(0x800 + i * 0x100);
+			this.cpu.memorymap[0x80 + i].base = this.ram.base[8 + i];
 			this.cpu.memorymap[0x80 + i].write = null;
 		}
-		this.cpu.memorymap[0xc0].base = this.ram.subarray(0xc00);
+		this.cpu.memorymap[0xc0].base = this.ram.base[0x0c];
 		this.cpu.memorymap[0xc0].write = ioarea;
 
 		// Videoの初期化
@@ -5425,8 +5425,8 @@ let PRG, BG;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG = Uint8Array.from((zip.files['ww1_prg1.s10'].inflate() + zip.files['ww1_prg2.s8'].inflate() + zip.files['ww1_prg3.s4'].inflate()).split(''), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['ww1_chg1.s12'].inflate().split(''), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((zip.files['ww1_prg1.s10'].inflate() + zip.files['ww1_prg2.s8'].inflate() + zip.files['ww1_prg3.s4'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
+	BG = Uint8Array.from(zip.files['ww1_chg1.s12'].inflate().split(''), c => c.charCodeAt(0)).addBase();
 	game = new WarpAndWarp();
 	sound = [new WarpAndWarpSound(), new SoundEffect({se: game.se, freq: 22050})];
 	init();

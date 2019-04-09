@@ -409,3 +409,12 @@ class Cpu {
 	}
 }
 
+Uint8Array.prototype.addBase = function () {
+	this.base = [];
+	for (let begin = 0; begin < this.length; begin += 0x100) {
+		const end = begin + Math.min(this.length - begin, 0x100);
+		this.base.push(this.subarray(begin, end));
+	}
+	return this;
+};
+

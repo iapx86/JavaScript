@@ -38,7 +38,7 @@ class JrPacMan {
 		this.nRank = 'NORMAL';
 
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0x1100).fill(0xff);
+		this.ram = new Uint8Array(0x1100).fill(0xff).addBase();
 		this.in = Uint8Array.of(0xff, 0xff, 0xc9, 0x00);
 		this.vector = 0;
 		this.fInterruptEnable = false;
@@ -46,11 +46,11 @@ class JrPacMan {
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x40; i++)
-			this.cpu.memorymap[i].base = PRG.subarray(i * 0x100);
+			this.cpu.memorymap[i].base = PRG.base[i];
 		for (let i = 0; i < 0x60; i++)
-			this.cpu.memorymap[0x80 + i].base = PRG.subarray(0x4000 + i * 0x100);
+			this.cpu.memorymap[0x80 + i].base = PRG.base[0x40 + i];
 		for (let i = 0; i < 0x10; i++) {
-			this.cpu.memorymap[0x40 + i].base = this.ram.subarray(i * 0x100);
+			this.cpu.memorymap[0x40 + i].base = this.ram.base[i];
 			this.cpu.memorymap[0x40 + i].write = null;
 		}
 		this.cpu.memorymap[0x50].read = addr => this.in[addr >>> 6 & 3];
@@ -572,7 +572,8 @@ let BG, COLOR, OBJ, RGB_L, RGB_H, PRG, SND;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG = Uint8Array.from((zip.files['jrp8d.8d'].inflate() + zip.files['jrp8e.8e'].inflate() + zip.files['jrp8h.8h'].inflate() + zip.files['jrp8j.8j'].inflate() + zip.files['jrp8k.8k'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG = zip.files['jrp8d.8d'].inflate() + zip.files['jrp8e.8e'].inflate() + zip.files['jrp8h.8h'].inflate() + zip.files['jrp8j.8j'].inflate();
+	PRG = Uint8Array.from((PRG + zip.files['jrp8k.8k'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
 	BG = Uint8Array.from(zip.files['jrp2c.2c'].inflate().split(''), c => c.charCodeAt(0));
 	OBJ = Uint8Array.from(zip.files['jrp2e.2e'].inflate().split(''), c => c.charCodeAt(0));
 	RGB_L = Uint8Array.from(zip.files['a290-27axv-bxhd.9e'].inflate().split(''), c => c.charCodeAt(0));

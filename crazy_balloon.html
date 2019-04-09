@@ -37,22 +37,21 @@ class CrazyBalloon {
 
 		// CPU周りの初期化
 		this.fInterruptEnable = false;
-		this.ram = new Uint8Array(0x0c00);
+		this.ram = new Uint8Array(0x0c00).addBase();
 		this.io = new Uint8Array(0x100);
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x30; i++)
-			this.cpu.memorymap[i].base = PRG.subarray(i * 0x100);
+			this.cpu.memorymap[i].base = PRG.base[i];
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x44 + i].base = this.cpu.memorymap[0x40 + i].base = this.ram.subarray(i * 0x100);
+			this.cpu.memorymap[0x44 + i].base = this.cpu.memorymap[0x40 + i].base = this.ram.base[i];
 			this.cpu.memorymap[0x44 + i].write = this.cpu.memorymap[0x40 + i].write = null;
-			this.cpu.memorymap[0x4c + i].base = this.cpu.memorymap[0x48 + i].base = this.ram.subarray(0x400 + i * 0x100);
+			this.cpu.memorymap[0x4c + i].base = this.cpu.memorymap[0x48 + i].base = this.ram.base[4 + i];
 			this.cpu.memorymap[0x4c + i].write = this.cpu.memorymap[0x48 + i].write = null;
-			this.cpu.memorymap[0x54 + i].base = this.cpu.memorymap[0x50 + i].base = this.ram.subarray(0x800 + i * 0x100);
+			this.cpu.memorymap[0x54 + i].base = this.cpu.memorymap[0x50 + i].base = this.ram.base[8 + i];
 			this.cpu.memorymap[0x54 + i].write = this.cpu.memorymap[0x50 + i].write = null;
 		}
 		for (let i = 0; i < 0x100; i++) {
-			this.cpu.iomap[i].base = this.io;
 			this.cpu.iomap[i].read = addr => this.io[addr & 3];
 			this.cpu.iomap[i].write = (addr, data) => {
 				switch (addr & 0xff) {
@@ -367,7 +366,7 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG = zip.files['cl01.bin'].inflate() + zip.files['cl02.bin'].inflate() + zip.files['cl03.bin'].inflate() + zip.files['cl04.bin'].inflate();
-	PRG = Uint8Array.from((PRG + zip.files['cl05.bin'].inflate() + zip.files['cl06.bin'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((PRG + zip.files['cl05.bin'].inflate() + zip.files['cl06.bin'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
 	BG = Uint8Array.from(zip.files['cl07.bin'].inflate().split(''), c => c.charCodeAt(0));
 	OBJ = Uint8Array.from(zip.files['cl08.bin'].inflate().split(''), c => c.charCodeAt(0));
 	game = new CrazyBalloon();

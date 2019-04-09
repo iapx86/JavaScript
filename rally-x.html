@@ -44,8 +44,8 @@ class RallyX {
 		this.fInterrupt = false;
 		this.fSoundEnable = false;
 
-		this.ram = new Uint8Array(0x1800);
-		this.mmi = new Uint8Array(0x200).fill(0xff);
+		this.ram = new Uint8Array(0x1800).addBase();
+		this.mmi = new Uint8Array(0x200).fill(0xff).addBase();
 		this.mmo = new Uint8Array(0x200);
 		this.adwCount = new Uint8Array(8);
 		this.mmi[0x100] = 0xc5;
@@ -53,17 +53,17 @@ class RallyX {
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x40; i++)
-			this.cpu.memorymap[i].base = PRG.subarray(i * 0x100);
+			this.cpu.memorymap[i].base = PRG.base[i];
 		for (let i = 0; i < 0x10; i++) {
-			this.cpu.memorymap[0x80 + i].base = this.ram.subarray(i * 0x100);
+			this.cpu.memorymap[0x80 + i].base = this.ram.base[i];
 			this.cpu.memorymap[0x80 + i].write = null;
 		}
 		for (let i = 0; i < 0x08; i++) {
-			this.cpu.memorymap[0x98 + i].base = this.ram.subarray(0x1000 + i * 0x100);
+			this.cpu.memorymap[0x98 + i].base = this.ram.base[0x10 + i];
 			this.cpu.memorymap[0x98 + i].write = null;
 		}
 		for (let i = 0; i < 0x02; i++) {
-			this.cpu.memorymap[0xa0 + i].base = this.mmi.subarray(i * 0x100);
+			this.cpu.memorymap[0xa0 + i].base = this.mmi.base[i];
 			this.cpu.memorymap[0xa0 + i].write = systemcontrolarea;
 		}
 		for (let i = 0; i < 0x100; i++)
@@ -1632,7 +1632,7 @@ let SND, BGOBJ, COLOR, RGB, PRG;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG = Uint8Array.from((zip.files['1b'].inflate() + zip.files['rallyxn.1e'].inflate() + zip.files['rallyxn.1h'].inflate() + zip.files['rallyxn.1k'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((zip.files['1b'].inflate() + zip.files['rallyxn.1e'].inflate() + zip.files['rallyxn.1h'].inflate() + zip.files['rallyxn.1k'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
 	BGOBJ = Uint8Array.from(zip.files['8e'].inflate().split(''), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['rx1-1.11n'].inflate().split(''), c => c.charCodeAt(0));
 	COLOR = Uint8Array.from(zip.files['rx1-7.8p'].inflate().split(''), c => c.charCodeAt(0));

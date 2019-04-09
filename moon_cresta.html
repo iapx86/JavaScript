@@ -40,21 +40,21 @@ class MoonCresta {
 		this.fInterruptEnable = false;
 		this.fSoundEnable = false;
 
-		this.ram = new Uint8Array(0x900);
+		this.ram = new Uint8Array(0x900).addBase();
 		this.mmo = new Uint8Array(0x100);
 		this.in = new Uint8Array(3);
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x40; i++)
-			this.cpu.memorymap[i].base = PRG.subarray(i * 0x100);
+			this.cpu.memorymap[i].base = PRG.base[i];
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x84 + i].base = this.cpu.memorymap[0x80 + i].base = this.ram.subarray(i * 0x100);
+			this.cpu.memorymap[0x84 + i].base = this.cpu.memorymap[0x80 + i].base = this.ram.base[i];
 			this.cpu.memorymap[0x84 + i].write = this.cpu.memorymap[0x80 + i].write = null;
-			this.cpu.memorymap[0x94 + i].base = this.cpu.memorymap[0x90 + i].base = this.ram.subarray(0x400 + i * 0x100);
+			this.cpu.memorymap[0x94 + i].base = this.cpu.memorymap[0x90 + i].base = this.ram.base[4 + i];
 			this.cpu.memorymap[0x94 + i].write = this.cpu.memorymap[0x90 + i].write = null;
 		}
 		for (let i = 0; i < 8; i++) {
-			this.cpu.memorymap[0x98 + i].base = this.ram.subarray(0x800);
+			this.cpu.memorymap[0x98 + i].base = this.ram.base[8];
 			this.cpu.memorymap[0x98 + i].write = null;
 			this.cpu.memorymap[0xa0 + i].read = () => this.in[0];
 			this.cpu.memorymap[0xa0 + i].write = (addr, data) => {
@@ -2274,7 +2274,7 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG = zip.files['mc1'].inflate() + zip.files['mc2'].inflate() + zip.files['mc3'].inflate() + zip.files['mc4'].inflate() + zip.files['mc5.7r'].inflate();
-	PRG = Uint8Array.from((PRG + zip.files['mc6.8d'].inflate() + zip.files['mc7.8e'].inflate() + zip.files['mc8'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((PRG + zip.files['mc6.8d'].inflate() + zip.files['mc7.8e'].inflate() + zip.files['mc8'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
 	BG = Uint8Array.from((zip.files['mcs_b'].inflate() + zip.files['mcs_d'].inflate() + zip.files['mcs_a'].inflate() + zip.files['mcs_c'].inflate()).split(''), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['mmi6331.6l'].inflate().split(''), c => c.charCodeAt(0));
 	MoonCresta.decodeROM();

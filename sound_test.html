@@ -103,7 +103,7 @@ class SoundTest {
 		this.cpu.memorymap[0x40].write = () => this.fInterruptEnable = true;
 		this.cpu.memorymap[0x60].write = () => this.fInterruptEnable = false;
 		for (let i = 0; i < 0x20; i++)
-			this.cpu.memorymap[0xe0 + i].base = PRG2.subarray(i * 0x100);
+			this.cpu.memorymap[0xe0 + i].base = PRG2.base[i];
 	}
 
 	execute() {
@@ -233,7 +233,7 @@ window.addEventListener('load', () => {
 });
 
 function success(zip) {
-	PRG2 = Uint8Array.from(zip.files['2c.rom'].inflate().split(''), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['2c.rom'].inflate().split(''), c => c.charCodeAt(0)).addBase();
 	SND = Uint8Array.from(zip.files['lr1-4.3d'].inflate().split(''), c => c.charCodeAt(0));
 	game = new SoundTest();
 	sound = new MappySound({SND});

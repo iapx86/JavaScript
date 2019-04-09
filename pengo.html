@@ -38,16 +38,16 @@ class Pengo {
 		this.nRank = 'NORMAL';
 
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0x1100);
+		this.ram = new Uint8Array(0x1100).addBase();
 		this.in = Uint8Array.of(0xcc, 0xb0, 0xff, 0xff);
 		this.fInterruptEnable = false;
 		this.fSoundEnable = false;
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x80; i++)
-			this.cpu.memorymap[i].base = PRG.subarray(i * 0x100);
+			this.cpu.memorymap[i].base = PRG.base[i];
 		for (let i = 0; i < 0x10; i++) {
-			this.cpu.memorymap[0x80 + i].base = this.ram.subarray(i * 0x100);
+			this.cpu.memorymap[0x80 + i].base = this.ram.base[i];
 			this.cpu.memorymap[0x80 + i].write = null;
 		}
 		this.cpu.memorymap[0x90].read = addr => this.in[addr >>> 6 & 3];
@@ -522,7 +522,7 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG = zip.files['pengo3u/ep5120.8'].inflate() + zip.files['pengo3u/ep5121.7'].inflate() + zip.files['pengo3u/ep5122.15'].inflate() + zip.files['pengo3u/ep5123.14'].inflate() + zip.files['pengo2u/ep5124.21'].inflate();
-	PRG = Uint8Array.from((PRG + zip.files['pengo3u/ep5125.20'].inflate() + zip.files['pengo2u/ep5126.32'].inflate() + zip.files['pengo3u/ep5127.31'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((PRG + zip.files['pengo3u/ep5125.20'].inflate() + zip.files['pengo2u/ep5126.32'].inflate() + zip.files['pengo3u/ep5127.31'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
 	BG = Uint8Array.from((zip.files['ep1640.92'].inflate().substring(0, 0x1000) + zip.files['ep1695.105'].inflate().substring(0, 0x1000)).split(''), c => c.charCodeAt(0));
 	OBJ = Uint8Array.from((zip.files['ep1640.92'].inflate().substring(0x1000) + zip.files['ep1695.105'].inflate().substring(0x1000)).split(''), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['pr1633.78'].inflate().split(''), c => c.charCodeAt(0));

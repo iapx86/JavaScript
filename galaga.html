@@ -51,7 +51,7 @@ class Galaga {
 		this.fSoundEnable = false;
 		this.dwMode = 0;
 
-		this.ram = new Uint8Array(0x2000);
+		this.ram = new Uint8Array(0x2000).addBase();
 		this.mmi = new Uint8Array(0x100).fill(0xff);
 		this.mmo = new Uint8Array(0x100);
 		this.count = 0;
@@ -66,28 +66,28 @@ class Galaga {
 
 		/* CPU0 ROM AREA SETUP */
 		for (let i = 0; i < 0x40; i++)
-			this.cpu[0].memorymap[i].base = PRG1.subarray(i * 0x100);
+			this.cpu[0].memorymap[i].base = PRG1.base[i];
 
 		/* CPU1 ROM AREA SETUP */
 		for (let i = 0; i < 0x10; i++)
-			this.cpu[1].memorymap[i].base = PRG2.subarray(i * 0x100);
+			this.cpu[1].memorymap[i].base = PRG2.base[i];
 
 		/* CPU2 ROM AREA SETUP */
 		for (let i = 0; i < 0x10; i++)
-			this.cpu[2].memorymap[i].base = PRG3.subarray(i * 0x100);
+			this.cpu[2].memorymap[i].base = PRG3.base[i];
 
 		/* CPU[012] RAM AREA SETUP */
 		for (let i = 0; i < 3; i++) {
 			for (let j = 0; j < 8; j++) {
-				this.cpu[i].memorymap[0x80 + j].base = this.ram.subarray(j * 0x100);
+				this.cpu[i].memorymap[0x80 + j].base = this.ram.base[j];
 				this.cpu[i].memorymap[0x80 + j].write = null;
 			}
 			for (let j = 0; j < 4; j++) {
-				this.cpu[i].memorymap[0x88 + j].base = this.ram.subarray(0x0800 + j * 0x100);
+				this.cpu[i].memorymap[0x88 + j].base = this.ram.base[8 + j];
 				this.cpu[i].memorymap[0x88 + j].write = null;
-				this.cpu[i].memorymap[0x90 + j].base = this.ram.subarray(0x0c00 + j * 0x100);
+				this.cpu[i].memorymap[0x90 + j].base = this.ram.base[0x0c + j];
 				this.cpu[i].memorymap[0x90 + j].write = null;
-				this.cpu[i].memorymap[0x98 + j].base = this.ram.subarray(0x1000 + j * 0x100);
+				this.cpu[i].memorymap[0x98 + j].base = this.ram.base[0x10 + j];
 				this.cpu[i].memorymap[0x98 + j].write = null;
 			}
 		}
@@ -2090,9 +2090,9 @@ let BG, OBJ, BGCOLOR, OBJCOLOR, RGB, SND, PRG1, PRG2, PRG3;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from((zip.files['gg1_1b.3p'].inflate() + zip.files['gg1_2b.3m'].inflate() + zip.files['gg1_3.2m'].inflate() + zip.files['gg1_4b.2l'].inflate()).split(''), c => c.charCodeAt(0));
-	PRG2 = Uint8Array.from(zip.files['gg1_5b.3f'].inflate().split(''), c => c.charCodeAt(0));
-	PRG3 = Uint8Array.from(zip.files['gg1_7b.2c'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = Uint8Array.from((zip.files['gg1_1b.3p'].inflate() + zip.files['gg1_2b.3m'].inflate() + zip.files['gg1_3.2m'].inflate() + zip.files['gg1_4b.2l'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
+	PRG2 = Uint8Array.from(zip.files['gg1_5b.3f'].inflate().split(''), c => c.charCodeAt(0)).addBase();
+	PRG3 = Uint8Array.from(zip.files['gg1_7b.2c'].inflate().split(''), c => c.charCodeAt(0)).addBase();
 	BG = Uint8Array.from(zip.files['gg1_9.4l'].inflate().split(''), c => c.charCodeAt(0));
 	OBJ = Uint8Array.from((zip.files['gg1_11.4d'].inflate() + zip.files['gg1_10.4f'].inflate()).split(''), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['prom-5.5n'].inflate().split(''), c => c.charCodeAt(0));

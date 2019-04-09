@@ -42,21 +42,21 @@ class KingAndBalloon {
 		this.fInterruptEnable = false;
 		this.fSoundEnable = false;
 
-		this.ram = new Uint8Array(0x900);
+		this.ram = new Uint8Array(0x900).addBase();
 		this.mmo = new Uint8Array(0x100);
 		this.ioport = new Uint8Array(0x100);
 		this.ioport[0x10] = 0x40;
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x28; i++)
-			this.cpu.memorymap[i].base = PRG.subarray(i * 0x100);
+			this.cpu.memorymap[i].base = PRG.base[i];
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x80 + i].base = this.ram.subarray(i * 0x100);
+			this.cpu.memorymap[0x80 + i].base = this.ram.base[i];
 			this.cpu.memorymap[0x80 + i].write = null;
-			this.cpu.memorymap[0x90 + i].base = this.ram.subarray(0x400 + i * 0x100);
+			this.cpu.memorymap[0x90 + i].base = this.ram.base[4 + i];
 			this.cpu.memorymap[0x90 + i].write = null;
 		}
-		this.cpu.memorymap[0x98].base = this.ram.subarray(0x800);
+		this.cpu.memorymap[0x98].base = this.ram.base[8];
 		this.cpu.memorymap[0x98].write = null;
 		this.cpu.memorymap[0xa0].base = this.ioport;
 		this.cpu.memorymap[0xa0].write = systemctrl0;
@@ -2567,7 +2567,7 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	VOICE = Uint8Array.from(zip.files['kingballj/kbj1.ic4'].inflate() + zip.files['kingballj/kbj2.ic5'].inflate() + zip.files['kingballj/kbj3.ic6'].inflate(), c => c.charCodeAt(0));
-	PRG = Uint8Array.from((zip.files['prg1.7f'].inflate() + zip.files['prg2.7j'].inflate() + zip.files['prg3.7l'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((zip.files['prg1.7f'].inflate() + zip.files['prg2.7j'].inflate() + zip.files['prg3.7l'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
 	BG = Uint8Array.from((zip.files['chg1.1h'].inflate() + zip.files['chg2.1k'].inflate()).split(''), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['kb2-1'].inflate().split(''), c => c.charCodeAt(0));
 	KingAndBalloon.convertVOICE();

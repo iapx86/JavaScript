@@ -37,23 +37,23 @@ class TankBattalion {
 		this.nBonus = 10000;
 
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0xc00).fill(0xff);
+		this.ram = new Uint8Array(0xc00).fill(0xff).addBase();
 		this.rport = new Uint8Array(0x100).fill(0xff);
 		this.wport = new Uint8Array(0x100);
 
 		this.cpu = new MCS6502(this);
 		for (let i = 0; i < 8; i++) {
-			this.cpu.memorymap[0x80 + i].base = this.cpu.memorymap[i].base = this.ram.subarray(i * 0x100);
+			this.cpu.memorymap[0x80 + i].base = this.cpu.memorymap[i].base = this.ram.base[i];
 			this.cpu.memorymap[0x80 + i].write = this.cpu.memorymap[i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x88 + i].base = this.cpu.memorymap[0x08 + i].base = this.ram.subarray(0x800 + i * 0x100);
+			this.cpu.memorymap[0x88 + i].base = this.cpu.memorymap[0x08 + i].base = this.ram.base[8 + i];
 			this.cpu.memorymap[0x88 + i].write = this.cpu.memorymap[0x08 + i].write = null;
 		}
 		this.cpu.memorymap[0x8c].base = this.cpu.memorymap[0x0c].base = this.rport;
 		this.cpu.memorymap[0x8c].write = this.cpu.memorymap[0x0c].write = systemcontrolarea;
 		for (let i = 0; i < 0x20; i++)
-			this.cpu.memorymap[0xe0 + i].base = this.cpu.memorymap[0x60 + i].base = PRG.subarray(i * 0x100);
+			this.cpu.memorymap[0xe0 + i].base = this.cpu.memorymap[0x60 + i].base = PRG.base[i];
 		this.rport[0x1b] = 0x7f;
 		this.rport[0x1c] = 0x7f;
 		this.rport[0x1d] = 0x7f;
@@ -5083,7 +5083,7 @@ let PRG, BG, RGB;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG = Uint8Array.from((zip.files['tb1-1.1a'].inflate() + zip.files['tb1-2.1b'].inflate() + zip.files['tb1-3.1c'].inflate() + zip.files['tb1-4.1d'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((zip.files['tb1-1.1a'].inflate() + zip.files['tb1-2.1b'].inflate() + zip.files['tb1-3.1c'].inflate() + zip.files['tb1-4.1d'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
 	BG = Uint8Array.from(zip.files['tb1-5.2k'].inflate().split(''), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['bct1-1.l3'].inflate().split(''), c => c.charCodeAt(0));
 	game = new TankBattalion();

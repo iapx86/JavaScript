@@ -45,7 +45,7 @@ class SuperPacMan {
 		this.fInterruptEnable1 = false;
 		this.fSoundEnable = false;
 
-		this.ram = new Uint8Array(0x2800);
+		this.ram = new Uint8Array(0x2800).addBase();
 		this.port = new Uint8Array(0x20);
 
 		this.cpu = [];
@@ -53,11 +53,11 @@ class SuperPacMan {
 			this.cpu[i] = new MC6809(this);
 
 		for (let i = 0; i < 8; i++) {
-			this.cpu[0].memorymap[i].base = this.ram.subarray(i * 0x100);
+			this.cpu[0].memorymap[i].base = this.ram.base[i];
 			this.cpu[0].memorymap[i].write = null;
 		}
 		for (let i = 0; i < 0x18; i++) {
-			this.cpu[0].memorymap[0x08 + i].base = this.ram.subarray(0x0800 + i * 0x100);
+			this.cpu[0].memorymap[0x08 + i].base = this.ram.base[8 + i];
 			this.cpu[0].memorymap[0x08 + i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
@@ -65,19 +65,19 @@ class SuperPacMan {
 			this.cpu[0].memorymap[0x40 + i].write = (addr, data) => sound.write(addr, data);
 		}
 		for (let i = 0; i < 4; i++) {
-			this.cpu[0].memorymap[0x48 + i].base = this.ram.subarray(0x2400 + i * 0x100);
+			this.cpu[0].memorymap[0x48 + i].base = this.ram.base[0x24 + i];
 			this.cpu[0].memorymap[0x48 + i].write = null;
 		}
 		this.cpu[0].memorymap[0x50].write = systemcontrolarea;
 		for (let i = 0; i < 0x40; i++)
-			this.cpu[0].memorymap[0xc0 + i].base = PRG1.subarray(i * 0x100);
+			this.cpu[0].memorymap[0xc0 + i].base = PRG1.base[i];
 		for (let i = 0; i < 4; i++) {
 			this.cpu[1].memorymap[i].read = addr => sound.read(addr);
 			this.cpu[1].memorymap[i].write = (addr, data) => sound.write(addr, data);
 		}
 		this.cpu[1].memorymap[0x20].write = systemcontrolarea;
 		for (let i = 0; i < 0x10; i++)
-			this.cpu[1].memorymap[0xf0 + i].base = PRG2.subarray(i * 0x100);
+			this.cpu[1].memorymap[0xf0 + i].base = PRG2.base[i];
 
 		// Videoの初期化
 		this.bg = new Uint32Array(0x100000);
@@ -640,8 +640,8 @@ let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from((zip.files['sp1-2.1c'].inflate() + zip.files['sp1-1.1b'].inflate()).split(''), c => c.charCodeAt(0));
-	PRG2 = Uint8Array.from(zip.files['spc-3.1k'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = Uint8Array.from((zip.files['sp1-2.1c'].inflate() + zip.files['sp1-1.1b'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
+	PRG2 = Uint8Array.from(zip.files['spc-3.1k'].inflate().split(''), c => c.charCodeAt(0)).addBase();
 	BG = Uint8Array.from(zip.files['sp1-6.3c'].inflate().split(''), c => c.charCodeAt(0));
 	OBJ = Uint8Array.from(zip.files['spv-2.3f'].inflate().split(''), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['superpac.4c'].inflate().split(''), c => c.charCodeAt(0));

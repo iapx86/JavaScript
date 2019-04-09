@@ -92,24 +92,24 @@ class SoundTest {
 		this.nSound = 0;
 
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0x900);
+		this.ram = new Uint8Array(0x900).addBase();
 
 		this.cpu = new MC6801(this);
 
-		this.cpu.memorymap[0].base = this.ram;
+		this.cpu.memorymap[0].base = this.ram.base[0];
 		this.cpu.memorymap[0].write = null;
 		for (let i = 0; i < 4; i++) {
 			this.cpu.memorymap[0x10 + i].read = addr => sound.read(addr);
 			this.cpu.memorymap[0x10 + i].write = (addr, data) => sound.write(addr, data);
 		}
 		for (let i = 0; i < 0x20; i++)
-			this.cpu.memorymap[0x80 + i].base = PRG2.subarray(i * 0x100);
+			this.cpu.memorymap[0x80 + i].base = PRG2.base[i];
 		for (let i = 0; i < 8; i++) {
-			this.cpu.memorymap[0xc0 + i].base = this.ram.subarray(0x100 + i * 0x100);
+			this.cpu.memorymap[0xc0 + i].base = this.ram.base[1 + i];
 			this.cpu.memorymap[0xc0 + i].write = null;
 		}
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0xf0 + i].base = PRG2I.subarray(i * 0x100);
+			this.cpu.memorymap[0xf0 + i].base = PRG2I.base[i];
 	}
 
 	execute() {
@@ -243,8 +243,8 @@ window.addEventListener('load', () => {
 });
 
 function success(zip) {
-	PRG2 = Uint8Array.from(zip.files['pl1_7.3e'].inflate().split(''), c => c.charCodeAt(0));
-	PRG2I = Uint8Array.from(zip.files['cus60-60a1.mcu'].inflate().split(''), c => c.charCodeAt(0));
+	PRG2 = Uint8Array.from(zip.files['pl1_7.3e'].inflate().split(''), c => c.charCodeAt(0)).addBase();
+	PRG2I = Uint8Array.from(zip.files['cus60-60a1.mcu'].inflate().split(''), c => c.charCodeAt(0)).addBase();
 	game = new SoundTest();
 	sound = new C30();
 	canvas.addEventListener('click', () => game.triggerA().right());

@@ -39,10 +39,10 @@ class Scramble {
 		this.fInterruptEnable = false;
 		this.fSoundEnable = false;
 
-		this.ram = new Uint8Array(0xd00);
+		this.ram = new Uint8Array(0xd00).addBase();
 		this.ppi0 = Uint8Array.of(0xff, 0xfc, 0xf1, 0);
 		this.ppi1 = new Uint8Array(4);
-		this.ram2 = new Uint8Array(0x400);
+		this.ram2 = new Uint8Array(0x400).addBase();
 		this.psg = [{addr: 0}, {addr: 0}];
 		this.count = 0;
 		this.timer = 0;
@@ -51,17 +51,17 @@ class Scramble {
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x40; i++)
-			this.cpu.memorymap[i].base = PRG1.subarray(i * 0x100);
+			this.cpu.memorymap[i].base = PRG1.base[i];
 		for (let i = 0; i < 8; i++) {
-			this.cpu.memorymap[0x40 + i].base = this.ram.subarray(i * 0x100);
+			this.cpu.memorymap[0x40 + i].base = this.ram.base[i];
 			this.cpu.memorymap[0x40 + i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x4c + i].base = this.cpu.memorymap[0x48 + i].base = this.ram.subarray(0x800 + i * 0x100);
+			this.cpu.memorymap[0x4c + i].base = this.cpu.memorymap[0x48 + i].base = this.ram.base[8 + i];
 			this.cpu.memorymap[0x4c + i].write = this.cpu.memorymap[0x48 + i].write = null;
 		}
 		for (let i = 0; i < 8; i++) {
-			this.cpu.memorymap[0x50 + i].base = this.ram.subarray(0xc00);
+			this.cpu.memorymap[0x50 + i].base = this.ram.base[0x0c];
 			this.cpu.memorymap[0x50 + i].write = null;
 			this.cpu.memorymap[0x68].write = (addr, data) => {
 				switch (addr & 7) {
@@ -109,16 +109,15 @@ class Scramble {
 
 		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x18; i++)
-			this.cpu2.memorymap[i].base = PRG2.subarray(i * 0x100);
+			this.cpu2.memorymap[i].base = PRG2.base[i];
 		for (let i = 0; i < 4; i++) {
-			const base = this.ram2.subarray(i * 0x100);
-			this.cpu2.memorymap[0x8c + i].base = this.cpu2.memorymap[0x88 + i].base = this.cpu2.memorymap[0x84 + i].base = this.cpu2.memorymap[0x80 + i].base = base;
+			this.cpu2.memorymap[0x8c + i].base = this.cpu2.memorymap[0x88 + i].base = this.cpu2.memorymap[0x84 + i].base = this.cpu2.memorymap[0x80 + i].base = this.ram2.base[i];
 			this.cpu2.memorymap[0x8c + i].write = this.cpu2.memorymap[0x88 + i].write = this.cpu2.memorymap[0x84 + i].write = this.cpu2.memorymap[0x80 + i].write = null;
-			this.cpu2.memorymap[0xac + i].base = this.cpu2.memorymap[0xa8 + i].base = this.cpu2.memorymap[0xa4 + i].base = this.cpu2.memorymap[0xa0 + i].base = base;
+			this.cpu2.memorymap[0xac + i].base = this.cpu2.memorymap[0xa8 + i].base = this.cpu2.memorymap[0xa4 + i].base = this.cpu2.memorymap[0xa0 + i].base = this.ram2.base[i];
 			this.cpu2.memorymap[0xac + i].write = this.cpu2.memorymap[0xa8 + i].write = this.cpu2.memorymap[0xa4 + i].write = this.cpu2.memorymap[0xa0 + i].write = null;
-			this.cpu2.memorymap[0xcc + i].base = this.cpu2.memorymap[0xc8 + i].base = this.cpu2.memorymap[0xc4 + i].base = this.cpu2.memorymap[0xc0 + i].base = base;
+			this.cpu2.memorymap[0xcc + i].base = this.cpu2.memorymap[0xc8 + i].base = this.cpu2.memorymap[0xc4 + i].base = this.cpu2.memorymap[0xc0 + i].base = this.ram2.base[i];
 			this.cpu2.memorymap[0xcc + i].write = this.cpu2.memorymap[0xc8 + i].write = this.cpu2.memorymap[0xc4 + i].write = this.cpu2.memorymap[0xc0 + i].write = null;
-			this.cpu2.memorymap[0xec + i].base = this.cpu2.memorymap[0xe8 + i].base = this.cpu2.memorymap[0xe4 + i].base = this.cpu2.memorymap[0xe0 + i].base = base;
+			this.cpu2.memorymap[0xec + i].base = this.cpu2.memorymap[0xe8 + i].base = this.cpu2.memorymap[0xe4 + i].base = this.cpu2.memorymap[0xe0 + i].base = this.ram2.base[i];
 			this.cpu2.memorymap[0xec + i].write = this.cpu2.memorymap[0xe8 + i].write = this.cpu2.memorymap[0xe4 + i].write = this.cpu2.memorymap[0xe0 + i].write = null;
 		}
 		for (let i = 0; i < 0x100; i++) {
@@ -576,8 +575,8 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG1 = zip.files['s1.2d'].inflate() + zip.files['s2.2e'].inflate() + zip.files['s3.2f'].inflate() + zip.files['s4.2h'].inflate() + zip.files['s5.2j'].inflate();
-	PRG1 = Uint8Array.from((PRG1 + zip.files['s6.2l'].inflate() + zip.files['s7.2m'].inflate() + zip.files['s8.2p'].inflate()).split(''), c => c.charCodeAt(0));
-	PRG2 = Uint8Array.from((zip.files['ot1.5c'].inflate() + zip.files['ot2.5d'].inflate() + zip.files['ot3.5e'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG1 = Uint8Array.from((PRG1 + zip.files['s6.2l'].inflate() + zip.files['s7.2m'].inflate() + zip.files['s8.2p'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
+	PRG2 = Uint8Array.from((zip.files['ot1.5c'].inflate() + zip.files['ot2.5d'].inflate() + zip.files['ot3.5e'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
 	BG = Uint8Array.from((zip.files['c2.5f'].inflate() + zip.files['c1.5h'].inflate()).split(''), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['c01s.6e'].inflate().split(''), c => c.charCodeAt(0));
 	game = new Scramble();

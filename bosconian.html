@@ -59,8 +59,8 @@ class Bosconian {
 		this.fNmiEnable0 = false;
 		this.fNmiEnable1 = false;
 
-		this.ram = new Uint8Array(0x1800).fill(0xff);
-		this.mmi = new Uint8Array(0x200).fill(0xff);
+		this.ram = new Uint8Array(0x1800).fill(0xff).addBase();
+		this.mmi = new Uint8Array(0x200).fill(0xff).addBase();
 		this.mmo = new Uint8Array(0x100);
 		this.count = 0;
 		this.starport = new Uint8Array(0x100);
@@ -91,35 +91,35 @@ class Bosconian {
 
 		// CPU0 ROM AREA SETUP
 		for (let i = 0; i < 0x40; i++)
-			this.cpu[0].memorymap[i].base = PRG1.subarray(i * 0x100);
+			this.cpu[0].memorymap[i].base = PRG1.base[i];
 		// CPU1 ROM AREA SETUP
 		for (let i = 0; i < 0x20; i++)
-			this.cpu[1].memorymap[i].base = PRG2.subarray(i * 0x100);
+			this.cpu[1].memorymap[i].base = PRG2.base[i];
 		// CPU2 ROM AREA SETUP
 		for (let i = 0; i < 0x10; i++)
-			this.cpu[2].memorymap[i].base = PRG3.subarray(i * 0x100);
+			this.cpu[2].memorymap[i].base = PRG3.base[i];
 
 		// CPU[012] RAM AREA SETUP
 		for (let i = 0; i < 3; i++)
 			for (let j = 0; j < 4; j++) {
-				this.cpu[i].memorymap[0x78 + j].base = this.ram.subarray(j * 0x100);
+				this.cpu[i].memorymap[0x78 + j].base = this.ram.base[j];
 				this.cpu[i].memorymap[0x78 + j].write = null;
-				this.cpu[i].memorymap[0x7c + j].base = this.ram.subarray(0x0400 + j * 0x100);
+				this.cpu[i].memorymap[0x7c + j].base = this.ram.base[4 + j];
 				this.cpu[i].memorymap[0x7c + j].write = null;
-				this.cpu[i].memorymap[0x80 + j].base = this.ram.subarray(0x0800 + j * 0x100);
+				this.cpu[i].memorymap[0x80 + j].base = this.ram.base[8 + j];
 				this.cpu[i].memorymap[0x80 + j].write = null;
-				this.cpu[i].memorymap[0x84 + j].base = this.ram.subarray(0x0c00 + j * 0x100);
+				this.cpu[i].memorymap[0x84 + j].base = this.ram.base[0x0c + j];
 				this.cpu[i].memorymap[0x84 + j].write = null;
-				this.cpu[i].memorymap[0x88 + j].base = this.ram.subarray(0x1000 + j * 0x100);
+				this.cpu[i].memorymap[0x88 + j].base = this.ram.base[0x10 + j];
 				this.cpu[i].memorymap[0x88 + j].write = null;
-				this.cpu[i].memorymap[0x8c + j].base = this.ram.subarray(0x1400 + j * 0x100);
+				this.cpu[i].memorymap[0x8c + j].base = this.ram.base[0x14 + j];
 				this.cpu[i].memorymap[0x8c + j].write = null;
 			}
-		this.cpu[0].memorymap[0x68].base = this.mmi;
+		this.cpu[0].memorymap[0x68].base = this.mmi.base[0];
 		this.cpu[0].memorymap[0x68].write = systemctrl0;
-		this.cpu[1].memorymap[0x68].base = this.mmi;
+		this.cpu[1].memorymap[0x68].base = this.mmi.base[0];
 		this.cpu[1].memorymap[0x68].write = systemctrl0;
-		this.cpu[2].memorymap[0x68].base = this.mmi;
+		this.cpu[2].memorymap[0x68].base = this.mmi.base[0];
 		this.cpu[2].memorymap[0x68].write = systemctrl1;
 
 		this.cpu[0].memorymap[0x70].base = this.ioport;
@@ -128,14 +128,14 @@ class Bosconian {
 		this.cpu[0].memorymap[0x90].base = this.starport;
 		this.cpu[0].memorymap[0x91].base = this.dmaport1;
 		this.cpu[0].memorymap[0x91].write = dmactrl1;
-		this.cpu[0].memorymap[0x98].base = this.mmi.subarray(0x100);
+		this.cpu[0].memorymap[0x98].base = this.mmi.base[1];
 		this.cpu[0].memorymap[0x98].write = null;
 
 		this.cpu[1].memorymap[0x90].base = this.starport;
 		this.cpu[1].memorymap[0x90].write = null;
 		this.cpu[1].memorymap[0x91].base = this.dmaport1;
 		this.cpu[1].memorymap[0x91].write = dmactrl1;
-		this.cpu[1].memorymap[0x98].base = this.mmi.subarray(0x100);
+		this.cpu[1].memorymap[0x98].base = this.mmi.base[1];
 		this.cpu[1].memorymap[0x98].write = null;
 
 		// Videoの初期化
@@ -5553,9 +5553,9 @@ let PRG1, PRG2, PRG3, RGB, SND, BGCOLOR, BG, OBJ;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from((zip.files['bos3_1.3n'].inflate() + zip.files['bos1_2.3m'].inflate() + zip.files['bos1_3.3l'].inflate() + zip.files['bos1_4b.3k'].inflate()).split(''), c => c.charCodeAt(0));
-	PRG2 = Uint8Array.from((zip.files['bos1_5c.3j'].inflate() + zip.files['bos3_6.3h'].inflate()).split(''), c => c.charCodeAt(0));
-	PRG3 = Uint8Array.from(zip.files['bos1_7.3e'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = Uint8Array.from((zip.files['bos3_1.3n'].inflate() + zip.files['bos1_2.3m'].inflate() + zip.files['bos1_3.3l'].inflate() + zip.files['bos1_4b.3k'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
+	PRG2 = Uint8Array.from((zip.files['bos1_5c.3j'].inflate() + zip.files['bos3_6.3h'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
+	PRG3 = Uint8Array.from(zip.files['bos1_7.3e'].inflate().split(''), c => c.charCodeAt(0)).addBase();
 	BG = Uint8Array.from(zip.files['bos1_14.5d'].inflate().split(''), c => c.charCodeAt(0));
 	OBJ = Uint8Array.from(zip.files['bos1_13.5e'].inflate().split(''), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['bos1-6.6b'].inflate().split(''), c => c.charCodeAt(0));

@@ -44,7 +44,7 @@ class Gaplus {
 		this.fInterruptEnable1 = false;
 		this.fInterruptEnable2 = false;
 
-		this.ram = new Uint8Array(0x2500);
+		this.ram = new Uint8Array(0x2500).addBase();
 		this.port = new Uint8Array(0x40);
 		this.starport = new Uint8Array(0x100);
 		this.port[0x20] = 4; // UPRIGHT
@@ -54,18 +54,18 @@ class Gaplus {
 			this.cpu[i] = new MC6809(this);
 
 		for (let i = 0; i < 0x08; i++) {
-			this.cpu[0].memorymap[i].base = this.ram.subarray(i * 0x100);
+			this.cpu[0].memorymap[i].base = this.ram.base[i];
 			this.cpu[0].memorymap[i].write = null;
 		}
 		for (let i = 0; i < 0x18; i++) {
-			this.cpu[0].memorymap[0x08 + i].base = this.ram.subarray(0x800 + i * 0x100);
+			this.cpu[0].memorymap[0x08 + i].base = this.ram.base[8 + i];
 			this.cpu[0].memorymap[0x08 + i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
 			this.cpu[0].memorymap[0x60 + i].read = addr => sound[0].read(addr);
 			this.cpu[0].memorymap[0x60 + i].write = (addr, data) => sound[0].write(addr, data);
 		}
-		this.cpu[0].memorymap[0x68].base = this.ram.subarray(0x2400);
+		this.cpu[0].memorymap[0x68].base = this.ram.base[0x24];
 		this.cpu[0].memorymap[0x68].write = (addr, data) => {
 			if (addr === 0x682a && this.ram[0x2428] !== 4 && (data - this.ram[0x2429] - 1 & 0x0f) === 0)
 				this.se[0].start = this.se[0].stop = true;
@@ -82,14 +82,14 @@ class Gaplus {
 			this.cpu[2].disable();
 		};
 		for (let i = 0; i < 0x60; i++)
-			this.cpu[0].memorymap[0xa0 + i].base = PRG1.subarray(i * 0x100);
+			this.cpu[0].memorymap[0xa0 + i].base = PRG1.base[i];
 		this.cpu[0].memorymap[0xa0].write = (addr, data) => this.starport[addr & 0xff] = data;
 		for (let i = 0; i < 0x08; i++) {
-			this.cpu[1].memorymap[i].base = this.ram.subarray(i * 0x100);
+			this.cpu[1].memorymap[i].base = this.ram.base[i];
 			this.cpu[1].memorymap[i].write = null;
 		}
 		for (let i = 0; i < 0x18; i++) {
-			this.cpu[1].memorymap[0x08 + i].base = this.ram.subarray(0x800 + i * 0x100);
+			this.cpu[1].memorymap[0x08 + i].base = this.ram.base[8 + i];
 			this.cpu[1].memorymap[0x08 + i].write = null;
 		}
 		this.cpu[1].memorymap[0x60].write = addr => {
@@ -106,7 +106,7 @@ class Gaplus {
 			}
 		};
 		for (let i = 0; i < 0x60; i++)
-			this.cpu[1].memorymap[0xa0 + i].base = PRG2.subarray(i * 0x100);
+			this.cpu[1].memorymap[0xa0 + i].base = PRG2.base[i];
 		for (let i = 0; i < 4; i++) {
 			this.cpu[2].memorymap[i].read = addr => sound[0].read(addr);
 			this.cpu[2].memorymap[i].write = (addr, data) => sound[0].write(addr, data);
@@ -114,7 +114,7 @@ class Gaplus {
 		this.cpu[2].memorymap[0x40].write = () => this.fInterruptEnable2 = true;
 		this.cpu[2].memorymap[0x60].write = () => this.fInterruptEnable2 = false;
 		for (let i = 0; i < 0x20; i++)
-			this.cpu[2].memorymap[0xe0 + i].base = PRG3.subarray(i * 0x100);
+			this.cpu[2].memorymap[0xe0 + i].base = PRG3.base[i];
 
 		// Videoの初期化
 		this.stars = [];
@@ -1749,9 +1749,9 @@ let SND, BGCOLOR, OBJCOLOR_H, OBJCOLOR_L, RED, BLUE, GREEN, BG, OBJ4, OBJ8, PRG1
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from((zip.files['gp2-4.8d'].inflate() + zip.files['gp2-3b.8c'].inflate() + zip.files['gp2-2b.8b'].inflate()).split(''), c => c.charCodeAt(0));
-	PRG2 = Uint8Array.from((zip.files['gp2-8.11d'].inflate() + zip.files['gp2-7.11c'].inflate() + zip.files['gp2-6.11b'].inflate()).split(''), c => c.charCodeAt(0));
-	PRG3 = Uint8Array.from(zip.files['gp2-1.4b'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = Uint8Array.from((zip.files['gp2-4.8d'].inflate() + zip.files['gp2-3b.8c'].inflate() + zip.files['gp2-2b.8b'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
+	PRG2 = Uint8Array.from((zip.files['gp2-8.11d'].inflate() + zip.files['gp2-7.11c'].inflate() + zip.files['gp2-6.11b'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
+	PRG3 = Uint8Array.from(zip.files['gp2-1.4b'].inflate().split(''), c => c.charCodeAt(0)).addBase();
 	BG = Uint8Array.from(zip.files['gp2-5.8s'].inflate().split(''), c => c.charCodeAt(0));
 	OBJ8 = Uint8Array.from((zip.files['gp2-11.11p'].inflate() + zip.files['gp2-10.11n'].inflate() + zip.files['gp2-9.11m'].inflate()).split(''), c => c.charCodeAt(0));
 	OBJ4 = Uint8Array.from(zip.files['gp2-12.11r'].inflate().split(''), c => c.charCodeAt(0));

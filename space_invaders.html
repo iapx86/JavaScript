@@ -36,14 +36,14 @@ class SpaceInvaders {
 		this.nExtend = 1000;
 
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0x2000);
+		this.ram = new Uint8Array(0x2000).addBase();
 		this.io = new Uint8Array(0x100);
 
 		this.cpu = new I8080(this);
 		for (let i = 0; i < 0x20; i++)
-			this.cpu.memorymap[0x80 + i].base = this.cpu.memorymap[i].base = PRG.subarray(i * 0x100);
+			this.cpu.memorymap[0x80 + i].base = this.cpu.memorymap[i].base = PRG.base[i];
 		for (let i = 0; i < 0x20; i++) {
-			this.cpu.memorymap[0xe0 + i].base = this.cpu.memorymap[0xa0 + i].base = this.cpu.memorymap[0x60 + i].base = this.cpu.memorymap[0x20 + i].base = this.ram.subarray(i * 0x100);
+			this.cpu.memorymap[0xe0 + i].base = this.cpu.memorymap[0xa0 + i].base = this.cpu.memorymap[0x60 + i].base = this.cpu.memorymap[0x20 + i].base = this.ram.base[i];
 			this.cpu.memorymap[0xe0 + i].write = this.cpu.memorymap[0xa0 + i].write = this.cpu.memorymap[0x60 + i].write = this.cpu.memorymap[0x20 + i].write = null;
 		}
 		for (let i = 0; i < 0x100; i++) {
@@ -267,7 +267,7 @@ let PRG, MAP;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG = Uint8Array.from((zip.files['sicv/cv17.36'].inflate() + zip.files['sicv/cv18.35'].inflate() + zip.files['sicv/cv19.34'].inflate() + zip.files['sicv/cv20.33'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG = Uint8Array.from((zip.files['sicv/cv17.36'].inflate() + zip.files['sicv/cv18.35'].inflate() + zip.files['sicv/cv19.34'].inflate() + zip.files['sicv/cv20.33'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
 	MAP = Uint8Array.from(zip.files['sicv/cv01.1'].inflate().split(''), c => c.charCodeAt(0));
 	game = new SpaceInvaders();
 	init();

@@ -38,8 +38,8 @@ class ChacknPop {
 		this.nBonus = 20000;
 
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0xd00);
-		this.vram = new Uint8Array(0x8000);
+		this.ram = new Uint8Array(0xd00).addBase();
+		this.vram = new Uint8Array(0x8000).addBase();
 		this.ram2 = new Uint8Array(0x80);
 		this.in = Uint8Array.of(0x7d, 0xff, 0xff, 0xff, 0, 0x4f);
 		this.psg = [{addr: 0}, {addr: 0}];
@@ -49,9 +49,9 @@ class ChacknPop {
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x80; i++)
-			this.cpu.memorymap[i].base = PRG1.subarray(i * 0x100);
+			this.cpu.memorymap[i].base = PRG1.base[i];
 		for (let i = 0; i < 8; i++) {
-			this.cpu.memorymap[0x80 + i].base = this.ram.subarray(i * 0x100);
+			this.cpu.memorymap[0x80 + i].base = this.ram.base[i];
 			this.cpu.memorymap[0x80 + i].write = null;
 		}
 		this.cpu.memorymap[0x88].read = addr => {
@@ -97,21 +97,26 @@ class ChacknPop {
 				sound[1].write(this.psg[1].addr, data);
 				break;
 			case 0x0c:
+				if (((data ^ this.mode) & 4) !== 0) {
+					const bank = data << 4 & 0x40;
+					for (let i = 0; i < 0x40; i++)
+						this.cpu.memorymap[0xc0 + i].base = this.vram.base[bank + i];
+				}
 				this.mode = data;
 				break;
 			}
 		};
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x90 + i].base = this.ram.subarray(0x800 + i * 0x100);
+			this.cpu.memorymap[0x90 + i].base = this.ram.base[8 + i];
 			this.cpu.memorymap[0x90 + i].write = null;
 		}
-		this.cpu.memorymap[0x98].base = this.ram.subarray(0xc00);
+		this.cpu.memorymap[0x98].base = this.ram.base[0x0c];
 		this.cpu.memorymap[0x98].write = null;
 		for (let i = 0; i < 0x20; i++)
-			this.cpu.memorymap[0xa0 + i].base = PRG1.subarray(0x8000 + i * 0x100);
+			this.cpu.memorymap[0xa0 + i].base = PRG1.base[0x80 + i];
 		for (let i = 0; i < 0x40; i++) {
-			this.cpu.memorymap[0xc0 + i].read = addr => this.vram[addr & 0x3fff | this.mode << 12 & 0x4000];
-			this.cpu.memorymap[0xc0 + i].write = (addr, data) => this.vram[addr & 0x3fff | this.mode << 12 & 0x4000] = data;
+			this.cpu.memorymap[0xc0 + i].base = this.vram.base[i];
+			this.cpu.memorymap[0xc0 + i].write = null;
 		}
 
 		this.mcu = new MC6805(this);
@@ -141,7 +146,7 @@ class ChacknPop {
 			this.ram2[addr] = data;
 		};
 		for (let i = 1; i < 8; i++)
-			this.mcu.memorymap[i].base = PRG2.subarray(i * 0x100);
+			this.mcu.memorymap[i].base = PRG2.base[i];
 
 		// Videoの初期化
 		this.bg = new Uint8Array(0x10000);
@@ -531,8 +536,8 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG1 = zip.files['ao4_01.ic28'].inflate() + zip.files['ao4_02.ic27'].inflate() + zip.files['ao4_03.ic26'].inflate();
-	PRG1 = Uint8Array.from((PRG1 + zip.files['ao4_04.ic25'].inflate() + zip.files['ao4_05.ic3'].inflate()).split(''), c => c.charCodeAt(0));
-	PRG2 = Uint8Array.from(zip.files['ao4_06.ic23'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = Uint8Array.from((PRG1 + zip.files['ao4_04.ic25'].inflate() + zip.files['ao4_05.ic3'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
+	PRG2 = Uint8Array.from(zip.files['ao4_06.ic23'].inflate().split(''), c => c.charCodeAt(0)).addBase();
 	OBJ = Uint8Array.from((zip.files['ao4_08.ic14'].inflate() + zip.files['ao4_07.ic15'].inflate()).split(''), c => c.charCodeAt(0));
 	BG = Uint8Array.from((zip.files['ao4_09.ic98'].inflate() + zip.files['ao4_10.ic97'].inflate()).split(''), c => c.charCodeAt(0));
 	RGB_L = Uint8Array.from(zip.files['ao4-11.ic96'].inflate().split(''), c => c.charCodeAt(0));

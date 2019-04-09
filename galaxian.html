@@ -42,20 +42,20 @@ class Galaxian {
 		this.fSoundEnable = false;
 		this.mode = 0;
 
-		this.ram = new Uint8Array(0x900);
+		this.ram = new Uint8Array(0x900).addBase();
 		this.mmo = new Uint8Array(0x100);
 		this.ioport = new Uint8Array(0x100);
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x28; i++)
-			this.cpu.memorymap[i].base = PRG.subarray(i * 0x100);
+			this.cpu.memorymap[i].base = PRG.base[i];
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x40 + i].base = this.ram.subarray(i * 0x100);
+			this.cpu.memorymap[0x40 + i].base = this.ram.base[i];
 			this.cpu.memorymap[0x40 + i].write = null;
-			this.cpu.memorymap[0x50 + i].base = this.ram.subarray(0x400 + i * 0x100);
+			this.cpu.memorymap[0x50 + i].base = this.ram.base[4 + i];
 			this.cpu.memorymap[0x50 + i].write = null;
 		}
-		this.cpu.memorymap[0x58].base = this.ram.subarray(0x800);
+		this.cpu.memorymap[0x58].base = this.ram.base[8];
 		this.cpu.memorymap[0x58].write = null;
 		this.cpu.memorymap[0x60].base = this.ioport;
 		this.cpu.memorymap[0x60].write = systemctrl0;
@@ -4024,7 +4024,8 @@ let BG, RGB, PRG;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG = Uint8Array.from((zip.files['galmidw.u'].inflate() + zip.files['galmidw.v'].inflate() + zip.files['galmidw.w'].inflate() + zip.files['galmidw.y'].inflate() + zip.files['7l'].inflate()).split(''), c => c.charCodeAt(0));
+	PRG = zip.files['galmidw.u'].inflate() + zip.files['galmidw.v'].inflate() + zip.files['galmidw.w'].inflate() + zip.files['galmidw.y'].inflate();
+	PRG = Uint8Array.from((PRG + zip.files['7l'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
 	BG = Uint8Array.from((zip.files['1h.bin'].inflate() + zip.files['1k.bin'].inflate()).split(''), c => c.charCodeAt(0));
 	RGB = Uint8Array.from(zip.files['6l.bpr'].inflate().split(''), c => c.charCodeAt(0));
 	game = new Galaxian();
