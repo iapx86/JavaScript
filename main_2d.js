@@ -208,6 +208,7 @@ class Cpu {
 		this.memorymap = [];
 		for (let i = 0; i < 0x100; i++)
 			this.memorymap.push({base: dummypage, read: null, write: () => {}, fetch: null});
+		this.checkinterrupt = null;
 		this.breakpointmap = new Uint32Array(0x800);
 		this.breakpoint = null;
 		this.undef = null;
@@ -218,15 +219,15 @@ class Cpu {
 	set_breakpoint(addr) {
 		this.breakpointmap[addr >>> 5] |= 1 << (addr & 0x1f);
 	}
-	/*
-	 *	clear_breakpoint(addr) {
-	 *		this.breakpointmap[addr >>> 5] &= ~(1 << (addr & 0x1f));
-	 *	}
-	 *
-	 *	clear_all_breakpoint() {
-	 *		this.breakpointmap.fill(0);
-	 *	}
-	 */
+/*
+ *	clear_breakpoint(addr) {
+ *		this.breakpointmap[addr >>> 5] &= ~(1 << (addr & 0x1f));
+ *	}
+ *
+ *	clear_all_breakpoint() {
+ *		this.breakpointmap.fill(0);
+ *	}
+ */
 	reset() {
 		this.fActive = true;
 		this.fSuspend = false;
@@ -265,7 +266,7 @@ class Cpu {
 		const n = cpu.length;
 		for (let i = 0; i < count; i++)
 			for (let j = 0; j < n; j++) {
-				if (!cpu[j].fActive || cpu[j].fSuspend)
+				if (!cpu[j].fActive || cpu[j].checkinterrupt && cpu[j].checkinterrupt(cpu[j].arg) || cpu[j].fSuspend)
 					continue;
 				if (cpu[j].breakpoint && (cpu[j].breakpointmap[cpu[j].pc >>> 5] & 1 << (cpu[j].pc & 0x1f)) !== 0)
 					cpu[j].breakpoint(cpu[j].pc, cpu[j].arg);
@@ -275,8 +276,10 @@ class Cpu {
 
 	execute(count) {
 		for (let i = 0; i < count; i++) {
-			if (!this.fActive || this.fSuspend)
+			if (!this.fActive)
 				break;
+			if (this.checkinterrupt && this.checkinterrupt(this.arg) || this.fSuspend)
+				continue;
 			if (this.breakpoint && (this.breakpointmap[this.pc >>> 5] & 1 << (this.pc & 0x1f)) !== 0)
 				this.breakpoint(this.pc, this.arg);
 			this._execute();

@@ -148,6 +148,8 @@ class ChacknPop {
 		for (let i = 1; i < 8; i++)
 			this.mcu.memorymap[i].base = PRG2.base[i];
 
+		this.mcu.checkinterrupt = () => this.mcu.int && this.mcu.interrupt();
+
 		// Videoの初期化
 		this.bg = new Uint8Array(0x10000);
 		this.obj = new Uint8Array(0x10000);

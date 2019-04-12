@@ -47,8 +47,6 @@ class MC6805 extends Cpu {
 	_execute() {
 		let v;
 
-		if (this.int && this.interrupt())
-			return;
 		switch (this.fetch()) {
 		case 0x00: // BRSET0
 			this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.direct()) & 1) & 1) !== 0);
