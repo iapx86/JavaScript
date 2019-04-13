@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Sky Kid</title>
+<title>Dragon Buster</title>
 <link href="style.css" rel="stylesheet" type="text/css">
 </head>
 <body>
@@ -16,11 +16,11 @@
 <script>
 /*
  *
- *	Sky Kid
+ *	Dragon Buster
  *
  */
 
-class SkyKid {
+class DragonBuster {
 	constructor() {
 		this.cxScreen = 224;
 		this.cyScreen = 288;
@@ -34,8 +34,7 @@ class SkyKid {
 		this.fCoin = 0;
 		this.fStart1P = 0;
 		this.fStart2P = 0;
-		this.nLife = 3;
-		this.nBonus = '30000 and 90000';
+		this.fContinue = false;
 		this.fAttract = true;
 		this.fSkip = false;
 
@@ -155,34 +154,10 @@ class SkyKid {
 		// DIPスイッチの更新
 		if (this.fDIPSwitchChanged) {
 			this.fDIPSwitchChanged = false;
-			switch (this.nLife) {
-			case 1:
-				this.in[0] = this.in[0] & ~0x18 | 0x10;
-				break;
-			case 2:
-				this.in[0] = this.in[0] & ~0x18 | 8;
-				break;
-			case 3:
-				this.in[0] |= 0x18;
-				break;
-			case 5:
-				this.in[0] &= ~0x18;
-				break;
-			}
-			switch (this.nBonus) {
-			case '20000 every 80000':
-				this.in[0] &= ~6;
-				break;
-			case '20000 and 80000':
-				this.in[0] = this.in[0] & ~6 | 2;
-				break;
-			case '30000 every 90000':
-				this.in[0] = this.in[0] & ~6 | 4;
-				break;
-			case '30000 and 90000':
-				this.in[0] |= 6;
-				break;
-			}
+			if (this.fContinue)
+				this.in[1] &= ~4;
+			else
+				this.in[1] |= 4;
 			if (this.fAttract)
 				this.in[2] |= 8;
 			else
@@ -403,8 +378,8 @@ class SkyKid {
 
 	makeBitmap(data) {
 		// bg描画
-		let p = 256 * 8 * 2 + 232 + (7 - this.hScroll & 7) - (4 - this.vScroll & 7) * 256;
-		let k = 7 - this.hScroll << 3 & 0x7c0 | (4 - this.vScroll >>> 3) + 23 & 0x3f;
+		let p = 256 * 8 * 2 + 232 + (1 + this.hScroll & 7) - (3 + this.vScroll & 7) * 256;
+		let k = 0x18 + 1 + this.hScroll << 3 & 0x7c0 | (3 + this.vScroll >>> 3) + 4 & 0x3f;
 		for (let i = 0; i < 29; p -= 256 * 8 * 37 + 8, i++) {
 			for (let j = 0; j < 37; p += 256 * 8, j++) {
 				this.xfer8x8b(data, p, k);
@@ -442,8 +417,8 @@ class SkyKid {
 
 		// obj描画
 		for (let p = 0x1f80, i = 64; i !== 0; p += 2, --i) {
-			const y = 0x167 - this.ram[p + 0x801] - this.ram[p + 0x1001] * 0x100 & 0x1ff;
-			const x = 0xe9 - this.ram[p + 0x800] & 0xff;
+			const y = (this.ram[p + 0x801] | this.ram[p + 0x1001] << 8) - 55 & 0x1ff;
+			const x = this.ram[p + 0x800] + 7 & 0xff;
 			switch (this.ram[p + 0x1000] & 0x8f) {
 			case 0x00: // ノーマル
 				this.xfer16x16x3(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
@@ -458,60 +433,60 @@ class SkyKid {
 				this.xfer16x16x3HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
 				break;
 			case 0x04: // ノーマル
-				this.xfer16x16x3(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
-				this.xfer16x16x3(data, x | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
+				this.xfer16x16x3(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
+				this.xfer16x16x3(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
 				break;
 			case 0x05: // V反転
-				this.xfer16x16x3V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
-				this.xfer16x16x3V(data, x | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
+				this.xfer16x16x3V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
+				this.xfer16x16x3V(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
 				break;
 			case 0x06: // H反転
-				this.xfer16x16x3H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
-				this.xfer16x16x3H(data, x | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
+				this.xfer16x16x3H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
+				this.xfer16x16x3H(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
 				break;
 			case 0x07: // HV反転
-				this.xfer16x16x3HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
-				this.xfer16x16x3HV(data, x | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
+				this.xfer16x16x3HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
+				this.xfer16x16x3HV(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
 				break;
 			case 0x08: // ノーマル
-				this.xfer16x16x3(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
-				this.xfer16x16x3(data, x - 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
+				this.xfer16x16x3(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
+				this.xfer16x16x3(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
 				break;
 			case 0x09: // V反転
-				this.xfer16x16x3V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
-				this.xfer16x16x3V(data, x - 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
+				this.xfer16x16x3V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
+				this.xfer16x16x3V(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
 				break;
 			case 0x0a: // H反転
-				this.xfer16x16x3H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
-				this.xfer16x16x3H(data, x - 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
+				this.xfer16x16x3H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
+				this.xfer16x16x3H(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
 				break;
 			case 0x0b: // HV反転
-				this.xfer16x16x3HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
-				this.xfer16x16x3HV(data, x - 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
+				this.xfer16x16x3HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
+				this.xfer16x16x3HV(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
 				break;
 			case 0x0c: // ノーマル
-				this.xfer16x16x3(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
-				this.xfer16x16x3(data, x | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
-				this.xfer16x16x3(data, x - 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
-				this.xfer16x16x3(data, x - 16 & 0xff | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
+				this.xfer16x16x3(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
+				this.xfer16x16x3(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
+				this.xfer16x16x3(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
+				this.xfer16x16x3(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
 				break;
 			case 0x0d: // V反転
-				this.xfer16x16x3V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
-				this.xfer16x16x3V(data, x | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
-				this.xfer16x16x3V(data, x - 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
-				this.xfer16x16x3V(data, x - 16 & 0xff | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
+				this.xfer16x16x3V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
+				this.xfer16x16x3V(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
+				this.xfer16x16x3V(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
+				this.xfer16x16x3V(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
 				break;
 			case 0x0e: // H反転
-				this.xfer16x16x3H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
-				this.xfer16x16x3H(data, x | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
-				this.xfer16x16x3H(data, x - 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
-				this.xfer16x16x3H(data, x - 16 & 0xff | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
+				this.xfer16x16x3H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
+				this.xfer16x16x3H(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
+				this.xfer16x16x3H(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
+				this.xfer16x16x3H(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
 				break;
 			case 0x0f: // HV反転
-				this.xfer16x16x3HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
-				this.xfer16x16x3HV(data, x | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
-				this.xfer16x16x3HV(data, x - 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
-				this.xfer16x16x3HV(data, x - 16 & 0xff | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
+				this.xfer16x16x3HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
+				this.xfer16x16x3HV(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
+				this.xfer16x16x3HV(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
+				this.xfer16x16x3HV(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
 				break;
 			case 0x80: // ノーマル
 				this.xfer16x16x2(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
@@ -526,60 +501,60 @@ class SkyKid {
 				this.xfer16x16x2HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
 				break;
 			case 0x84: // ノーマル
-				this.xfer16x16x2(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
-				this.xfer16x16x2(data, x | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
+				this.xfer16x16x2(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
+				this.xfer16x16x2(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
 				break;
 			case 0x85: // V反転
-				this.xfer16x16x2V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
-				this.xfer16x16x2V(data, x | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
+				this.xfer16x16x2V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
+				this.xfer16x16x2V(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
 				break;
 			case 0x86: // H反転
-				this.xfer16x16x2H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
-				this.xfer16x16x2H(data, x | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
+				this.xfer16x16x2H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
+				this.xfer16x16x2H(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
 				break;
 			case 0x87: // HV反転
-				this.xfer16x16x2HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
-				this.xfer16x16x2HV(data, x | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
+				this.xfer16x16x2HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
+				this.xfer16x16x2HV(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
 				break;
 			case 0x88: // ノーマル
-				this.xfer16x16x2(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
-				this.xfer16x16x2(data, x - 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
+				this.xfer16x16x2(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
+				this.xfer16x16x2(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
 				break;
 			case 0x89: // V反転
-				this.xfer16x16x2V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
-				this.xfer16x16x2V(data, x - 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
+				this.xfer16x16x2V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
+				this.xfer16x16x2V(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
 				break;
 			case 0x8a: // H反転
-				this.xfer16x16x2H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
-				this.xfer16x16x2H(data, x - 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
+				this.xfer16x16x2H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
+				this.xfer16x16x2H(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
 				break;
 			case 0x8b: // HV反転
-				this.xfer16x16x2HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
-				this.xfer16x16x2HV(data, x - 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
+				this.xfer16x16x2HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
+				this.xfer16x16x2HV(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
 				break;
 			case 0x8c: // ノーマル
-				this.xfer16x16x2(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
-				this.xfer16x16x2(data, x | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
-				this.xfer16x16x2(data, x - 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
-				this.xfer16x16x2(data, x - 16 & 0xff | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
+				this.xfer16x16x2(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
+				this.xfer16x16x2(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
+				this.xfer16x16x2(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
+				this.xfer16x16x2(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
 				break;
 			case 0x8d: // V反転
-				this.xfer16x16x2V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
-				this.xfer16x16x2V(data, x | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
-				this.xfer16x16x2V(data, x - 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
-				this.xfer16x16x2V(data, x - 16 & 0xff | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
+				this.xfer16x16x2V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
+				this.xfer16x16x2V(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
+				this.xfer16x16x2V(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
+				this.xfer16x16x2V(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
 				break;
 			case 0x8e: // H反転
-				this.xfer16x16x2H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
-				this.xfer16x16x2H(data, x | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
-				this.xfer16x16x2H(data, x - 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
-				this.xfer16x16x2H(data, x - 16 & 0xff | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
+				this.xfer16x16x2H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
+				this.xfer16x16x2H(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
+				this.xfer16x16x2H(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
+				this.xfer16x16x2H(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
 				break;
 			case 0x8f: // HV反転
-				this.xfer16x16x2HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
-				this.xfer16x16x2HV(data, x | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
-				this.xfer16x16x2HV(data, x - 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
-				this.xfer16x16x2HV(data, x - 16 & 0xff | (y - 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
+				this.xfer16x16x2HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
+				this.xfer16x16x2HV(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
+				this.xfer16x16x2HV(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
+				this.xfer16x16x2HV(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
 				break;
 			}
 		}
@@ -866,29 +841,29 @@ class SkyKid {
 
 /*
  *
- *	Sky Kid
+ *	Dragon Buster
  *
  */
 
-const url = 'skykid.zip';
+const url = 'drgnbstr.zip';
 let PRG1, PRG2, PRG2I, FIX, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR;
 
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from((zip.files['sk2_2.6c'].inflate() + zip.files['sk1-1c.6b'].inflate() + zip.files['sk1_3.6d'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	PRG2 = Uint8Array.from(zip.files['sk2_4.3c'].inflate().split(''), c => c.charCodeAt(0)).addBase();
-	PRG2I = Uint8Array.from(zip.files['cus63-63a1.mcu'].inflate().split(''), c => c.charCodeAt(0)).addBase();
-	FIX = Uint8Array.from(zip.files['sk1_6.6l'].inflate().split(''), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['sk1_5.7e'].inflate().split(''), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from((zip.files['sk1_8.10n'].inflate() + zip.files['sk1_7.10m'].inflate()).split(''), c => c.charCodeAt(0));
-	RED = Uint8Array.from(zip.files['sk1-1.2n'].inflate().split(''), c => c.charCodeAt(0));
-	GREEN = Uint8Array.from(zip.files['sk1-2.2p'].inflate().split(''), c => c.charCodeAt(0));
-	BLUE = Uint8Array.from(zip.files['sk1-3.2r'].inflate().split(''), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['sk1-4.5n'].inflate().split(''), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['sk1-5.6n'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = Uint8Array.from((zip.files['db1_2b.6c'].inflate() + zip.files['db1_1.6b'].inflate() + zip.files['db1_3.6d'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
+	PRG2 = Uint8Array.from(zip.files['db1_4.3c'].inflate().split(''), c => c.charCodeAt(0)).addBase();
+	PRG2I = Uint8Array.from(zip.files['cus60-60a1.mcu'].inflate().split(''), c => c.charCodeAt(0)).addBase();
+	FIX = Uint8Array.from(zip.files['db1_6.6l'].inflate().split(''), c => c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['db1_5.7e'].inflate().split(''), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from((zip.files['db1_8.10n'].inflate() + zip.files['db1_7.10m'].inflate()).split(''), c => c.charCodeAt(0));
+	RED = Uint8Array.from(zip.files['db1-1.2n'].inflate().split(''), c => c.charCodeAt(0));
+	GREEN = Uint8Array.from(zip.files['db1-2.2p'].inflate().split(''), c => c.charCodeAt(0));
+	BLUE = Uint8Array.from(zip.files['db1-3.2r'].inflate().split(''), c => c.charCodeAt(0));
+	BGCOLOR = Uint8Array.from(zip.files['db1-4.5n'].inflate().split(''), c => c.charCodeAt(0));
+	OBJCOLOR = Uint8Array.from(zip.files['db1-5.6n'].inflate().split(''), c => c.charCodeAt(0));
 	rotate = true;
-	game = new SkyKid();
+	game = new DragonBuster();
 	sound = new C30();
 	init();
 	loop();
