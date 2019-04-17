@@ -191,19 +191,19 @@ class PacLand {
 				break;
 			}
 			switch (this.nRank) {
-			case 'A':
+			case 'A': // Normal
 				this.in[0] |= 1;
 				this.in[1] |= 8;
 				break;
-			case 'B':
+			case 'B': // Easy
 				this.in[0] |= 1;
 				this.in[1] &= ~8;
 				break;
-			case 'C':
+			case 'C': // Hard
 				this.in[0] &= ~1;
 				this.in[1] |= 8;
 				break;
-			case 'D':
+			case 'D': // Very Hard
 				this.in[0] &= ~1;
 				this.in[1] &= ~8;
 				break;
