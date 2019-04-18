@@ -33,7 +33,7 @@ class _1942 {
 		this.fCoin = 0;
 		this.fStart1P = 0;
 		this.fStart2P = 0;
-		this.nBonus = '20000 80000 80000+';
+		this.nBonus = '1st 20000 2nd 80000 every 80000';
 		this.nLife = 3;
 		this.nRank = 'Normal';
 
@@ -172,16 +172,16 @@ class _1942 {
 				break;
 			}
 			switch (this.nBonus) {
-			case '20000 80000 80000+':
+			case '1st 20000 2nd 80000 every 80000':
 				this.in[3] |= 0x30;
 				break;
-			case '20000 100000 100000+':
+			case '1st 20000 2nd 100000 every 100000':
 				this.in[3] = this.in[3] & ~0x30 | 0x20;
 				break;
-			case '30000 80000 80000+':
+			case '1st 30000 2nd 80000 every 80000':
 				this.in[3] = this.in[3] & ~0x30 | 0x10;
 				break;
-			case '30000 100000 100000+':
+			case '1st 30000 2nd 100000 every 100000':
 				this.in[3] &= ~0x30;
 				break;
 			}
@@ -192,10 +192,10 @@ class _1942 {
 			case 'Easy':
 				this.in[4] = this.in[4] & ~0x60 | 0x40;
 				break;
-			case 'Difficult':
+			case 'Hard':
 				this.in[4] = this.in[4] & ~0x60 | 0x20;
 				break;
-			case 'Very Difficult':
+			case 'Very Hard':
 				this.in[4] &= ~0x60;
 				break;
 			}
@@ -347,7 +347,7 @@ class _1942 {
 		// obj描画
 		for (let p = 0x7c, i = 32; i !== 0; p -= 4, --i) {
 			const y = 256 - (this.ram[p + 3] | this.ram[p + 1] << 4 & 0x100) & 0x1ff;
-			const x = this.ram[p + 2] & 0xff;
+			const x = this.ram[p + 2];
 			const src = this.ram[p] & 0x7f | this.ram[p + 1] << 2 & 0x80 | this.ram[p] << 1 & 0x100 | this.ram[p + 1] << 9 & 0x1e00;
 			switch (this.ram[p + 1] >>> 6) {
 			case 0:

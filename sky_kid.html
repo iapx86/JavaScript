@@ -118,7 +118,7 @@ class SkyKid {
 			this.mcu.memorymap[0xf0 + i].base = PRG2I.base[i];
 
 		// Videoの初期化
-		this.fix = new Uint8Array(0x8000);
+		this.fg = new Uint8Array(0x8000);
 		this.bg = new Uint8Array(0x8000);
 		this.obj = new Uint8Array(0x20000);
 		this.rgb = new Uint32Array(0x100);
@@ -127,7 +127,7 @@ class SkyKid {
 		this.hScroll = 0;
 		this.fFlip = false;
 		this.convertRGB();
-		this.convertFIX();
+		this.convertFG();
 		this.convertBG();
 		this.convertOBJ();
 	}
@@ -301,14 +301,14 @@ class SkyKid {
 				| 0xff000000;							// Alpha
 	}
 
-	convertFIX() {
+	convertFG() {
 		for (let p = 0, q = 0, i = 512; i !== 0; q += 16, --i) {
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.fix[p++] = FIX[q + k + 8] >>> j & 1 | FIX[q + k + 8] >>> (j + 3) & 2;
+					this.fg[p++] = FG[q + k + 8] >>> j & 1 | FG[q + k + 8] >>> (j + 3) & 2;
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.fix[p++] = FIX[q + k] >>> j & 1 | FIX[q + k] >>> (j + 3) & 2;
+					this.fg[p++] = FG[q + k] >>> j & 1 | FG[q + k] >>> (j + 3) & 2;
 		}
 	}
 
@@ -421,7 +421,7 @@ class SkyKid {
 				k -= 0x0800;
 		}
 
-		// fix描画
+		// fg描画
 		p = 256 * 8 * 4 + 232;
 		k = 0x1040;
 		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
@@ -600,7 +600,7 @@ class SkyKid {
 			}
 		}
 
-		// fix描画
+		// fg描画
 		p = 256 * 8 * 4 + 232;
 		k = 0x1040;
 		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
@@ -639,70 +639,70 @@ class SkyKid {
 		if (!flag && (this.priority & 4) !== 0 && ((this.ram[k] ^ this.priority) & 0xf0) === 0)
 			return;
 
-		if ((px = this.fix[q | 0x00]) !== 0) data[p + 0x000] = idx | px;
-		if ((px = this.fix[q | 0x01]) !== 0) data[p + 0x001] = idx | px;
-		if ((px = this.fix[q | 0x02]) !== 0) data[p + 0x002] = idx | px;
-		if ((px = this.fix[q | 0x03]) !== 0) data[p + 0x003] = idx | px;
-		if ((px = this.fix[q | 0x04]) !== 0) data[p + 0x004] = idx | px;
-		if ((px = this.fix[q | 0x05]) !== 0) data[p + 0x005] = idx | px;
-		if ((px = this.fix[q | 0x06]) !== 0) data[p + 0x006] = idx | px;
-		if ((px = this.fix[q | 0x07]) !== 0) data[p + 0x007] = idx | px;
-		if ((px = this.fix[q | 0x08]) !== 0) data[p + 0x100] = idx | px;
-		if ((px = this.fix[q | 0x09]) !== 0) data[p + 0x101] = idx | px;
-		if ((px = this.fix[q | 0x0a]) !== 0) data[p + 0x102] = idx | px;
-		if ((px = this.fix[q | 0x0b]) !== 0) data[p + 0x103] = idx | px;
-		if ((px = this.fix[q | 0x0c]) !== 0) data[p + 0x104] = idx | px;
-		if ((px = this.fix[q | 0x0d]) !== 0) data[p + 0x105] = idx | px;
-		if ((px = this.fix[q | 0x0e]) !== 0) data[p + 0x106] = idx | px;
-		if ((px = this.fix[q | 0x0f]) !== 0) data[p + 0x107] = idx | px;
-		if ((px = this.fix[q | 0x10]) !== 0) data[p + 0x200] = idx | px;
-		if ((px = this.fix[q | 0x11]) !== 0) data[p + 0x201] = idx | px;
-		if ((px = this.fix[q | 0x12]) !== 0) data[p + 0x202] = idx | px;
-		if ((px = this.fix[q | 0x13]) !== 0) data[p + 0x203] = idx | px;
-		if ((px = this.fix[q | 0x14]) !== 0) data[p + 0x204] = idx | px;
-		if ((px = this.fix[q | 0x15]) !== 0) data[p + 0x205] = idx | px;
-		if ((px = this.fix[q | 0x16]) !== 0) data[p + 0x206] = idx | px;
-		if ((px = this.fix[q | 0x17]) !== 0) data[p + 0x207] = idx | px;
-		if ((px = this.fix[q | 0x18]) !== 0) data[p + 0x300] = idx | px;
-		if ((px = this.fix[q | 0x19]) !== 0) data[p + 0x301] = idx | px;
-		if ((px = this.fix[q | 0x1a]) !== 0) data[p + 0x302] = idx | px;
-		if ((px = this.fix[q | 0x1b]) !== 0) data[p + 0x303] = idx | px;
-		if ((px = this.fix[q | 0x1c]) !== 0) data[p + 0x304] = idx | px;
-		if ((px = this.fix[q | 0x1d]) !== 0) data[p + 0x305] = idx | px;
-		if ((px = this.fix[q | 0x1e]) !== 0) data[p + 0x306] = idx | px;
-		if ((px = this.fix[q | 0x1f]) !== 0) data[p + 0x307] = idx | px;
-		if ((px = this.fix[q | 0x20]) !== 0) data[p + 0x400] = idx | px;
-		if ((px = this.fix[q | 0x21]) !== 0) data[p + 0x401] = idx | px;
-		if ((px = this.fix[q | 0x22]) !== 0) data[p + 0x402] = idx | px;
-		if ((px = this.fix[q | 0x23]) !== 0) data[p + 0x403] = idx | px;
-		if ((px = this.fix[q | 0x24]) !== 0) data[p + 0x404] = idx | px;
-		if ((px = this.fix[q | 0x25]) !== 0) data[p + 0x405] = idx | px;
-		if ((px = this.fix[q | 0x26]) !== 0) data[p + 0x406] = idx | px;
-		if ((px = this.fix[q | 0x27]) !== 0) data[p + 0x407] = idx | px;
-		if ((px = this.fix[q | 0x28]) !== 0) data[p + 0x500] = idx | px;
-		if ((px = this.fix[q | 0x29]) !== 0) data[p + 0x501] = idx | px;
-		if ((px = this.fix[q | 0x2a]) !== 0) data[p + 0x502] = idx | px;
-		if ((px = this.fix[q | 0x2b]) !== 0) data[p + 0x503] = idx | px;
-		if ((px = this.fix[q | 0x2c]) !== 0) data[p + 0x504] = idx | px;
-		if ((px = this.fix[q | 0x2d]) !== 0) data[p + 0x505] = idx | px;
-		if ((px = this.fix[q | 0x2e]) !== 0) data[p + 0x506] = idx | px;
-		if ((px = this.fix[q | 0x2f]) !== 0) data[p + 0x507] = idx | px;
-		if ((px = this.fix[q | 0x30]) !== 0) data[p + 0x600] = idx | px;
-		if ((px = this.fix[q | 0x31]) !== 0) data[p + 0x601] = idx | px;
-		if ((px = this.fix[q | 0x32]) !== 0) data[p + 0x602] = idx | px;
-		if ((px = this.fix[q | 0x33]) !== 0) data[p + 0x603] = idx | px;
-		if ((px = this.fix[q | 0x34]) !== 0) data[p + 0x604] = idx | px;
-		if ((px = this.fix[q | 0x35]) !== 0) data[p + 0x605] = idx | px;
-		if ((px = this.fix[q | 0x36]) !== 0) data[p + 0x606] = idx | px;
-		if ((px = this.fix[q | 0x37]) !== 0) data[p + 0x607] = idx | px;
-		if ((px = this.fix[q | 0x38]) !== 0) data[p + 0x700] = idx | px;
-		if ((px = this.fix[q | 0x39]) !== 0) data[p + 0x701] = idx | px;
-		if ((px = this.fix[q | 0x3a]) !== 0) data[p + 0x702] = idx | px;
-		if ((px = this.fix[q | 0x3b]) !== 0) data[p + 0x703] = idx | px;
-		if ((px = this.fix[q | 0x3c]) !== 0) data[p + 0x704] = idx | px;
-		if ((px = this.fix[q | 0x3d]) !== 0) data[p + 0x705] = idx | px;
-		if ((px = this.fix[q | 0x3e]) !== 0) data[p + 0x706] = idx | px;
-		if ((px = this.fix[q | 0x3f]) !== 0) data[p + 0x707] = idx | px;
+		if ((px = this.fg[q | 0x00]) !== 0) data[p + 0x000] = idx | px;
+		if ((px = this.fg[q | 0x01]) !== 0) data[p + 0x001] = idx | px;
+		if ((px = this.fg[q | 0x02]) !== 0) data[p + 0x002] = idx | px;
+		if ((px = this.fg[q | 0x03]) !== 0) data[p + 0x003] = idx | px;
+		if ((px = this.fg[q | 0x04]) !== 0) data[p + 0x004] = idx | px;
+		if ((px = this.fg[q | 0x05]) !== 0) data[p + 0x005] = idx | px;
+		if ((px = this.fg[q | 0x06]) !== 0) data[p + 0x006] = idx | px;
+		if ((px = this.fg[q | 0x07]) !== 0) data[p + 0x007] = idx | px;
+		if ((px = this.fg[q | 0x08]) !== 0) data[p + 0x100] = idx | px;
+		if ((px = this.fg[q | 0x09]) !== 0) data[p + 0x101] = idx | px;
+		if ((px = this.fg[q | 0x0a]) !== 0) data[p + 0x102] = idx | px;
+		if ((px = this.fg[q | 0x0b]) !== 0) data[p + 0x103] = idx | px;
+		if ((px = this.fg[q | 0x0c]) !== 0) data[p + 0x104] = idx | px;
+		if ((px = this.fg[q | 0x0d]) !== 0) data[p + 0x105] = idx | px;
+		if ((px = this.fg[q | 0x0e]) !== 0) data[p + 0x106] = idx | px;
+		if ((px = this.fg[q | 0x0f]) !== 0) data[p + 0x107] = idx | px;
+		if ((px = this.fg[q | 0x10]) !== 0) data[p + 0x200] = idx | px;
+		if ((px = this.fg[q | 0x11]) !== 0) data[p + 0x201] = idx | px;
+		if ((px = this.fg[q | 0x12]) !== 0) data[p + 0x202] = idx | px;
+		if ((px = this.fg[q | 0x13]) !== 0) data[p + 0x203] = idx | px;
+		if ((px = this.fg[q | 0x14]) !== 0) data[p + 0x204] = idx | px;
+		if ((px = this.fg[q | 0x15]) !== 0) data[p + 0x205] = idx | px;
+		if ((px = this.fg[q | 0x16]) !== 0) data[p + 0x206] = idx | px;
+		if ((px = this.fg[q | 0x17]) !== 0) data[p + 0x207] = idx | px;
+		if ((px = this.fg[q | 0x18]) !== 0) data[p + 0x300] = idx | px;
+		if ((px = this.fg[q | 0x19]) !== 0) data[p + 0x301] = idx | px;
+		if ((px = this.fg[q | 0x1a]) !== 0) data[p + 0x302] = idx | px;
+		if ((px = this.fg[q | 0x1b]) !== 0) data[p + 0x303] = idx | px;
+		if ((px = this.fg[q | 0x1c]) !== 0) data[p + 0x304] = idx | px;
+		if ((px = this.fg[q | 0x1d]) !== 0) data[p + 0x305] = idx | px;
+		if ((px = this.fg[q | 0x1e]) !== 0) data[p + 0x306] = idx | px;
+		if ((px = this.fg[q | 0x1f]) !== 0) data[p + 0x307] = idx | px;
+		if ((px = this.fg[q | 0x20]) !== 0) data[p + 0x400] = idx | px;
+		if ((px = this.fg[q | 0x21]) !== 0) data[p + 0x401] = idx | px;
+		if ((px = this.fg[q | 0x22]) !== 0) data[p + 0x402] = idx | px;
+		if ((px = this.fg[q | 0x23]) !== 0) data[p + 0x403] = idx | px;
+		if ((px = this.fg[q | 0x24]) !== 0) data[p + 0x404] = idx | px;
+		if ((px = this.fg[q | 0x25]) !== 0) data[p + 0x405] = idx | px;
+		if ((px = this.fg[q | 0x26]) !== 0) data[p + 0x406] = idx | px;
+		if ((px = this.fg[q | 0x27]) !== 0) data[p + 0x407] = idx | px;
+		if ((px = this.fg[q | 0x28]) !== 0) data[p + 0x500] = idx | px;
+		if ((px = this.fg[q | 0x29]) !== 0) data[p + 0x501] = idx | px;
+		if ((px = this.fg[q | 0x2a]) !== 0) data[p + 0x502] = idx | px;
+		if ((px = this.fg[q | 0x2b]) !== 0) data[p + 0x503] = idx | px;
+		if ((px = this.fg[q | 0x2c]) !== 0) data[p + 0x504] = idx | px;
+		if ((px = this.fg[q | 0x2d]) !== 0) data[p + 0x505] = idx | px;
+		if ((px = this.fg[q | 0x2e]) !== 0) data[p + 0x506] = idx | px;
+		if ((px = this.fg[q | 0x2f]) !== 0) data[p + 0x507] = idx | px;
+		if ((px = this.fg[q | 0x30]) !== 0) data[p + 0x600] = idx | px;
+		if ((px = this.fg[q | 0x31]) !== 0) data[p + 0x601] = idx | px;
+		if ((px = this.fg[q | 0x32]) !== 0) data[p + 0x602] = idx | px;
+		if ((px = this.fg[q | 0x33]) !== 0) data[p + 0x603] = idx | px;
+		if ((px = this.fg[q | 0x34]) !== 0) data[p + 0x604] = idx | px;
+		if ((px = this.fg[q | 0x35]) !== 0) data[p + 0x605] = idx | px;
+		if ((px = this.fg[q | 0x36]) !== 0) data[p + 0x606] = idx | px;
+		if ((px = this.fg[q | 0x37]) !== 0) data[p + 0x607] = idx | px;
+		if ((px = this.fg[q | 0x38]) !== 0) data[p + 0x700] = idx | px;
+		if ((px = this.fg[q | 0x39]) !== 0) data[p + 0x701] = idx | px;
+		if ((px = this.fg[q | 0x3a]) !== 0) data[p + 0x702] = idx | px;
+		if ((px = this.fg[q | 0x3b]) !== 0) data[p + 0x703] = idx | px;
+		if ((px = this.fg[q | 0x3c]) !== 0) data[p + 0x704] = idx | px;
+		if ((px = this.fg[q | 0x3d]) !== 0) data[p + 0x705] = idx | px;
+		if ((px = this.fg[q | 0x3e]) !== 0) data[p + 0x706] = idx | px;
+		if ((px = this.fg[q | 0x3f]) !== 0) data[p + 0x707] = idx | px;
 	}
 
 	xfer8x8b(data, p, k) {
@@ -835,7 +835,7 @@ class SkyKid {
  */
 
 const url = 'skykid.zip';
-let PRG1, PRG2, PRG2I, FIX, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR;
+let PRG1, PRG2, PRG2I, FG, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR;
 
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
@@ -843,7 +843,7 @@ function success(zip) {
 	PRG1 = Uint8Array.from((zip.files['sk2_2.6c'].inflate() + zip.files['sk1-1c.6b'].inflate() + zip.files['sk1_3.6d'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
 	PRG2 = Uint8Array.from(zip.files['sk2_4.3c'].inflate().split(''), c => c.charCodeAt(0)).addBase();
 	PRG2I = Uint8Array.from(zip.files['cus63-63a1.mcu'].inflate().split(''), c => c.charCodeAt(0)).addBase();
-	FIX = Uint8Array.from(zip.files['sk1_6.6l'].inflate().split(''), c => c.charCodeAt(0));
+	FG = Uint8Array.from(zip.files['sk1_6.6l'].inflate().split(''), c => c.charCodeAt(0));
 	BG = Uint8Array.from(zip.files['sk1_5.7e'].inflate().split(''), c => c.charCodeAt(0));
 	OBJ = Uint8Array.from((zip.files['sk1_8.10n'].inflate() + zip.files['sk1_7.10m'].inflate()).split(''), c => c.charCodeAt(0));
 	RED = Uint8Array.from(zip.files['sk1-1.2n'].inflate().split(''), c => c.charCodeAt(0));
