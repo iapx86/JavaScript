@@ -135,13 +135,11 @@ class Vulgus {
 		for (let i = 0; i < 16; i++) {
 			if (i === 0)
 				this.cpu.interrupt(0xd7); // RST 10H
-			if (i === 1)
-				this.cpu.interrupt(0xcf); // RST 08H
 			if ((i & 1) === 0) {
 				this.timer = i >>> 1;
 				this.cpu2.interrupt();
 			}
-			Cpu.multiple_execute([this.cpu, this.cpu2], 800);
+			Cpu.multiple_execute([this.cpu, this.cpu2], 600);
 		}
 		return this;
 	}

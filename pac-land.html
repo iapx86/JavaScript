@@ -368,29 +368,17 @@ class PacLand {
 		// bg描画
 		p = 256 * 8 * 2 + 232 - (this.fFlip ? 4 + this.dwScroll1 & 7 : 5 + this.dwScroll1 & 7) * 256;
 		let k = 0x1100 | (this.fFlip ? (4 + this.dwScroll1 >>> 2) + 0x30 : (5 + this.dwScroll1 >>> 2) + 4) & 0x7e;
-		for (let i = 0; i < 28; p -= 256 * 8 * 37 + 8, i++) {
-			for (let j = 0; j < 37; p += 256 * 8, j++) {
+		for (let i = 0; i < 28; k = k + 54 & 0x7e | k + 0x80 & 0x1f80, p -= 256 * 8 * 37 + 8, i++)
+			for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x1f80, p += 256 * 8, j++)
 				this.xfer8x8(data, BGCOLOR, this.bg, ram[k + 1] << 1 & 0x7c | ram[k] << 1 & 0x180 | ram[k + 1] << 9 & 0x200, p, k);
-				if (((k += 2) & 0x7e) === 0)
-					k -= 0x80;
-			}
-			if (((k += 54) & 0x7e) >= 54)
-				k += 0x80;
-		}
 
 		// fg描画
 		p = 256 * 8 * 2 + 208 - (this.fFlip ? 1 + this.dwScroll0 & 7 : this.dwScroll0 & 7) * 256;
 		k = 0x280 | (this.fFlip ? (1 + this.dwScroll0 >>> 2) + 0x30 : (this.dwScroll0 >>> 2) + 6) & 0x7e;
-		for (let i = 0; i < 24; p -= 256 * 8 * 37 + 8, i++) {
-			for (let j = 0; j < 37; p += 256 * 8, j++) {
+		for (let i = 0; i < 24; k = k + 54 & 0x7e | k + 0x80 & 0x1f80, p -= 256 * 8 * 37 + 8, i++)
+			for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x1f80, p += 256 * 8, j++)
 				if ((ram[k + 1] & 0x20) === 0)
 					this.xfer8x8(data, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
-				if (((k += 2) & 0x7e) === 0)
-					k -= 0x80;
-			}
-			if (((k += 54) & 0x7e) >= 54)
-				k += 0x80;
-		}
 		p = 256 * 8 * 2 + 232;
 		k = this.fFlip ? 0x132 : 0x106;
 		for (let i = 0; i < 3; p -= 256 * 8 * 36 + 8, k += 56, i++)
@@ -409,16 +397,10 @@ class PacLand {
 		// fg描画
 		p = 256 * 8 * 2 + 208 - (this.fFlip ? 1 + this.dwScroll0 & 7 : this.dwScroll0 & 7) * 256;
 		k = 0x280 | (this.fFlip ? (1 + this.dwScroll0 >>> 2) + 0x30 : (this.dwScroll0 >>> 2) + 6) & 0x7e;
-		for (let i = 0; i < 24; p -= 256 * 8 * 37 + 8, i++) {
-			for (let j = 0; j < 37; p += 256 * 8, j++) {
+		for (let i = 0; i < 24; k = k + 54 & 0x7e | k + 0x80 & 0x1f80, p -= 256 * 8 * 37 + 8, i++)
+			for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x1f80, p += 256 * 8, j++)
 				if ((ram[k + 1] & 0x20) !== 0)
 					this.xfer8x8(data, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
-				if (((k += 2) & 0x7e) === 0)
-					k -= 0x80;
-			}
-			if (((k += 54) & 0x7e) >= 54)
-				k += 0x80;
-		}
 		p = 256 * 8 * 2 + 232;
 		k = this.fFlip ? 0x132 : 0x106;
 		for (let i = 0; i < 3; p -= 256 * 8 * 36 + 8, k += 56, i++)

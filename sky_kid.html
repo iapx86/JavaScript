@@ -409,17 +409,9 @@ class SkyKid {
 		// bg描画
 		let p = 256 * 8 * 2 + 232 + (this.fFlip ? (7 - this.hScroll & 7) - (4 - this.vScroll & 7) * 256 : (1 + this.hScroll & 7) - (3 + this.vScroll & 7) * 256);
 		let k = this.fFlip ? 7 - this.hScroll << 3 & 0x7c0 | (4 - this.vScroll >>> 3) + 23 & 0x3f : 0x18 + 1 + this.hScroll << 3 & 0x7c0 | (3 + this.vScroll >>> 3) + 4 & 0x3f;
-		for (let i = 0; i < 29; p -= 256 * 8 * 37 + 8, i++) {
-			for (let j = 0; j < 37; p += 256 * 8, j++) {
+		for (let i = 0; i < 29; k = k + 27 & 0x3f | k + 0x40 & 0x7c0, p -= 256 * 8 * 37 + 8, i++)
+			for (let j = 0; j < 37; k = k + 1 & 0x3f | k & 0x7c0, p += 256 * 8, j++)
 				this.xfer8x8b(data, p, k);
-				if ((++k & 0x3f) === 0)
-					k -= 0x40;
-			}
-			if (((k += 27) & 0x3f) >= 27)
-				k += 0x40;
-			if ((k & 0x07c0) === 0)
-				k -= 0x0800;
-		}
 
 		// fg描画
 		p = 256 * 8 * 4 + 232;
