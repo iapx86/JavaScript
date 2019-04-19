@@ -141,7 +141,8 @@ class SkyKid {
 			this.cpu.execute(4);
 			this.mcu.execute(5);
 		}
-		this.mcu.interrupt('ocf');
+		if ((this.ram2[8] & 8) !== 0)
+			this.mcu.interrupt('ocf');
 		for (let i = 0; i < 1024; i++) {
 			this.cpu.execute(4);
 			this.mcu.execute(5);
@@ -414,27 +415,34 @@ class SkyKid {
 				this.xfer8x8b(data, p, k);
 
 		// fg描画
-		p = 256 * 8 * 4 + 232;
-		k = 0x1040;
-		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
-			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
-				this.xfer8x8f(data, p, k, true);
-		p = 256 * 8 * 36 + 232;
-		k = 0x1002;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8f(data, p, k, true);
-		p = 256 * 8 * 37 + 232;
-		k = 0x1022;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8f(data, p, k, true);
-		p = 256 * 8 * 2 + 232;
-		k = 0x13c2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8f(data, p, k, true);
-		p = 256 * 8 * 3 + 232;
-		k = 0x13e2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8f(data, p, k, true);
+		if ((this.priority & 4) !== 0) {
+			p = 256 * 8 * 4 + 232;
+			k = 0x1040;
+			for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
+				for (let j = 0; j < 32; k++, p += 256 * 8, j++)
+					if (((this.ram[k] ^ this.priority) & 0xf0) === 0)
+						this.xfer8x8f(data, p, k);
+			p = 256 * 8 * 36 + 232;
+			k = 0x1002;
+			for (let i = 0; i < 28; p -= 8, k++, i++)
+				if (((this.ram[k] ^ this.priority) & 0xf0) === 0)
+					this.xfer8x8f(data, p, k);
+			p = 256 * 8 * 37 + 232;
+			k = 0x1022;
+			for (let i = 0; i < 28; p -= 8, k++, i++)
+				if (((this.ram[k] ^ this.priority) & 0xf0) === 0)
+					this.xfer8x8f(data, p, k);
+			p = 256 * 8 * 2 + 232;
+			k = 0x13c2;
+			for (let i = 0; i < 28; p -= 8, k++, i++)
+				if (((this.ram[k] ^ this.priority) & 0xf0) === 0)
+					this.xfer8x8f(data, p, k);
+			p = 256 * 8 * 3 + 232;
+			k = 0x13e2;
+			for (let i = 0; i < 28; p -= 8, k++, i++)
+				if (((this.ram[k] ^ this.priority) & 0xf0) === 0)
+					this.xfer8x8f(data, p, k);
+		}
 
 		// obj描画
 		if (this.fFlip) {
@@ -597,23 +605,28 @@ class SkyKid {
 		k = 0x1040;
 		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
-				this.xfer8x8f(data, p, k, false);
+				if ((this.priority & 4) === 0 || ((this.ram[k] ^ this.priority) & 0xf0) !== 0)
+					this.xfer8x8f(data, p, k);
 		p = 256 * 8 * 36 + 232;
 		k = 0x1002;
 		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8f(data, p, k, false);
+			if ((this.priority & 4) === 0 || ((this.ram[k] ^ this.priority) & 0xf0) !== 0)
+				this.xfer8x8f(data, p, k);
 		p = 256 * 8 * 37 + 232;
 		k = 0x1022;
 		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8f(data, p, k, false);
+			if ((this.priority & 4) === 0 || ((this.ram[k] ^ this.priority) & 0xf0) !== 0)
+				this.xfer8x8f(data, p, k);
 		p = 256 * 8 * 2 + 232;
 		k = 0x13c2;
 		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8f(data, p, k, false);
+			if ((this.priority & 4) === 0 || ((this.ram[k] ^ this.priority) & 0xf0) !== 0)
+				this.xfer8x8f(data, p, k);
 		p = 256 * 8 * 3 + 232;
 		k = 0x13e2;
 		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8f(data, p, k, false);
+			if ((this.priority & 4) === 0 || ((this.ram[k] ^ this.priority) & 0xf0) !== 0)
+				this.xfer8x8f(data, p, k);
 
 		// palette変換
 		p = 256 * 16 + 16;
@@ -622,14 +635,9 @@ class SkyKid {
 				data[p] = this.rgb[data[p]];
 	}
 
-	xfer8x8f(data, p, k, flag) {
+	xfer8x8f(data, p, k) {
 		const q = this.ram[k] << 6, idx = this.ram[k + 0x400] << 2 & 0xfc;
 		let px;
-
-		if (flag && ((this.priority & 4) === 0 || ((this.ram[k] ^ this.priority) & 0xf0) !== 0))
-			return;
-		if (!flag && (this.priority & 4) !== 0 && ((this.ram[k] ^ this.priority) & 0xf0) === 0)
-			return;
 
 		if ((px = this.fg[q | 0x00]) !== 0) data[p + 0x000] = idx | px;
 		if ((px = this.fg[q | 0x01]) !== 0) data[p + 0x001] = idx | px;
