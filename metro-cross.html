@@ -40,9 +40,6 @@ class MetroCross {
 		this.fSelect = false;
 
 		// CPU周りの初期化
-		this.fInterruptEnable0 = false;
-		this.fInterruptEnable1 = false;
-
 		this.ram = new Uint8Array(0x4800).addBase();
 		this.ram2 = new Uint8Array(0x900).addBase();
 		this.in = new Uint8Array(8).fill(0xff);
@@ -87,11 +84,10 @@ class MetroCross {
 			}
 		};
 
-		this.cpu.checkinterrupt = () => this.cpu.irq && this.cpu.interrupt();
+		this.cpu.check_interrupt = () => this.cpu.irq && this.cpu.interrupt();
 		this.cpu.irq = false;
 
 		this.mcu = new MC6801(this);
-		this.mcu.memorymap[0].base = this.ram2.base[0];
 		this.mcu.memorymap[0].read = addr => {
 			if (addr === 2)
 				return this.in[this.select];

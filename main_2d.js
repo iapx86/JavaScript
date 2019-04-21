@@ -208,7 +208,7 @@ class Cpu {
 		this.memorymap = [];
 		for (let i = 0; i < 0x100; i++)
 			this.memorymap.push({base: dummypage, read: null, write: () => {}, fetch: null});
-		this.checkinterrupt = null;
+		this.check_interrupt = null;
 		this.breakpointmap = new Uint32Array(0x800);
 		this.breakpoint = null;
 		this.undef = null;
@@ -266,7 +266,7 @@ class Cpu {
 		const n = cpu.length;
 		for (let i = 0; i < count; i++)
 			for (let j = 0; j < n; j++) {
-				if (!cpu[j].fActive || cpu[j].checkinterrupt && cpu[j].checkinterrupt(cpu[j].arg) || cpu[j].fSuspend)
+				if (!cpu[j].fActive || cpu[j].check_interrupt && cpu[j].check_interrupt(cpu[j].arg) || cpu[j].fSuspend)
 					continue;
 				if (cpu[j].breakpoint && (cpu[j].breakpointmap[cpu[j].pc >>> 5] & 1 << (cpu[j].pc & 0x1f)) !== 0)
 					cpu[j].breakpoint(cpu[j].pc, cpu[j].arg);
@@ -278,7 +278,7 @@ class Cpu {
 		for (let i = 0; i < count; i++) {
 			if (!this.fActive)
 				break;
-			if (this.checkinterrupt && this.checkinterrupt(this.arg) || this.fSuspend)
+			if (this.check_interrupt && this.check_interrupt(this.arg) || this.fSuspend)
 				continue;
 			if (this.breakpoint && (this.breakpointmap[this.pc >>> 5] & 1 << (this.pc & 0x1f)) !== 0)
 				this.breakpoint(this.pc, this.arg);
