@@ -369,20 +369,9 @@ class RallyX {
 		// スクロール部
 		let p = 256 * (8 * 2 + 3) + 232 + (this.mmo[0x140] & 7) - (this.mmo[0x130] & 7) * 256;
 		let k = 0x400 + (this.mmo[0x140] + 0x10 << 2 & 0x3e0 | this.mmo[0x130] >>> 3);
-		for (let i = 0; i < 29; i++) {
-			for (let j = 0; j < 29; j++) {
+		for (let i = 0; i < 29; k = k + 3 & 0x1f | k + 0x20 & 0x3e0 | 0x400, p -= 256 * 8 * 29 + 8, i++)
+			for (let j = 0; j < 29; k = k + 1 & 0x1f | k & 0x7e0, p += 256 * 8, j++)
 				this.xfer8x8(data, p, k);
-				if ((++k & 0x1f) === 0)
-					k -= 0x20;
-				p += 256 * 8;
-			}
-			k += 3;
-			if ((k & 0x1f) >= 3)
-				k += 0x20;
-			if ((k & 0x03e0) === 0)
-				k -= 0x0400;
-			p -= 256 * 8 * 29 + 8;
-		}
 
 		// FIX部分
 		p = 256 * 8 * 34 + 232;
