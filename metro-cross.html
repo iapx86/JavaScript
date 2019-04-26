@@ -127,15 +127,15 @@ class MetroCross {
 	execute() {
 		this.cpu.irq = true;
 		this.mcu.interrupt();
-		for (let i = 0; i < 1024; i++) {
-			this.cpu.execute(4);
-			this.mcu.execute(5);
+		for (let i = 0; i < 800; i++) {
+			this.cpu.execute(5);
+			this.mcu.execute(6);
 		}
 		if ((this.ram2[8] & 8) !== 0)
 			this.mcu.interrupt('ocf');
-		for (let i = 0; i < 1024; i++) {
-			this.cpu.execute(4);
-			this.mcu.execute(5);
+		for (let i = 0; i < 800; i++) {
+			this.cpu.execute(5);
+			this.mcu.execute(6);
 		}
 		return this;
 	}

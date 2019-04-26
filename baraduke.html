@@ -46,6 +46,7 @@ class Baraduke {
 		this.ram2 = new Uint8Array(0x900).addBase();
 		this.in = new Uint8Array(8).fill(0xff);
 		this.select = 0;
+		this.timer = 0;
 		this.counter = 0;
 
 		this.cpu = new MC6809(this);
@@ -55,7 +56,7 @@ class Baraduke {
 		}
 		for (let i = 0; i < 4; i++) {
 			this.cpu.memorymap[0x40 + i].read = addr => sound.read(addr);
-			this.cpu.memorymap[0x40 + i].write = (addr, data) => sound.write(addr, data);
+			this.cpu.memorymap[0x40 + i].write = (addr, data) => sound.write(addr, data, this.timer);
 		}
 		for (let i = 0; i < 8; i++) {
 			this.cpu.memorymap[0x48 + i].base = this.ram.base[0x40 + i];
@@ -103,9 +104,8 @@ class Baraduke {
 		};
 		for (let i = 0; i < 4; i++) {
 			this.mcu.memorymap[0x10 + i].read = addr => sound.read(addr);
-			this.mcu.memorymap[0x10 + i].write = (addr, data) => sound.write(addr, data);
+			this.mcu.memorymap[0x10 + i].write = (addr, data) => sound.write(addr, data, this.timer);
 		}
-		this.mcu.memorymap[0x11].read = addr => addr === 0x1105 ? this.counter++ & 0xff : sound.read(addr);
 		for (let i = 0; i < 0x40; i++)
 			this.mcu.memorymap[0x80 + i].base = PRG2.base[i];
 		for (let i = 0; i < 8; i++) {
@@ -131,15 +131,23 @@ class Baraduke {
 	execute() {
 		this.cpu.irq = true;
 		this.mcu.interrupt();
-		for (let i = 0; i < 1024; i++) {
-			this.cpu.execute(4);
-			this.mcu.execute(5);
+		for (this.timer = 0; this.timer < 200; this.timer++) {
+			sound.ram[0x105] = this.counter >>> 15;
+			for (let i = 0; i < 4; i++) {
+				this.cpu.execute(5);
+				this.mcu.execute(6);
+			}
+			this.counter += sound.ram[0x103] | sound.ram[0x102] << 8 | sound.ram[0x101] << 16 & 0xf0000;
 		}
 		if ((this.ram2[8] & 8) !== 0)
 			this.mcu.interrupt('ocf');
-		for (let i = 0; i < 1024; i++) {
-			this.cpu.execute(4);
-			this.mcu.execute(5);
+		for (this.timer = 200; this.timer < 400; this.timer++) {
+			sound.ram[0x105] = this.counter >>> 15;
+			for (let i = 0; i < 4; i++) {
+				this.cpu.execute(5);
+				this.mcu.execute(6);
+			}
+			this.counter += sound.ram[0x103] | sound.ram[0x102] << 8 | sound.ram[0x101] << 16 & 0xf0000;
 		}
 		return this;
 	}
@@ -807,7 +815,7 @@ function success(zip) {
 	RED = Uint8Array.from(zip.files['bd1-2.2m'].inflate().split(''), c => c.charCodeAt(0));
 	rotate = true;
 	game = new Baraduke();
-	sound = new C30();
+	sound = new C30({resolution: 400});
 	init();
 	loop();
 }
