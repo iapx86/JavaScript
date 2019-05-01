@@ -982,30 +982,21 @@ void function () {
 	for (i = 0; i < 2; i++)
 		for (j = 0; j < 0x100; j++)
 			for (k = 0; k < 0x100; k++) {
-				r = j - (j << 1 & 0x100) + k - (k << 1 & 0x100) + i;
-				f = r >>> 4 & 8;
-				if ((r & 0xff) === 0)
-					f |= 4;
-				f |= (r ^ j ^ k) << 1 & 0x20;
-				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
-				MC6805.aAdd[i][k][j] = f << 8 | r & 0xff;
+				r = j + k + i & 0xff;
+				const c = j & k | k & ~r | ~r & j;
+				f = c << 2 & 0x20 | r >>> 4 & 8 | !r << 2 | c >>> 7 & 1;
+				MC6805.aAdd[i][k][j] = f << 8 | r;
 			}
 	for (i = 0; i < 2; i++)
 		for (j = 0; j < 0x100; j++)
 			for (k = 0; k < 0x100; k++) {
-				r = j - (j << 1 & 0x100) - k + (k << 1 & 0x100) - i;
-				f = r >>> 4 & 8;
-				if ((r & 0xff) === 0)
-					f |= 4;
-				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
-				MC6805.aSub[i][k][j] = f << 8 | r & 0xff;
+				r = j - k - i & 0xff;
+				const c = ~j & k | k & r | r & ~j;
+				f = r >>> 4 & 8 | !r << 2 | c >>> 7 & 1;
+				MC6805.aSub[i][k][j] = f << 8 | r;
 			}
-	for (i = 0; i < 0x100; i++) {
-		f = i >>> 4 & 8;
-		if (!i)
-			f |= 4;
-		MC6805.fLogic[i] = f;
-	}
+	for (i = 0; i < 0x100; i++)
+		MC6805.fLogic[i] = i >>> 4 & 8 | !i << 2;
 	for (i = 0; i < 2; i++)
 		for (j = 0; j < 0x100; j++) {
 			r = (j << 1 | i) & 0xff;

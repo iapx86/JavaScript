@@ -327,134 +327,97 @@ class MC6809 extends Cpu {
 				break;
 			case 0x01: // EXG D,X
 			case 0x10: // EXG X,D
-				v = this.x;
-				this.x = this.a << 8 | this.b;
+				[v, this.x] = [this.x, this.a << 8 | this.b];
 				this.a = v >>> 8;
 				this.b = v & 0xff;
 				break;
 			case 0x02: // EXG D,Y
 			case 0x20: // EXG Y,D
-				v = this.y;
-				this.y = this.a << 8 | this.b;
+				[v, this.y] = [this.y, this.a << 8 | this.b];
 				this.a = v >>> 8;
 				this.b = v & 0xff;
 				break;
 			case 0x03: // EXG D,U
 			case 0x30: // EXG U,D
-				v = this.u;
-				this.u = this.a << 8 | this.b;
+				[v, this.u] = [this.u, this.a << 8 | this.b];
 				this.a = v >>> 8;
 				this.b = v & 0xff;
 				break;
 			case 0x04: // EXG D,S
 			case 0x40: // EXG S,D
-				v = this.s;
-				this.s = this.a << 8 | this.b;
+				[v, this.s] = [this.s, this.a << 8 | this.b];
 				this.a = v >>> 8;
 				this.b = v & 0xff;
 				break;
 			case 0x05: // EXG D,PC
 			case 0x50: // EXG PC,D
-				v = this.pc;
-				this.pc = this.a << 8 | this.b;
+				[v, this.pc] = [this.pc, this.a << 8 | this.b];
 				this.a = v >>> 8;
 				this.b = v & 0xff;
 				break;
 			case 0x12: // EXG X,Y
 			case 0x21: // EXG Y,X
-				v = this.y;
-				this.y = this.x;
-				this.x = v;
+				[this.x, this.y] = [this.y, this.x];
 				break;
 			case 0x13: // EXG X,U
 			case 0x31: // EXG U,X
-				v = this.u;
-				this.u = this.x;
-				this.x = v;
+				[this.x, this.u] = [this.u, this.x];
 				break;
 			case 0x14: // EXG X,S
 			case 0x41: // EXG S,X
-				v = this.s;
-				this.s = this.x;
-				this.x = v;
+				[this.x, this.s] = [this.s, this.x];
 				break;
 			case 0x15: // EXG X,PC
 			case 0x51: // EXG PC,X
-				v = this.pc;
-				this.pc = this.x;
-				this.x = v;
+				[this.x, this.pc] = [this.pc, this.x];
 				break;
 			case 0x23: // EXG Y,U
 			case 0x32: // EXG U,Y
-				v = this.u;
-				this.u = this.y;
-				this.y = v;
+				[this.y, this.u] = [this.u, this.y];
 				break;
 			case 0x24: // EXG Y,S
 			case 0x42: // EXG S,Y
-				v = this.s;
-				this.s = this.y;
-				this.y = v;
+				[this.y, this.s] = [this.s, this.y];
 				break;
 			case 0x25: // EXG Y,PC
 			case 0x52: // EXG PC,Y
-				v = this.pc;
-				this.pc = this.y;
-				this.y = v;
+				[this.y, this.pc] = [this.pc, this.y];
 				break;
 			case 0x34: // EXG U,S
 			case 0x43: // EXG S,U
-				v = this.s;
-				this.s = this.u;
-				this.u = v;
+				[this.u, this.s] = [this.s, this.u];
 				break;
 			case 0x35: // EXG U,PC
 			case 0x53: // EXG PC,U
-				v = this.pc;
-				this.pc = this.u;
-				this.u = v;
+				[this.u, this.pc] = [this.pc, this.u];
 				break;
 			case 0x45: // EXG S,PC
 			case 0x54: // EXG PC,S
-				v = this.pc;
-				this.pc = this.s;
-				this.s = v;
+				[this.s, this.pc] = [this.pc, this.s];
 				break;
 			case 0x89: // EXG A,B
 			case 0x98: // EXG B,A
-				v = this.b;
-				this.b = this.a;
-				this.a = v;
+				[this.a, this.b] = [this.b, this.a];
 				break;
 			case 0x8a: // EXG A,CCR
 			case 0xa8: // EXG CCR,A
-				v = this.ccr;
-				this.ccr = this.a;
-				this.a = v;
+				[this.a, this.ccr] = [this.ccr, this.a];
 				break;
 			case 0x8b: // EXG A,DP
 			case 0xb8: // EXG DP,A
-				v = this.dp;
-				this.dp = this.a;
-				this.a = v;
+				[this.a, this.dp] = [this.dp, this.a];
 				break;
 			case 0x9a: // EXG B,CCR
 			case 0xa9: // EXG CCR,B
-				v = this.ccr;
-				this.ccr = this.b;
-				this.b = v;
+				[this.b, this.ccr] = [this.ccr, this.b];
 				break;
 			case 0x9b: // EXG B,DP
 			case 0xb9: // EXG DP,B
-				v = this.dp;
-				this.dp = this.b;
-				this.b = v;
+				[this.b, this.dp] = [this.dp, this.b];
 				break;
 			case 0xab: // EXG CCR,DP
 			case 0xba: // EXG DP,CCR
-				v = this.dp;
-				this.dp = this.ccr;
-				this.ccr = v;
+				[this.ccr, this.dp] = [this.dp, this.ccr];
 				break;
 			default:
 				this.undefsize = 2;
@@ -2159,34 +2122,23 @@ void function () {
 	for (i = 0; i < 2; i++)
 		for (j = 0; j < 0x100; j++)
 			for (k = 0; k < 0x100; k++) {
-				r = j - (j << 1 & 0x100) + k - (k << 1 & 0x100) + i;
-				f = r >>> 4 & 8;
-				if ((r & 0xff) === 0)
-					f |= 4;
-				if (r > 0x7f || r < -0x80)
-					f |= 2;
-				f |= (r ^ j ^ k) << 1 & 0x20;
-				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
-				MC6809.aAdd[i][k][j] = f << 8 | r & 0xff;
+				r = j + k + i & 0xff;
+				const v = j & k & ~r | ~j & ~k & r;
+				const c = j & k | k & ~r | ~r & j;
+				f = c << 2 & 0x20 | r >>> 4 & 8 | !r << 2 | v >>> 6 & 2 | c >>> 7 & 1;
+				MC6809.aAdd[i][k][j] = f << 8 | r;
 			}
 	for (i = 0; i < 2; i++)
 		for (j = 0; j < 0x100; j++)
 			for (k = 0; k < 0x100; k++) {
-				r = j - (j << 1 & 0x100) - k + (k << 1 & 0x100) - i;
-				f = r >>> 4 & 8;
-				if ((r & 0xff) === 0)
-					f |= 4;
-				if (r > 0x7f || r < -0x80)
-					f |= 2;
-				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
-				MC6809.aSub[i][k][j] = f << 8 | r & 0xff;
+				r = j - k - i & 0xff;
+				const v = j & ~k & ~r | ~j & k & r;
+				const c = ~j & k | k & r | r & ~j;
+				f = r >>> 4 & 8 | !r << 2 | v >>> 6 & 2 | c >>> 7 & 1;
+				MC6809.aSub[i][k][j] = f << 8 | r;
 			}
-	for (i = 0; i < 0x100; i++) {
-		f = i >>> 4 & 8;
-		if (!i)
-			f |= 4;
-		MC6809.fLogic[i] = f;
-	}
+	for (i = 0; i < 0x100; i++)
+		MC6809.fLogic[i] = i >>> 4 & 8 | !i << 2;
 	for (i = 0; i < 4; i++)
 		for (j = 0; j < 0x100; j++) {
 			f = i & 1;

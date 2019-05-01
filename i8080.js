@@ -1020,39 +1020,30 @@ void function () {
 	for (i = 0; i < 2; i++)
 		for (j = 0; j < 0x100; j++)
 			for (k = 0; k < 0x100; k++) {
-				r = j - (j << 1 & 0x100) + k - (k << 1 & 0x100) + i;
-				f = r & 0x80;
-				if ((r & 0xff) === 0)
-					f |= 0x40;
-				if (r > 0x7f || r < -0x80)
-					f |= 4;
-				f |= (r ^ j ^ k) & 0x10;
-				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
-				I8080.aAdd[i][k][j] = r & 0xff | f << 8;
+				r = j + k + i & 0xff;
+				const c = j & k | k & ~r | ~r & j;
+				f = r ^ r >>> 4;
+				f ^= f >>> 2;
+				f ^= f >>> 1;
+				f = r & 0x80 | !r << 6 | c << 1 & 0x10 | ~f << 2 & 4 | c >>> 7 & 1;
+				I8080.aAdd[i][k][j] = r | f << 8;
 			}
 	for (i = 0; i < 2; i++)
 		for (j = 0; j < 0x100; j++)
 			for (k = 0; k < 0x100; k++) {
-				r = j - (j << 1 & 0x100) - k + (k << 1 & 0x100) - i;
-				f = r & 0x80;
-				if ((r & 0xff) === 0)
-					f |= 0x40;
-				if (r > 0x7f || r < -0x80)
-					f |= 4;
-				f |= (r ^ j ^ k) & 0x10;
-				f |= (r ^ j << 1 ^ k << 1) >>> 8 & 1;
+				r = j - k - i & 0xff;
+				const c = ~j & k | k & r | r & ~j;
+				f = r ^ r >>> 4;
+				f ^= f >>> 2;
+				f ^= f >>> 1;
+				f = r & 0x80 | !r << 6 | c << 1 & 0x10 | ~f << 2 & 4 | c >>> 7 & 1;
 				I8080.aSub[i][k][j] = r & 0xff | f << 8;
 			}
 	for (i = 0; i < 0x100; i++) {
-		f = i & 0x80;
-		if (!i)
-			f |= 0x40;
-		r = i ^ i >>> 4;
-		r ^= r >>> 2;
-		r ^= r >>> 1;
-		if ((r & 1) === 0)
-			f |= 0x04;
-		I8080.fLogic[i] = f;
+		f = i ^ i >>> 4;
+		f ^= f >>> 2;
+		f ^= f >>> 1;
+		I8080.fLogic[i] = i & 0x80 | !i << 6 | ~f << 2 & 4;
 	}
 	for (i = 0; i < 4; i++)
 		for (j = 0; j < 0x100; j++) {
