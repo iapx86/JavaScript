@@ -11,6 +11,7 @@
 <script src="jquery.zip.js"></script>
 <script src="main.js"></script>
 <script src="mc6809.js"></script>
+<script src="mc68000.js"></script>
 <script src="mappy_sound.js"></script>
 <script>
 /*
@@ -40,13 +41,15 @@ class Toypop {
 		this.fRound = false;
 
 		// CPU周りの初期化
-		this.fMC68kEnable = false;
+		this.fInterruptEnable2 = false;
 
 		this.ram = new Uint8Array(0x2100).addBase();
 		this.ram2 = new Uint8Array(0x800).addBase();
+		this.ram3 = new Uint8Array(0x40000).addBase();
+		this.vram = new Uint8Array(0x10000).addBase();
 		this.port = new Uint8Array(0x20);
 
-		this.cpu = [new MC6809(this), new MC6809(this)];
+		this.cpu = [new MC6809(this), new MC6809(this), new MC68000(this)];
 
 		for (let i = 0; i < 0x20; i++) {
 			this.cpu[0].memorymap[i].base = this.ram.base[i];
@@ -64,8 +67,8 @@ class Toypop {
 		}
 		for (let i = 0; i < 0x80; i++)
 			this.cpu[0].memorymap[0x80 + i].base = PRG1.base[i];
-		this.cpu[0].memorymap[0x80].write = () => this.fMC68kEnable = true;
-		this.cpu[0].memorymap[0x88].write = () => this.fMC68kEnable = false;
+		this.cpu[0].memorymap[0x80].write = () => this.cpu[2].enable();
+		this.cpu[0].memorymap[0x88].write = () => this.cpu[2].disable();
 		this.cpu[0].memorymap[0x90].write = () => this.cpu[1].enable();
 		this.cpu[0].memorymap[0x98].write = () => this.cpu[1].disable();
 		this.cpu[0].memorymap[0xa0].write = addr => this.palette = addr << 7 & 0x80;
@@ -77,8 +80,36 @@ class Toypop {
 		for (let i = 0; i < 0x20; i++)
 			this.cpu[1].memorymap[0xe0 + i].base = PRG2.base[i];
 
+		for (let i = 0; i < 0x80; i++)
+			this.cpu[2].memorymap[i].base = PRG3.base[i];
+		for (let i = 0; i < 0x400; i++) {
+			this.cpu[2].memorymap[0x800 + i].base = this.ram3.base[i];
+			this.cpu[2].memorymap[0x800 + i].write = null;
+		}
+		for (let i = 0; i < 0x10; i++) {
+			this.cpu[2].memorymap[0x1000 + i].read = addr => this.ram2[addr >>> 1 & 0x7ff];
+			this.cpu[2].memorymap[0x1000 + i].write = (addr, data) => this.ram2[addr >>> 1 & 0x7ff] = data;
+		}
+		for (let i = 0; i < 0x80; i++) {
+			this.cpu[2].memorymap[0x1800 + i].read = addr => {
+				let data = this.vram[addr = addr << 1 & 0xfffc] << 12 & 0xf000 | this.vram[addr | 1] << 8 & 0xf00;
+				return data | this.vram[addr | 2] << 4 & 0xf0 | this.vram[addr | 3] << 4 & 0xf;
+			};
+			this.cpu[2].memorymap[0x1800 + i].write = (addr, data) => {
+				this.vram[addr = addr << 1 & 0xfffc] = data >> 12 & 0xf;
+				this.vram[addr | 1] = data >> 8 & 0xf;
+				this.vram[addr | 2] = data >> 4 & 0xf;
+				this.vram[addr | 3] = data & 0xf;
+			};
+		}
+		for (let i = 0; i < 0x500; i++) {
+			this.cpu[2].memorymap[0x1900 + i].base = this.vram.base[i & 0xff];
+			this.cpu[2].memorymap[0x1900 + i].write = null;
+		}
+		for (let i = 0; i < 0x1000; i++)
+			this.cpu[2].memorymap[0x3000 + i].write = addr => this.fInterruptEnable2 = (addr & 0x80000) === 0;
+
 		// Videoの初期化
-		this.vram = new Uint8Array(0x10000);
 		this.bg = new Uint8Array(0x8000);
 		this.obj = new Uint8Array(0x10000);
 		this.rgb = new Uint32Array(0x100);
@@ -88,162 +119,15 @@ class Toypop {
 		this.convertOBJ();
 	}
 
-	MC68k_main() {
-		if (!this.fMC68kEnable)
-			return;
-		if (this.ram2[0x7fc] === 0x11) {
-			this.vram.fill(0x0c, 0, 0x200);
-			this.ram2[0x7fd] = 0x00;
-			this.ram2[0x7fe] = 0x00;
-			this.ram2[0x7fc] = 0x22;
-			this.ram2.fill(0, 0, 0x7fc);
-			this.vram.fill(0, 0x200);
-			return;
-		}
-		if (this.ram2[0]) {
-			this.ram2[0x102] = 1;
-			this.vram.fill(0x0f, 0x0200, 0xfe00);
-			this.MC68k_xfer(0x0828, 0x1d10);
-			this.MC68k_xfer(0x11fa, 0x1d90);
-			this.MC68k_xfer(0x1c30, 0x6e10);
-			this.MC68k_xfer(0x21ce, 0x65c0);
-		}
-		if (this.ram2[1]) {
-			this.ram2[0x102] = 0;
-			this.vram.fill(0x0e, 0x0200, 0x1400);
-			this.vram.fill(0x0e, 0xec00, 0xfe00);
-			this.vram.fill(0x0a, 0x0200, 0xfe00);
-			this.MC68k_xfer(0x3708, 0x35dc);
-			this.MC68k_xfer(0x3a14, 0x9200);
-		}
-		if (this.ram2[2]) {
-			let p = 0x1400;
-			this.ram2[0x102] = 0;
-			this.vram.fill(0x0e, 0x0200, 0x1400);
-			this.vram.fill(0x0e, 0xec00, 0xfe00);
-			for (let i = 0; i < 6; p += 0x22e0, i++)
-				for (let j = 0; j < 9; p += 0x20, j++)
-					this.MC68k_xfer(0x2ba8, p);
-		}
-		if (this.ram2[3]) {
-			this.ram2[0x102] = 1;
-			this.vram.fill(0, 0x0200, 0xfe00);
-		}
-		if (this.ram2[4]) {
-			this.ram2[0x102] = 0;
-			this.vram.fill(0x0e, 0x0200, 0x1400);
-			this.vram.fill(0x0e, 0xec00, 0xfe00);
-			this.vram.fill(2, 0x1400, 0x3800);
-			this.vram.fill(5, 0xc800, 0xec00);
-			this.MC68k_xfer(0x2792, 0x3800);
-			this.MC68k_xfer(0x2792, 0x3860);
-			this.MC68k_xfer(0x2792, 0x38c0);
-		}
-		if (this.ram2[5]) {
-			this.ram2[0x102] = 0;
-			this.vram.fill(0x0e, 0x0200, 0x1400);
-			this.vram.fill(0x0e, 0xec00, 0xfe00);
-			this.vram.fill(0x0c, 0x1400, 0xec00);
-			this.MC68k_xfer(0x2c5e, 0x1780);
-			this.MC68k_xfer(0x3708, 0x368c);
-			this.MC68k_xfer(0x3a14, 0x92b0);
-			this.MC68k_xfer(0x2d4e, 0x6e00);
-			this.MC68k_xfer(0x3246, 0x6e50);
-		}
-		if (this.ram2[6]) {
-			this.ram2[0x102] = 0;
-			this.vram.fill(0x0e, 0x0200, 0x1400);
-			this.vram.fill(0x0e, 0xec00, 0xfe00);
-			this.vram.fill(0x0c, 0x1400, 0xec00);
-			this.MC68k_xfer(0x3f38, 0x23c0);
-			this.MC68k_xfer(0x46a8, 0x27a0);
-			this.MC68k_xfer(0x4a32, 0x8000);
-			this.MC68k_xfer(0x51e4, 0x8080);
-		}
-		if (this.ram2[7]) {
-			this.ram2[0x102] = 0;
-			this.vram.fill(0x0e, 0x0200, 0x1400);
-			this.vram.fill(0x0e, 0xec00, 0xfe00);
-			this.vram.fill(0x0a, 0x1400, 0xec00);
-			this.MC68k_xfer(0x57fa, 0x4d73);
-			this.MC68k_xfer(0x5d34, 0xa770);
-			this.MC68k_xfer(0x5f4e, 0x28b1);
-			this.MC68k_xfer(0x6372, 0x26c0);
-			this.MC68k_xfer(0x6576, 0x9280);
-			this.MC68k_xfer(0x68a8, 0x92c0);
-		}
-		if (this.ram2[8]) {
-			this.ram2[0x102] = 0;
-			this.vram.fill(0x0e, 0x0200, 0x1400);
-			this.vram.fill(0x0e, 0xec00, 0xfe00);
-			this.vram.fill(0x0c, 0x1400, 0xec00);
-			this.MC68k_xfer(0x6af6, 0x1d30);
-			this.MC68k_xfer(0x6fb4, 0x8010);
-			this.MC68k_xfer(0x7382, 0x8060);
-			this.MC68k_xfer(0x78ba, 0x80ac);
-		}
-		if (this.ram2[9]) {
-			this.ram2[0x102] = 0;
-			this.vram.fill(3, 0x0200, 0x1400);
-			this.vram.fill(3, 0xec00, 0xfe00);
-		}
-		if (this.ram2[10]) {
-			this.ram2[0x102] = 0;
-			this.vram.fill(0x0e, 0x0200, 0x1400);
-			this.vram.fill(0x0e, 0xec00, 0xfe00);
-		}
-		if (this.ram2[11]) {
-			this.ram2[0x102] = 0;
-			this.vram.fill(0x0a, 0x0200, 0xfe00);
-			this.MC68k_xfer(0x57fa, 0x4d63);
-			this.MC68k_xfer(0x5d34, 0xa760);
-		}
-		if (this.ram2[12]) {
-			this.ram2[0x102] = 0;
-			this.vram.fill(0x0e, 0x0200, 0x1400);
-			this.vram.fill(0x0e, 0xec00, 0xfe00);
-			this.vram.fill(0x0a, 0x0200, 0xfe00);
-			this.MC68k_xfer(0x6fb4, 0x8004);
-		}
-		if (this.ram2[13]) {
-			this.ram2[0x102] = 0;
-			this.vram.fill(0x0a, 0x0200, 0xfe00);
-			this.MC68k_xfer(0x6af6, 0x8004);
-		}
-		if (this.ram2[14]) {
-			this.ram2[0x102] = 0;
-			this.vram.fill(0x0a, 0x0200, 0xfe00);
-			this.MC68k_xfer(0x2c5e, 0x2964);
-		}
-		if (this.ram2[15]) {
-			this.ram2[0x102] = 0;
-			this.vram.fill(0x0a, 0x0200, 0xfe00);
-			this.MC68k_xfer(0x6de2, 0x9204);
-		}
-		this.ram2.fill(0, 0, 0x11);
-	}
-
-	MC68k_xfer(src, dst) {
-		const width = PRG3[src++], height = PRG3[src++];
-		let len = 0, px, siz;
-
-		for (let i = 0; i < height; dst += 288, i++)
-			for (let j = 0; j < width; len -= siz, j += siz) {
-				if (len === 0) {
-					px = PRG3[src] >>> 4;
-					len = (PRG3[src++] - 1 & 0x0f) + 1;
-				}
-				siz = Math.min(len, width - j);
-				if (px)
-					this.vram.fill(px, dst + j, dst + j + siz);
-			}
-	}
-
 	execute() {
 		this.cpu[0].interrupt();
 		this.cpu[1].interrupt();
-		Cpu.multiple_execute(this.cpu, 0x2000);
-		this.MC68k_main();
+		if (this.fInterruptEnable2)
+			this.cpu[2].interrupt(6);
+		for (let i = 0; i < 0x100; i++) {
+			Cpu.multiple_execute([this.cpu[0], this.cpu[1]], 32);
+			this.cpu[2].execute(48);
+		}
 		return this;
 	}
 
@@ -311,9 +195,9 @@ class Toypop {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.fMC68kEnable = false;
 			this.cpu[0].reset();
 			this.cpu[1].disable();
+			this.cpu[2].disable();
 		}
 		return this;
 	}
@@ -705,7 +589,7 @@ class Toypop {
  */
 
 const url = 'toypop.zip';
-const PRG3 = new Uint8Array(0x8000);
+const PRG3 = new Uint8Array(0x8000).addBase();
 let PRG1, PRG2, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR, SND;
 
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
