@@ -7,7 +7,7 @@
 class MappySound {
 	constructor({SND, resolution = 1, gain = 0.1}) {
 		this.reg = new Uint8Array(0x40);
-		this.tmp = new Uint8Array(0x400);
+		this.ram = new Uint8Array(0x400);
 		const repeat = 16;
 		this.audioBuffer = [];
 		for (let i = 0; i < 8; i++) {
@@ -37,11 +37,11 @@ class MappySound {
 	}
 
 	read(addr) {
-		return this.tmp[addr & 0x3ff];
+		return this.ram[addr & 0x3ff];
 	}
 
 	write(addr, data, timer = 0) {
-		this.tmp[addr &= 0x3ff] = data;
+		this.ram[addr &= 0x3ff] = data;
 		if (addr >= 0x40)
 			return;
 		if (this.wheel[timer])
