@@ -147,7 +147,8 @@ function loop() {
 
 const haveEvents = 'ongamepadconnected' in window;
 const controllers = [];
-const gamepadStatus = {up: false, right: false, down: false, left: false, triggerA: false, triggerB: false, triggerX: false, triggerY: false, select: false, start: false};
+const gamepadStatus = {up: false, right: false, down: false, left: false, up2: false, right2: false, down2: false, left2: false,
+	triggerA: false, triggerB: false, triggerX: false, triggerY: false, select: false, start: false};
 
 window.addEventListener('gamepadconnected', e => controllers[e.gamepad.index] = e.gamepad);
 window.addEventListener('gamepaddisconnected', e => delete controllers[e.gamepad.index]);
@@ -190,6 +191,14 @@ function updateGamepad(game) {
 		game.down(gamepadStatus.down = pressed);
 	if ((pressed = controller.axes[0] < -0.5) !== gamepadStatus.left)
 		game.left(gamepadStatus.left = pressed);
+	if ('up2' in game && (pressed = controller.axes[3] < -0.5) !== gamepadStatus.up2)
+		game.up2(gamepadStatus.up2 = pressed);
+	if ('right2' in game && (pressed = controller.axes[2] > 0.5) !== gamepadStatus.right2)
+		game.right2(gamepadStatus.right2 = pressed);
+	if ('down2' in game && (pressed = controller.axes[3] > 0.5) !== gamepadStatus.down2)
+		game.down2(gamepadStatus.down2 = pressed);
+	if ('left2' in game && (pressed = controller.axes[2] < -0.5) !== gamepadStatus.left2)
+		game.left2(gamepadStatus.left2 = pressed);
 }
 
 /*

@@ -26,8 +26,9 @@ class MC68000 extends Cpu {
 //		this.ssp = 0;
 		this.usp = 0;
 		this.sr = 0; // sr:t-s--iii ccr:---xnzvc
-		for (let i = 0; i < 0xff00; i++)
-			this.memorymap.push({base: dummypage, read: null, write: () => {}});
+		this.memorymap.splice(0);
+		for (let i = 0; i < 0x10000; i++)
+			this.memorymap.push({base: dummypage, read: null, read16: null, write: () => {}, write16: null});
 		this.breakpointmap = new Uint32Array(0x40000);
 	}
 
@@ -168,7 +169,7 @@ class MC68000 extends Cpu {
 			this.btst8(this.d0, this.rop8(op));
 			break;
 		case 0o050: // BCHG D0,Dn
-			this.rwop32(op, this.d0, this.bchg32);
+			this.rwop32(op, this.bchg32, this.d0);
 			break;
 		case 0o051: // MOVEP.L d(Ay),D0
 			this.d0 = this.movep(op);
@@ -1025,12 +1026,12 @@ class MC68000 extends Cpu {
 		case 0o004: // MOVE.B -(An),D0
 		case 0o005: // MOVE.B d(An),D0
 		case 0o006: // MOVE.B d(An,Xi),D0
-			this.d0 = this.d0 & ~0xff | this.move8(this.rop8(op));
+			this.d0 = this.d0 & ~0xff | this.rop8(op, true);
 			break;
 		case 0o007: // MOVE.B Abs...,D0
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d0 = this.d0 & ~0xff | this.move8(this.rop8(op));
+			this.d0 = this.d0 & ~0xff | this.rop8(op, true);
 			break;
 		case 0o020: // MOVE.B Dn,(A0)
 		case 0o022: // MOVE.B (An),(A0)
@@ -1038,12 +1039,12 @@ class MC68000 extends Cpu {
 		case 0o024: // MOVE.B -(An),(A0)
 		case 0o025: // MOVE.B d(An),(A0)
 		case 0o026: // MOVE.B d(An,Xi),(A0)
-			this.write8(this.move8(this.rop8(op)), this.a0);
+			this.write8(this.rop8(op, true), this.a0);
 			break;
 		case 0o027: // MOVE.B Abs...,(A0)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a0);
+			this.write8(this.rop8(op, true), this.a0);
 			break;
 		case 0o030: // MOVE.B Dn,(A0)+
 		case 0o032: // MOVE.B (An),(A0)+
@@ -1051,13 +1052,13 @@ class MC68000 extends Cpu {
 		case 0o034: // MOVE.B -(An),(A0)+
 		case 0o035: // MOVE.B d(An),(A0)+
 		case 0o036: // MOVE.B d(An,Xi),(A0)+
-			this.write8(this.move8(this.rop8(op)), this.a0);
+			this.write8(this.rop8(op, true), this.a0);
 			this.a0 = this.a0 + 1 | 0;
 			break;
 		case 0o037: // MOVE.B Abs...,(A0)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a0);
+			this.write8(this.rop8(op, true), this.a0);
 			this.a1 = this.a1 + 1 | 0;
 			break;
 		case 0o040: // MOVE.B Dn,-(A0)
@@ -1066,12 +1067,12 @@ class MC68000 extends Cpu {
 		case 0o044: // MOVE.B -(An),-(A0)
 		case 0o045: // MOVE.B d(An),-(A0)
 		case 0o046: // MOVE.B d(An,Xi),-(A0)
-			this.write8(this.move8(this.rop8(op)), this.a0 = this.a0 - 1 | 0);
+			this.write8(this.rop8(op, true), this.a0 = this.a0 - 1 | 0);
 			break;
 		case 0o047: // MOVE.B Abs...,-(A0)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a0 = this.a0 - 1 | 0);
+			this.write8(this.rop8(op, true), this.a0 = this.a0 - 1 | 0);
 			break;
 		case 0o050: // MOVE.B Dn,d(A0)
 		case 0o052: // MOVE.B (An),d(A0)
@@ -1079,12 +1080,12 @@ class MC68000 extends Cpu {
 		case 0o054: // MOVE.B -(An),d(A0)
 		case 0o055: // MOVE.B d(An),d(A0)
 		case 0o056: // MOVE.B d(An,Xi),d(A0)
-			this.write8(this.move8(this.rop8(op)), this.a0 + this.fetch16s() | 0);
+			this.write8(this.rop8(op, true), this.a0 + this.fetch16s() | 0);
 			break;
 		case 0o057: // MOVE.B Abs...,d(A0)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a0 + this.fetch16s() | 0);
+			this.write8(this.rop8(op, true), this.a0 + this.fetch16s() | 0);
 			break;
 		case 0o060: // MOVE.B Dn,d(A0,Xi)
 		case 0o062: // MOVE.B (An),d(A0,Xi)
@@ -1092,12 +1093,12 @@ class MC68000 extends Cpu {
 		case 0o064: // MOVE.B -(An),d(A0,Xi)
 		case 0o065: // MOVE.B d(An),d(A0,Xi)
 		case 0o066: // MOVE.B d(An,Xi),d(A0,Xi)
-			this.write8(this.move8(this.rop8(op)), this.index(this.a0));
+			this.write8(this.rop8(op, true), this.index(this.a0));
 			break;
 		case 0o067: // MOVE.B Abs...,d(A0,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.index(this.a0));
+			this.write8(this.rop8(op, true), this.index(this.a0));
 			break;
 		case 0o070: // MOVE.B Dn,Abs.W
 		case 0o072: // MOVE.B (An),Abs.W
@@ -1105,12 +1106,12 @@ class MC68000 extends Cpu {
 		case 0o074: // MOVE.B -(An),Abs.W
 		case 0o075: // MOVE.B d(An),Abs.W
 		case 0o076: // MOVE.B d(An,Xi),Abs.W
-			this.write8(this.move8(this.rop8(op)), this.fetch16s());
+			this.write8(this.rop8(op, true), this.fetch16s());
 			break;
 		case 0o077: // MOVE.B Abs...,Abs.W
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.fetch16s());
+			this.write8(this.rop8(op, true), this.fetch16s());
 			break;
 		case 0o100: // MOVE.B Dn,D1
 		case 0o102: // MOVE.B (An),D1
@@ -1118,12 +1119,12 @@ class MC68000 extends Cpu {
 		case 0o104: // MOVE.B -(An),D1
 		case 0o105: // MOVE.B d(An),D1
 		case 0o106: // MOVE.B d(An,Xi),D1
-			this.d1 = this.d1 & ~0xff | this.move8(this.rop8(op));
+			this.d1 = this.d1 & ~0xff | this.rop8(op, true);
 			break;
 		case 0o107: // MOVE.B Abs...,D1
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d1 = this.d1 & ~0xff | this.move8(this.rop8(op));
+			this.d1 = this.d1 & ~0xff | this.rop8(op, true);
 			break;
 		case 0o120: // MOVE.B Dn,(A1)
 		case 0o122: // MOVE.B (An),(A1)
@@ -1131,12 +1132,12 @@ class MC68000 extends Cpu {
 		case 0o124: // MOVE.B -(An),(A1)
 		case 0o125: // MOVE.B d(An),(A1)
 		case 0o126: // MOVE.B d(An,Xi),(A1)
-			this.write8(this.move8(this.rop8(op)), this.a1);
+			this.write8(this.rop8(op, true), this.a1);
 			break;
 		case 0o127: // MOVE.B Abs...,(A1)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a1);
+			this.write8(this.rop8(op, true), this.a1);
 			break;
 		case 0o130: // MOVE.B Dn,(A1)+
 		case 0o132: // MOVE.B (An),(A1)+
@@ -1144,13 +1145,13 @@ class MC68000 extends Cpu {
 		case 0o134: // MOVE.B -(An),(A1)+
 		case 0o135: // MOVE.B d(An),(A1)+
 		case 0o136: // MOVE.B d(An,Xi),(A1)+
-			this.write8(this.move8(this.rop8(op)), this.a1);
+			this.write8(this.rop8(op, true), this.a1);
 			this.a1 = this.a1 + 1 | 0;
 			break;
 		case 0o137: // MOVE.B Abs...,(A1)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a1);
+			this.write8(this.rop8(op, true), this.a1);
 			this.a1 = this.a1 + 1 | 0;
 			break;
 		case 0o140: // MOVE.B Dn,-(A1)
@@ -1159,12 +1160,12 @@ class MC68000 extends Cpu {
 		case 0o144: // MOVE.B -(An),-(A1)
 		case 0o145: // MOVE.B d(An),-(A1)
 		case 0o146: // MOVE.B d(An,Xi),-(A1)
-			this.write8(this.move8(this.rop8(op)), this.a1 = this.a1 - 1 | 0);
+			this.write8(this.rop8(op, true), this.a1 = this.a1 - 1 | 0);
 			break;
 		case 0o147: // MOVE.B Abs...,-(A1)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a1 = this.a1 - 1 | 0);
+			this.write8(this.rop8(op, true), this.a1 = this.a1 - 1 | 0);
 			break;
 		case 0o150: // MOVE.B Dn,d(A1)
 		case 0o152: // MOVE.B (An),d(A1)
@@ -1172,12 +1173,12 @@ class MC68000 extends Cpu {
 		case 0o154: // MOVE.B -(An),d(A1)
 		case 0o155: // MOVE.B d(An),d(A1)
 		case 0o156: // MOVE.B d(An,Xi),d(A1)
-			this.write8(this.move8(this.rop8(op)), this.a1 + this.fetch16s() | 0);
+			this.write8(this.rop8(op, true), this.a1 + this.fetch16s() | 0);
 			break;
 		case 0o157: // MOVE.B Abs...,d(A1)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a1 + this.fetch16s() | 0);
+			this.write8(this.rop8(op, true), this.a1 + this.fetch16s() | 0);
 			break;
 		case 0o160: // MOVE.B Dn,d(A1,Xi)
 		case 0o162: // MOVE.B (An),d(A1,Xi)
@@ -1185,12 +1186,12 @@ class MC68000 extends Cpu {
 		case 0o164: // MOVE.B -(An),d(A1,Xi)
 		case 0o165: // MOVE.B d(An),d(A1,Xi)
 		case 0o166: // MOVE.B d(An,Xi),d(A1,Xi)
-			this.write8(this.move8(this.rop8(op)), this.index(this.a1));
+			this.write8(this.rop8(op, true), this.index(this.a1));
 			break;
 		case 0o167: // MOVE.B Abs...,d(A1,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.index(this.a1));
+			this.write8(this.rop8(op, true), this.index(this.a1));
 			break;
 		case 0o170: // MOVE.B Dn,Abs.L
 		case 0o172: // MOVE.B (An),Abs.L
@@ -1198,12 +1199,12 @@ class MC68000 extends Cpu {
 		case 0o174: // MOVE.B -(An),Abs.L
 		case 0o175: // MOVE.B d(An),Abs.L
 		case 0o176: // MOVE.B d(An,Xi),Abs.L
-			this.write8(this.move8(this.rop8(op)), this.fetch32());
+			this.write8(this.rop8(op, true), this.fetch32());
 			break;
 		case 0o177: // MOVE.B Abs...,Abs.L
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.fetch32());
+			this.write8(this.rop8(op, true), this.fetch32());
 			break;
 		case 0o200: // MOVE.B Dn,D2
 		case 0o202: // MOVE.B (An),D2
@@ -1211,12 +1212,12 @@ class MC68000 extends Cpu {
 		case 0o204: // MOVE.B -(An),D2
 		case 0o205: // MOVE.B d(An),D2
 		case 0o206: // MOVE.B d(An,Xi),D2
-			this.d2 = this.d2 & ~0xff | this.move8(this.rop8(op));
+			this.d2 = this.d2 & ~0xff | this.rop8(op, true);
 			break;
 		case 0o207: // MOVE.B Abs...,D2
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d2 = this.d2 & ~0xff | this.move8(this.rop8(op));
+			this.d2 = this.d2 & ~0xff | this.rop8(op, true);
 			break;
 		case 0o220: // MOVE.B Dn,(A2)
 		case 0o222: // MOVE.B (An),(A2)
@@ -1224,12 +1225,12 @@ class MC68000 extends Cpu {
 		case 0o224: // MOVE.B -(An),(A2)
 		case 0o225: // MOVE.B d(An),(A2)
 		case 0o226: // MOVE.B d(An,Xi),(A2)
-			this.write8(this.move8(this.rop8(op)), this.a2);
+			this.write8(this.rop8(op, true), this.a2);
 			break;
 		case 0o227: // MOVE.B Abs...,(A2)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a2);
+			this.write8(this.rop8(op, true), this.a2);
 			break;
 		case 0o230: // MOVE.B Dn,(A2)+
 		case 0o232: // MOVE.B (An),(A2)+
@@ -1237,13 +1238,13 @@ class MC68000 extends Cpu {
 		case 0o234: // MOVE.B -(An),(A2)+
 		case 0o235: // MOVE.B d(An),(A2)+
 		case 0o236: // MOVE.B d(An,Xi),(A2)+
-			this.write8(this.move8(this.rop8(op)), this.a2);
+			this.write8(this.rop8(op, true), this.a2);
 			this.a2 = this.a2 + 1 | 0;
 			break;
 		case 0o237: // MOVE.B Abs...,(A2)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a2);
+			this.write8(this.rop8(op, true), this.a2);
 			this.a2 = this.a2 + 1 | 0;
 			break;
 		case 0o240: // MOVE.B Dn,-(A2)
@@ -1252,12 +1253,12 @@ class MC68000 extends Cpu {
 		case 0o244: // MOVE.B -(An),-(A2)
 		case 0o245: // MOVE.B d(An),-(A2)
 		case 0o246: // MOVE.B d(An,Xi),-(A2)
-			this.write8(this.move8(this.rop8(op)), this.a2 = this.a2 - 1 | 0);
+			this.write8(this.rop8(op, true), this.a2 = this.a2 - 1 | 0);
 			break;
 		case 0o247: // MOVE.B Abs...,-(A2)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a2 = this.a2 - 1 | 0);
+			this.write8(this.rop8(op, true), this.a2 = this.a2 - 1 | 0);
 			break;
 		case 0o250: // MOVE.B Dn,d(A2)
 		case 0o252: // MOVE.B (An),d(A2)
@@ -1265,12 +1266,12 @@ class MC68000 extends Cpu {
 		case 0o254: // MOVE.B -(An),d(A2)
 		case 0o255: // MOVE.B d(An),d(A2)
 		case 0o256: // MOVE.B d(An,Xi),d(A2)
-			this.write8(this.move8(this.rop8(op)), this.a2 + this.fetch16s() | 0);
+			this.write8(this.rop8(op, true), this.a2 + this.fetch16s() | 0);
 			break;
 		case 0o257: // MOVE.B Abs...,d(A2)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a2 + this.fetch16s() | 0);
+			this.write8(this.rop8(op, true), this.a2 + this.fetch16s() | 0);
 			break;
 		case 0o260: // MOVE.B Dn,d(A2,Xi)
 		case 0o262: // MOVE.B (An),d(A2,Xi)
@@ -1278,12 +1279,12 @@ class MC68000 extends Cpu {
 		case 0o264: // MOVE.B -(An),d(A2,Xi)
 		case 0o265: // MOVE.B d(An),d(A2,Xi)
 		case 0o266: // MOVE.B d(An,Xi),d(A2,Xi)
-			this.write8(this.move8(this.rop8(op)), this.index(this.a2));
+			this.write8(this.rop8(op, true), this.index(this.a2));
 			break;
 		case 0o267: // MOVE.B Abs...,d(A2,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.index(this.a2));
+			this.write8(this.rop8(op, true), this.index(this.a2));
 			break;
 		case 0o300: // MOVE.B Dn,D3
 		case 0o302: // MOVE.B (An),D3
@@ -1291,12 +1292,12 @@ class MC68000 extends Cpu {
 		case 0o304: // MOVE.B -(An),D3
 		case 0o305: // MOVE.B d(An),D3
 		case 0o306: // MOVE.B d(An,Xi),D3
-			this.d3 = this.d3 & ~0xff | this.move8(this.rop8(op));
+			this.d3 = this.d3 & ~0xff | this.rop8(op, true);
 			break;
 		case 0o307: // MOVE.B Abs...,D3
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d3 = this.d3 & ~0xff | this.move8(this.rop8(op));
+			this.d3 = this.d3 & ~0xff | this.rop8(op, true);
 			break;
 		case 0o320: // MOVE.B Dn,(A3)
 		case 0o322: // MOVE.B (An),(A3)
@@ -1304,12 +1305,12 @@ class MC68000 extends Cpu {
 		case 0o324: // MOVE.B -(An),(A3)
 		case 0o325: // MOVE.B d(An),(A3)
 		case 0o326: // MOVE.B d(An,Xi),(A3)
-			this.write8(this.move8(this.rop8(op)), this.a3);
+			this.write8(this.rop8(op, true), this.a3);
 			break;
 		case 0o327: // MOVE.B Abs...,(A3)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a3);
+			this.write8(this.rop8(op, true), this.a3);
 			break;
 		case 0o330: // MOVE.B Dn,(A3)+
 		case 0o332: // MOVE.B (An),(A3)+
@@ -1317,13 +1318,13 @@ class MC68000 extends Cpu {
 		case 0o334: // MOVE.B -(An),(A3)+
 		case 0o335: // MOVE.B d(An),(A3)+
 		case 0o336: // MOVE.B d(An,Xi),(A3)+
-			this.write8(this.move8(this.rop8(op)), this.a3);
+			this.write8(this.rop8(op, true), this.a3);
 			this.a3 = this.a3 + 1 | 0;
 			break;
 		case 0o337: // MOVE.B Abs...,(A3)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a3);
+			this.write8(this.rop8(op, true), this.a3);
 			this.a3 = this.a3 + 1 | 0;
 			break;
 		case 0o340: // MOVE.B Dn,-(A3)
@@ -1332,12 +1333,12 @@ class MC68000 extends Cpu {
 		case 0o344: // MOVE.B -(An),-(A3)
 		case 0o345: // MOVE.B d(An),-(A3)
 		case 0o346: // MOVE.B d(An,Xi),-(A3)
-			this.write8(this.move8(this.rop8(op)), this.a3 = this.a3 - 1 | 0);
+			this.write8(this.rop8(op, true), this.a3 = this.a3 - 1 | 0);
 			break;
 		case 0o347: // MOVE.B Abs...,-(A3)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a3 = this.a3 - 1 | 0);
+			this.write8(this.rop8(op, true), this.a3 = this.a3 - 1 | 0);
 			break;
 		case 0o350: // MOVE.B Dn,d(A3)
 		case 0o352: // MOVE.B (An),d(A3)
@@ -1345,12 +1346,12 @@ class MC68000 extends Cpu {
 		case 0o354: // MOVE.B -(An),d(A3)
 		case 0o355: // MOVE.B d(An),d(A3)
 		case 0o356: // MOVE.B d(An,Xi),d(A3)
-			this.write8(this.move8(this.rop8(op)), this.a3 + this.fetch16s() | 0);
+			this.write8(this.rop8(op, true), this.a3 + this.fetch16s() | 0);
 			break;
 		case 0o357: // MOVE.B Abs...,d(A3)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a3 + this.fetch16s() | 0);
+			this.write8(this.rop8(op, true), this.a3 + this.fetch16s() | 0);
 			break;
 		case 0o360: // MOVE.B Dn,d(A3,Xi)
 		case 0o362: // MOVE.B (An),d(A3,Xi)
@@ -1358,12 +1359,12 @@ class MC68000 extends Cpu {
 		case 0o364: // MOVE.B -(An),d(A3,Xi)
 		case 0o365: // MOVE.B d(An),d(A3,Xi)
 		case 0o366: // MOVE.B d(An,Xi),d(A3,Xi)
-			this.write8(this.move8(this.rop8(op)), this.index(this.a3));
+			this.write8(this.rop8(op, true), this.index(this.a3));
 			break;
 		case 0o367: // MOVE.B Abs...,d(A3,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.index(this.a3));
+			this.write8(this.rop8(op, true), this.index(this.a3));
 			break;
 		case 0o400: // MOVE.B Dn,D4
 		case 0o402: // MOVE.B (An),D4
@@ -1371,12 +1372,12 @@ class MC68000 extends Cpu {
 		case 0o404: // MOVE.B -(An),D4
 		case 0o405: // MOVE.B d(An),D4
 		case 0o406: // MOVE.B d(An,Xi),D4
-			this.d4 = this.d4 & ~0xff | this.move8(this.rop8(op));
+			this.d4 = this.d4 & ~0xff | this.rop8(op, true);
 			break;
 		case 0o407: // MOVE.B Abs...,D4
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d4 = this.d4 & ~0xff | this.move8(this.rop8(op));
+			this.d4 = this.d4 & ~0xff | this.rop8(op, true);
 			break;
 		case 0o420: // MOVE.B Dn,(A4)
 		case 0o422: // MOVE.B (An),(A4)
@@ -1384,12 +1385,12 @@ class MC68000 extends Cpu {
 		case 0o424: // MOVE.B -(An),(A4)
 		case 0o425: // MOVE.B d(An),(A4)
 		case 0o426: // MOVE.B d(An,Xi),(A4)
-			this.write8(this.move8(this.rop8(op)), this.a4);
+			this.write8(this.rop8(op, true), this.a4);
 			break;
 		case 0o427: // MOVE.B Abs...,(A4)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a4);
+			this.write8(this.rop8(op, true), this.a4);
 			break;
 		case 0o430: // MOVE.B Dn,(A4)+
 		case 0o432: // MOVE.B (An),(A4)+
@@ -1397,13 +1398,13 @@ class MC68000 extends Cpu {
 		case 0o434: // MOVE.B -(An),(A4)+
 		case 0o435: // MOVE.B d(An),(A4)+
 		case 0o436: // MOVE.B d(An,Xi),(A4)+
-			this.write8(this.move8(this.rop8(op)), this.a4);
+			this.write8(this.rop8(op, true), this.a4);
 			this.a4 = this.a4 + 1 | 0;
 			break;
 		case 0o437: // MOVE.B Abs...,(A4)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a4);
+			this.write8(this.rop8(op, true), this.a4);
 			this.a4 = this.a4 + 1 | 0;
 			break;
 		case 0o440: // MOVE.B Dn,-(A4)
@@ -1412,12 +1413,12 @@ class MC68000 extends Cpu {
 		case 0o444: // MOVE.B -(An),-(A4)
 		case 0o445: // MOVE.B d(An),-(A4)
 		case 0o446: // MOVE.B d(An,Xi),-(A4)
-			this.write8(this.move8(this.rop8(op)), this.a4 = this.a4 - 1 | 0);
+			this.write8(this.rop8(op, true), this.a4 = this.a4 - 1 | 0);
 			break;
 		case 0o447: // MOVE.B Abs...,-(A4)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a4 = this.a4 - 1 | 0);
+			this.write8(this.rop8(op, true), this.a4 = this.a4 - 1 | 0);
 			break;
 		case 0o450: // MOVE.B Dn,d(A4)
 		case 0o452: // MOVE.B (An),d(A4)
@@ -1425,12 +1426,12 @@ class MC68000 extends Cpu {
 		case 0o454: // MOVE.B -(An),d(A4)
 		case 0o455: // MOVE.B d(An),d(A4)
 		case 0o456: // MOVE.B d(An,Xi),d(A4)
-			this.write8(this.move8(this.rop8(op)), this.a4 + this.fetch16s() | 0);
+			this.write8(this.rop8(op, true), this.a4 + this.fetch16s() | 0);
 			break;
 		case 0o457: // MOVE.B Abs...,d(A4)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a4 + this.fetch16s() | 0);
+			this.write8(this.rop8(op, true), this.a4 + this.fetch16s() | 0);
 			break;
 		case 0o460: // MOVE.B Dn,d(A4,Xi)
 		case 0o462: // MOVE.B (An),d(A4,Xi)
@@ -1438,12 +1439,12 @@ class MC68000 extends Cpu {
 		case 0o464: // MOVE.B -(An),d(A4,Xi)
 		case 0o465: // MOVE.B d(An),d(A4,Xi)
 		case 0o466: // MOVE.B d(An,Xi),d(A4,Xi)
-			this.write8(this.move8(this.rop8(op)), this.index(this.a4));
+			this.write8(this.rop8(op, true), this.index(this.a4));
 			break;
 		case 0o467: // MOVE.B Abs...,d(A4,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.index(this.a4));
+			this.write8(this.rop8(op, true), this.index(this.a4));
 			break;
 		case 0o500: // MOVE.B Dn,D5
 		case 0o502: // MOVE.B (An),D5
@@ -1451,12 +1452,12 @@ class MC68000 extends Cpu {
 		case 0o504: // MOVE.B -(An),D5
 		case 0o505: // MOVE.B d(An),D5
 		case 0o506: // MOVE.B d(An,Xi),D5
-			this.d5 = this.d5 & ~0xff | this.move8(this.rop8(op));
+			this.d5 = this.d5 & ~0xff | this.rop8(op, true);
 			break;
 		case 0o507: // MOVE.B Abs...,D5
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d5 = this.d5 & ~0xff | this.move8(this.rop8(op));
+			this.d5 = this.d5 & ~0xff | this.rop8(op, true);
 			break;
 		case 0o520: // MOVE.B Dn,(A5)
 		case 0o522: // MOVE.B (An),(A5)
@@ -1464,12 +1465,12 @@ class MC68000 extends Cpu {
 		case 0o524: // MOVE.B -(An),(A5)
 		case 0o525: // MOVE.B d(An),(A5)
 		case 0o526: // MOVE.B d(An,Xi),(A5)
-			this.write8(this.move8(this.rop8(op)), this.a5);
+			this.write8(this.rop8(op, true), this.a5);
 			break;
 		case 0o527: // MOVE.B Abs...,(A5)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a5);
+			this.write8(this.rop8(op, true), this.a5);
 			break;
 		case 0o530: // MOVE.B Dn,(A5)+
 		case 0o532: // MOVE.B (An),(A5)+
@@ -1477,13 +1478,13 @@ class MC68000 extends Cpu {
 		case 0o534: // MOVE.B -(An),(A5)+
 		case 0o535: // MOVE.B d(An),(A5)+
 		case 0o536: // MOVE.B d(An,Xi),(A5)+
-			this.write8(this.move8(this.rop8(op)), this.a5);
+			this.write8(this.rop8(op, true), this.a5);
 			this.a5 = this.a5 + 1 | 0;
 			break;
 		case 0o537: // MOVE.B Abs...,(A5)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a5);
+			this.write8(this.rop8(op, true), this.a5);
 			this.a5 = this.a5 + 1 | 0;
 			break;
 		case 0o540: // MOVE.B Dn,-(A5)
@@ -1492,12 +1493,12 @@ class MC68000 extends Cpu {
 		case 0o544: // MOVE.B -(An),-(A5)
 		case 0o545: // MOVE.B d(An),-(A5)
 		case 0o546: // MOVE.B d(An,Xi),-(A5)
-			this.write8(this.move8(this.rop8(op)), this.a5 = this.a5 - 1 | 0);
+			this.write8(this.rop8(op, true), this.a5 = this.a5 - 1 | 0);
 			break;
 		case 0o547: // MOVE.B Abs...,-(A5)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a5 = this.a5 - 1 | 0);
+			this.write8(this.rop8(op, true), this.a5 = this.a5 - 1 | 0);
 			break;
 		case 0o550: // MOVE.B Dn,d(A5)
 		case 0o552: // MOVE.B (An),d(A5)
@@ -1505,12 +1506,12 @@ class MC68000 extends Cpu {
 		case 0o554: // MOVE.B -(An),d(A5)
 		case 0o555: // MOVE.B d(An),d(A5)
 		case 0o556: // MOVE.B d(An,Xi),d(A5)
-			this.write8(this.move8(this.rop8(op)), this.a5 + this.fetch16s() | 0);
+			this.write8(this.rop8(op, true), this.a5 + this.fetch16s() | 0);
 			break;
 		case 0o557: // MOVE.B Abs...,d(A5)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a5 + this.fetch16s() | 0);
+			this.write8(this.rop8(op, true), this.a5 + this.fetch16s() | 0);
 			break;
 		case 0o560: // MOVE.B Dn,d(A5,Xi)
 		case 0o562: // MOVE.B (An),d(A5,Xi)
@@ -1518,12 +1519,12 @@ class MC68000 extends Cpu {
 		case 0o564: // MOVE.B -(An),d(A5,Xi)
 		case 0o565: // MOVE.B d(An),d(A5,Xi)
 		case 0o566: // MOVE.B d(An,Xi),d(A5,Xi)
-			this.write8(this.move8(this.rop8(op)), this.index(this.a5));
+			this.write8(this.rop8(op, true), this.index(this.a5));
 			break;
 		case 0o567: // MOVE.B Abs...,d(A5,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.index(this.a5));
+			this.write8(this.rop8(op, true), this.index(this.a5));
 			break;
 		case 0o600: // MOVE.B Dn,D6
 		case 0o602: // MOVE.B (An),D6
@@ -1531,12 +1532,12 @@ class MC68000 extends Cpu {
 		case 0o604: // MOVE.B -(An),D6
 		case 0o605: // MOVE.B d(An),D6
 		case 0o606: // MOVE.B d(An,Xi),D6
-			this.d6 = this.d6 & ~0xff | this.move8(this.rop8(op));
+			this.d6 = this.d6 & ~0xff | this.rop8(op, true);
 			break;
 		case 0o607: // MOVE.B Abs...,D6
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d6 = this.d6 & ~0xff | this.move8(this.rop8(op));
+			this.d6 = this.d6 & ~0xff | this.rop8(op, true);
 			break;
 		case 0o620: // MOVE.B Dn,(A6)
 		case 0o622: // MOVE.B (An),(A6)
@@ -1544,12 +1545,12 @@ class MC68000 extends Cpu {
 		case 0o624: // MOVE.B -(An),(A6)
 		case 0o625: // MOVE.B d(An),(A6)
 		case 0o626: // MOVE.B d(An,Xi),(A6)
-			this.write8(this.move8(this.rop8(op)), this.a6);
+			this.write8(this.rop8(op, true), this.a6);
 			break;
 		case 0o627: // MOVE.B Abs...,(A6)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a6);
+			this.write8(this.rop8(op, true), this.a6);
 			break;
 		case 0o630: // MOVE.B Dn,(A6)+
 		case 0o632: // MOVE.B (An),(A6)+
@@ -1557,13 +1558,13 @@ class MC68000 extends Cpu {
 		case 0o634: // MOVE.B -(An),(A6)+
 		case 0o635: // MOVE.B d(An),(A6)+
 		case 0o636: // MOVE.B d(An,Xi),(A6)+
-			this.write8(this.move8(this.rop8(op)), this.a6);
+			this.write8(this.rop8(op, true), this.a6);
 			this.a6 = this.a6 + 1 | 0;
 			break;
 		case 0o637: // MOVE.B Abs...,(A6)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a6);
+			this.write8(this.rop8(op, true), this.a6);
 			this.a6 = this.a6 + 1 | 0;
 			break;
 		case 0o640: // MOVE.B Dn,-(A6)
@@ -1572,12 +1573,12 @@ class MC68000 extends Cpu {
 		case 0o644: // MOVE.B -(An),-(A6)
 		case 0o645: // MOVE.B d(An),-(A6)
 		case 0o646: // MOVE.B d(An,Xi),-(A6)
-			this.write8(this.move8(this.rop8(op)), this.a6 = this.a6 - 1 | 0);
+			this.write8(this.rop8(op, true), this.a6 = this.a6 - 1 | 0);
 			break;
 		case 0o647: // MOVE.B Abs...,-(A6)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a6 = this.a6 - 1 | 0);
+			this.write8(this.rop8(op, true), this.a6 = this.a6 - 1 | 0);
 			break;
 		case 0o650: // MOVE.B Dn,d(A6)
 		case 0o652: // MOVE.B (An),d(A6)
@@ -1585,12 +1586,12 @@ class MC68000 extends Cpu {
 		case 0o654: // MOVE.B -(An),d(A6)
 		case 0o655: // MOVE.B d(An),d(A6)
 		case 0o656: // MOVE.B d(An,Xi),d(A6)
-			this.write8(this.move8(this.rop8(op)), this.a6 + this.fetch16s() | 0);
+			this.write8(this.rop8(op, true), this.a6 + this.fetch16s() | 0);
 			break;
 		case 0o657: // MOVE.B Abs...,d(A6)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a6 + this.fetch16s() | 0);
+			this.write8(this.rop8(op, true), this.a6 + this.fetch16s() | 0);
 			break;
 		case 0o660: // MOVE.B Dn,d(A6,Xi)
 		case 0o662: // MOVE.B (An),d(A6,Xi)
@@ -1598,12 +1599,12 @@ class MC68000 extends Cpu {
 		case 0o664: // MOVE.B -(An),d(A6,Xi)
 		case 0o665: // MOVE.B d(An),d(A6,Xi)
 		case 0o666: // MOVE.B d(An,Xi),d(A6,Xi)
-			this.write8(this.move8(this.rop8(op)), this.index(this.a6));
+			this.write8(this.rop8(op, true), this.index(this.a6));
 			break;
 		case 0o667: // MOVE.B Abs...,d(A6,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.index(this.a6));
+			this.write8(this.rop8(op, true), this.index(this.a6));
 			break;
 		case 0o700: // MOVE.B Dn,D7
 		case 0o702: // MOVE.B (An),D7
@@ -1611,12 +1612,12 @@ class MC68000 extends Cpu {
 		case 0o704: // MOVE.B -(An),D7
 		case 0o705: // MOVE.B d(An),D7
 		case 0o706: // MOVE.B d(An,Xi),D7
-			this.d7 = this.d7 & ~0xff | this.move8(this.rop8(op));
+			this.d7 = this.d7 & ~0xff | this.rop8(op, true);
 			break;
 		case 0o707: // MOVE.B Abs...,D7
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d7 = this.d7 & ~0xff | this.move8(this.rop8(op));
+			this.d7 = this.d7 & ~0xff | this.rop8(op, true);
 			break;
 		case 0o720: // MOVE.B Dn,(A7)
 		case 0o722: // MOVE.B (An),(A7)
@@ -1624,12 +1625,12 @@ class MC68000 extends Cpu {
 		case 0o724: // MOVE.B -(An),(A7)
 		case 0o725: // MOVE.B d(An),(A7)
 		case 0o726: // MOVE.B d(An,Xi),(A7)
-			this.write8(this.move8(this.rop8(op)), this.a7);
+			this.write8(this.rop8(op, true), this.a7);
 			break;
 		case 0o727: // MOVE.B Abs...,(A7)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a7);
+			this.write8(this.rop8(op, true), this.a7);
 			break;
 		case 0o730: // MOVE.B Dn,(A7)+
 		case 0o732: // MOVE.B (An),(A7)+
@@ -1637,13 +1638,13 @@ class MC68000 extends Cpu {
 		case 0o734: // MOVE.B -(An),(A7)+
 		case 0o735: // MOVE.B d(An),(A7)+
 		case 0o736: // MOVE.B d(An,Xi),(A7)+
-			this.write8(this.move8(this.rop8(op)), this.a7);
+			this.write8(this.rop8(op, true), this.a7);
 			this.a7 = this.a7 + 1 | 0;
 			break;
 		case 0o737: // MOVE.B Abs...,(A7)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a7);
+			this.write8(this.rop8(op, true), this.a7);
 			this.a7 = this.a7 + 1 | 0;
 			break;
 		case 0o740: // MOVE.B Dn,-(A7)
@@ -1652,12 +1653,12 @@ class MC68000 extends Cpu {
 		case 0o744: // MOVE.B -(An),-(A7)
 		case 0o745: // MOVE.B d(An),-(A7)
 		case 0o746: // MOVE.B d(An,Xi),-(A7)
-			this.write8(this.move8(this.rop8(op)), this.a7 = this.a7 - 1 | 0);
+			this.write8(this.rop8(op, true), this.a7 = this.a7 - 1 | 0);
 			break;
 		case 0o747: // MOVE.B Abs...,-(A7)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a7 = this.a7 - 1 | 0);
+			this.write8(this.rop8(op, true), this.a7 = this.a7 - 1 | 0);
 			break;
 		case 0o750: // MOVE.B Dn,d(A7)
 		case 0o752: // MOVE.B (An),d(A7)
@@ -1665,12 +1666,12 @@ class MC68000 extends Cpu {
 		case 0o754: // MOVE.B -(An),d(A7)
 		case 0o755: // MOVE.B d(An),d(A7)
 		case 0o756: // MOVE.B d(An,Xi),d(A7)
-			this.write8(this.move8(this.rop8(op)), this.a7 + this.fetch16s() | 0);
+			this.write8(this.rop8(op, true), this.a7 + this.fetch16s() | 0);
 			break;
 		case 0o757: // MOVE.B Abs...,d(A7)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.a7 + this.fetch16s() | 0);
+			this.write8(this.rop8(op, true), this.a7 + this.fetch16s() | 0);
 			break;
 		case 0o760: // MOVE.B Dn,d(A7,Xi)
 		case 0o762: // MOVE.B (An),d(A7,Xi)
@@ -1678,12 +1679,12 @@ class MC68000 extends Cpu {
 		case 0o764: // MOVE.B -(An),d(A7,Xi)
 		case 0o765: // MOVE.B d(An),d(A7,Xi)
 		case 0o766: // MOVE.B d(An,Xi),d(A7,Xi)
-			this.write8(this.move8(this.rop8(op)), this.index(this.a7));
+			this.write8(this.rop8(op, true), this.index(this.a7));
 			break;
 		case 0o767: // MOVE.B Abs...,d(A7,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write8(this.move8(this.rop8(op)), this.index(this.a7));
+			this.write8(this.rop8(op, true), this.index(this.a7));
 			break;
 		default:
 			return void this.exception(4);
@@ -1699,12 +1700,12 @@ class MC68000 extends Cpu {
 		case 0o004: // MOVE.L -(An),D0
 		case 0o005: // MOVE.L d(An),D0
 		case 0o006: // MOVE.L d(An,Xi),D0
-			this.d0 = this.move32(this.rop32(op));
+			this.d0 = this.rop32(op, true);
 			break;
 		case 0o007: // MOVE.L Abs...,D0
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d0 = this.move32(this.rop32(op));
+			this.d0 = this.rop32(op, true);
 			break;
 		case 0o010: // MOVEA.L Dn,A0
 		case 0o011: // MOVEA.L An,A0
@@ -1727,12 +1728,12 @@ class MC68000 extends Cpu {
 		case 0o024: // MOVE.L -(An),(A0)
 		case 0o025: // MOVE.L d(An),(A0)
 		case 0o026: // MOVE.L d(An,Xi),(A0)
-			this.write32(this.move32(this.rop32(op)), this.a0);
+			this.write32(this.rop32(op, true), this.a0);
 			break;
 		case 0o027: // MOVE.L Abs...,(A0)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a0);
+			this.write32(this.rop32(op, true), this.a0);
 			break;
 		case 0o030: // MOVE.L Dn,(A0)+
 		case 0o031: // MOVE.L An,(A0)+
@@ -1741,13 +1742,13 @@ class MC68000 extends Cpu {
 		case 0o034: // MOVE.L -(An),(A0)+
 		case 0o035: // MOVE.L d(An),(A0)+
 		case 0o036: // MOVE.L d(An,Xi),(A0)+
-			this.write32(this.move32(this.rop32(op)), this.a0);
+			this.write32(this.rop32(op, true), this.a0);
 			this.a0 = this.a0 + 4 | 0;
 			break;
 		case 0o037: // MOVE.L Abs...,(A0)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a0);
+			this.write32(this.rop32(op, true), this.a0);
 			this.a0 = this.a0 + 4 | 0;
 			break;
 		case 0o040: // MOVE.L Dn,-(A0)
@@ -1757,12 +1758,12 @@ class MC68000 extends Cpu {
 		case 0o044: // MOVE.L -(An),-(A0)
 		case 0o045: // MOVE.L d(An),-(A0)
 		case 0o046: // MOVE.L d(An,Xi),-(A0)
-			this.write32(this.move32(this.rop32(op)), this.a0 = this.a0 - 4 | 0);
+			this.write32(this.rop32(op, true), this.a0 = this.a0 - 4 | 0);
 			break;
 		case 0o047: // MOVE.L Abs...,-(A0)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a0 = this.a0 - 4 | 0);
+			this.write32(this.rop32(op, true), this.a0 = this.a0 - 4 | 0);
 			break;
 		case 0o050: // MOVE.L Dn,d(A0)
 		case 0o051: // MOVE.L An,d(A0)
@@ -1771,12 +1772,12 @@ class MC68000 extends Cpu {
 		case 0o054: // MOVE.L -(An),d(A0)
 		case 0o055: // MOVE.L d(An),d(A0)
 		case 0o056: // MOVE.L d(An,Xi),d(A0)
-			this.write32(this.move32(this.rop32(op)), this.a0 + this.fetch16s() | 0);
+			this.write32(this.rop32(op, true), this.a0 + this.fetch16s() | 0);
 			break;
 		case 0o057: // MOVE.L Abs...,d(A0)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a0 + this.fetch16s() | 0);
+			this.write32(this.rop32(op, true), this.a0 + this.fetch16s() | 0);
 			break;
 		case 0o060: // MOVE.L Dn,d(A0,Xi)
 		case 0o061: // MOVE.L An,d(A0,Xi)
@@ -1785,12 +1786,12 @@ class MC68000 extends Cpu {
 		case 0o064: // MOVE.L -(An),d(A0,Xi)
 		case 0o065: // MOVE.L d(An),d(A0,Xi)
 		case 0o066: // MOVE.L d(An,Xi),d(A0,Xi)
-			this.write32(this.move32(this.rop32(op)), this.index(this.a0));
+			this.write32(this.rop32(op, true), this.index(this.a0));
 			break;
 		case 0o067: // MOVE.L Abs...,d(A0,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.index(this.a0));
+			this.write32(this.rop32(op, true), this.index(this.a0));
 			break;
 		case 0o070: // MOVE.L Dn,Abs.W
 		case 0o071: // MOVE.L An,Abs.W
@@ -1799,12 +1800,12 @@ class MC68000 extends Cpu {
 		case 0o074: // MOVE.L -(An),Abs.W
 		case 0o075: // MOVE.L d(An),Abs.W
 		case 0o076: // MOVE.L d(An,Xi),Abs.W
-			this.write32(this.move32(this.rop32(op)), this.fetch16s());
+			this.write32(this.rop32(op, true), this.fetch16s());
 			break;
 		case 0o077: // MOVE.L Abs...,Abs.W
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.fetch16s());
+			this.write32(this.rop32(op, true), this.fetch16s());
 			break;
 		case 0o100: // MOVE.L Dn,D1
 		case 0o101: // MOVE.L An,D1
@@ -1813,12 +1814,12 @@ class MC68000 extends Cpu {
 		case 0o104: // MOVE.L -(An),D1
 		case 0o105: // MOVE.L d(An),D1
 		case 0o106: // MOVE.L d(An,Xi),D1
-			this.d1 = this.move32(this.rop32(op));
+			this.d1 = this.rop32(op, true);
 			break;
 		case 0o107: // MOVE.L Abs...,D1
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d1 = this.move32(this.rop32(op));
+			this.d1 = this.rop32(op, true);
 			break;
 		case 0o110: // MOVEA.L Dn,A1
 		case 0o111: // MOVEA.L An,A1
@@ -1841,12 +1842,12 @@ class MC68000 extends Cpu {
 		case 0o124: // MOVE.L -(An),(A1)
 		case 0o125: // MOVE.L d(An),(A1)
 		case 0o126: // MOVE.L d(An,Xi),(A1)
-			this.write32(this.move32(this.rop32(op)), this.a1);
+			this.write32(this.rop32(op, true), this.a1);
 			break;
 		case 0o127: // MOVE.L Abs...,(A1)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a1);
+			this.write32(this.rop32(op, true), this.a1);
 			break;
 		case 0o130: // MOVE.L Dn,(A1)+
 		case 0o131: // MOVE.L An,(A1)+
@@ -1855,13 +1856,13 @@ class MC68000 extends Cpu {
 		case 0o134: // MOVE.L -(An),(A1)+
 		case 0o135: // MOVE.L d(An),(A1)+
 		case 0o136: // MOVE.L d(An,Xi),(A1)+
-			this.write32(this.move32(this.rop32(op)), this.a1);
+			this.write32(this.rop32(op, true), this.a1);
 			this.a1 = this.a1 + 4 | 0;
 			break;
 		case 0o137: // MOVE.L Abs...,(A1)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a1);
+			this.write32(this.rop32(op, true), this.a1);
 			this.a1 = this.a1 + 4 | 0;
 			break;
 		case 0o140: // MOVE.L Dn,-(A1)
@@ -1871,12 +1872,12 @@ class MC68000 extends Cpu {
 		case 0o144: // MOVE.L -(An),-(A1)
 		case 0o145: // MOVE.L d(An),-(A1)
 		case 0o146: // MOVE.L d(An,Xi),-(A1)
-			this.write32(this.move32(this.rop32(op)), this.a1 = this.a1 - 4 | 0);
+			this.write32(this.rop32(op, true), this.a1 = this.a1 - 4 | 0);
 			break;
 		case 0o147: // MOVE.L Abs...,-(A1)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a1 = this.a1 - 4 | 0);
+			this.write32(this.rop32(op, true), this.a1 = this.a1 - 4 | 0);
 			break;
 		case 0o150: // MOVE.L Dn,d(A1)
 		case 0o151: // MOVE.L An,d(A1)
@@ -1885,12 +1886,12 @@ class MC68000 extends Cpu {
 		case 0o154: // MOVE.L -(An),d(A1)
 		case 0o155: // MOVE.L d(An),d(A1)
 		case 0o156: // MOVE.L d(An,Xi),d(A1)
-			this.write32(this.move32(this.rop32(op)), this.a1 + this.fetch16s() | 0);
+			this.write32(this.rop32(op, true), this.a1 + this.fetch16s() | 0);
 			break;
 		case 0o157: // MOVE.L Abs...,d(A1)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a1 + this.fetch16s() | 0);
+			this.write32(this.rop32(op, true), this.a1 + this.fetch16s() | 0);
 			break;
 		case 0o160: // MOVE.L Dn,d(A1,Xi)
 		case 0o161: // MOVE.L An,d(A1,Xi)
@@ -1899,12 +1900,12 @@ class MC68000 extends Cpu {
 		case 0o164: // MOVE.L -(An),d(A1,Xi)
 		case 0o165: // MOVE.L d(An),d(A1,Xi)
 		case 0o166: // MOVE.L d(An,Xi),d(A1,Xi)
-			this.write32(this.move32(this.rop32(op)), this.index(this.a1));
+			this.write32(this.rop32(op, true), this.index(this.a1));
 			break;
 		case 0o167: // MOVE.L Abs...,d(A1,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.index(this.a1));
+			this.write32(this.rop32(op, true), this.index(this.a1));
 			break;
 		case 0o170: // MOVE.L Dn,Abs.L
 		case 0o171: // MOVE.L An,Abs.L
@@ -1913,12 +1914,12 @@ class MC68000 extends Cpu {
 		case 0o174: // MOVE.L -(An),Abs.L
 		case 0o175: // MOVE.L d(An),Abs.L
 		case 0o176: // MOVE.L d(An,Xi),Abs.L
-			this.write32(this.move32(this.rop32(op)), this.fetch32());
+			this.write32(this.rop32(op, true), this.fetch32());
 			break;
 		case 0o177: // MOVE.L Abs...,Abs.L
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.fetch32());
+			this.write32(this.rop32(op, true), this.fetch32());
 			break;
 		case 0o200: // MOVE.L Dn,D2
 		case 0o201: // MOVE.L An,D2
@@ -1927,12 +1928,12 @@ class MC68000 extends Cpu {
 		case 0o204: // MOVE.L -(An),D2
 		case 0o205: // MOVE.L d(An),D2
 		case 0o206: // MOVE.L d(An,Xi),D2
-			this.d2 = this.move32(this.rop32(op));
+			this.d2 = this.rop32(op, true);
 			break;
 		case 0o207: // MOVE.L Abs...,D2
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d2 = this.move32(this.rop32(op));
+			this.d2 = this.rop32(op, true);
 			break;
 		case 0o210: // MOVEA.L Dn,A2
 		case 0o211: // MOVEA.L An,A2
@@ -1955,12 +1956,12 @@ class MC68000 extends Cpu {
 		case 0o224: // MOVE.L -(An),(A2)
 		case 0o225: // MOVE.L d(An),(A2)
 		case 0o226: // MOVE.L d(An,Xi),(A2)
-			this.write32(this.move32(this.rop32(op)), this.a2);
+			this.write32(this.rop32(op, true), this.a2);
 			break;
 		case 0o227: // MOVE.L Abs...,(A2)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a2);
+			this.write32(this.rop32(op, true), this.a2);
 			break;
 		case 0o230: // MOVE.L Dn,(A2)+
 		case 0o231: // MOVE.L An,(A2)+
@@ -1969,13 +1970,13 @@ class MC68000 extends Cpu {
 		case 0o234: // MOVE.L -(An),(A2)+
 		case 0o235: // MOVE.L d(An),(A2)+
 		case 0o236: // MOVE.L d(An,Xi),(A2)+
-			this.write32(this.move32(this.rop32(op)), this.a2);
+			this.write32(this.rop32(op, true), this.a2);
 			this.a2 = this.a2 + 4 | 0;
 			break;
 		case 0o237: // MOVE.L Abs...,(A2)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a2);
+			this.write32(this.rop32(op, true), this.a2);
 			this.a2 = this.a2 + 4 | 0;
 			break;
 		case 0o240: // MOVE.L Dn,-(A2)
@@ -1985,12 +1986,12 @@ class MC68000 extends Cpu {
 		case 0o244: // MOVE.L -(An),-(A2)
 		case 0o245: // MOVE.L d(An),-(A2)
 		case 0o246: // MOVE.L d(An,Xi),-(A2)
-			this.write32(this.move32(this.rop32(op)), this.a2 = this.a2 - 4 | 0);
+			this.write32(this.rop32(op, true), this.a2 = this.a2 - 4 | 0);
 			break;
 		case 0o247: // MOVE.L Abs...,-(A2)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a2 = this.a2 - 4 | 0);
+			this.write32(this.rop32(op, true), this.a2 = this.a2 - 4 | 0);
 			break;
 		case 0o250: // MOVE.L Dn,d(A2)
 		case 0o251: // MOVE.L An,d(A2)
@@ -1999,12 +2000,12 @@ class MC68000 extends Cpu {
 		case 0o254: // MOVE.L -(An),d(A2)
 		case 0o255: // MOVE.L d(An),d(A2)
 		case 0o256: // MOVE.L d(An,Xi),d(A2)
-			this.write32(this.move32(this.rop32(op)), this.a2 + this.fetch16s() | 0);
+			this.write32(this.rop32(op, true), this.a2 + this.fetch16s() | 0);
 			break;
 		case 0o257: // MOVE.L Abs...,d(A2)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a2 + this.fetch16s() | 0);
+			this.write32(this.rop32(op, true), this.a2 + this.fetch16s() | 0);
 			break;
 		case 0o260: // MOVE.L Dn,d(A2,Xi)
 		case 0o261: // MOVE.L An,d(A2,Xi)
@@ -2013,12 +2014,12 @@ class MC68000 extends Cpu {
 		case 0o264: // MOVE.L -(An),d(A2,Xi)
 		case 0o265: // MOVE.L d(An),d(A2,Xi)
 		case 0o266: // MOVE.L d(An,Xi),d(A2,Xi)
-			this.write32(this.move32(this.rop32(op)), this.index(this.a2));
+			this.write32(this.rop32(op, true), this.index(this.a2));
 			break;
 		case 0o267: // MOVE.L Abs...,d(A2,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.index(this.a2));
+			this.write32(this.rop32(op, true), this.index(this.a2));
 			break;
 		case 0o300: // MOVE.L Dn,D3
 		case 0o301: // MOVE.L An,D3
@@ -2027,12 +2028,12 @@ class MC68000 extends Cpu {
 		case 0o304: // MOVE.L -(An),D3
 		case 0o305: // MOVE.L d(An),D3
 		case 0o306: // MOVE.L d(An,Xi),D3
-			this.d3 = this.move32(this.rop32(op));
+			this.d3 = this.rop32(op, true);
 			break;
 		case 0o307: // MOVE.L Abs..,D3
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d3 = this.move32(this.rop32(op));
+			this.d3 = this.rop32(op, true);
 			break;
 		case 0o310: // MOVEA.L Dn,A3
 		case 0o311: // MOVEA.L An,A3
@@ -2055,12 +2056,12 @@ class MC68000 extends Cpu {
 		case 0o324: // MOVE.L -(An),(A3)
 		case 0o325: // MOVE.L d(An),(A3)
 		case 0o326: // MOVE.L d(An,Xi),(A3)
-			this.write32(this.move32(this.rop32(op)), this.a3);
+			this.write32(this.rop32(op, true), this.a3);
 			break;
 		case 0o327: // MOVE.L Abs...,(A3)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a3);
+			this.write32(this.rop32(op, true), this.a3);
 			break;
 		case 0o330: // MOVE.L Dn,(A3)+
 		case 0o331: // MOVE.L An,(A3)+
@@ -2069,13 +2070,13 @@ class MC68000 extends Cpu {
 		case 0o334: // MOVE.L -(An),(A3)+
 		case 0o335: // MOVE.L d(An),(A3)+
 		case 0o336: // MOVE.L d(An,Xi),(A3)+
-			this.write32(this.move32(this.rop32(op)), this.a3);
+			this.write32(this.rop32(op, true), this.a3);
 			this.a3 = this.a3 + 4 | 0;
 			break;
 		case 0o337: // MOVE.L Abs...,(A3)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a3);
+			this.write32(this.rop32(op, true), this.a3);
 			this.a3 = this.a3 + 4 | 0;
 			break;
 		case 0o340: // MOVE.L Dn,-(A3)
@@ -2085,12 +2086,12 @@ class MC68000 extends Cpu {
 		case 0o344: // MOVE.L -(An),-(A3)
 		case 0o345: // MOVE.L d(An),-(A3)
 		case 0o346: // MOVE.L d(An,Xi),-(A3)
-			this.write32(this.move32(this.rop32(op)), this.a3 = this.a3 - 4 | 0);
+			this.write32(this.rop32(op, true), this.a3 = this.a3 - 4 | 0);
 			break;
 		case 0o347: // MOVE.L Abs...,-(A3)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a3 = this.a3 - 4 | 0);
+			this.write32(this.rop32(op, true), this.a3 = this.a3 - 4 | 0);
 			break;
 		case 0o350: // MOVE.L Dn,d(A3)
 		case 0o351: // MOVE.L An,d(A3)
@@ -2099,12 +2100,12 @@ class MC68000 extends Cpu {
 		case 0o354: // MOVE.L -(An),d(A3)
 		case 0o355: // MOVE.L d(An),d(A3)
 		case 0o356: // MOVE.L d(An,Xi),d(A3)
-			this.write32(this.move32(this.rop32(op)), this.a3 + this.fetch16s() | 0);
+			this.write32(this.rop32(op, true), this.a3 + this.fetch16s() | 0);
 			break;
 		case 0o357: // MOVE.L Abs...,d(A3)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a3 + this.fetch16s() | 0);
+			this.write32(this.rop32(op, true), this.a3 + this.fetch16s() | 0);
 			break;
 		case 0o360: // MOVE.L Dn,d(A3,Xi)
 		case 0o361: // MOVE.L An,d(A3,Xi)
@@ -2113,12 +2114,12 @@ class MC68000 extends Cpu {
 		case 0o364: // MOVE.L -(An),d(A3,Xi)
 		case 0o365: // MOVE.L d(An),d(A3,Xi)
 		case 0o366: // MOVE.L d(An,Xi),d(A3,Xi)
-			this.write32(this.move32(this.rop32(op)), this.index(this.a3));
+			this.write32(this.rop32(op, true), this.index(this.a3));
 			break;
 		case 0o367: // MOVE.L Abs...,d(A3,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.index(this.a3));
+			this.write32(this.rop32(op, true), this.index(this.a3));
 			break;
 		case 0o400: // MOVE.L Dn,D4
 		case 0o401: // MOVE.L An,D4
@@ -2127,12 +2128,12 @@ class MC68000 extends Cpu {
 		case 0o404: // MOVE.L -(An),D4
 		case 0o405: // MOVE.L d(An),D4
 		case 0o406: // MOVE.L d(An,Xi),D4
-			this.d4 = this.move32(this.rop32(op));
+			this.d4 = this.rop32(op, true);
 			break;
 		case 0o407: // MOVE.L Abs...,D4
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d4 = this.move32(this.rop32(op));
+			this.d4 = this.rop32(op, true);
 			break;
 		case 0o410: // MOVEA.L Dn,A4
 		case 0o411: // MOVEA.L An,A4
@@ -2155,12 +2156,12 @@ class MC68000 extends Cpu {
 		case 0o424: // MOVE.L -(An),(A4)
 		case 0o425: // MOVE.L d(An),(A4)
 		case 0o426: // MOVE.L d(An,Xi),(A4)
-			this.write32(this.move32(this.rop32(op)), this.a4);
+			this.write32(this.rop32(op, true), this.a4);
 			break;
 		case 0o427: // MOVE.L Abs...,(A4)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a4);
+			this.write32(this.rop32(op, true), this.a4);
 			break;
 		case 0o430: // MOVE.L Dn,(A4)+
 		case 0o431: // MOVE.L An,(A4)+
@@ -2169,13 +2170,13 @@ class MC68000 extends Cpu {
 		case 0o434: // MOVE.L -(An),(A4)+
 		case 0o435: // MOVE.L d(An),(A4)+
 		case 0o436: // MOVE.L d(An,Xi),(A4)+
-			this.write32(this.move32(this.rop32(op)), this.a4);
+			this.write32(this.rop32(op, true), this.a4);
 			this.a4 = this.a4 + 4 | 0;
 			break;
 		case 0o437: // MOVE.L Abs...,(A4)+
 			if ((op & 7) >= 5)
 				this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a4);
+			this.write32(this.rop32(op, true), this.a4);
 			this.a4 = this.a4 + 4 | 0;
 			break;
 		case 0o440: // MOVE.L Dn,-(A4)
@@ -2185,12 +2186,12 @@ class MC68000 extends Cpu {
 		case 0o444: // MOVE.L -(An),-(A4)
 		case 0o445: // MOVE.L d(An),-(A4)
 		case 0o446: // MOVE.L d(An,Xi),-(A4)
-			this.write32(this.move32(this.rop32(op)), this.a4 = this.a4 - 4 | 0);
+			this.write32(this.rop32(op, true), this.a4 = this.a4 - 4 | 0);
 			break;
 		case 0o447: // MOVE.L Abs...,-(A4)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a4 = this.a4 - 4 | 0);
+			this.write32(this.rop32(op, true), this.a4 = this.a4 - 4 | 0);
 			break;
 		case 0o450: // MOVE.L Dn,d(A4)
 		case 0o451: // MOVE.L An,d(A4)
@@ -2199,12 +2200,12 @@ class MC68000 extends Cpu {
 		case 0o454: // MOVE.L -(An),d(A4)
 		case 0o455: // MOVE.L d(An),d(A4)
 		case 0o456: // MOVE.L d(An,Xi),d(A4)
-			this.write32(this.move32(this.rop32(op)), this.a4 + this.fetch16s() | 0);
+			this.write32(this.rop32(op, true), this.a4 + this.fetch16s() | 0);
 			break;
 		case 0o457: // MOVE.L Abs...,d(A4)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a4 + this.fetch16s() | 0);
+			this.write32(this.rop32(op, true), this.a4 + this.fetch16s() | 0);
 			break;
 		case 0o460: // MOVE.L Dn,d(A4,Xi)
 		case 0o461: // MOVE.L An,d(A4,Xi)
@@ -2213,12 +2214,12 @@ class MC68000 extends Cpu {
 		case 0o464: // MOVE.L -(An),d(A4,Xi)
 		case 0o465: // MOVE.L d(An),d(A4,Xi)
 		case 0o466: // MOVE.L d(An,Xi),d(A4,Xi)
-			this.write32(this.move32(this.rop32(op)), this.index(this.a4));
+			this.write32(this.rop32(op, true), this.index(this.a4));
 			break;
 		case 0o467: // MOVE.L Abs..W,d(A4,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.index(this.a4));
+			this.write32(this.rop32(op, true), this.index(this.a4));
 			break;
 		case 0o500: // MOVE.L Dn,D5
 		case 0o501: // MOVE.L An,D5
@@ -2227,12 +2228,12 @@ class MC68000 extends Cpu {
 		case 0o504: // MOVE.L -(An),D5
 		case 0o505: // MOVE.L d(An),D5
 		case 0o506: // MOVE.L d(An,Xi),D5
-			this.d5 = this.move32(this.rop32(op));
+			this.d5 = this.rop32(op, true);
 			break;
 		case 0o507: // MOVE.L Abs...,D5
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d5 = this.move32(this.rop32(op));
+			this.d5 = this.rop32(op, true);
 			break;
 		case 0o510: // MOVEA.L Dn,A5
 		case 0o511: // MOVEA.L An,A5
@@ -2255,12 +2256,12 @@ class MC68000 extends Cpu {
 		case 0o524: // MOVE.L -(An),(A5)
 		case 0o525: // MOVE.L d(An),(A5)
 		case 0o526: // MOVE.L d(An,Xi),(A5)
-			this.write32(this.move32(this.rop32(op)), this.a5);
+			this.write32(this.rop32(op, true), this.a5);
 			break;
 		case 0o527: // MOVE.L Abs...,(A5)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a5);
+			this.write32(this.rop32(op, true), this.a5);
 			break;
 		case 0o530: // MOVE.L Dn,(A5)+
 		case 0o531: // MOVE.L An,(A5)+
@@ -2269,13 +2270,13 @@ class MC68000 extends Cpu {
 		case 0o534: // MOVE.L -(An),(A5)+
 		case 0o535: // MOVE.L d(An),(A5)+
 		case 0o536: // MOVE.L d(An,Xi),(A5)+
-			this.write32(this.move32(this.rop32(op)), this.a5);
+			this.write32(this.rop32(op, true), this.a5);
 			this.a5 = this.a5 + 4 | 0;
 			break;
 		case 0o537: // MOVE.L Abs...,(A5)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a5);
+			this.write32(this.rop32(op, true), this.a5);
 			this.a5 = this.a5 + 4 | 0;
 			break;
 		case 0o540: // MOVE.L Dn,-(A5)
@@ -2285,12 +2286,12 @@ class MC68000 extends Cpu {
 		case 0o544: // MOVE.L -(An),-(A5)
 		case 0o545: // MOVE.L d(An),-(A5)
 		case 0o546: // MOVE.L d(An,Xi),-(A5)
-			this.write32(this.move32(this.rop32(op)), this.a5 = this.a5 - 4 | 0);
+			this.write32(this.rop32(op, true), this.a5 = this.a5 - 4 | 0);
 			break;
 		case 0o547: // MOVE.L Abs...,-(A5)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a5 = this.a5 - 4 | 0);
+			this.write32(this.rop32(op, true), this.a5 = this.a5 - 4 | 0);
 			break;
 		case 0o550: // MOVE.L Dn,d(A5)
 		case 0o551: // MOVE.L An,d(A5)
@@ -2299,12 +2300,12 @@ class MC68000 extends Cpu {
 		case 0o554: // MOVE.L -(An),d(A5)
 		case 0o555: // MOVE.L d(An),d(A5)
 		case 0o556: // MOVE.L d(An,Xi),d(A5)
-			this.write32(this.move32(this.rop32(op)), this.a5 + this.fetch16s() | 0);
+			this.write32(this.rop32(op, true), this.a5 + this.fetch16s() | 0);
 			break;
 		case 0o557: // MOVE.L Abs...,d(A5)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a5 + this.fetch16s() | 0);
+			this.write32(this.rop32(op, true), this.a5 + this.fetch16s() | 0);
 			break;
 		case 0o560: // MOVE.L Dn,d(A5,Xi)
 		case 0o561: // MOVE.L An,d(A5,Xi)
@@ -2313,12 +2314,12 @@ class MC68000 extends Cpu {
 		case 0o564: // MOVE.L -(An),d(A5,Xi)
 		case 0o565: // MOVE.L d(An),d(A5,Xi)
 		case 0o566: // MOVE.L d(An,Xi),d(A5,Xi)
-			this.write32(this.move32(this.rop32(op)), this.index(this.a5));
+			this.write32(this.rop32(op, true), this.index(this.a5));
 			break;
 		case 0o567: // MOVE.L Abs...,d(A5,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.index(this.a5));
+			this.write32(this.rop32(op, true), this.index(this.a5));
 			break;
 		case 0o600: // MOVE.L Dn,D6
 		case 0o601: // MOVE.L An,D6
@@ -2327,12 +2328,12 @@ class MC68000 extends Cpu {
 		case 0o604: // MOVE.L -(An),D6
 		case 0o605: // MOVE.L d(An),D6
 		case 0o606: // MOVE.L d(An,Xi),D6
-			this.d6 = this.move32(this.rop32(op));
+			this.d6 = this.rop32(op, true);
 			break;
 		case 0o607: // MOVE.L Abs...,D6
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d6 = this.move32(this.rop32(op));
+			this.d6 = this.rop32(op, true);
 			break;
 		case 0o610: // MOVEA.L Dn,A6
 		case 0o611: // MOVEA.L An,A6
@@ -2355,12 +2356,12 @@ class MC68000 extends Cpu {
 		case 0o624: // MOVE.L -(An),(A6)
 		case 0o625: // MOVE.L d(An),(A6)
 		case 0o626: // MOVE.L d(An,Xi),(A6)
-			this.write32(this.move32(this.rop32(op)), this.a6);
+			this.write32(this.rop32(op, true), this.a6);
 			break;
 		case 0o627: // MOVE.L Abs...,(A6)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a6);
+			this.write32(this.rop32(op, true), this.a6);
 			break;
 		case 0o630: // MOVE.L Dn,(A6)+
 		case 0o631: // MOVE.L An,(A6)+
@@ -2369,13 +2370,13 @@ class MC68000 extends Cpu {
 		case 0o634: // MOVE.L -(An),(A6)+
 		case 0o635: // MOVE.L d(An),(A6)+
 		case 0o636: // MOVE.L d(An,Xi),(A6)+
-			this.write32(this.move32(this.rop32(op)), this.a6);
+			this.write32(this.rop32(op, true), this.a6);
 			this.a6 = this.a6 + 4 | 0;
 			break;
 		case 0o637: // MOVE.L Abs...,(A6)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a6);
+			this.write32(this.rop32(op, true), this.a6);
 			this.a6 = this.a6 + 4 | 0;
 			break;
 		case 0o640: // MOVE.L Dn,-(A6)
@@ -2385,12 +2386,12 @@ class MC68000 extends Cpu {
 		case 0o644: // MOVE.L -(An),-(A6)
 		case 0o645: // MOVE.L d(An),-(A6)
 		case 0o646: // MOVE.L d(An,Xi),-(A6)
-			this.write32(this.move32(this.rop32(op)), this.a6 = this.a6 - 4 | 0);
+			this.write32(this.rop32(op, true), this.a6 = this.a6 - 4 | 0);
 			break;
 		case 0o647: // MOVE.L Abs...,-(A6)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a6 = this.a6 - 4 | 0);
+			this.write32(this.rop32(op, true), this.a6 = this.a6 - 4 | 0);
 			break;
 		case 0o650: // MOVE.L Dn,d(A6)
 		case 0o651: // MOVE.L An,d(A6)
@@ -2399,12 +2400,12 @@ class MC68000 extends Cpu {
 		case 0o654: // MOVE.L -(An),d(A6)
 		case 0o655: // MOVE.L d(An),d(A6)
 		case 0o656: // MOVE.L d(An,Xi),d(A6)
-			this.write32(this.move32(this.rop32(op)), this.a6 + this.fetch16s() | 0);
+			this.write32(this.rop32(op, true), this.a6 + this.fetch16s() | 0);
 			break;
 		case 0o657: // MOVE.L Abs...,d(A6)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a6 + this.fetch16s() | 0);
+			this.write32(this.rop32(op, true), this.a6 + this.fetch16s() | 0);
 			break;
 		case 0o660: // MOVE.L Dn,d(A6,Xi)
 		case 0o661: // MOVE.L An,d(A6,Xi)
@@ -2413,12 +2414,12 @@ class MC68000 extends Cpu {
 		case 0o664: // MOVE.L -(An),d(A6,Xi)
 		case 0o665: // MOVE.L d(An),d(A6,Xi)
 		case 0o666: // MOVE.L d(An,Xi),d(A6,Xi)
-			this.write32(this.move32(this.rop32(op)), this.index(this.a6));
+			this.write32(this.rop32(op, true), this.index(this.a6));
 			break;
 		case 0o667: // MOVE.L Abs...,d(A6,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.index(this.a6));
+			this.write32(this.rop32(op, true), this.index(this.a6));
 			break;
 		case 0o700: // MOVE.L Dn,D7
 		case 0o701: // MOVE.L An,D7
@@ -2427,12 +2428,12 @@ class MC68000 extends Cpu {
 		case 0o704: // MOVE.L -(An),D7
 		case 0o705: // MOVE.L d(An),D7
 		case 0o706: // MOVE.L d(An,Xi),D7
-			this.d7 = this.move32(this.rop32(op));
+			this.d7 = this.rop32(op, true);
 			break;
 		case 0o707: // MOVE.L Abs...,D7
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d7 = this.move32(this.rop32(op));
+			this.d7 = this.rop32(op, true);
 			break;
 		case 0o710: // MOVEA.L Dn,A7
 		case 0o711: // MOVEA.L An,A7
@@ -2455,12 +2456,12 @@ class MC68000 extends Cpu {
 		case 0o724: // MOVE.L -(An),(A7)
 		case 0o725: // MOVE.L d(An),(A7)
 		case 0o726: // MOVE.L d(An,Xi),(A7)
-			this.write32(this.move32(this.rop32(op)), this.a7);
+			this.write32(this.rop32(op, true), this.a7);
 			break;
 		case 0o727: // MOVE.L Abs...,(A7)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a7);
+			this.write32(this.rop32(op, true), this.a7);
 			break;
 		case 0o730: // MOVE.L Dn,(A7)+
 		case 0o731: // MOVE.L An,(A7)+
@@ -2469,13 +2470,13 @@ class MC68000 extends Cpu {
 		case 0o734: // MOVE.L -(An),(A7)+
 		case 0o735: // MOVE.L d(An),(A7)+
 		case 0o736: // MOVE.L d(An,Xi),(A7)+
-			this.write32(this.move32(this.rop32(op)), this.a7);
+			this.write32(this.rop32(op, true), this.a7);
 			this.a7 = this.a7 + 4 | 0;
 			break;
 		case 0o737: // MOVE.L Abs...,(A7)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a7);
+			this.write32(this.rop32(op, true), this.a7);
 			this.a7 = this.a7 + 4 | 0;
 			break;
 		case 0o740: // MOVE.L Dn,-(A7)
@@ -2485,12 +2486,12 @@ class MC68000 extends Cpu {
 		case 0o744: // MOVE.L -(An),-(A7)
 		case 0o745: // MOVE.L d(An),-(A7)
 		case 0o746: // MOVE.L d(An,Xi),-(A7)
-			this.write32(this.move32(this.rop32(op)), this.a7 = this.a7 - 4 | 0);
+			this.write32(this.rop32(op, true), this.a7 = this.a7 - 4 | 0);
 			break;
 		case 0o747: // MOVE.L Abs...,-(A7)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a7 = this.a7 - 4 | 0);
+			this.write32(this.rop32(op, true), this.a7 = this.a7 - 4 | 0);
 			break;
 		case 0o750: // MOVE.L Dn,d(A7)
 		case 0o751: // MOVE.L An,d(A7)
@@ -2499,12 +2500,12 @@ class MC68000 extends Cpu {
 		case 0o754: // MOVE.L -(An),d(A7)
 		case 0o755: // MOVE.L d(An),d(A7)
 		case 0o756: // MOVE.L d(An,Xi),d(A7)
-			this.write32(this.move32(this.rop32(op)), this.a7 + this.fetch16s() | 0);
+			this.write32(this.rop32(op, true), this.a7 + this.fetch16s() | 0);
 			break;
 		case 0o757: // MOVE.L Abs...,d(A7)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.a7 + this.fetch16s() | 0);
+			this.write32(this.rop32(op, true), this.a7 + this.fetch16s() | 0);
 			break;
 		case 0o760: // MOVE.L Dn,d(A7,Xi)
 		case 0o761: // MOVE.L An,d(A7,Xi)
@@ -2513,12 +2514,12 @@ class MC68000 extends Cpu {
 		case 0o764: // MOVE.L -(An),d(A7,Xi)
 		case 0o765: // MOVE.L d(An),d(A7,Xi)
 		case 0o766: // MOVE.L d(An,Xi),d(A7,Xi)
-			this.write32(this.move32(this.rop32(op)), this.index(this.a7));
+			this.write32(this.rop32(op, true), this.index(this.a7));
 			break;
 		case 0o767: // MOVE.L Abs...,d(A7,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write32(this.move32(this.rop32(op)), this.index(this.a7));
+			this.write32(this.rop32(op, true), this.index(this.a7));
 			break;
 		default:
 			return void this.exception(4);
@@ -2534,12 +2535,12 @@ class MC68000 extends Cpu {
 		case 0o004: // MOVE.W -(An),D0
 		case 0o005: // MOVE.W d(An),D0
 		case 0o006: // MOVE.W d(An,Xi),D0
-			this.d0 = this.d0 & ~0xffff | this.move16(this.rop16(op));
+			this.d0 = this.d0 & ~0xffff | this.rop16(op, true);
 			break;
 		case 0o007: // MOVE.W Abs...,D0
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d0 = this.d0 & ~0xffff | this.move16(this.rop16(op));
+			this.d0 = this.d0 & ~0xffff | this.rop16(op, true);
 			break;
 		case 0o010: // MOVEA.W Dn,A0
 		case 0o011: // MOVEA.W An,A0
@@ -2562,12 +2563,12 @@ class MC68000 extends Cpu {
 		case 0o024: // MOVE.W -(An),(A0)
 		case 0o025: // MOVE.W d(An),(A0)
 		case 0o026: // MOVE.W d(An,Xi),(A0)
-			this.write16(this.move16(this.rop16(op)), this.a0);
+			this.write16(this.rop16(op, true), this.a0);
 			break;
 		case 0o027: // MOVE.W Abs...,(A0)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a0);
+			this.write16(this.rop16(op, true), this.a0);
 			break;
 		case 0o030: // MOVE.W Dn,(A0)+
 		case 0o031: // MOVE.W An,(A0)+
@@ -2576,13 +2577,13 @@ class MC68000 extends Cpu {
 		case 0o034: // MOVE.W -(An),(A0)+
 		case 0o035: // MOVE.W d(An),(A0)+
 		case 0o036: // MOVE.W d(An,Xi),(A0)+
-			this.write16(this.move16(this.rop16(op)), this.a0);
+			this.write16(this.rop16(op, true), this.a0);
 			this.a0 = this.a0 + 2 | 0;
 			break;
 		case 0o037: // MOVE.W Abs...,(A0)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a0);
+			this.write16(this.rop16(op, true), this.a0);
 			this.a0 = this.a0 + 2 | 0;
 			break;
 		case 0o040: // MOVE.W Dn,-(A0)
@@ -2592,12 +2593,12 @@ class MC68000 extends Cpu {
 		case 0o044: // MOVE.W -(An),-(A0)
 		case 0o045: // MOVE.W d(An),-(A0)
 		case 0o046: // MOVE.W d(An,Xi),-(A0)
-			this.write16(this.move16(this.rop16(op)), this.a0 = this.a0 - 2 | 0);
+			this.write16(this.rop16(op, true), this.a0 = this.a0 - 2 | 0);
 			break;
 		case 0o047: // MOVE.W Abs...,-(A0)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a0 = this.a0 - 2 | 0);
+			this.write16(this.rop16(op, true), this.a0 = this.a0 - 2 | 0);
 			break;
 		case 0o050: // MOVE.W Dn,d(A0)
 		case 0o051: // MOVE.W An,d(A0)
@@ -2606,12 +2607,12 @@ class MC68000 extends Cpu {
 		case 0o054: // MOVE.W -(An),d(A0)
 		case 0o055: // MOVE.W d(An),d(A0)
 		case 0o056: // MOVE.W d(An,Xi),d(A0)
-			this.write16(this.move16(this.rop16(op)), this.a0 + this.fetch16s() | 0);
+			this.write16(this.rop16(op, true), this.a0 + this.fetch16s() | 0);
 			break;
 		case 0o057: // MOVE.W Abs...,d(A0)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a0 + this.fetch16s() | 0);
+			this.write16(this.rop16(op, true), this.a0 + this.fetch16s() | 0);
 			break;
 		case 0o060: // MOVE.W Dn,d(A0,Xi)
 		case 0o061: // MOVE.W An,d(A0,Xi)
@@ -2620,12 +2621,12 @@ class MC68000 extends Cpu {
 		case 0o064: // MOVE.W -(An),d(A0,Xi)
 		case 0o065: // MOVE.W d(An),d(A0,Xi)
 		case 0o066: // MOVE.W d(An,Xi),d(A0,Xi)
-			this.write16(this.move16(this.rop16(op)), this.index(this.a0));
+			this.write16(this.rop16(op, true), this.index(this.a0));
 			break;
 		case 0o067: // MOVE.W Abs...,d(A0,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.index(this.a0));
+			this.write16(this.rop16(op, true), this.index(this.a0));
 			break;
 		case 0o070: // MOVE.W Dn,Abs.W
 		case 0o071: // MOVE.W An,Abs.W
@@ -2634,12 +2635,12 @@ class MC68000 extends Cpu {
 		case 0o074: // MOVE.W -(An),Abs.W
 		case 0o075: // MOVE.W d(An),Abs.W
 		case 0o076: // MOVE.W d(An,Xi),Abs.W
-			this.write16(this.move16(this.rop16(op)), this.fetch16s());
+			this.write16(this.rop16(op, true), this.fetch16s());
 			break;
 		case 0o077: // MOVE.W Abs...,Abs.W
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.fetch16s());
+			this.write16(this.rop16(op, true), this.fetch16s());
 			break;
 		case 0o100: // MOVE.W Dn,D1
 		case 0o101: // MOVE.W An,D1
@@ -2648,12 +2649,12 @@ class MC68000 extends Cpu {
 		case 0o104: // MOVE.W -(An),D1
 		case 0o105: // MOVE.W d(An),D1
 		case 0o106: // MOVE.W d(An,Xi),D1
-			this.d1 = this.d1 & ~0xffff | this.move16(this.rop16(op));
+			this.d1 = this.d1 & ~0xffff | this.rop16(op, true);
 			break;
 		case 0o107: // MOVE.W Abs...,D1
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d1 = this.d1 & ~0xffff | this.move16(this.rop16(op));
+			this.d1 = this.d1 & ~0xffff | this.rop16(op, true);
 			break;
 		case 0o110: // MOVEA.W Dn,A1
 		case 0o111: // MOVEA.W An,A1
@@ -2676,12 +2677,12 @@ class MC68000 extends Cpu {
 		case 0o124: // MOVE.W -(An),(A1)
 		case 0o125: // MOVE.W d(An),(A1)
 		case 0o126: // MOVE.W d(An,Xi),(A1)
-			this.write16(this.move16(this.rop16(op)), this.a1);
+			this.write16(this.rop16(op, true), this.a1);
 			break;
 		case 0o127: // MOVE.W Abs...,(A1)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a1);
+			this.write16(this.rop16(op, true), this.a1);
 			break;
 		case 0o130: // MOVE.W Dn,(A1)+
 		case 0o131: // MOVE.W An,(A1)+
@@ -2690,13 +2691,13 @@ class MC68000 extends Cpu {
 		case 0o134: // MOVE.W -(An),(A1)+
 		case 0o135: // MOVE.W d(An),(A1)+
 		case 0o136: // MOVE.W d(An,Xi),(A1)+
-			this.write16(this.move16(this.rop16(op)), this.a1);
+			this.write16(this.rop16(op, true), this.a1);
 			this.a1 = this.a1 + 2 | 0;
 			break;
 		case 0o137: // MOVE.W Abs...,(A1)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a1);
+			this.write16(this.rop16(op, true), this.a1);
 			this.a1 = this.a1 + 2 | 0;
 			break;
 		case 0o140: // MOVE.W Dn,-(A1)
@@ -2706,12 +2707,12 @@ class MC68000 extends Cpu {
 		case 0o144: // MOVE.W -(An),-(A1)
 		case 0o145: // MOVE.W d(An),-(A1)
 		case 0o146: // MOVE.W d(An,Xi),-(A1)
-			this.write16(this.move16(this.rop16(op)), this.a1 = this.a1 - 2 | 0);
+			this.write16(this.rop16(op, true), this.a1 = this.a1 - 2 | 0);
 			break;
 		case 0o147: // MOVE.W Abs...,-(A1)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a1 = this.a1 - 2 | 0);
+			this.write16(this.rop16(op, true), this.a1 = this.a1 - 2 | 0);
 			break;
 		case 0o150: // MOVE.W Dn,d(A1)
 		case 0o151: // MOVE.W An,d(A1)
@@ -2720,12 +2721,12 @@ class MC68000 extends Cpu {
 		case 0o154: // MOVE.W -(An),d(A1)
 		case 0o155: // MOVE.W d(An),d(A1)
 		case 0o156: // MOVE.W d(An,Xi),d(A1)
-			this.write16(this.move16(this.rop16(op)), this.a1 + this.fetch16s() | 0);
+			this.write16(this.rop16(op, true), this.a1 + this.fetch16s() | 0);
 			break;
 		case 0o157: // MOVE.W Abs...,d(A1)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a1 + this.fetch16s() | 0);
+			this.write16(this.rop16(op, true), this.a1 + this.fetch16s() | 0);
 			break;
 		case 0o160: // MOVE.W Dn,d(A1,Xi)
 		case 0o161: // MOVE.W An,d(A1,Xi)
@@ -2734,12 +2735,12 @@ class MC68000 extends Cpu {
 		case 0o164: // MOVE.W -(An),d(A1,Xi)
 		case 0o165: // MOVE.W d(An),d(A1,Xi)
 		case 0o166: // MOVE.W d(An,Xi),d(A1,Xi)
-			this.write16(this.move16(this.rop16(op)), this.index(this.a1));
+			this.write16(this.rop16(op, true), this.index(this.a1));
 			break;
 		case 0o167: // MOVE.W Abs...,d(A1,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.index(this.a1));
+			this.write16(this.rop16(op, true), this.index(this.a1));
 			break;
 		case 0o170: // MOVE.W Dn,Abs.L
 		case 0o171: // MOVE.W An,Abs.L
@@ -2748,12 +2749,12 @@ class MC68000 extends Cpu {
 		case 0o174: // MOVE.W -(An),Abs.L
 		case 0o175: // MOVE.W d(An),Abs.L
 		case 0o176: // MOVE.W d(An,Xi),Abs.L
-			this.write16(this.move16(this.rop16(op)), this.fetch32());
+			this.write16(this.rop16(op, true), this.fetch32());
 			break;
 		case 0o177: // MOVE.W Abs...,Abs.L
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.fetch32());
+			this.write16(this.rop16(op, true), this.fetch32());
 			break;
 		case 0o200: // MOVE.W Dn,D2
 		case 0o201: // MOVE.W An,D2
@@ -2762,12 +2763,12 @@ class MC68000 extends Cpu {
 		case 0o204: // MOVE.W -(An),D2
 		case 0o205: // MOVE.W d(An),D2
 		case 0o206: // MOVE.W d(An,Xi),D2
-			this.d2 = this.d2 & ~0xffff | this.move16(this.rop16(op));
+			this.d2 = this.d2 & ~0xffff | this.rop16(op, true);
 			break;
 		case 0o207: // MOVE.W Abs...,D2
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d2 = this.d2 & ~0xffff | this.move16(this.rop16(op));
+			this.d2 = this.d2 & ~0xffff | this.rop16(op, true);
 			break;
 		case 0o210: // MOVEA.W Dn,A2
 		case 0o211: // MOVEA.W An,A2
@@ -2790,12 +2791,12 @@ class MC68000 extends Cpu {
 		case 0o224: // MOVE.W -(An),(A2)
 		case 0o225: // MOVE.W d(An),(A2)
 		case 0o226: // MOVE.W d(An,Xi),(A2)
-			this.write16(this.move16(this.rop16(op)), this.a2);
+			this.write16(this.rop16(op, true), this.a2);
 			break;
 		case 0o227: // MOVE.W Abs...,(A2)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a2);
+			this.write16(this.rop16(op, true), this.a2);
 			break;
 		case 0o230: // MOVE.W Dn,(A2)+
 		case 0o231: // MOVE.W An,(A2)+
@@ -2804,13 +2805,13 @@ class MC68000 extends Cpu {
 		case 0o234: // MOVE.W -(An),(A2)+
 		case 0o235: // MOVE.W d(An),(A2)+
 		case 0o236: // MOVE.W d(An,Xi),(A2)+
-			this.write16(this.move16(this.rop16(op)), this.a2);
+			this.write16(this.rop16(op, true), this.a2);
 			this.a2 = this.a2 + 2 | 0;
 			break;
 		case 0o237: // MOVE.W Abs...,(A2)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a2);
+			this.write16(this.rop16(op, true), this.a2);
 			this.a2 = this.a2 + 2 | 0;
 			break;
 		case 0o240: // MOVE.W Dn,-(A2)
@@ -2820,12 +2821,12 @@ class MC68000 extends Cpu {
 		case 0o244: // MOVE.W -(An),-(A2)
 		case 0o245: // MOVE.W d(An),-(A2)
 		case 0o246: // MOVE.W d(An,Xi),-(A2)
-			this.write16(this.move16(this.rop16(op)), this.a2 = this.a2 - 2 | 0);
+			this.write16(this.rop16(op, true), this.a2 = this.a2 - 2 | 0);
 			break;
 		case 0o247: // MOVE.W Abs...,-(A2)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a2 = this.a2 - 2 | 0);
+			this.write16(this.rop16(op, true), this.a2 = this.a2 - 2 | 0);
 			break;
 		case 0o250: // MOVE.W Dn,d(A2)
 		case 0o251: // MOVE.W An,d(A2)
@@ -2834,12 +2835,12 @@ class MC68000 extends Cpu {
 		case 0o254: // MOVE.W -(An),d(A2)
 		case 0o255: // MOVE.W d(An),d(A2)
 		case 0o256: // MOVE.W d(An,Xi),d(A2)
-			this.write16(this.move16(this.rop16(op)), this.a2 + this.fetch16s() | 0);
+			this.write16(this.rop16(op, true), this.a2 + this.fetch16s() | 0);
 			break;
 		case 0o257: // MOVE.W Abs...,d(A2)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a2 + this.fetch16s() | 0);
+			this.write16(this.rop16(op, true), this.a2 + this.fetch16s() | 0);
 			break;
 		case 0o260: // MOVE.W Dn,d(A2,Xi)
 		case 0o261: // MOVE.W An,d(A2,Xi)
@@ -2848,12 +2849,12 @@ class MC68000 extends Cpu {
 		case 0o264: // MOVE.W -(An),d(A2,Xi)
 		case 0o265: // MOVE.W d(An),d(A2,Xi)
 		case 0o266: // MOVE.W d(An,Xi),d(A2,Xi)
-			this.write16(this.move16(this.rop16(op)), this.index(this.a2));
+			this.write16(this.rop16(op, true), this.index(this.a2));
 			break;
 		case 0o267: // MOVE.W Abs...,d(A2,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.index(this.a2));
+			this.write16(this.rop16(op, true), this.index(this.a2));
 			break;
 		case 0o300: // MOVE.W Dn,D3
 		case 0o301: // MOVE.W An,D3
@@ -2862,12 +2863,12 @@ class MC68000 extends Cpu {
 		case 0o304: // MOVE.W -(An),D3
 		case 0o305: // MOVE.W d(An),D3
 		case 0o306: // MOVE.W d(An,Xi),D3
-			this.d3 = this.d3 & ~0xffff | this.move16(this.rop16(op));
+			this.d3 = this.d3 & ~0xffff | this.rop16(op, true);
 			break;
 		case 0o307: // MOVE.W Abs...,D3
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d3 = this.d3 & ~0xffff | this.move16(this.rop16(op));
+			this.d3 = this.d3 & ~0xffff | this.rop16(op, true);
 			break;
 		case 0o310: // MOVEA.W Dn,A3
 		case 0o311: // MOVEA.W An,A3
@@ -2890,12 +2891,12 @@ class MC68000 extends Cpu {
 		case 0o324: // MOVE.W -(An),(A3)
 		case 0o325: // MOVE.W d(An),(A3)
 		case 0o326: // MOVE.W d(An,Xi),(A3)
-			this.write16(this.move16(this.rop16(op)), this.a3);
+			this.write16(this.rop16(op, true), this.a3);
 			break;
 		case 0o327: // MOVE.W Abs...,(A3)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a3);
+			this.write16(this.rop16(op, true), this.a3);
 			break;
 		case 0o330: // MOVE.W Dn,(A3)+
 		case 0o331: // MOVE.W An,(A3)+
@@ -2904,13 +2905,13 @@ class MC68000 extends Cpu {
 		case 0o334: // MOVE.W -(An),(A3)+
 		case 0o335: // MOVE.W d(An),(A3)+
 		case 0o336: // MOVE.W d(An,Xi),(A3)+
-			this.write16(this.move16(this.rop16(op)), this.a3);
+			this.write16(this.rop16(op, true), this.a3);
 			this.a3 = this.a3 + 2 | 0;
 			break;
 		case 0o337: // MOVE.W Abs...,(A3)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a3);
+			this.write16(this.rop16(op, true), this.a3);
 			this.a3 = this.a3 + 2 | 0;
 			break;
 		case 0o340: // MOVE.W Dn,-(A3)
@@ -2920,12 +2921,12 @@ class MC68000 extends Cpu {
 		case 0o344: // MOVE.W -(An),-(A3)
 		case 0o345: // MOVE.W d(An),-(A3)
 		case 0o346: // MOVE.W d(An,Xi),-(A3)
-			this.write16(this.move16(this.rop16(op)), this.a3 = this.a3 - 2 | 0);
+			this.write16(this.rop16(op, true), this.a3 = this.a3 - 2 | 0);
 			break;
 		case 0o347: // MOVE.W Abs...,-(A3)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a3 = this.a3 - 2 | 0);
+			this.write16(this.rop16(op, true), this.a3 = this.a3 - 2 | 0);
 			break;
 		case 0o350: // MOVE.W Dn,d(A3)
 		case 0o351: // MOVE.W An,d(A3)
@@ -2934,12 +2935,12 @@ class MC68000 extends Cpu {
 		case 0o354: // MOVE.W -(An),d(A3)
 		case 0o355: // MOVE.W d(An),d(A3)
 		case 0o356: // MOVE.W d(An,Xi),d(A3)
-			this.write16(this.move16(this.rop16(op)), this.a3 + this.fetch16s() | 0);
+			this.write16(this.rop16(op, true), this.a3 + this.fetch16s() | 0);
 			break;
 		case 0o357: // MOVE.W Abs...,d(A3)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a3 + this.fetch16s() | 0);
+			this.write16(this.rop16(op, true), this.a3 + this.fetch16s() | 0);
 			break;
 		case 0o360: // MOVE.W Dn,d(A3,Xi)
 		case 0o361: // MOVE.W An,d(A3,Xi)
@@ -2948,12 +2949,12 @@ class MC68000 extends Cpu {
 		case 0o364: // MOVE.W -(An),d(A3,Xi)
 		case 0o365: // MOVE.W d(An),d(A3,Xi)
 		case 0o366: // MOVE.W d(An,Xi),d(A3,Xi)
-			this.write16(this.move16(this.rop16(op)), this.index(this.a3));
+			this.write16(this.rop16(op, true), this.index(this.a3));
 			break;
 		case 0o367: // MOVE.W Abs...,d(A3,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.index(this.a3));
+			this.write16(this.rop16(op, true), this.index(this.a3));
 			break;
 		case 0o400: // MOVE.W Dn,D4
 		case 0o401: // MOVE.W An,D4
@@ -2962,12 +2963,12 @@ class MC68000 extends Cpu {
 		case 0o404: // MOVE.W -(An),D4
 		case 0o405: // MOVE.W d(An),D4
 		case 0o406: // MOVE.W d(An,Xi),D4
-			this.d4 = this.d4 & ~0xffff | this.move16(this.rop16(op));
+			this.d4 = this.d4 & ~0xffff | this.rop16(op, true);
 			break;
 		case 0o407: // MOVE.W Abs...,D4
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d4 = this.d4 & ~0xffff | this.move16(this.rop16(op));
+			this.d4 = this.d4 & ~0xffff | this.rop16(op, true);
 			break;
 		case 0o410: // MOVEA.W Dn,A4
 		case 0o411: // MOVEA.W An,A4
@@ -2990,12 +2991,12 @@ class MC68000 extends Cpu {
 		case 0o424: // MOVE.W -(An),(A4)
 		case 0o425: // MOVE.W d(An),(A4)
 		case 0o426: // MOVE.W d(An,Xi),(A4)
-			this.write16(this.move16(this.rop16(op)), this.a4);
+			this.write16(this.rop16(op, true), this.a4);
 			break;
 		case 0o427: // MOVE.W Abs...,(A4)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a4);
+			this.write16(this.rop16(op, true), this.a4);
 			break;
 		case 0o430: // MOVE.W Dn,(A4)+
 		case 0o431: // MOVE.W An,(A4)+
@@ -3004,13 +3005,13 @@ class MC68000 extends Cpu {
 		case 0o434: // MOVE.W -(An),(A4)+
 		case 0o435: // MOVE.W d(An),(A4)+
 		case 0o436: // MOVE.W d(An,Xi),(A4)+
-			this.write16(this.move16(this.rop16(op)), this.a4);
+			this.write16(this.rop16(op, true), this.a4);
 			this.a4 = this.a4 + 2 | 0;
 			break;
 		case 0o437: // MOVE.W Abs...,(A4)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a4);
+			this.write16(this.rop16(op, true), this.a4);
 			this.a4 = this.a4 + 2 | 0;
 			break;
 		case 0o440: // MOVE.W Dn,-(A4)
@@ -3020,12 +3021,12 @@ class MC68000 extends Cpu {
 		case 0o444: // MOVE.W -(An),-(A4)
 		case 0o445: // MOVE.W d(An),-(A4)
 		case 0o446: // MOVE.W d(An,Xi),-(A4)
-			this.write16(this.move16(this.rop16(op)), this.a4 = this.a4 - 2 | 0);
+			this.write16(this.rop16(op, true), this.a4 = this.a4 - 2 | 0);
 			break;
 		case 0o447: // MOVE.W Abs...,-(A4)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a4 = this.a4 - 2 | 0);
+			this.write16(this.rop16(op, true), this.a4 = this.a4 - 2 | 0);
 			break;
 		case 0o450: // MOVE.W Dn,d(A4)
 		case 0o451: // MOVE.W An,d(A4)
@@ -3034,12 +3035,12 @@ class MC68000 extends Cpu {
 		case 0o454: // MOVE.W -(An),d(A4)
 		case 0o455: // MOVE.W d(An),d(A4)
 		case 0o456: // MOVE.W d(An,Xi),d(A4)
-			this.write16(this.move16(this.rop16(op)), this.a4 + this.fetch16s() | 0);
+			this.write16(this.rop16(op, true), this.a4 + this.fetch16s() | 0);
 			break;
 		case 0o457: // MOVE.W Abs...,d(A4)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a4 + this.fetch16s() | 0);
+			this.write16(this.rop16(op, true), this.a4 + this.fetch16s() | 0);
 			break;
 		case 0o460: // MOVE.W Dn,d(A4,Xi)
 		case 0o461: // MOVE.W An,d(A4,Xi)
@@ -3048,12 +3049,12 @@ class MC68000 extends Cpu {
 		case 0o464: // MOVE.W -(An),d(A4,Xi)
 		case 0o465: // MOVE.W d(An),d(A4,Xi)
 		case 0o466: // MOVE.W d(An,Xi),d(A4,Xi)
-			this.write16(this.move16(this.rop16(op)), this.index(this.a4));
+			this.write16(this.rop16(op, true), this.index(this.a4));
 			break;
 		case 0o467: // MOVE.W Abs...,d(A4,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.index(this.a4));
+			this.write16(this.rop16(op, true), this.index(this.a4));
 			break;
 		case 0o500: // MOVE.W Dn,D5
 		case 0o501: // MOVE.W An,D5
@@ -3062,12 +3063,12 @@ class MC68000 extends Cpu {
 		case 0o504: // MOVE.W -(An),D5
 		case 0o505: // MOVE.W d(An),D5
 		case 0o506: // MOVE.W d(An,Xi),D5
-			this.d5 = this.d5 & ~0xffff | this.move16(this.rop16(op));
+			this.d5 = this.d5 & ~0xffff | this.rop16(op, true);
 			break;
 		case 0o507: // MOVE.W Abs...,D5
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d5 = this.d5 & ~0xffff | this.move16(this.rop16(op));
+			this.d5 = this.d5 & ~0xffff | this.rop16(op, true);
 			break;
 		case 0o510: // MOVEA.W Dn,A5
 		case 0o511: // MOVEA.W An,A5
@@ -3090,12 +3091,12 @@ class MC68000 extends Cpu {
 		case 0o524: // MOVE.W -(An),(A5)
 		case 0o525: // MOVE.W d(An),(A5)
 		case 0o526: // MOVE.W d(An,Xi),(A5)
-			this.write16(this.move16(this.rop16(op)), this.a5);
+			this.write16(this.rop16(op, true), this.a5);
 			break;
 		case 0o527: // MOVE.W Abs...,(A5)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a5);
+			this.write16(this.rop16(op, true), this.a5);
 			break;
 		case 0o530: // MOVE.W Dn,(A5)+
 		case 0o531: // MOVE.W An,(A5)+
@@ -3104,13 +3105,13 @@ class MC68000 extends Cpu {
 		case 0o534: // MOVE.W -(An),(A5)+
 		case 0o535: // MOVE.W d(An),(A5)+
 		case 0o536: // MOVE.W d(An,Xi),(A5)+
-			this.write16(this.move16(this.rop16(op)), this.a5);
+			this.write16(this.rop16(op, true), this.a5);
 			this.a5 = this.a5 + 2 | 0;
 			break;
 		case 0o537: // MOVE.W Abs...,(A5)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a5);
+			this.write16(this.rop16(op, true), this.a5);
 			this.a5 = this.a5 + 2 | 0;
 			break;
 		case 0o540: // MOVE.W Dn,-(A5)
@@ -3120,12 +3121,12 @@ class MC68000 extends Cpu {
 		case 0o544: // MOVE.W -(An),-(A5)
 		case 0o545: // MOVE.W d(An),-(A5)
 		case 0o546: // MOVE.W d(An,Xi),-(A5)
-			this.write16(this.move16(this.rop16(op)), this.a5 = this.a5 - 2 | 0);
+			this.write16(this.rop16(op, true), this.a5 = this.a5 - 2 | 0);
 			break;
 		case 0o547: // MOVE.W Abs...,-(A5)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a5 = this.a5 - 2 | 0);
+			this.write16(this.rop16(op, true), this.a5 = this.a5 - 2 | 0);
 			break;
 		case 0o550: // MOVE.W Dn,d(A5)
 		case 0o551: // MOVE.W An,d(A5)
@@ -3134,12 +3135,12 @@ class MC68000 extends Cpu {
 		case 0o554: // MOVE.W -(An),d(A5)
 		case 0o555: // MOVE.W d(An),d(A5)
 		case 0o556: // MOVE.W d(An,Xi),d(A5)
-			this.write16(this.move16(this.rop16(op)), this.a5 + this.fetch16s() | 0);
+			this.write16(this.rop16(op, true), this.a5 + this.fetch16s() | 0);
 			break;
 		case 0o557: // MOVE.W Abs...,d(A5)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a5 + this.fetch16s() | 0);
+			this.write16(this.rop16(op, true), this.a5 + this.fetch16s() | 0);
 			break;
 		case 0o560: // MOVE.W Dn,d(A5,Xi)
 		case 0o561: // MOVE.W An,d(A5,Xi)
@@ -3148,12 +3149,12 @@ class MC68000 extends Cpu {
 		case 0o564: // MOVE.W -(An),d(A5,Xi)
 		case 0o565: // MOVE.W d(An),d(A5,Xi)
 		case 0o566: // MOVE.W d(An,Xi),d(A5,Xi)
-			this.write16(this.move16(this.rop16(op)), this.index(this.a5));
+			this.write16(this.rop16(op, true), this.index(this.a5));
 			break;
 		case 0o567: // MOVE.W Abs...,d(A5,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.index(this.a5));
+			this.write16(this.rop16(op, true), this.index(this.a5));
 			break;
 		case 0o600: // MOVE.W Dn,D6
 		case 0o601: // MOVE.W An,D6
@@ -3162,12 +3163,12 @@ class MC68000 extends Cpu {
 		case 0o604: // MOVE.W -(An),D6
 		case 0o605: // MOVE.W d(An),D6
 		case 0o606: // MOVE.W d(An,Xi),D6
-			this.d6 = this.d6 & ~0xffff | this.move16(this.rop16(op));
+			this.d6 = this.d6 & ~0xffff | this.rop16(op, true);
 			break;
 		case 0o607: // MOVE.W Abs...,D6
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d6 = this.d6 & ~0xffff | this.move16(this.rop16(op));
+			this.d6 = this.d6 & ~0xffff | this.rop16(op, true);
 			break;
 		case 0o610: // MOVEA.W Dn,A6
 		case 0o611: // MOVEA.W An,A6
@@ -3190,12 +3191,12 @@ class MC68000 extends Cpu {
 		case 0o624: // MOVE.W -(An),(A6)
 		case 0o625: // MOVE.W d(An),(A6)
 		case 0o626: // MOVE.W d(An,Xi),(A6)
-			this.write16(this.move16(this.rop16(op)), this.a6);
+			this.write16(this.rop16(op, true), this.a6);
 			break;
 		case 0o627: // MOVE.W Abs...,(A6)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a6);
+			this.write16(this.rop16(op, true), this.a6);
 			break;
 		case 0o630: // MOVE.W Dn,(A6)+
 		case 0o631: // MOVE.W An,(A6)+
@@ -3204,13 +3205,13 @@ class MC68000 extends Cpu {
 		case 0o634: // MOVE.W -(An),(A6)+
 		case 0o635: // MOVE.W d(An),(A6)+
 		case 0o636: // MOVE.W d(An,Xi),(A6)+
-			this.write16(this.move16(this.rop16(op)), this.a6);
+			this.write16(this.rop16(op, true), this.a6);
 			this.a6 = this.a6 + 2 | 0;
 			break;
 		case 0o637: // MOVE.W Abs...,(A6)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a6);
+			this.write16(this.rop16(op, true), this.a6);
 			this.a6 = this.a6 + 2 | 0;
 			break;
 		case 0o640: // MOVE.W Dn,-(A6)
@@ -3220,12 +3221,12 @@ class MC68000 extends Cpu {
 		case 0o644: // MOVE.W -(An),-(A6)
 		case 0o645: // MOVE.W d(An),-(A6)
 		case 0o646: // MOVE.W d(An,Xi),-(A6)
-			this.write16(this.move16(this.rop16(op)), this.a6 = this.a6 - 2 | 0);
+			this.write16(this.rop16(op, true), this.a6 = this.a6 - 2 | 0);
 			break;
 		case 0o647: // MOVE.W Abs...,-(A6)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a6 = this.a6 - 2 | 0);
+			this.write16(this.rop16(op, true), this.a6 = this.a6 - 2 | 0);
 			break;
 		case 0o650: // MOVE.W Dn,d(A6)
 		case 0o651: // MOVE.W An,d(A6)
@@ -3234,12 +3235,12 @@ class MC68000 extends Cpu {
 		case 0o654: // MOVE.W -(An),d(A6)
 		case 0o655: // MOVE.W d(An),d(A6)
 		case 0o656: // MOVE.W d(An,Xi),d(A6)
-			this.write16(this.move16(this.rop16(op)), this.a6 + this.fetch16s() | 0);
+			this.write16(this.rop16(op, true), this.a6 + this.fetch16s() | 0);
 			break;
 		case 0o657: // MOVE.W Abs...,d(A6)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a6 + this.fetch16s() | 0);
+			this.write16(this.rop16(op, true), this.a6 + this.fetch16s() | 0);
 			break;
 		case 0o660: // MOVE.W Dn,d(A6,Xi)
 		case 0o661: // MOVE.W An,d(A6,Xi)
@@ -3248,12 +3249,12 @@ class MC68000 extends Cpu {
 		case 0o664: // MOVE.W -(An),d(A6,Xi)
 		case 0o665: // MOVE.W d(An),d(A6,Xi)
 		case 0o666: // MOVE.W d(An,Xi),d(A6,Xi)
-			this.write16(this.move16(this.rop16(op)), this.index(this.a6));
+			this.write16(this.rop16(op, true), this.index(this.a6));
 			break;
 		case 0o667: // MOVE.W Abs...,d(A6,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.index(this.a6));
+			this.write16(this.rop16(op, true), this.index(this.a6));
 			break;
 		case 0o700: // MOVE.W Dn,D7
 		case 0o701: // MOVE.W An,D7
@@ -3262,12 +3263,12 @@ class MC68000 extends Cpu {
 		case 0o704: // MOVE.W -(An),D7
 		case 0o705: // MOVE.W d(An),D7
 		case 0o706: // MOVE.W d(An,Xi),D7
-			this.d7 = this.d7 & ~0xffff | this.move16(this.rop16(op));
+			this.d7 = this.d7 & ~0xffff | this.rop16(op, true);
 			break;
 		case 0o707: // MOVE.W Abs...,D7
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.d7 = this.d7 & ~0xffff | this.move16(this.rop16(op));
+			this.d7 = this.d7 & ~0xffff | this.rop16(op, true);
 			break;
 		case 0o710: // MOVEA.W Dn,A7
 		case 0o711: // MOVEA.W An,A7
@@ -3290,12 +3291,12 @@ class MC68000 extends Cpu {
 		case 0o724: // MOVE.W -(An),(A7)
 		case 0o725: // MOVE.W d(An),(A7)
 		case 0o726: // MOVE.W d(An,Xi),(A7)
-			this.write16(this.move16(this.rop16(op)), this.a7);
+			this.write16(this.rop16(op, true), this.a7);
 			break;
 		case 0o727: // MOVE.W Abs...,(A7)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a7);
+			this.write16(this.rop16(op, true), this.a7);
 			break;
 		case 0o730: // MOVE.W Dn,(A7)+
 		case 0o731: // MOVE.W An,(A7)+
@@ -3304,13 +3305,13 @@ class MC68000 extends Cpu {
 		case 0o734: // MOVE.W -(An),(A7)+
 		case 0o735: // MOVE.W d(An),(A7)+
 		case 0o736: // MOVE.W d(An,Xi),(A7)+
-			this.write16(this.move16(this.rop16(op)), this.a7);
+			this.write16(this.rop16(op, true), this.a7);
 			this.a7 = this.a7 + 2 | 0;
 			break;
 		case 0o737: // MOVE.W Abs...,(A7)+
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a7);
+			this.write16(this.rop16(op, true), this.a7);
 			this.a7 = this.a7 + 2 | 0;
 			break;
 		case 0o740: // MOVE.W Dn,-(A7)
@@ -3320,12 +3321,12 @@ class MC68000 extends Cpu {
 		case 0o744: // MOVE.W -(An),-(A7)
 		case 0o745: // MOVE.W d(An),-(A7)
 		case 0o746: // MOVE.W d(An,Xi),-(A7)
-			this.write16(this.move16(this.rop16(op)), this.a7 = this.a7 - 2 | 0);
+			this.write16(this.rop16(op, true), this.a7 = this.a7 - 2 | 0);
 			break;
 		case 0o747: // MOVE.W Abs...,-(A7)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a7 = this.a7 - 2 | 0);
+			this.write16(this.rop16(op, true), this.a7 = this.a7 - 2 | 0);
 			break;
 		case 0o750: // MOVE.W Dn,d(A7)
 		case 0o751: // MOVE.W An,d(A7)
@@ -3334,12 +3335,12 @@ class MC68000 extends Cpu {
 		case 0o754: // MOVE.W -(An),d(A7)
 		case 0o755: // MOVE.W d(An),d(A7)
 		case 0o756: // MOVE.W d(An,Xi),d(A7)
-			this.write16(this.move16(this.rop16(op)), this.a7 + this.fetch16s() | 0);
+			this.write16(this.rop16(op, true), this.a7 + this.fetch16s() | 0);
 			break;
 		case 0o757: // MOVE.W Abs...,d(A7)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.a7 + this.fetch16s() | 0);
+			this.write16(this.rop16(op, true), this.a7 + this.fetch16s() | 0);
 			break;
 		case 0o760: // MOVE.W Dn,d(A7,Xi)
 		case 0o761: // MOVE.W An,d(A7,Xi)
@@ -3348,12 +3349,12 @@ class MC68000 extends Cpu {
 		case 0o764: // MOVE.W -(An),d(A7,Xi)
 		case 0o765: // MOVE.W d(An),d(A7,Xi)
 		case 0o766: // MOVE.W d(An,Xi),d(A7,Xi)
-			this.write16(this.move16(this.rop16(op)), this.index(this.a7));
+			this.write16(this.rop16(op, true), this.index(this.a7));
 			break;
 		case 0o767: // MOVE.W Abs...,d(A7,Xi)
 			if ((op & 7) >= 5)
 				return void this.exception(4);
-			this.write16(this.move16(this.rop16(op)), this.index(this.a7));
+			this.write16(this.rop16(op, true), this.index(this.a7));
 			break;
 		default:
 			return void this.exception(4);
@@ -3732,12 +3733,12 @@ class MC68000 extends Cpu {
 		case 0o504: // TST.B -(An)
 		case 0o505: // TST.B d(An)
 		case 0o506: // TST.B d(An,Xi)
-			this.tst8(null, this.rop8(op));
+			this.rop8(op, true);
 			break;
 		case 0o507: // TST.B Abs...
 			if ((op & 7) >= 2)
 				return void this.exception(4);
-			this.tst8(null, this.rop8(op));
+			this.rop8(op, true);
 			break;
 		case 0o510: // TST.W Dn
 		case 0o512: // TST.W (An)
@@ -3745,12 +3746,12 @@ class MC68000 extends Cpu {
 		case 0o514: // TST.W -(An)
 		case 0o515: // TST.W d(An)
 		case 0o516: // TST.W d(An,Xi)
-			this.tst16(null, this.rop16(op));
+			this.rop16(op, true);
 			break;
 		case 0o517: // TST.W Abs...
 			if ((op & 7) >= 2)
 				return void this.exception(4);
-			this.tst16(null, this.rop16(op));
+			this.rop16(op, true);
 			break;
 		case 0o520: // TST.L Dn
 		case 0o522: // TST.L (An)
@@ -3758,12 +3759,12 @@ class MC68000 extends Cpu {
 		case 0o524: // TST.L -(An)
 		case 0o525: // TST.L d(An)
 		case 0o526: // TST.L d(An,Xi)
-			this.tst32(null, this.rop32(op));
+			this.rop32(op, true);
 			break;
 		case 0o527: // TST.L Abs...
 			if ((op & 7) >= 2)
 				return void this.exception(4);
-			this.tst32(null, this.rop32(op));
+			this.rop32(op, true);
 			break;
 		case 0o530: // TAS Dn
 		case 0o532: // TAS (An)
@@ -3948,140 +3949,1078 @@ class MC68000 extends Cpu {
 	}
 
 	execute_5(op) {
-		switch (op >>> 3 & 0o77) {
-		case 0o00: // ADDQ.B #<data>,Dn
-		case 0o02: // ADDQ.B #<data>,(An)
-		case 0o03: // ADDQ.B #<data>,(An)+
-		case 0o04: // ADDQ.B #<data>,-(An)
-		case 0o05: // ADDQ.B #<data>,d(An)
-		case 0o06: // ADDQ.B #<data>,d(An,Xi)
-			this.rwop8(op, this.add8, ((op >>> 9) - 1 & 7) + 1);
+		switch (op >>> 3 & 0o777) {
+		case 0o000: // ADDQ.B #8,Dn
+		case 0o002: // ADDQ.B #8,(An)
+		case 0o003: // ADDQ.B #8,(An)+
+		case 0o004: // ADDQ.B #8,-(An)
+		case 0o005: // ADDQ.B #8,d(An)
+		case 0o006: // ADDQ.B #8,d(An,Xi)
+			this.rwop8(op, this.add8, 8);
 			break;
-		case 0o07: // ADDQ.B #<data>,Abs...
+		case 0o007: // ADDQ.B #8,Abs...
 			if ((op & 7) >= 2)
 				return void this.exception(4);
-			this.rwop8(op, this.add8, ((op >>> 9) - 1 & 7) + 1);
+			this.rwop8(op, this.add8, 8);
 			break;
-		case 0o10: // ADDQ.W #<data>,Dn
-			this.rwop16(op, this.add16, ((op >>> 9) - 1 & 7) + 1);
+		case 0o010: // ADDQ.W #8,Dn
+			this.rwop16(op, this.add16, 8);
 			break;
-		case 0o11: // ADDQ.W #<data>,An
-			this.rwop16(op, (src, dst) => dst + src | 0, ((op >>> 9) - 1 & 7) + 1);
+		case 0o011: // ADDQ.W #8,An
+			this.rwop16(op, (src, dst) => dst + src | 0, 8);
 			break;
-		case 0o12: // ADDQ.W #<data>,(An)
-		case 0o13: // ADDQ.W #<data>,(An)+
-		case 0o14: // ADDQ.W #<data>,-(An)
-		case 0o15: // ADDQ.W #<data>,d(An)
-		case 0o16: // ADDQ.W #<data>,d(An,Xi)
-			this.rwop16(op, this.add16, ((op >>> 9) - 1 & 7) + 1);
+		case 0o012: // ADDQ.W #8,(An)
+		case 0o013: // ADDQ.W #8,(An)+
+		case 0o014: // ADDQ.W #8,-(An)
+		case 0o015: // ADDQ.W #8,d(An)
+		case 0o016: // ADDQ.W #8,d(An,Xi)
+			this.rwop16(op, this.add16, 8);
 			break;
-		case 0o17: // ADDQ.W #<data>,Abs...
+		case 0o017: // ADDQ.W #8,Abs...
 			if ((op & 7) >= 2)
 				return void this.exception(4);
-			this.rwop16(op, this.add16, ((op >>> 9) - 1 & 7) + 1);
+			this.rwop16(op, this.add16, 8);
 			break;
-		case 0o20: // ADDQ.L #<data>,Dn
-			this.rwop32(op, this.add32, ((op >>> 9) - 1 & 7) + 1);
+		case 0o020: // ADDQ.L #8,Dn
+			this.rwop32(op, this.add32, 8);
 			break;
-		case 0o21: // ADDQ.L #<data>,An
-			this.rwop32(op, (src, dst) => dst + src | 0, ((op >>> 9) - 1 & 7) + 1);
+		case 0o021: // ADDQ.L #8,An
+			this.rwop32(op, (src, dst) => dst + src | 0, 8);
 			break;
-		case 0o22: // ADDQ.L #<data>,(An)
-		case 0o23: // ADDQ.L #<data>,(An)+
-		case 0o24: // ADDQ.L #<data>,-(An)
-		case 0o25: // ADDQ.L #<data>,d(An)
-		case 0o26: // ADDQ.L #<data>,d(An,Xi)
-			this.rwop32(op, this.add32, ((op >>> 9) - 1 & 7) + 1);
+		case 0o022: // ADDQ.L #8,(An)
+		case 0o023: // ADDQ.L #8,(An)+
+		case 0o024: // ADDQ.L #8,-(An)
+		case 0o025: // ADDQ.L #8,d(An)
+		case 0o026: // ADDQ.L #8,d(An,Xi)
+			this.rwop32(op, this.add32, 8);
 			break;
-		case 0o27: // ADDQ.L #<data>,Abs...
+		case 0o027: // ADDQ.L #8,Abs...
 			if ((op & 7) >= 2)
 				return void this.exception(4);
-			this.rwop32(op, this.add32, ((op >>> 9) - 1 & 7) + 1);
+			this.rwop32(op, this.add32, 8);
 			break;
-		case 0o30: // Scc Dn
-			this.rwop8(op, src => src, this.condition(op) ? 0xff : 0);
+		case 0o030: // ST Dn
+			this.rwop8(op, src => src, 0xff);
 			break;
-		case 0o31: // DBcc Dn,<label>
-			this.rwop16(op & 7, this.dbcc, this.condition(op));
+		case 0o031: // DBT Dn,<label>
+			this.rwop16(op & 7, this.dbcc, true);
 			break;
-		case 0o32: // Scc (An)
-		case 0o33: // Scc (An)+
-		case 0o34: // Scc -(An)
-		case 0o35: // Scc d(An)
-		case 0o36: // Scc d(An,Xi)
-			this.rwop8(op, src => src, this.condition(op) ? 0xff : 0);
+		case 0o032: // ST (An)
+		case 0o033: // ST (An)+
+		case 0o034: // ST -(An)
+		case 0o035: // ST d(An)
+		case 0o036: // ST d(An,Xi)
+			this.rwop8(op, src => src, 0xff);
 			break;
-		case 0o37: // Scc Abs...
+		case 0o037: // ST Abs...
 			if ((op & 7) >= 2)
 				return void this.exception(4);
-			this.rwop8(op, src => src, this.condition(op) ? 0xff : 0);
+			this.rwop8(op, src => src, 0xff);
 			break;
-		case 0o40: // SUBQ.B #<data>,Dn
-		case 0o42: // SUBQ.B #<data>,(An)
-		case 0o43: // SUBQ.B #<data>,(An)+
-		case 0o44: // SUBQ.B #<data>,-(An)
-		case 0o45: // SUBQ.B #<data>,d(An)
-		case 0o46: // SUBQ.B #<data>,d(An,Xi)
-			this.rwop8(op, this.sub8, ((op >>> 9) - 1 & 7) + 1);
+		case 0o040: // SUBQ.B #8,Dn
+		case 0o042: // SUBQ.B #8,(An)
+		case 0o043: // SUBQ.B #8,(An)+
+		case 0o044: // SUBQ.B #8,-(An)
+		case 0o045: // SUBQ.B #8,d(An)
+		case 0o046: // SUBQ.B #8,d(An,Xi)
+			this.rwop8(op, this.sub8, 8);
 			break;
-		case 0o47: // SUBQ.B #<data>,Abs...
+		case 0o047: // SUBQ.B #8,Abs...
 			if ((op & 7) >= 2)
 				return void this.exception(4);
-			this.rwop8(op, this.sub8, ((op >>> 9) - 1 & 7) + 1);
+			this.rwop8(op, this.sub8, 8);
 			break;
-		case 0o50: // SUBQ.W #<data>,Dn
-			this.rwop16(op, this.sub16, ((op >>> 9) - 1 & 7) + 1);
+		case 0o050: // SUBQ.W #8,Dn
+			this.rwop16(op, this.sub16, 8);
 			break;
-		case 0o51: // SUBQ.W #<data>,An
-			this.rwop16(op, (src, dst) => dst - src | 0, ((op >>> 9) - 1 & 7) + 1);
+		case 0o051: // SUBQ.W #8,An
+			this.rwop16(op, (src, dst) => dst - src | 0, 8);
 			break;
-		case 0o52: // SUBQ.W #<data>,(An)
-		case 0o53: // SUBQ.W #<data>,(An)+
-		case 0o54: // SUBQ.W #<data>,-(An)
-		case 0o55: // SUBQ.W #<data>,d(An)
-		case 0o56: // SUBQ.W #<data>,d(An,Xi)
-			this.rwop16(op, this.sub16, ((op >>> 9) - 1 & 7) + 1);
+		case 0o052: // SUBQ.W #8,(An)
+		case 0o053: // SUBQ.W #8,(An)+
+		case 0o054: // SUBQ.W #8,-(An)
+		case 0o055: // SUBQ.W #8,d(An)
+		case 0o056: // SUBQ.W #8,d(An,Xi)
+			this.rwop16(op, this.sub16, 8);
 			break;
-		case 0o57: // SUBQ.W #<data>,Abs...
+		case 0o057: // SUBQ.W #8,Abs...
 			if ((op & 7) >= 2)
 				return void this.exception(4);
-			this.rwop16(op, this.sub16, ((op >>> 9) - 1 & 7) + 1);
+			this.rwop16(op, this.sub16, 8);
 			break;
-		case 0o60: // SUBQ.L #<data>,Dn
-			this.rwop32(op, this.sub32, ((op >>> 9) - 1 & 7) + 1);
+		case 0o060: // SUBQ.L #8,Dn
+			this.rwop32(op, this.sub32, 8);
 			break;
-		case 0o61: // SUBQ.L #<data>,An
-			this.rwop32(op, (src, dst) => dst - src | 0, ((op >>> 9) - 1 & 7) + 1);
+		case 0o061: // SUBQ.L #8,An
+			this.rwop32(op, (src, dst) => dst - src | 0, 8);
 			break;
-		case 0o62: // SUBQ.L #<data>,(An)
-		case 0o63: // SUBQ.L #<data>,(An)+
-		case 0o64: // SUBQ.L #<data>,-(An)
-		case 0o65: // SUBQ.L #<data>,d(An)
-		case 0o66: // SUBQ.L #<data>,d(An,Xi)
-			this.rwop32(op, this.sub32, ((op >>> 9) - 1 & 7) + 1);
+		case 0o062: // SUBQ.L #8,(An)
+		case 0o063: // SUBQ.L #8,(An)+
+		case 0o064: // SUBQ.L #8,-(An)
+		case 0o065: // SUBQ.L #8,d(An)
+		case 0o066: // SUBQ.L #8,d(An,Xi)
+			this.rwop32(op, this.sub32, 8);
 			break;
-		case 0o67: // SUBQ.L #<data>,Abs...
+		case 0o067: // SUBQ.L #8,Abs...
 			if ((op & 7) >= 2)
 				return void this.exception(4);
-			this.rwop32(op, this.sub32, ((op >>> 9) - 1 & 7) + 1);
+			this.rwop32(op, this.sub32, 8);
 			break;
-		case 0o70: // Scc Dn
-			this.rwop8(op, src => src, this.condition(op) ? 0xff : 0);
+		case 0o070: // SF Dn
+			this.rwop8(op, src => src, 0);
 			break;
-		case 0o71: // DBcc Dn,<label>
-			this.rwop16(op & 7, this.dbcc, this.condition(op));
+		case 0o071: // DBRA Dn,<label>
+			this.rwop16(op & 7, this.dbcc, false);
 			break;
-		case 0o72: // Scc (An)
-		case 0o73: // Scc (An)+
-		case 0o74: // Scc -(An)
-		case 0o75: // Scc d(An)
-		case 0o76: // Scc d(An,Xi)
-			this.rwop8(op, src => src, this.condition(op) ? 0xff : 0);
+		case 0o072: // SF (An)
+		case 0o073: // SF (An)+
+		case 0o074: // SF -(An)
+		case 0o075: // SF d(An)
+		case 0o076: // SF d(An,Xi)
+			this.rwop8(op, src => src, 0);
 			break;
-		case 0o77: // Scc Abs...
+		case 0o077: // SF Abs...
 			if ((op & 7) >= 2)
 				return void this.exception(4);
-			this.rwop8(op, src => src, this.condition(op) ? 0xff : 0);
+			this.rwop8(op, src => src, 0);
+			break;
+		case 0o100: // ADDQ.B #1,Dn
+		case 0o102: // ADDQ.B #1,(An)
+		case 0o103: // ADDQ.B #1,(An)+
+		case 0o104: // ADDQ.B #1,-(An)
+		case 0o105: // ADDQ.B #1,d(An)
+		case 0o106: // ADDQ.B #1,d(An,Xi)
+			this.rwop8(op, this.add8, 1);
+			break;
+		case 0o107: // ADDQ.B #1,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, this.add8, 1);
+			break;
+		case 0o110: // ADDQ.W #1,Dn
+			this.rwop16(op, this.add16, 1);
+			break;
+		case 0o111: // ADDQ.W #1,An
+			this.rwop16(op, (src, dst) => dst + src | 0, 1);
+			break;
+		case 0o112: // ADDQ.W #1,(An)
+		case 0o113: // ADDQ.W #1,(An)+
+		case 0o114: // ADDQ.W #1,-(An)
+		case 0o115: // ADDQ.W #1,d(An)
+		case 0o116: // ADDQ.W #1,d(An,Xi)
+			this.rwop16(op, this.add16, 1);
+			break;
+		case 0o117: // ADDQ.W #1,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop16(op, this.add16, 1);
+			break;
+		case 0o120: // ADDQ.L #1,Dn
+			this.rwop32(op, this.add32, 1);
+			break;
+		case 0o121: // ADDQ.L #1,An
+			this.rwop32(op, (src, dst) => dst + src | 0, 1);
+			break;
+		case 0o122: // ADDQ.L #1,(An)
+		case 0o123: // ADDQ.L #1,(An)+
+		case 0o124: // ADDQ.L #1,-(An)
+		case 0o125: // ADDQ.L #1,d(An)
+		case 0o126: // ADDQ.L #1,d(An,Xi)
+			this.rwop32(op, this.add32, 1);
+			break;
+		case 0o127: // ADDQ.L #1,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop32(op, this.add32, 1);
+			break;
+		case 0o130: // SHI Dn
+			this.rwop8(op, src => src, ((this.sr >>> 2 | this.sr) & 1) === 0 ? 0xff : 0);
+			break;
+		case 0o131: // DBHI Dn,<label>
+			this.rwop16(op & 7, this.dbcc, ((this.sr >>> 2 | this.sr) & 1) === 0);
+			break;
+		case 0o132: // SHI (An)
+		case 0o133: // SHI (An)+
+		case 0o134: // SHI -(An)
+		case 0o135: // SHI d(An)
+		case 0o136: // SHI d(An,Xi)
+			this.rwop8(op, src => src, ((this.sr >>> 2 | this.sr) & 1) === 0 ? 0xff : 0);
+			break;
+		case 0o137: // SHI Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, src => src, ((this.sr >>> 2 | this.sr) & 1) === 0 ? 0xff : 0);
+			break;
+		case 0o140: // SUBQ.B #1,Dn
+		case 0o142: // SUBQ.B #1,(An)
+		case 0o143: // SUBQ.B #1,(An)+
+		case 0o144: // SUBQ.B #1,-(An)
+		case 0o145: // SUBQ.B #1,d(An)
+		case 0o146: // SUBQ.B #1,d(An,Xi)
+			this.rwop8(op, this.sub8, 1);
+			break;
+		case 0o147: // SUBQ.B #1,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, this.sub8, 1);
+			break;
+		case 0o150: // SUBQ.W #1,Dn
+			this.rwop16(op, this.sub16, 1);
+			break;
+		case 0o151: // SUBQ.W #1,An
+			this.rwop16(op, (src, dst) => dst - src | 0, 1);
+			break;
+		case 0o152: // SUBQ.W #1,(An)
+		case 0o153: // SUBQ.W #1,(An)+
+		case 0o154: // SUBQ.W #1,-(An)
+		case 0o155: // SUBQ.W #1,d(An)
+		case 0o156: // SUBQ.W #1,d(An,Xi)
+			this.rwop16(op, this.sub16, 1);
+			break;
+		case 0o157: // SUBQ.W #1,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop16(op, this.sub16, 1);
+			break;
+		case 0o160: // SUBQ.L #1,Dn
+			this.rwop32(op, this.sub32, 1);
+			break;
+		case 0o161: // SUBQ.L #1,An
+			this.rwop32(op, (src, dst) => dst - src | 0, 1);
+			break;
+		case 0o162: // SUBQ.L #1,(An)
+		case 0o163: // SUBQ.L #1,(An)+
+		case 0o164: // SUBQ.L #1,-(An)
+		case 0o165: // SUBQ.L #1,d(An)
+		case 0o166: // SUBQ.L #1,d(An,Xi)
+			this.rwop32(op, this.sub32, 1);
+			break;
+		case 0o167: // SUBQ.L #1,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop32(op, this.sub32, 1);
+			break;
+		case 0o170: // SLS Dn
+			this.rwop8(op, src => src, ((this.sr >>> 2 | this.sr) & 1) !== 0 ? 0xff : 0);
+			break;
+		case 0o171: // DBLS Dn,<label>
+			this.rwop16(op & 7, this.dbcc, ((this.sr >>> 2 | this.sr) & 1) !== 0);
+			break;
+		case 0o172: // SLS (An)
+		case 0o173: // SLS (An)+
+		case 0o174: // SLS -(An)
+		case 0o175: // SLS d(An)
+		case 0o176: // SLS d(An,Xi)
+			this.rwop8(op, src => src, ((this.sr >>> 2 | this.sr) & 1) !== 0 ? 0xff : 0);
+			break;
+		case 0o177: // SLS Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, src => src, ((this.sr >>> 2 | this.sr) & 1) !== 0 ? 0xff : 0);
+			break;
+		case 0o200: // ADDQ.B #2,Dn
+		case 0o202: // ADDQ.B #2,(An)
+		case 0o203: // ADDQ.B #2,(An)+
+		case 0o204: // ADDQ.B #2,-(An)
+		case 0o205: // ADDQ.B #2,d(An)
+		case 0o206: // ADDQ.B #2,d(An,Xi)
+			this.rwop8(op, this.add8, 2);
+			break;
+		case 0o207: // ADDQ.B #2,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, this.add8, 2);
+			break;
+		case 0o210: // ADDQ.W #2,Dn
+			this.rwop16(op, this.add16, 2);
+			break;
+		case 0o211: // ADDQ.W #2,An
+			this.rwop16(op, (src, dst) => dst + src | 0, 2);
+			break;
+		case 0o212: // ADDQ.W #2,(An)
+		case 0o213: // ADDQ.W #2,(An)+
+		case 0o214: // ADDQ.W #2,-(An)
+		case 0o215: // ADDQ.W #2,d(An)
+		case 0o216: // ADDQ.W #2,d(An,Xi)
+			this.rwop16(op, this.add16, 2);
+			break;
+		case 0o217: // ADDQ.W #2,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop16(op, this.add16, 2);
+			break;
+		case 0o220: // ADDQ.L #2,Dn
+			this.rwop32(op, this.add32, 2);
+			break;
+		case 0o221: // ADDQ.L #2,An
+			this.rwop32(op, (src, dst) => dst + src | 0, 2);
+			break;
+		case 0o222: // ADDQ.L #2,(An)
+		case 0o223: // ADDQ.L #2,(An)+
+		case 0o224: // ADDQ.L #2,-(An)
+		case 0o225: // ADDQ.L #2,d(An)
+		case 0o226: // ADDQ.L #2,d(An,Xi)
+			this.rwop32(op, this.add32, 2);
+			break;
+		case 0o227: // ADDQ.L #2,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop32(op, this.add32, 2);
+			break;
+		case 0o230: // SCC Dn
+			this.rwop8(op, src => src, (this.sr & 1) === 0 ? 0xff : 0);
+			break;
+		case 0o231: // DBCC Dn,<label>
+			this.rwop16(op & 7, this.dbcc, (this.sr & 1) === 0);
+			break;
+		case 0o232: // SCC (An)
+		case 0o233: // SCC (An)+
+		case 0o234: // SCC -(An)
+		case 0o235: // SCC d(An)
+		case 0o236: // SCC d(An,Xi)
+			this.rwop8(op, src => src, (this.sr & 1) === 0 ? 0xff : 0);
+			break;
+		case 0o237: // SCC Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, src => src, (this.sr & 1) === 0 ? 0xff : 0);
+			break;
+		case 0o240: // SUBQ.B #2,Dn
+		case 0o242: // SUBQ.B #2,(An)
+		case 0o243: // SUBQ.B #2,(An)+
+		case 0o244: // SUBQ.B #2,-(An)
+		case 0o245: // SUBQ.B #2,d(An)
+		case 0o246: // SUBQ.B #2,d(An,Xi)
+			this.rwop8(op, this.sub8, 2);
+			break;
+		case 0o247: // SUBQ.B #2,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, this.sub8, 2);
+			break;
+		case 0o250: // SUBQ.W #2,Dn
+			this.rwop16(op, this.sub16, 2);
+			break;
+		case 0o251: // SUBQ.W #2,An
+			this.rwop16(op, (src, dst) => dst - src | 0, 2);
+			break;
+		case 0o252: // SUBQ.W #2,(An)
+		case 0o253: // SUBQ.W #2,(An)+
+		case 0o254: // SUBQ.W #2,-(An)
+		case 0o255: // SUBQ.W #2,d(An)
+		case 0o256: // SUBQ.W #2,d(An,Xi)
+			this.rwop16(op, this.sub16, 2);
+			break;
+		case 0o257: // SUBQ.W #2,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop16(op, this.sub16, 2);
+			break;
+		case 0o260: // SUBQ.L #2,Dn
+			this.rwop32(op, this.sub32, 2);
+			break;
+		case 0o261: // SUBQ.L #2,An
+			this.rwop32(op, (src, dst) => dst - src | 0, 2);
+			break;
+		case 0o262: // SUBQ.L #2,(An)
+		case 0o263: // SUBQ.L #2,(An)+
+		case 0o264: // SUBQ.L #2,-(An)
+		case 0o265: // SUBQ.L #2,d(An)
+		case 0o266: // SUBQ.L #2,d(An,Xi)
+			this.rwop32(op, this.sub32, 2);
+			break;
+		case 0o267: // SUBQ.L #2,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop32(op, this.sub32, 2);
+			break;
+		case 0o270: // SCS Dn
+			this.rwop8(op, src => src, (this.sr & 1) !== 0 ? 0xff : 0);
+			break;
+		case 0o271: // DBCS Dn,<label>
+			this.rwop16(op & 7, this.dbcc, (this.sr & 1) !== 0);
+			break;
+		case 0o272: // SCS (An)
+		case 0o273: // SCS (An)+
+		case 0o274: // SCS -(An)
+		case 0o275: // SCS d(An)
+		case 0o276: // SCS d(An,Xi)
+			this.rwop8(op, src => src, (this.sr & 1) !== 0 ? 0xff : 0);
+			break;
+		case 0o277: // SCS Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, src => src, (this.sr & 1) !== 0 ? 0xff : 0);
+			break;
+		case 0o300: // ADDQ.B #3,Dn
+		case 0o302: // ADDQ.B #3,(An)
+		case 0o303: // ADDQ.B #3,(An)+
+		case 0o304: // ADDQ.B #3,-(An)
+		case 0o305: // ADDQ.B #3,d(An)
+		case 0o306: // ADDQ.B #3,d(An,Xi)
+			this.rwop8(op, this.add8, 3);
+			break;
+		case 0o307: // ADDQ.B #3,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, this.add8, 3);
+			break;
+		case 0o310: // ADDQ.W #3,Dn
+			this.rwop16(op, this.add16, 3);
+			break;
+		case 0o311: // ADDQ.W #3,An
+			this.rwop16(op, (src, dst) => dst + src | 0, 3);
+			break;
+		case 0o312: // ADDQ.W #3,(An)
+		case 0o313: // ADDQ.W #3,(An)+
+		case 0o314: // ADDQ.W #3,-(An)
+		case 0o315: // ADDQ.W #3,d(An)
+		case 0o316: // ADDQ.W #3,d(An,Xi)
+			this.rwop16(op, this.add16, 3);
+			break;
+		case 0o317: // ADDQ.W #3,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop16(op, this.add16, 3);
+			break;
+		case 0o320: // ADDQ.L #3,Dn
+			this.rwop32(op, this.add32, 3);
+			break;
+		case 0o321: // ADDQ.L #3,An
+			this.rwop32(op, (src, dst) => dst + src | 0, 3);
+			break;
+		case 0o322: // ADDQ.L #3,(An)
+		case 0o323: // ADDQ.L #3,(An)+
+		case 0o324: // ADDQ.L #3,-(An)
+		case 0o325: // ADDQ.L #3,d(An)
+		case 0o326: // ADDQ.L #3,d(An,Xi)
+			this.rwop32(op, this.add32, 3);
+			break;
+		case 0o327: // ADDQ.L #3,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop32(op, this.add32, 3);
+			break;
+		case 0o330: // SNE Dn
+			this.rwop8(op, src => src, (this.sr & 4) === 0 ? 0xff : 0);
+			break;
+		case 0o331: // DBNE Dn,<label>
+			this.rwop16(op & 7, this.dbcc, (this.sr & 4) === 0);
+			break;
+		case 0o332: // SNE (An)
+		case 0o333: // SNE (An)+
+		case 0o334: // SNE -(An)
+		case 0o335: // SNE d(An)
+		case 0o336: // SNE d(An,Xi)
+			this.rwop8(op, src => src, (this.sr & 4) === 0 ? 0xff : 0);
+			break;
+		case 0o337: // SNE Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, src => src, (this.sr & 4) === 0 ? 0xff : 0);
+			break;
+		case 0o340: // SUBQ.B #3,Dn
+		case 0o342: // SUBQ.B #3,(An)
+		case 0o343: // SUBQ.B #3,(An)+
+		case 0o344: // SUBQ.B #3,-(An)
+		case 0o345: // SUBQ.B #3,d(An)
+		case 0o346: // SUBQ.B #3,d(An,Xi)
+			this.rwop8(op, this.sub8, 3);
+			break;
+		case 0o347: // SUBQ.B #3,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, this.sub8, 3);
+			break;
+		case 0o350: // SUBQ.W #3,Dn
+			this.rwop16(op, this.sub16, 3);
+			break;
+		case 0o351: // SUBQ.W #3,An
+			this.rwop16(op, (src, dst) => dst - src | 0, 3);
+			break;
+		case 0o352: // SUBQ.W #3,(An)
+		case 0o353: // SUBQ.W #3,(An)+
+		case 0o354: // SUBQ.W #3,-(An)
+		case 0o355: // SUBQ.W #3,d(An)
+		case 0o356: // SUBQ.W #3,d(An,Xi)
+			this.rwop16(op, this.sub16, 3);
+			break;
+		case 0o357: // SUBQ.W #3,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop16(op, this.sub16, 3);
+			break;
+		case 0o360: // SUBQ.L #3,Dn
+			this.rwop32(op, this.sub32, 3);
+			break;
+		case 0o361: // SUBQ.L #3,An
+			this.rwop32(op, (src, dst) => dst - src | 0, 3);
+			break;
+		case 0o362: // SUBQ.L #3,(An)
+		case 0o363: // SUBQ.L #3,(An)+
+		case 0o364: // SUBQ.L #3,-(An)
+		case 0o365: // SUBQ.L #3,d(An)
+		case 0o366: // SUBQ.L #3,d(An,Xi)
+			this.rwop32(op, this.sub32, 3);
+			break;
+		case 0o367: // SUBQ.L #3,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop32(op, this.sub32, 3);
+			break;
+		case 0o370: // SEQ Dn
+			this.rwop8(op, src => src, (this.sr & 4) !== 0 ? 0xff : 0);
+			break;
+		case 0o371: // DBEQ Dn,<label>
+			this.rwop16(op & 7, this.dbcc, (this.sr & 4) !== 0);
+			break;
+		case 0o372: // SEQ (An)
+		case 0o373: // SEQ (An)+
+		case 0o374: // SEQ -(An)
+		case 0o375: // SEQ d(An)
+		case 0o376: // SEQ d(An,Xi)
+			this.rwop8(op, src => src, (this.sr & 4) !== 0 ? 0xff : 0);
+			break;
+		case 0o377: // SEQ Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, src => src, (this.sr & 4) !== 0 ? 0xff : 0);
+			break;
+		case 0o400: // ADDQ.B #4,Dn
+		case 0o402: // ADDQ.B #4,(An)
+		case 0o403: // ADDQ.B #4,(An)+
+		case 0o404: // ADDQ.B #4,-(An)
+		case 0o405: // ADDQ.B #4,d(An)
+		case 0o406: // ADDQ.B #4,d(An,Xi)
+			this.rwop8(op, this.add8, 4);
+			break;
+		case 0o407: // ADDQ.B #4,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, this.add8, 4);
+			break;
+		case 0o410: // ADDQ.W #4,Dn
+			this.rwop16(op, this.add16, 4);
+			break;
+		case 0o411: // ADDQ.W #4,An
+			this.rwop16(op, (src, dst) => dst + src | 0, 4);
+			break;
+		case 0o412: // ADDQ.W #4,(An)
+		case 0o413: // ADDQ.W #4,(An)+
+		case 0o414: // ADDQ.W #4,-(An)
+		case 0o415: // ADDQ.W #4,d(An)
+		case 0o416: // ADDQ.W #4,d(An,Xi)
+			this.rwop16(op, this.add16, 4);
+			break;
+		case 0o417: // ADDQ.W #4,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop16(op, this.add16, 4);
+			break;
+		case 0o420: // ADDQ.L #4,Dn
+			this.rwop32(op, this.add32, 4);
+			break;
+		case 0o421: // ADDQ.L #4,An
+			this.rwop32(op, (src, dst) => dst + src | 0, 4);
+			break;
+		case 0o422: // ADDQ.L #4,(An)
+		case 0o423: // ADDQ.L #4,(An)+
+		case 0o424: // ADDQ.L #4,-(An)
+		case 0o425: // ADDQ.L #4,d(An)
+		case 0o426: // ADDQ.L #4,d(An,Xi)
+			this.rwop32(op, this.add32, 4);
+			break;
+		case 0o427: // ADDQ.L #4,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop32(op, this.add32, 4);
+			break;
+		case 0o430: // SVC Dn
+			this.rwop8(op, src => src, (this.sr & 2) === 0 ? 0xff : 0);
+			break;
+		case 0o431: // DBVC Dn,<label>
+			this.rwop16(op & 7, this.dbcc, (this.sr & 2) === 0);
+			break;
+		case 0o432: // SVC (An)
+		case 0o433: // SVC (An)+
+		case 0o434: // SVC -(An)
+		case 0o435: // SVC d(An)
+		case 0o436: // SVC d(An,Xi)
+			this.rwop8(op, src => src, (this.sr & 2) === 0 ? 0xff : 0);
+			break;
+		case 0o437: // SVC Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, src => src, (this.sr & 2) === 0 ? 0xff : 0);
+			break;
+		case 0o440: // SUBQ.B #4,Dn
+		case 0o442: // SUBQ.B #4,(An)
+		case 0o443: // SUBQ.B #4,(An)+
+		case 0o444: // SUBQ.B #4,-(An)
+		case 0o445: // SUBQ.B #4,d(An)
+		case 0o446: // SUBQ.B #4,d(An,Xi)
+			this.rwop8(op, this.sub8, 4);
+			break;
+		case 0o447: // SUBQ.B #4,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, this.sub8, 4);
+			break;
+		case 0o450: // SUBQ.W #4,Dn
+			this.rwop16(op, this.sub16, 4);
+			break;
+		case 0o451: // SUBQ.W #4,An
+			this.rwop16(op, (src, dst) => dst - src | 0, 4);
+			break;
+		case 0o452: // SUBQ.W #4,(An)
+		case 0o453: // SUBQ.W #4,(An)+
+		case 0o454: // SUBQ.W #4,-(An)
+		case 0o455: // SUBQ.W #4,d(An)
+		case 0o456: // SUBQ.W #4,d(An,Xi)
+			this.rwop16(op, this.sub16, 4);
+			break;
+		case 0o457: // SUBQ.W #4,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop16(op, this.sub16, 4);
+			break;
+		case 0o460: // SUBQ.L #4,Dn
+			this.rwop32(op, this.sub32, 4);
+			break;
+		case 0o461: // SUBQ.L #4,An
+			this.rwop32(op, (src, dst) => dst - src | 0, 4);
+			break;
+		case 0o462: // SUBQ.L #4,(An)
+		case 0o463: // SUBQ.L #4,(An)+
+		case 0o464: // SUBQ.L #4,-(An)
+		case 0o465: // SUBQ.L #4,d(An)
+		case 0o466: // SUBQ.L #4,d(An,Xi)
+			this.rwop32(op, this.sub32, 4);
+			break;
+		case 0o467: // SUBQ.L #4,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop32(op, this.sub32, 4);
+			break;
+		case 0o470: // SVS Dn
+			this.rwop8(op, src => src, (this.sr & 2) !== 0 ? 0xff : 0);
+			break;
+		case 0o471: // DBVS Dn,<label>
+			this.rwop16(op & 7, this.dbcc, (this.sr & 2) !== 0);
+			break;
+		case 0o472: // SVS (An)
+		case 0o473: // SVS (An)+
+		case 0o474: // SVS -(An)
+		case 0o475: // SVS d(An)
+		case 0o476: // SVS d(An,Xi)
+			this.rwop8(op, src => src, (this.sr & 2) !== 0 ? 0xff : 0);
+			break;
+		case 0o477: // SVS Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, src => src, (this.sr & 2) !== 0 ? 0xff : 0);
+			break;
+		case 0o500: // ADDQ.B #5,Dn
+		case 0o502: // ADDQ.B #5,(An)
+		case 0o503: // ADDQ.B #5,(An)+
+		case 0o504: // ADDQ.B #5,-(An)
+		case 0o505: // ADDQ.B #5,d(An)
+		case 0o506: // ADDQ.B #5,d(An,Xi)
+			this.rwop8(op, this.add8, 5);
+			break;
+		case 0o507: // ADDQ.B #5,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, this.add8, 5);
+			break;
+		case 0o510: // ADDQ.W #5,Dn
+			this.rwop16(op, this.add16, 5);
+			break;
+		case 0o511: // ADDQ.W #5,An
+			this.rwop16(op, (src, dst) => dst + src | 0, 5);
+			break;
+		case 0o512: // ADDQ.W #5,(An)
+		case 0o513: // ADDQ.W #5,(An)+
+		case 0o514: // ADDQ.W #5,-(An)
+		case 0o515: // ADDQ.W #5,d(An)
+		case 0o516: // ADDQ.W #5,d(An,Xi)
+			this.rwop16(op, this.add16, 5);
+			break;
+		case 0o517: // ADDQ.W #5,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop16(op, this.add16, 5);
+			break;
+		case 0o520: // ADDQ.L #5,Dn
+			this.rwop32(op, this.add32, 5);
+			break;
+		case 0o521: // ADDQ.L #5,An
+			this.rwop32(op, (src, dst) => dst + src | 0, 5);
+			break;
+		case 0o522: // ADDQ.L #5,(An)
+		case 0o523: // ADDQ.L #5,(An)+
+		case 0o524: // ADDQ.L #5,-(An)
+		case 0o525: // ADDQ.L #5,d(An)
+		case 0o526: // ADDQ.L #5,d(An,Xi)
+			this.rwop32(op, this.add32, 5);
+			break;
+		case 0o527: // ADDQ.L #5,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop32(op, this.add32, 5);
+			break;
+		case 0o530: // SPL Dn
+			this.rwop8(op, src => src, (this.sr & 8) === 0 ? 0xff : 0);
+			break;
+		case 0o531: // DBPL Dn,<label>
+			this.rwop16(op & 7, this.dbcc, (this.sr & 8) === 0);
+			break;
+		case 0o532: // SPL (An)
+		case 0o533: // SPL (An)+
+		case 0o534: // SPL -(An)
+		case 0o535: // SPL d(An)
+		case 0o536: // SPL d(An,Xi)
+			this.rwop8(op, src => src, (this.sr & 8) === 0 ? 0xff : 0);
+			break;
+		case 0o537: // SPL Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, src => src, (this.sr & 8) === 0 ? 0xff : 0);
+			break;
+		case 0o540: // SUBQ.B #5,Dn
+		case 0o542: // SUBQ.B #5,(An)
+		case 0o543: // SUBQ.B #5,(An)+
+		case 0o544: // SUBQ.B #5,-(An)
+		case 0o545: // SUBQ.B #5,d(An)
+		case 0o546: // SUBQ.B #5,d(An,Xi)
+			this.rwop8(op, this.sub8, 5);
+			break;
+		case 0o547: // SUBQ.B #5,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, this.sub8, 5);
+			break;
+		case 0o550: // SUBQ.W #5,Dn
+			this.rwop16(op, this.sub16, 5);
+			break;
+		case 0o551: // SUBQ.W #5,An
+			this.rwop16(op, (src, dst) => dst - src | 0, 5);
+			break;
+		case 0o552: // SUBQ.W #5,(An)
+		case 0o553: // SUBQ.W #5,(An)+
+		case 0o554: // SUBQ.W #5,-(An)
+		case 0o555: // SUBQ.W #5,d(An)
+		case 0o556: // SUBQ.W #5,d(An,Xi)
+			this.rwop16(op, this.sub16, 5);
+			break;
+		case 0o557: // SUBQ.W #5,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop16(op, this.sub16, 5);
+			break;
+		case 0o560: // SUBQ.L #5,Dn
+			this.rwop32(op, this.sub32, 5);
+			break;
+		case 0o561: // SUBQ.L #5,An
+			this.rwop32(op, (src, dst) => dst - src | 0, 5);
+			break;
+		case 0o562: // SUBQ.L #5,(An)
+		case 0o563: // SUBQ.L #5,(An)+
+		case 0o564: // SUBQ.L #5,-(An)
+		case 0o565: // SUBQ.L #5,d(An)
+		case 0o566: // SUBQ.L #5,d(An,Xi)
+			this.rwop32(op, this.sub32, 5);
+			break;
+		case 0o567: // SUBQ.L #5,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop32(op, this.sub32, 5);
+			break;
+		case 0o570: // SMI Dn
+			this.rwop8(op, src => src, (this.sr & 8) !== 0 ? 0xff : 0);
+			break;
+		case 0o571: // DBMI Dn,<label>
+			this.rwop16(op & 7, this.dbcc, (this.sr & 8) !== 0);
+			break;
+		case 0o572: // SMI (An)
+		case 0o573: // SMI (An)+
+		case 0o574: // SMI -(An)
+		case 0o575: // SMI d(An)
+		case 0o576: // SMI d(An,Xi)
+			this.rwop8(op, src => src, (this.sr & 8) !== 0 ? 0xff : 0);
+			break;
+		case 0o577: // SMI Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, src => src, (this.sr & 8) !== 0 ? 0xff : 0);
+			break;
+		case 0o600: // ADDQ.B #6,Dn
+		case 0o602: // ADDQ.B #6,(An)
+		case 0o603: // ADDQ.B #6,(An)+
+		case 0o604: // ADDQ.B #6,-(An)
+		case 0o605: // ADDQ.B #6,d(An)
+		case 0o606: // ADDQ.B #6,d(An,Xi)
+			this.rwop8(op, this.add8, 6);
+			break;
+		case 0o607: // ADDQ.B #6,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, this.add8, 6);
+			break;
+		case 0o610: // ADDQ.W #6,Dn
+			this.rwop16(op, this.add16, 6);
+			break;
+		case 0o611: // ADDQ.W #6,An
+			this.rwop16(op, (src, dst) => dst + src | 0, 6);
+			break;
+		case 0o612: // ADDQ.W #6,(An)
+		case 0o613: // ADDQ.W #6,(An)+
+		case 0o614: // ADDQ.W #6,-(An)
+		case 0o615: // ADDQ.W #6,d(An)
+		case 0o616: // ADDQ.W #6,d(An,Xi)
+			this.rwop16(op, this.add16, 6);
+			break;
+		case 0o617: // ADDQ.W #6,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop16(op, this.add16, 6);
+			break;
+		case 0o620: // ADDQ.L #6,Dn
+			this.rwop32(op, this.add32, 6);
+			break;
+		case 0o621: // ADDQ.L #6,An
+			this.rwop32(op, (src, dst) => dst + src | 0, 6);
+			break;
+		case 0o622: // ADDQ.L #6,(An)
+		case 0o623: // ADDQ.L #6,(An)+
+		case 0o624: // ADDQ.L #6,-(An)
+		case 0o625: // ADDQ.L #6,d(An)
+		case 0o626: // ADDQ.L #6,d(An,Xi)
+			this.rwop32(op, this.add32, 6);
+			break;
+		case 0o627: // ADDQ.L #6,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop32(op, this.add32, 6);
+			break;
+		case 0o630: // SGE Dn
+			this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr) & 2) === 0 ? 0xff : 0);
+			break;
+		case 0o631: // DBGE Dn,<label>
+			this.rwop16(op & 7, this.dbcc, ((this.sr >>> 2 ^ this.sr) & 2) === 0);
+			break;
+		case 0o632: // SGE (An)
+		case 0o633: // SGE (An)+
+		case 0o634: // SGE -(An)
+		case 0o635: // SGE d(An)
+		case 0o636: // SGE d(An,Xi)
+			this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr) & 2) === 0 ? 0xff : 0);
+			break;
+		case 0o637: // SGE Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr) & 2) === 0 ? 0xff : 0);
+			break;
+		case 0o640: // SUBQ.B #6,Dn
+		case 0o642: // SUBQ.B #6,(An)
+		case 0o643: // SUBQ.B #6,(An)+
+		case 0o644: // SUBQ.B #6,-(An)
+		case 0o645: // SUBQ.B #6,d(An)
+		case 0o646: // SUBQ.B #6,d(An,Xi)
+			this.rwop8(op, this.sub8, 6);
+			break;
+		case 0o647: // SUBQ.B #6,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, this.sub8, 6);
+			break;
+		case 0o650: // SUBQ.W #6,Dn
+			this.rwop16(op, this.sub16, 6);
+			break;
+		case 0o651: // SUBQ.W #6,An
+			this.rwop16(op, (src, dst) => dst - src | 0, 6);
+			break;
+		case 0o652: // SUBQ.W #6,(An)
+		case 0o653: // SUBQ.W #6,(An)+
+		case 0o654: // SUBQ.W #6,-(An)
+		case 0o655: // SUBQ.W #6,d(An)
+		case 0o656: // SUBQ.W #6,d(An,Xi)
+			this.rwop16(op, this.sub16, 6);
+			break;
+		case 0o657: // SUBQ.W #6,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop16(op, this.sub16, 6);
+			break;
+		case 0o660: // SUBQ.L #6,Dn
+			this.rwop32(op, this.sub32, 6);
+			break;
+		case 0o661: // SUBQ.L #6,An
+			this.rwop32(op, (src, dst) => dst - src | 0, 6);
+			break;
+		case 0o662: // SUBQ.L #6,(An)
+		case 0o663: // SUBQ.L #6,(An)+
+		case 0o664: // SUBQ.L #6,-(An)
+		case 0o665: // SUBQ.L #6,d(An)
+		case 0o666: // SUBQ.L #6,d(An,Xi)
+			this.rwop32(op, this.sub32, 6);
+			break;
+		case 0o667: // SUBQ.L #6,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop32(op, this.sub32, 6);
+			break;
+		case 0o670: // SLT Dn
+			this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr) & 2) !== 0 ? 0xff : 0);
+			break;
+		case 0o671: // DBLT Dn,<label>
+			this.rwop16(op & 7, this.dbcc, ((this.sr >>> 2 ^ this.sr) & 2) !== 0);
+			break;
+		case 0o672: // SLT (An)
+		case 0o673: // SLT (An)+
+		case 0o674: // SLT -(An)
+		case 0o675: // SLT d(An)
+		case 0o676: // SLT d(An,Xi)
+			this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr) & 2) !== 0 ? 0xff : 0);
+			break;
+		case 0o677: // SLT Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr) & 2) !== 0 ? 0xff : 0);
+			break;
+		case 0o700: // ADDQ.B #7,Dn
+		case 0o702: // ADDQ.B #7,(An)
+		case 0o703: // ADDQ.B #7,(An)+
+		case 0o704: // ADDQ.B #7,-(An)
+		case 0o705: // ADDQ.B #7,d(An)
+		case 0o706: // ADDQ.B #7,d(An,Xi)
+			this.rwop8(op, this.add8, 7);
+			break;
+		case 0o707: // ADDQ.B #7,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, this.add8, 7);
+			break;
+		case 0o710: // ADDQ.W #7,Dn
+			this.rwop16(op, this.add16, 7);
+			break;
+		case 0o711: // ADDQ.W #7,An
+			this.rwop16(op, (src, dst) => dst + src | 0, 7);
+			break;
+		case 0o712: // ADDQ.W #7,(An)
+		case 0o713: // ADDQ.W #7,(An)+
+		case 0o714: // ADDQ.W #7,-(An)
+		case 0o715: // ADDQ.W #7,d(An)
+		case 0o716: // ADDQ.W #7,d(An,Xi)
+			this.rwop16(op, this.add16, 7);
+			break;
+		case 0o717: // ADDQ.W #7,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop16(op, this.add16, 7);
+			break;
+		case 0o720: // ADDQ.L #7,Dn
+			this.rwop32(op, this.add32, 7);
+			break;
+		case 0o721: // ADDQ.L #7,An
+			this.rwop32(op, (src, dst) => dst + src | 0, 7);
+			break;
+		case 0o722: // ADDQ.L #7,(An)
+		case 0o723: // ADDQ.L #7,(An)+
+		case 0o724: // ADDQ.L #7,-(An)
+		case 0o725: // ADDQ.L #7,d(An)
+		case 0o726: // ADDQ.L #7,d(An,Xi)
+			this.rwop32(op, this.add32, 7);
+			break;
+		case 0o727: // ADDQ.L #7,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop32(op, this.add32, 7);
+			break;
+		case 0o730: // SGT Dn
+			this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) === 0 ? 0xff : 0);
+			break;
+		case 0o731: // DBGT Dn,<label>
+			this.rwop16(op & 7, this.dbcc, ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) === 0);
+			break;
+		case 0o732: // SGT (An)
+		case 0o733: // SGT (An)+
+		case 0o734: // SGT -(An)
+		case 0o735: // SGT d(An)
+		case 0o736: // SGT d(An,Xi)
+			this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) === 0 ? 0xff : 0);
+			break;
+		case 0o737: // SGT Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) === 0 ? 0xff : 0);
+			break;
+		case 0o740: // SUBQ.B #7,Dn
+		case 0o742: // SUBQ.B #7,(An)
+		case 0o743: // SUBQ.B #7,(An)+
+		case 0o744: // SUBQ.B #7,-(An)
+		case 0o745: // SUBQ.B #7,d(An)
+		case 0o746: // SUBQ.B #7,d(An,Xi)
+			this.rwop8(op, this.sub8, 7);
+			break;
+		case 0o747: // SUBQ.B #7,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, this.sub8, 7);
+			break;
+		case 0o750: // SUBQ.W #7,Dn
+			this.rwop16(op, this.sub16, 7);
+			break;
+		case 0o751: // SUBQ.W #7,An
+			this.rwop16(op, (src, dst) => dst - src | 0, 7);
+			break;
+		case 0o752: // SUBQ.W #7,(An)
+		case 0o753: // SUBQ.W #7,(An)+
+		case 0o754: // SUBQ.W #7,-(An)
+		case 0o755: // SUBQ.W #7,d(An)
+		case 0o756: // SUBQ.W #7,d(An,Xi)
+			this.rwop16(op, this.sub16, 7);
+			break;
+		case 0o757: // SUBQ.W #7,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop16(op, this.sub16, 7);
+			break;
+		case 0o760: // SUBQ.L #7,Dn
+			this.rwop32(op, this.sub32, 7);
+			break;
+		case 0o761: // SUBQ.L #7,An
+			this.rwop32(op, (src, dst) => dst - src | 0, 7);
+			break;
+		case 0o762: // SUBQ.L #7,(An)
+		case 0o763: // SUBQ.L #7,(An)+
+		case 0o764: // SUBQ.L #7,-(An)
+		case 0o765: // SUBQ.L #7,d(An)
+		case 0o766: // SUBQ.L #7,d(An,Xi)
+			this.rwop32(op, this.sub32, 7);
+			break;
+		case 0o767: // SUBQ.L #7,Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop32(op, this.sub32, 7);
+			break;
+		case 0o770: // SLE Dn
+			this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) !== 0 ? 0xff : 0);
+			break;
+		case 0o771: // DBLE Dn,<label>
+			this.rwop16(op & 7, this.dbcc, ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) !== 0);
+			break;
+		case 0o772: // SLE (An)
+		case 0o773: // SLE (An)+
+		case 0o774: // SLE -(An)
+		case 0o775: // SLE d(An)
+		case 0o776: // SLE d(An,Xi)
+			this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) !== 0 ? 0xff : 0);
+			break;
+		case 0o777: // SLE Abs...
+			if ((op & 7) >= 2)
+				return void this.exception(4);
+			this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) !== 0 ? 0xff : 0);
 			break;
 		default:
 			return void this.exception(4);
@@ -4160,30 +5099,33 @@ class MC68000 extends Cpu {
 	}
 
 	execute_7(op) {
+		const data = (op & 0xff) - (op << 1 & 0x100);
+
+		this.sr = this.sr & ~0x0f | data >>> 28 & 8 | !data << 2;
 		switch (op >>> 8 & 0xf) {
 		case 0x0: // MOVEQ #<data>,D0
-			this.d0 = this.move32((op & 0xff) - (op << 1 & 0x100));
+			this.d0 = data;
 			return;
 		case 0x2: // MOVEQ #<data>,D1
-			this.d1 = this.move32((op & 0xff) - (op << 1 & 0x100));
+			this.d1 = data;
 			return;
 		case 0x4: // MOVEQ #<data>,D2
-			this.d2 = this.move32((op & 0xff) - (op << 1 & 0x100));
+			this.d2 = data;
 			return;
 		case 0x6: // MOVEQ #<data>,D3
-			this.d3 = this.move32((op & 0xff) - (op << 1 & 0x100));
+			this.d3 = data;
 			return;
 		case 0x8: // MOVEQ #<data>,D4
-			this.d4 = this.move32((op & 0xff) - (op << 1 & 0x100));
+			this.d4 = data;
 			return;
 		case 0xa: // MOVEQ #<data>,D5
-			this.d5 = this.move32((op & 0xff) - (op << 1 & 0x100));
+			this.d5 = data;
 			return;
 		case 0xc: // MOVEQ #<data>,D6
-			this.d6 = this.move32((op & 0xff) - (op << 1 & 0x100));
+			this.d6 = data;
 			return;
 		case 0xe: // MOVEQ #<data>,D7
-			this.d7 = this.move32((op & 0xff) - (op << 1 & 0x100));
+			this.d7 = data;
 			return;
 		default:
 			return void this.exception(4);
@@ -10244,43 +11186,6 @@ class MC68000 extends Cpu {
 		}
 	}
 
-	condition(op) {
-		switch (op >>> 8 & 0xf) {
-		case 0x0: // T true
-			return true;
-		case 0x1: // F fale
-			return false;
-		case 0x2: // HI high
-			return ((this.sr >>> 2 | this.sr) & 1) === 0;
-		case 0x3: // LS low or same
-			return ((this.sr >>> 2 | this.sr) & 1) !== 0;
-		case 0x4: // CC carry clear
-			return (this.sr & 1) === 0;
-		case 0x5: // CS carry set
-			return (this.sr & 1) !== 0;
-		case 0x6: // NE not equal
-			return (this.sr & 4) === 0;
-		case 0x7: // EQ equal
-			return (this.sr & 4) !== 0;
-		case 0x8: // VC overflow clear
-			return (this.sr & 2) === 0;
-		case 0x9: // VS overflow set
-			return (this.sr & 2) !== 0;
-		case 0xa: // PL plus
-			return (this.sr & 8) === 0;
-		case 0xb: // MI minus
-			return (this.sr & 8) !== 0;
-		case 0xc: // GE greater or equal
-			return ((this.sr >>> 2 ^ this.sr) & 2) === 0;
-		case 0xd: // LT less than
-			return ((this.sr >>> 2 ^ this.sr) & 2) !== 0;
-		case 0xe: // GT greater than
-			return ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) === 0;
-		case 0xf: // LE less than
-			return ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) !== 0;
-		}
-	}
-
 	rwop8(op, fn, src) {
 		let ea;
 
@@ -10824,423 +11729,583 @@ class MC68000 extends Cpu {
 		}
 	}
 
-	rop8(op) {
-		let data;
+	rop8(op, flag) {
+		let data = 0xff;
 
 		switch(op & 0o77) {
 		case 0o00: // B D0
-			return this.d0 & 0xff;
+			data = this.d0 & 0xff;
+			break;
 		case 0o01: // B D1
-			return this.d1 & 0xff;
+			data = this.d1 & 0xff;
+			break;
 		case 0o02: // B D2
-			return this.d2 & 0xff;
+			data = this.d2 & 0xff;
+			break;
 		case 0o03: // B D3
-			return this.d3 & 0xff;
+			data = this.d3 & 0xff;
+			break;
 		case 0o04: // B D4
-			return this.d4 & 0xff;
+			data = this.d4 & 0xff;
+			break;
 		case 0o05: // B D5
-			return this.d5 & 0xff;
+			data = this.d5 & 0xff;
+			break;
 		case 0o06: // B D6
-			return this.d6 & 0xff;
+			data = this.d6 & 0xff;
+			break;
 		case 0o07: // B D7
-			return this.d7 & 0xff;
+			data = this.d7 & 0xff;
+			break;
 		case 0o20: // B (A0)
-			return this.read8(this.a0);
+			data = this.read8(this.a0);
+			break;
 		case 0o21: // B (A1)
-			return this.read8(this.a1);
+			data = this.read8(this.a1);
+			break;
 		case 0o22: // B (A2)
-			return this.read8(this.a2);
+			data = this.read8(this.a2);
+			break;
 		case 0o23: // B (A3)
-			return this.read8(this.a3);
+			data = this.read8(this.a3);
+			break;
 		case 0o24: // B (A4)
-			return this.read8(this.a4);
+			data = this.read8(this.a4);
+			break;
 		case 0o25: // B (A5)
-			return this.read8(this.a5);
+			data = this.read8(this.a5);
+			break;
 		case 0o26: // B (A6)
-			return this.read8(this.a6);
+			data = this.read8(this.a6);
+			break;
 		case 0o27: // B (A7)
-			return this.read8(this.a7);
+			data = this.read8(this.a7);
+			break;
 		case 0o30: // B (A0)+
 			data = this.read8(this.a0);
 			this.a0 = this.a0 + 1 | 0;
-			return data;
+			break;
 		case 0o31: // B (A1)+
 			data = this.read8(this.a1);
 			this.a1 = this.a1 + 1 | 0;
-			return data;
+			break;
 		case 0o32: // B (A2)+
 			data = this.read8(this.a2);
 			this.a2 = this.a2 + 1 | 0;
-			return data;
+			break;
 		case 0o33: // B (A3)+
 			data = this.read8(this.a3);
 			this.a3 = this.a3 + 1 | 0;
-			return data;
+			break;
 		case 0o34: // B (A4)+
 			data = this.read8(this.a4);
 			this.a4 = this.a4 + 1 | 0;
-			return data;
+			break;
 		case 0o35: // B (A5)+
 			data = this.read8(this.a5);
 			this.a5 = this.a5 + 1 | 0;
-			return data;
+			break;
 		case 0o36: // B (A6)+
 			data = this.read8(this.a6);
 			this.a6 = this.a6 + 1 | 0;
-			return data;
+			break;
 		case 0o37: // B (A7)+
 			data = this.read8(this.a7);
 			this.a7 = this.a7 + 1 | 0;
-			return data;
+			break;
 		case 0o40: // B -(A0)
-			return this.read8(this.a0 = this.a0 - 1 | 0);
+			data = this.read8(this.a0 = this.a0 - 1 | 0);
+			break;
 		case 0o41: // B -(A1)
-			return this.read8(this.a1 = this.a1 - 1 | 0);
+			data = this.read8(this.a1 = this.a1 - 1 | 0);
+			break;
 		case 0o42: // B -(A2)
-			return this.read8(this.a2 = this.a2 - 1 | 0);
+			data = this.read8(this.a2 = this.a2 - 1 | 0);
+			break;
 		case 0o43: // B -(A3)
-			return this.read8(this.a3 = this.a3 - 1 | 0);
+			data = this.read8(this.a3 = this.a3 - 1 | 0);
+			break;
 		case 0o44: // B -(A4)
-			return this.read8(this.a4 = this.a4 - 1 | 0);
+			data = this.read8(this.a4 = this.a4 - 1 | 0);
+			break;
 		case 0o45: // B -(A5)
-			return this.read8(this.a5 = this.a5 - 1 | 0);
+			data = this.read8(this.a5 = this.a5 - 1 | 0);
+			break;
 		case 0o46: // B -(A6)
-			return this.read8(this.a6 = this.a6 - 1 | 0);
+			data = this.read8(this.a6 = this.a6 - 1 | 0);
+			break;
 		case 0o47: // B -(A7)
-			return this.read8(this.a7 = this.a7 - 1 | 0);
+			data = this.read8(this.a7 = this.a7 - 1 | 0);
+			break;
 		case 0o50: // B d(A0)
-			return this.read8(this.a0 + this.fetch16s() | 0);
+			data = this.read8(this.a0 + this.fetch16s() | 0);
+			break;
 		case 0o51: // B d(A1)
-			return this.read8(this.a1 + this.fetch16s() | 0);
+			data = this.read8(this.a1 + this.fetch16s() | 0);
+			break;
 		case 0o52: // B d(A2)
-			return this.read8(this.a2 + this.fetch16s() | 0);
+			data = this.read8(this.a2 + this.fetch16s() | 0);
+			break;
 		case 0o53: // B d(A3)
-			return this.read8(this.a3 + this.fetch16s() | 0);
+			data = this.read8(this.a3 + this.fetch16s() | 0);
+			break;
 		case 0o54: // B d(A4)
-			return this.read8(this.a4 + this.fetch16s() | 0);
+			data = this.read8(this.a4 + this.fetch16s() | 0);
+			break;
 		case 0o55: // B d(A5)
-			return this.read8(this.a5 + this.fetch16s() | 0);
+			data = this.read8(this.a5 + this.fetch16s() | 0);
+			break;
 		case 0o56: // B d(A6)
-			return this.read8(this.a6 + this.fetch16s() | 0);
+			data = this.read8(this.a6 + this.fetch16s() | 0);
+			break;
 		case 0o57: // B d(A7)
-			return this.read8(this.a7 + this.fetch16s() | 0);
+			data = this.read8(this.a7 + this.fetch16s() | 0);
+			break;
 		case 0o60: // B d(A0,Xi)
-			return this.read8(this.index(this.a0));
+			data = this.read8(this.index(this.a0));
+			break;
 		case 0o61: // B d(A1,Xi)
-			return this.read8(this.index(this.a1));
+			data = this.read8(this.index(this.a1));
+			break;
 		case 0o62: // B d(A2,Xi)
-			return this.read8(this.index(this.a2));
+			data = this.read8(this.index(this.a2));
+			break;
 		case 0o63: // B d(A3,Xi)
-			return this.read8(this.index(this.a3));
+			data = this.read8(this.index(this.a3));
+			break;
 		case 0o64: // B d(A4,Xi)
-			return this.read8(this.index(this.a4));
+			data = this.read8(this.index(this.a4));
+			break;
 		case 0o65: // B d(A5,Xi)
-			return this.read8(this.index(this.a5));
+			data = this.read8(this.index(this.a5));
+			break;
 		case 0o66: // B d(A6,Xi)
-			return this.read8(this.index(this.a6));
+			data = this.read8(this.index(this.a6));
+			break;
 		case 0o67: // B d(A7,Xi)
-			return this.read8(this.index(this.a7));
+			data = this.read8(this.index(this.a7));
+			break;
 		case 0o70: // B Abs.W
-			return this.read8(this.fetch16s());
+			data = this.read8(this.fetch16s());
+			break;
 		case 0o71: // B Abs.L
-			return this.read8(this.fetch32());
+			data = this.read8(this.fetch32());
+			break;
 		case 0o72: // B d(PC)
-			return this.read8(this.pc + this.fetch16s() | 0);
+			data = this.read8(this.pc + this.fetch16s() | 0);
+			break;
 		case 0o73: // B d(PC,Xi)
-			return this.read8(this.index(this.pc));
+			data = this.read8(this.index(this.pc));
+			break;
 		case 0o74: // B #<data>
-			return this.fetch16();
+			data = this.fetch16() & 0xff;
+			break;
 		}
+		if (flag)
+			this.sr = this.sr & ~0x0f | data >>> 4 & 8 | !data << 2;
+		return data;
 	}
 
-	rop16(op) {
-		let data;
+	rop16(op, flag) {
+		let data = 0xffff;
 
 		switch(op & 0o77) {
 		case 0o00: // W D0
-			return this.d0 & 0xffff;
+			data = this.d0 & 0xffff;
+			break;
 		case 0o01: // W D1
-			return this.d1 & 0xffff;
+			data = this.d1 & 0xffff;
+			break;
 		case 0o02: // W D2
-			return this.d2 & 0xffff;
+			data = this.d2 & 0xffff;
+			break;
 		case 0o03: // W D3
-			return this.d3 & 0xffff;
+			data = this.d3 & 0xffff;
+			break;
 		case 0o04: // W D4
-			return this.d4 & 0xffff;
+			data = this.d4 & 0xffff;
+			break;
 		case 0o05: // W D5
-			return this.d5 & 0xffff;
+			data = this.d5 & 0xffff;
+			break;
 		case 0o06: // W D6
-			return this.d6 & 0xffff;
+			data = this.d6 & 0xffff;
+			break;
 		case 0o07: // W D7
-			return this.d7 & 0xffff;
+			data = this.d7 & 0xffff;
+			break;
 		case 0o10: // W A0
-			return this.a0 & 0xffff;
+			data = this.a0 & 0xffff;
+			break;
 		case 0o11: // W A1
-			return this.a1 & 0xffff;
+			data = this.a1 & 0xffff;
+			break;
 		case 0o12: // W A2
-			return this.a2 & 0xffff;
+			data = this.a2 & 0xffff;
+			break;
 		case 0o13: // W A3
-			return this.a3 & 0xffff;
+			data = this.a3 & 0xffff;
+			break;
 		case 0o14: // W A4
-			return this.a4 & 0xffff;
+			data = this.a4 & 0xffff;
+			break;
 		case 0o15: // W A5
-			return this.a5 & 0xffff;
+			data = this.a5 & 0xffff;
+			break;
 		case 0o16: // W A6
-			return this.a6 & 0xffff;
+			data = this.a6 & 0xffff;
+			break;
 		case 0o17: // W A7
-			return this.a7 & 0xffff;
+			data = this.a7 & 0xffff;
+			break;
 		case 0o20: // W (A0)
-			return this.read16(this.a0);
+			data = this.read16(this.a0);
+			break;
 		case 0o21: // W (A1)
-			return this.read16(this.a1);
+			data = this.read16(this.a1);
+			break;
 		case 0o22: // W (A2)
-			return this.read16(this.a2);
+			data = this.read16(this.a2);
+			break;
 		case 0o23: // W (A3)
-			return this.read16(this.a3);
+			data = this.read16(this.a3);
+			break;
 		case 0o24: // W (A4)
-			return this.read16(this.a4);
+			data = this.read16(this.a4);
+			break;
 		case 0o25: // W (A5)
-			return this.read16(this.a5);
+			data = this.read16(this.a5);
+			break;
 		case 0o26: // W (A6)
-			return this.read16(this.a6);
+			data = this.read16(this.a6);
+			break;
 		case 0o27: // W (A7)
-			return this.read16(this.a7);
+			data = this.read16(this.a7);
+			break;
 		case 0o30: // W (A0)+
 			data = this.read16(this.a0);
 			this.a0 = this.a0 + 2 | 0;
-			return data;
+			break;
 		case 0o31: // W (A1)+
 			data = this.read16(this.a1);
 			this.a1 = this.a1 + 2 | 0;
-			return data;
+			break;
 		case 0o32: // W (A2)+
 			data = this.read16(this.a2);
 			this.a2 = this.a2 + 2 | 0;
-			return data;
+			break;
 		case 0o33: // W (A3)+
 			data = this.read16(this.a3);
 			this.a3 = this.a3 + 2 | 0;
-			return data;
+			break;
 		case 0o34: // W (A4)+
 			data = this.read16(this.a4);
 			this.a4 = this.a4 + 2 | 0;
-			return data;
+			break;
 		case 0o35: // W (A5)+
 			data = this.read16(this.a5);
 			this.a5 = this.a5 + 2 | 0;
-			return data;
+			break;
 		case 0o36: // W (A6)+
 			data = this.read16(this.a6);
 			this.a6 = this.a6 + 2 | 0;
-			return data;
+			break;
 		case 0o37: // W (A7)+
 			data = this.read16(this.a7);
 			this.a7 = this.a7 + 2 | 0;
-			return data;
+			break;
 		case 0o40: // W -(A0)
-			return this.read16(this.a0 = this.a0 - 2 | 0);
+			data = this.read16(this.a0 = this.a0 - 2 | 0);
+			break;
 		case 0o41: // W -(A1)
-			return this.read16(this.a1 = this.a1 - 2 | 0);
+			data = this.read16(this.a1 = this.a1 - 2 | 0);
+			break;
 		case 0o42: // W -(A2)
-			return this.read16(this.a2 = this.a2 - 2 | 0);
+			data = this.read16(this.a2 = this.a2 - 2 | 0);
+			break;
 		case 0o43: // W -(A3)
-			return this.read16(this.a3 = this.a3 - 2 | 0);
+			data = this.read16(this.a3 = this.a3 - 2 | 0);
+			break;
 		case 0o44: // W -(A4)
-			return this.read16(this.a4 = this.a4 - 2 | 0);
+			data = this.read16(this.a4 = this.a4 - 2 | 0);
+			break;
 		case 0o45: // W -(A5)
-			return this.read16(this.a5 = this.a5 - 2 | 0);
+			data = this.read16(this.a5 = this.a5 - 2 | 0);
+			break;
 		case 0o46: // W -(A6)
-			return this.read16(this.a6 = this.a6 - 2 | 0);
+			data = this.read16(this.a6 = this.a6 - 2 | 0);
+			break;
 		case 0o47: // W -(A7)
-			return this.read16(this.a7 = this.a7 - 2 | 0);
+			data = this.read16(this.a7 = this.a7 - 2 | 0);
+			break;
 		case 0o50: // W d(A0)
-			return this.read16(this.a0 + this.fetch16s() | 0);
+			data = this.read16(this.a0 + this.fetch16s() | 0);
+			break;
 		case 0o51: // W d(A1)
-			return this.read16(this.a1 + this.fetch16s() | 0);
+			data = this.read16(this.a1 + this.fetch16s() | 0);
+			break;
 		case 0o52: // W d(A2)
-			return this.read16(this.a2 + this.fetch16s() | 0);
+			data = this.read16(this.a2 + this.fetch16s() | 0);
+			break;
 		case 0o53: // W d(A3)
-			return this.read16(this.a3 + this.fetch16s() | 0);
+			data = this.read16(this.a3 + this.fetch16s() | 0);
+			break;
 		case 0o54: // W d(A4)
-			return this.read16(this.a4 + this.fetch16s() | 0);
+			data = this.read16(this.a4 + this.fetch16s() | 0);
+			break;
 		case 0o55: // W d(A5)
-			return this.read16(this.a5 + this.fetch16s() | 0);
+			data = this.read16(this.a5 + this.fetch16s() | 0);
+			break;
 		case 0o56: // W d(A6)
-			return this.read16(this.a6 + this.fetch16s() | 0);
+			data = this.read16(this.a6 + this.fetch16s() | 0);
+			break;
 		case 0o57: // W d(A7)
-			return this.read16(this.a7 + this.fetch16s() | 0);
+			data = this.read16(this.a7 + this.fetch16s() | 0);
+			break;
 		case 0o60: // W d(A0,Xi)
-			return this.read16(this.index(this.a0));
+			data = this.read16(this.index(this.a0));
+			break;
 		case 0o61: // W d(A1,Xi)
-			return this.read16(this.index(this.a1));
+			data = this.read16(this.index(this.a1));
+			break;
 		case 0o62: // W d(A2,Xi)
-			return this.read16(this.index(this.a2));
+			data = this.read16(this.index(this.a2));
+			break;
 		case 0o63: // W d(A3,Xi)
-			return this.read16(this.index(this.a3));
+			data = this.read16(this.index(this.a3));
+			break;
 		case 0o64: // W d(A4,Xi)
-			return this.read16(this.index(this.a4));
+			data = this.read16(this.index(this.a4));
+			break;
 		case 0o65: // W d(A5,Xi)
-			return this.read16(this.index(this.a5));
+			data = this.read16(this.index(this.a5));
+			break;
 		case 0o66: // W d(A6,Xi)
-			return this.read16(this.index(this.a6));
+			data = this.read16(this.index(this.a6));
+			break;
 		case 0o67: // W d(A7,Xi)
-			return this.read16(this.index(this.a7));
+			data = this.read16(this.index(this.a7));
+			break;
 		case 0o70: // W Abs.W
-			return this.read16(this.fetch16s());
+			data = this.read16(this.fetch16s());
+			break;
 		case 0o71: // W Abs.L
-			return this.read16(this.fetch32());
+			data = this.read16(this.fetch32());
+			break;
 		case 0o72: // W d(PC)
-			return this.read16(this.pc + this.fetch16s() | 0);
+			data = this.read16(this.pc + this.fetch16s() | 0);
+			break;
 		case 0o73: // W d(PC,Xi)
-			return this.read16(this.index(this.pc));
+			data = this.read16(this.index(this.pc));
+			break;
 		case 0o74: // W #<data>
-			return this.fetch16();
+			data = this.fetch16();
+			break;
 		}
+		if (flag)
+			this.sr = this.sr & ~0x0f | data >>> 12 & 8 | !data << 2;
+		return data;
 	}
 
-	rop32(op) {
-		let data;
+	rop32(op, flag) {
+		let data = 0xffffffff;
 
 		switch(op & 0o77) {
 		case 0o00: // L D0
-			return this.d0;
+			data = this.d0;
+			break;
 		case 0o01: // L D1
-			return this.d1;
+			data = this.d1;
+			break;
 		case 0o02: // L D2
-			return this.d2;
+			data = this.d2;
+			break;
 		case 0o03: // L D3
-			return this.d3;
+			data = this.d3;
+			break;
 		case 0o04: // L D4
-			return this.d4;
+			data = this.d4;
+			break;
 		case 0o05: // L D5
-			return this.d5;
+			data = this.d5;
+			break;
 		case 0o06: // L D6
-			return this.d6;
+			data = this.d6;
+			break;
 		case 0o07: // L D7
-			return this.d7;
+			data = this.d7;
+			break;
 		case 0o10: // L A0
-			return this.a0;
+			data = this.a0;
+			break;
 		case 0o11: // L A1
-			return this.a1;
+			data = this.a1;
+			break;
 		case 0o12: // L A2
-			return this.a2;
+			data = this.a2;
+			break;
 		case 0o13: // L A3
-			return this.a3;
+			data = this.a3;
+			break;
 		case 0o14: // L A4
-			return this.a4;
+			data = this.a4;
+			break;
 		case 0o15: // L A5
-			return this.a5;
+			data = this.a5;
+			break;
 		case 0o16: // L A6
-			return this.a6;
+			data = this.a6;
+			break;
 		case 0o17: // L A7
-			return this.a7;
+			data = this.a7;
+			break;
 		case 0o20: // L (A0)
-			return this.read32(this.a0);
+			data = this.read32(this.a0);
+			break;
 		case 0o21: // L (A1)
-			return this.read32(this.a1);
+			data = this.read32(this.a1);
+			break;
 		case 0o22: // L (A2)
-			return this.read32(this.a2);
+			data = this.read32(this.a2);
+			break;
 		case 0o23: // L (A3)
-			return this.read32(this.a3);
+			data = this.read32(this.a3);
+			break;
 		case 0o24: // L (A4)
-			return this.read32(this.a4);
+			data = this.read32(this.a4);
+			break;
 		case 0o25: // L (A5)
-			return this.read32(this.a5);
+			data = this.read32(this.a5);
+			break;
 		case 0o26: // L (A6)
-			return this.read32(this.a6);
+			data = this.read32(this.a6);
+			break;
 		case 0o27: // L (A7)
-			return this.read32(this.a7);
+			data = this.read32(this.a7);
+			break;
 		case 0o30: // W (A0)+
 			data = this.read32(this.a0);
 			this.a0 = this.a0 + 4 | 0;
-			return data;
+			break;
 		case 0o31: // W (A1)+
 			data = this.read32(this.a1);
 			this.a1 = this.a1 + 4 | 0;
-			return data;
+			break;
 		case 0o32: // W (A2)+
 			data = this.read32(this.a2);
 			this.a2 = this.a2 + 4 | 0;
-			return data;
+			break;
 		case 0o33: // W (A3)+
 			data = this.read32(this.a3);
 			this.a3 = this.a3 + 4 | 0;
-			return data;
+			break;
 		case 0o34: // W (A4)+
 			data = this.read32(this.a4);
 			this.a4 = this.a4 + 4 | 0;
-			return data;
+			break;
 		case 0o35: // W (A5)+
 			data = this.read32(this.a5);
 			this.a5 = this.a5 + 4 | 0;
-			return data;
+			break;
 		case 0o36: // W (A6)+
 			data = this.read32(this.a6);
 			this.a6 = this.a6 + 4 | 0;
-			return data;
+			break;
 		case 0o37: // W (A7)+
 			data = this.read32(this.a7);
 			this.a7 = this.a7 + 4 | 0;
-			return data;
+			break;
 		case 0o40: // L -(A0)
-			return this.read32(this.a0 = this.a0 - 4 | 0);
+			data = this.read32(this.a0 = this.a0 - 4 | 0);
+			break;
 		case 0o41: // L -(A1)
-			return this.read32(this.a1 = this.a1 - 4 | 0);
+			data = this.read32(this.a1 = this.a1 - 4 | 0);
+			break;
 		case 0o42: // L -(A2)
-			return this.read32(this.a2 = this.a2 - 4 | 0);
+			data = this.read32(this.a2 = this.a2 - 4 | 0);
+			break;
 		case 0o43: // L -(A3)
-			return this.read32(this.a3 = this.a3 - 4 | 0);
+			data = this.read32(this.a3 = this.a3 - 4 | 0);
+			break;
 		case 0o44: // L -(A4)
-			return this.read32(this.a4 = this.a4 - 4 | 0);
+			data = this.read32(this.a4 = this.a4 - 4 | 0);
+			break;
 		case 0o45: // L -(A5)
-			return this.read32(this.a5 = this.a5 - 4 | 0);
+			data = this.read32(this.a5 = this.a5 - 4 | 0);
+			break;
 		case 0o46: // L -(A6)
-			return this.read32(this.a6 = this.a6 - 4 | 0);
+			data = this.read32(this.a6 = this.a6 - 4 | 0);
+			break;
 		case 0o47: // L -(A7)
-			return this.read32(this.a7 = this.a7 - 4 | 0);
+			data = this.read32(this.a7 = this.a7 - 4 | 0);
+			break;
 		case 0o50: // L d(A0)
-			return this.read32(this.a0 + this.fetch16s() | 0);
+			data = this.read32(this.a0 + this.fetch16s() | 0);
+			break;
 		case 0o51: // L d(A1)
-			return this.read32(this.a1 + this.fetch16s() | 0);
+			data = this.read32(this.a1 + this.fetch16s() | 0);
+			break;
 		case 0o52: // L d(A2)
-			return this.read32(this.a2 + this.fetch16s() | 0);
+			data = this.read32(this.a2 + this.fetch16s() | 0);
+			break;
 		case 0o53: // L d(A3)
-			return this.read32(this.a3 + this.fetch16s() | 0);
+			data = this.read32(this.a3 + this.fetch16s() | 0);
+			break;
 		case 0o54: // L d(A4)
-			return this.read32(this.a4 + this.fetch16s() | 0);
+			data = this.read32(this.a4 + this.fetch16s() | 0);
+			break;
 		case 0o55: // L d(A5)
-			return this.read32(this.a5 + this.fetch16s() | 0);
+			data = this.read32(this.a5 + this.fetch16s() | 0);
+			break;
 		case 0o56: // L d(A6)
-			return this.read32(this.a6 + this.fetch16s() | 0);
+			data = this.read32(this.a6 + this.fetch16s() | 0);
+			break;
 		case 0o57: // L d(A7)
-			return this.read32(this.a7 + this.fetch16s() | 0);
+			data = this.read32(this.a7 + this.fetch16s() | 0);
+			break;
 		case 0o60: // L d(A0,Xi)
-			return this.read32(this.index(this.a0));
+			data = this.read32(this.index(this.a0));
+			break;
 		case 0o61: // L d(A1,Xi)
-			return this.read32(this.index(this.a1));
+			data = this.read32(this.index(this.a1));
+			break;
 		case 0o62: // L d(A2,Xi)
-			return this.read32(this.index(this.a2));
+			data = this.read32(this.index(this.a2));
+			break;
 		case 0o63: // L d(A3,Xi)
-			return this.read32(this.index(this.a3));
+			data = this.read32(this.index(this.a3));
+			break;
 		case 0o64: // L d(A4,Xi)
-			return this.read32(this.index(this.a4));
+			data = this.read32(this.index(this.a4));
+			break;
 		case 0o65: // L d(A5,Xi)
-			return this.read32(this.index(this.a5));
+			data = this.read32(this.index(this.a5));
+			break;
 		case 0o66: // L d(A6,Xi)
-			return this.read32(this.index(this.a6));
+			data = this.read32(this.index(this.a6));
+			break;
 		case 0o67: // L d(A7,Xi)
-			return this.read32(this.index(this.a7));
+			data = this.read32(this.index(this.a7));
+			break;
 		case 0o70: // L Abs.W
-			return this.read32(this.fetch16s());
+			data = this.read32(this.fetch16s());
+			break;
 		case 0o71: // L Abs.L
-			return this.read32(this.fetch32());
+			data = this.read32(this.fetch32());
+			break;
 		case 0o72: // L d(PC)
-			return this.read32(this.pc + this.fetch16s() | 0);
+			data = this.read32(this.pc + this.fetch16s() | 0);
+			break;
 		case 0o73: // L d(PC,Xi)
-			return this.read32(this.index(this.pc));
+			data = this.read32(this.index(this.pc));
+			break;
 		case 0o74: // L #<data>
-			return this.fetch32();
+			data = this.fetch32();
+			break;
 		}
+		if (flag)
+			this.sr = this.sr & ~0x0f | data >>> 28 & 8 | !data << 2;
+		return data;
 	}
 
 	movep(op, src) {
@@ -11995,7 +13060,7 @@ class MC68000 extends Cpu {
 
 	roxr8(src, dst) {
 		let x = this.sr >>> 4 & 1;
-		src &= 63;
+		src = (src & 63) % 9;
 		for (let i = 0; i < src; i++)
 			[x, dst] = [dst & 1, dst >>> 1 | x << 7];
 		this.sr = this.sr & ~0x1f | x << 4 | dst >>> 4 & 8 | !dst << 2 | x;
@@ -12004,7 +13069,7 @@ class MC68000 extends Cpu {
 
 	roxr16(src, dst) {
 		let x = this.sr >>> 4 & 1;
-		src &= 63;
+		src = (src & 63) % 17;
 		for (let i = 0; i < src; i++)
 			[x, dst] = [dst & 1, dst >>> 1 | x << 15];
 		this.sr = this.sr & ~0x1f | x << 4 | dst >>> 12 & 8 | !dst << 2 | x;
@@ -12013,7 +13078,7 @@ class MC68000 extends Cpu {
 
 	roxr32(src, dst) {
 		let x = this.sr >>> 4 & 1;
-		src &= 63;
+		src = (src & 63) % 33;
 		for (let i = 0; i < src; i++)
 			[x, dst] = [dst & 1, dst >>> 1 | x << 31];
 		this.sr = this.sr & ~0x1f | x << 4 | dst >>> 28 & 8 | !dst << 2 | x;
@@ -12111,7 +13176,7 @@ class MC68000 extends Cpu {
 
 	roxl8(src, dst) {
 		let x = this.sr >>> 4 & 1;
-		src &= 63;
+		src = (src & 63) % 9;
 		for (let i = 0; i < src; i++)
 			[x, dst] = [dst >>> 7, dst << 1 | x];
 		dst &= 0xff;
@@ -12121,7 +13186,7 @@ class MC68000 extends Cpu {
 
 	roxl16(src, dst) {
 		let x = this.sr >>> 4 & 1;
-		src &= 63;
+		src = (src & 63) % 17;
 		for (let i = 0; i < src; i++)
 			[x, dst] = [dst >>> 15, dst << 1 | x];
 		dst &= 0xffff;
@@ -12131,7 +13196,7 @@ class MC68000 extends Cpu {
 
 	roxl32(src, dst) {
 		let x = this.sr >>> 4 & 1;
-		src &= 63;
+		src = (src & 63) % 33;
 		for (let i = 0; i < src; i++)
 			[x, dst] = [dst >>> 31, dst << 1 | x];
 		this.sr = this.sr & ~0x1f | x << 4 | dst >>> 28 & 8 | !dst << 2 | x;
@@ -12160,21 +13225,6 @@ class MC68000 extends Cpu {
 		dst = dst >>> (31 - src & 31) + 1 | dst << (src & 31);
 		this.sr = this.sr & ~0x0f | dst >>> 28 & 8 | !dst << 2 | c;
 		return dst;
-	}
-
-	move8(src) {
-		this.sr = this.sr & ~0x0f | src >>> 4 & 8 | !src << 2;
-		return src;
-	}
-
-	move16(src) {
-		this.sr = this.sr & ~0x0f | src >>> 12 & 8 | !src << 2;
-		return src;
-	}
-
-	move32(src) {
-		this.sr = this.sr & ~0x0f | src >>> 28 & 8 | !src << 2;
-		return src;
 	}
 
 	negx8(src, dst) {
@@ -12269,21 +13319,6 @@ class MC68000 extends Cpu {
 
 	ext32(src, dst) {
 		dst = (dst & 0xffff) - (dst << 1 & 0x10000);
-		this.sr = this.sr & ~0x0f | dst >>> 28 & 8 | !dst << 2;
-		return dst;
-	}
-
-	tst8(src, dst) {
-		this.sr = this.sr & ~0x0f | dst >>> 4 & 8 | !dst << 2;
-		return dst;
-	}
-
-	tst16(src, dst) {
-		this.sr = this.sr & ~0x0f | dst >>> 12 & 8 | !dst << 2;
-		return dst;
-	}
-
-	tst32(src, dst) {
 		this.sr = this.sr & ~0x0f | dst >>> 28 & 8 | !dst << 2;
 		return dst;
 	}
@@ -12404,45 +13439,49 @@ class MC68000 extends Cpu {
 
 	read8(addr) {
 		const page = this.memorymap[addr >>> 8 & 0xffff];
-		return !page.read ? page.base[addr & 0xff] : page.read(addr, this.arg);
+		return page.read ? page.read(addr, this.arg) : page.base[addr & 0xff];
 	}
 
 	read16(addr) {
 		const page = this.memorymap[addr >>> 8 & 0xffff];
-		return !page.read ? page.base[addr & 0xff] << 8 | page.base[addr + 1 & 0xff] : page.read(addr, this.arg);
+		return page.read16 ? page.read16(addr, this.arg) : page.read ? page.read(addr, this.arg) << 8 | page.read(addr + 1 | 0, this.arg) : page.base[addr & 0xff] << 8 | page.base[addr + 1 & 0xff];
 	}
 
 	read16s(addr) {
 		const page = this.memorymap[addr >>> 8 & 0xffff];
-		const data = !page.read ? page.base[addr & 0xff] << 8 | page.base[addr + 1 & 0xff] : page.read(addr, this.arg);
+		const data = page.read16 ? page.read16(addr, this.arg) : page.read ? page.read(addr, this.arg) << 8 | page.read(addr + 1 | 0, this.arg) : page.base[addr & 0xff] << 8 | page.base[addr + 1 & 0xff];
 		return data - (data << 1 & 0x10000);
 	}
 
 	read32(addr) {
-		return this.read16(addr) << 16 | this.read16(addr + 2);
+		return this.read16(addr) << 16 | this.read16(addr + 2 | 0);
 	}
 
 	write8(data, addr) {
 		const page = this.memorymap[addr >>> 8 & 0xffff];
-		if (!page.write)
-			page.base[addr & 0xff] = data;
-		else
+		if (page.write)
 			page.write(addr, data & 0xff, this.arg);
+		else
+			page.base[addr & 0xff] = data;
 	}
 
 	write16(data, addr) {
 		const page = this.memorymap[addr >>> 8 & 0xffff];
-		if (!page.write) {
+		if (page.write16)
+			page.write16(addr, data & 0xffff, this.arg);
+		else if (page.write) {
+			page.write(addr, data >>> 8 & 0xff, this.arg);
+			page.write(addr + 1 | 0, data & 0xff, this.arg);
+		}
+		else {
 			page.base[addr & 0xff] = data >>> 8;
 			page.base[addr + 1 & 0xff] = data;
 		}
-		else
-			page.write(addr, data & 0xffff, this.arg);
 	}
 
 	write32(data, addr) {
 		this.write16(data >>> 16, addr);
-		this.write16(data, addr + 2);
+		this.write16(data, addr + 2 | 0);
 	}
 }
 

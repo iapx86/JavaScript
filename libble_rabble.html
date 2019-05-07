@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Toypop</title>
+<title>Libble Rabble</title>
 <link href="style.css" rel="stylesheet" type="text/css">
 </head>
 <body>
@@ -16,11 +16,11 @@
 <script>
 /*
  *
- *	Toypop
+ *	Libble Rabble
  *
  */
 
-class Toypop {
+class LibbleRabble {
 	constructor() {
 		this.cxScreen = 224;
 		this.cyScreen = 288;
@@ -34,11 +34,12 @@ class Toypop {
 		this.fCoin = false;
 		this.fStart1P = false;
 		this.fStart2P = false;
-		this.nPino = 3;
-		this.nBonus = 'A';
-		this.nRank = 'NORMAL';
-		this.fAttract = true;
+		this.nLibbleRabble = 3;
+		this.nBonus = 'A_H';
 		this.fRound = false;
+		this.fAttract = true;
+		this.fPractice = true;
+		this.nRank = 'A';
 
 		// CPU周りの初期化
 		this.fInterruptEnable2 = false;
@@ -59,12 +60,12 @@ class Toypop {
 			this.cpu[0].memorymap[0x28 + i].base = this.ram2.base[i];
 			this.cpu[0].memorymap[0x28 + i].write = null;
 		}
-		this.cpu[0].memorymap[0x60].base = this.ram.base[0x20];
-		this.cpu[0].memorymap[0x60].write = null;
 		for (let i = 0; i < 4; i++) {
-			this.cpu[0].memorymap[0x68 + i].read = addr => sound.read(addr);
-			this.cpu[0].memorymap[0x68 + i].write = (addr, data) => sound.write(addr, data);
+			this.cpu[0].memorymap[0x60 + i].read = addr => sound.read(addr);
+			this.cpu[0].memorymap[0x60 + i].write = (addr, data) => sound.write(addr, data);
 		}
+		this.cpu[0].memorymap[0x68].base = this.ram.base[0x20];
+		this.cpu[0].memorymap[0x68].write = null;
 		for (let i = 0; i < 0x80; i++)
 			this.cpu[0].memorymap[0x80 + i].base = PRG1.base[i];
 		this.cpu[0].memorymap[0x80].write = () => this.cpu[2].enable();
@@ -134,58 +135,92 @@ class Toypop {
 		// DIPスイッチの更新
 		if (this.fDIPSwitchChanged) {
 			this.fDIPSwitchChanged = false;
-			switch (this.nPino) {
+			switch (this.nLibbleRabble) {
 			case 1:
 				this.port[0x13] = this.port[0x13] & ~3 | 1;
 				break;
 			case 2:
-				this.port[0x13] = this.port[0x13] & ~3 | 2;
+				this.port[0x13] |= 3;
 				break;
 			case 3:
 				this.port[0x13] &= ~3;
 				break;
 			case 5:
-				this.port[0x13] |= 3;
+				this.port[0x13] = this.port[0x13] & ~3 | 2;
 				break;
 			}
 			switch (this.nBonus) {
-			case 'A':
-				this.port[0x12] &= ~8;
+			case 'A_H': // 1st 40000 2nd 120000 3rd 200000 4th 400000 5th 600000 6th 1000000
+				this.port[0x13] &= ~0xc;
+				this.port[0x10] &= ~1;
 				break;
-			case 'B':
-				this.port[0x12] |= 8;
+			case 'B_I': // 1st 40000 2nd 140000 3rd 250000 4th 400000 5th 700000 6th 1000000
+				this.port[0x13] &= ~0xc;
+				this.port[0x10] |= 1;
+				break;
+			case 'C_J': // C: 1st 50000 2nd 150000 3rd 320000 4th 500000 5th 700000 6th 1000000
+						// J: 1st 20000 2nd 120000
+				this.port[0x13] = this.port[0x13] & ~0xc | 8;
+				this.port[0x10] &= ~1;
+				break;
+			case 'D_K': // D: 1st 40000 2nd 120000 Every 120000
+						// K: 1st 50000 2nd 150000
+				this.port[0x13] = this.port[0x13] & ~0xc | 8;
+				this.port[0x10] |= 1;
+				break;
+			case 'E_L': // 1st 50000 2nd 150000 Every 150000
+				this.port[0x13] = this.port[0x13] & ~0xc | 4;
+				this.port[0x10] &= ~1;
+				break;
+			case 'F_M': // F: 1st 50000 2nd 150000 3rd 300000
+						// M: 1st 60000 2nd 200000 Every 200000
+				this.port[0x13] = this.port[0x13] & ~0xc | 4;
+				this.port[0x10] |= 1;
+				break;
+			case 'G_N': // G: 1st 40000 2nd 120000 3rd 200000
+						// N: 1st 50000
+				this.port[0x13] |= 0xc;
+				this.port[0x10] &= ~1;
+				break;
+			case 'Nothing':
+				this.port[0x13] |= 0xc;
+				this.port[0x10] |= 1;
 				break;
 			}
-			switch (this.nRank) {
-			case 'EASY':
-				this.port[0x12] = this.port[0x12] & ~6 | 2;
-				break;
-			case 'NORMAL':
-				this.port[0x12] &= ~6;
-				break;
-			case 'HARD':
-				this.port[0x12] = this.port[0x12] & ~6 | 4;
-				break;
-			case 'VERY HARD':
-				this.port[0x12] |= 6;
-				break;
-			}
-			if (this.fAttract)
-				this.port[0x11] &= ~8;
-			else
-				this.port[0x11] |= 8;
 			if (this.fRound)
 				this.port[0x11] |= 2;
 			else
 				this.port[0x11] &= ~2;
+			if (this.fAttract)
+				this.port[0x11] &= ~4;
+			else
+				this.port[0x11] |= 4;
+			if (this.fPractice)
+				this.port[0x12] &= ~2;
+			else
+				this.port[0x12] |= 2;
+			switch (this.nRank) {
+			case 'A':
+				this.port[0x12] &= ~0xc;
+				break;
+			case 'B':
+				this.port[0x12] = this.port[0x12] & ~0xc | 8;
+				break;
+			case 'C':
+				this.port[0x12] = this.port[0x12] & ~0xc | 4;
+				break;
+			case 'D':
+				this.port[0x12] |= 0xc;
+				break;
+			}
 			if (!this.fTest)
 				this.fReset = true;
 		}
 
 		if (this.fTest)
-			this.port[0x10] |= 8;
+			this.port[0x27] |= 8;
 		else
-			this.port[0x10] &= ~8;
+			this.port[0x27] &= ~8;
 
 		// リセット処理
 		if (this.fReset) {
@@ -199,91 +234,139 @@ class Toypop {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.port[4] |= 1 << 0;
+		if (this.fCoin && this.ram[0x2008] === 3) {
+			let i = (this.ram[0x2002] & 0xf) * 10 + (this.ram[0x2003] & 0xf);
+			if (i < 150) {
+				i++;
+				if (i > 99)
+					i = 99;
+				this.ram[0x2002] = i / 10;
+				this.ram[0x2003] = i % 10;
+				this.ram[0x2000] = 1;
+			}
 		}
-		else
-			this.port[4] &= ~(1 << 0);
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.port[7] |= 1 << 2;
+		if (this.fStart1P && this.ram[0x2008] === 3) {
+			let i = (this.ram[0x2002] & 0xf) * 10 + (this.ram[0x2003] & 0xf);
+			if (i >= 150)
+				this.ram[0x2001] |= 1 << 0;
+			else if (i > 0) {
+				this.ram[0x2001] |= 1 << 0;
+				--i;
+				this.ram[0x2002] = i / 10;
+				this.ram[0x2003] = i % 10;
+			}
 		}
-		else
-			this.port[7] &= ~(1 << 2);
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.port[7] |= 1 << 3;
+		if (this.fStart2P && this.ram[0x2008] === 3) {
+			let i = (this.ram[0x2002] & 0xf) * 10 + (this.ram[0x2003] & 0xf);
+			if (i >= 150)
+				this.ram[0x2001] |= 1 << 1;
+			else if (i > 1) {
+				this.ram[0x2001] |= 1 << 1;
+				i -= 2;
+				this.ram[0x2002] = i / 10;
+				this.ram[0x2003] = i % 10;
+			}
 		}
-		else
-			this.port[7] &= ~(1 << 3);
+		this.fCoin = this.fStart1P = this.fStart2P = false;
 
 		// Port Emulations
-		this.ram.set(this.port.subarray(4, 8), 0x2004);
-		this.ram.set(this.port.subarray(0x10, 0x14), 0x2010);
-		this.ram.set(this.port.subarray(0x20, 0x28), 0x2020);
-		if ((this.ram[0x2008] & 0x0f) === 5) {
-			this.ram[0x2002] = 0x0f;
-			this.ram[0x2006] = 0x0c;
+		switch (this.ram[0x2008] & 0xf) {
+		case 1:
+		case 3:
+			this.ram.set(this.port.subarray(4, 8), 0x2004);
+			break;
+		case 5:
+			this.ram.set(Uint8Array.of(0, 0xf, 0xd, 9, 1, 0xc, 0xc), 0x2001);
+			break;
 		}
-		if ((this.ram[0x2018] & 0x0f) === 8) {
-			const sum = this.ram.subarray(0x2019, 0x2020).reduce((a, b) => a + (b & 0x0f));
-			this.ram[0x2010] = sum >> 4 & 0x0f;
-			this.ram[0x2011] = sum & 0x0f;
+		switch (this.ram[0x2018] & 0xf) {
+		case 1:
+			this.ram.set(this.port.subarray(0x10, 0x14), 0x2010);
+			break;
+		case 7:
+			this.ram[0x2012] = 0xe;
+			break;
 		}
-		if ((this.ram[0x2028] & 0x0f) === 8) {
-			const sum = this.ram.subarray(0x2029, 0x2030).reduce((a, b) => a + (b & 0x0f));
-			this.ram[0x2020] = sum >> 4 & 0x0f;
-			this.ram[0x2021] = sum & 0x0f;
+		switch (this.ram[0x2028] & 0xf) {
+		case 7:
+			this.ram[0x2027] = 6;
+			break;
+		case 9:
+			this.ram.set(this.port.subarray(0x20, 0x28), 0x2020);
+			break;
 		}
 		return this;
 	}
 
 	coin() {
-		this.fCoin = 2;
+		this.fCoin = true;
 	}
 
 	start1P() {
-		this.fStart1P = 2;
+		this.fStart1P = true;
 	}
 
 	start2P() {
-		this.fStart2P = 2;
+		this.fStart2P = true;
 	}
 
 	up(fDown) {
 		if (fDown)
-			this.port[5] = this.port[5] & 0xf0 | 1 << 0;
+			this.port[0x22] = this.port[0x22] & ~(1 << 2) | 1 << 0;
 		else
-			this.port[5] &= ~(1 << 0);
+			this.port[0x22] &= ~1 << 0;
 	}
 
 	right(fDown) {
 		if (fDown)
-			this.port[5] = this.port[5] & 0xf0 | 1 << 1;
+			this.port[0x22] = this.port[0x22] & ~(1 << 3) | 1 << 1;
 		else
-			this.port[5] &= ~(1 << 1);
+			this.port[0x22] &= ~(1 << 1);
 	}
 
 	down(fDown) {
 		if (fDown)
-			this.port[5] = this.port[5] & 0xf0 | 1 << 2;
+			this.port[0x22] = this.port[0x22] & ~(1 << 0) | 1 << 2;
 		else
-			this.port[5] &= ~(1 << 2);
+			this.port[0x22] &= ~(1 << 2);
 	}
 
 	left(fDown) {
 		if (fDown)
-			this.port[5] = this.port[5] & 0xf0 | 1 << 3;
+			this.port[0x22] = this.port[0x22] & ~(1 << 1) | 1 << 3;
 		else
-			this.port[5] &= ~(1 << 3);
+			this.port[0x22] &= ~(1 << 3);
+	}
+
+	up2(fDown) {
+		if (fDown)
+			this.port[4] = this.port[4] & ~(1 << 2) | 1 << 0;
+		else
+			this.port[4] &= ~1 << 0;
+	}
+
+	right2(fDown) {
+		if (fDown)
+			this.port[4] = this.port[4] & ~(1 << 3) | 1 << 1;
+		else
+			this.port[4] &= ~(1 << 1);
+	}
+
+	down2(fDown) {
+		if (fDown)
+			this.port[4] = this.port[4] & ~(1 << 0) | 1 << 2;
+		else
+			this.port[4] &= ~(1 << 2);
+	}
+
+	left2(fDown) {
+		if (fDown)
+			this.port[4] = this.port[4] & ~(1 << 1) | 1 << 3;
+		else
+			this.port[4] &= ~(1 << 3);
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.port[7] |= 1 << 0;
-		else
-			this.port[7] &= ~(1 << 0);
 	}
 
 	triggerB(fDown) {
@@ -372,9 +455,9 @@ class Toypop {
 			this.xfer8x8(data, p, k);
 
 		// obj描画
-		for (let p = 0xf80, i = 64; i !== 0; p += 2, --i) {
-			const y = 0x167 - this.ram[p + 0x801] - this.ram[p + 0x1001] * 0x100 & 0x1ff;
-			const x = 0xe9 - this.ram[p + 0x800] & 0xff;
+		for (let p = 0x0f80, i = 64; i !== 0; p += 2, --i) {
+			const y = (this.ram[p + 0x801] | this.ram[p + 0x1001] << 8) - 55 & 0x1ff;
+			const x = this.ram[p + 0x800] + 7 & 0xff;
 			const src = this.ram[p] | this.ram[p + 1] << 8;
 			switch (this.ram[p + 0x1000] & 0x0f) {
 			case 0x00: // ノーマル
@@ -390,60 +473,60 @@ class Toypop {
 				this.xfer16x16HV(data, x | y << 8, src);
 				break;
 			case 0x04: // ノーマル
-				this.xfer16x16(data, x | y << 8, src | 1);
-				this.xfer16x16(data, x | (y - 16 & 0x1ff) << 8, src & ~1);
+				this.xfer16x16(data, x | y << 8, src & ~1);
+				this.xfer16x16(data, x | (y + 16 & 0x1ff) << 8, src | 1);
 				break;
 			case 0x05: // V反転
-				this.xfer16x16V(data, x | y << 8, src & ~1);
-				this.xfer16x16V(data, x | (y - 16 & 0x1ff) << 8, src | 1);
+				this.xfer16x16V(data, x | y << 8, src | 1);
+				this.xfer16x16V(data, x | (y + 16 & 0x1ff) << 8, src & ~1);
 				break;
 			case 0x06: // H反転
-				this.xfer16x16H(data, x | y << 8, src | 1);
-				this.xfer16x16H(data, x | (y - 16 & 0x1ff) << 8, src & ~1);
+				this.xfer16x16H(data, x | y << 8, src & ~1);
+				this.xfer16x16H(data, x | (y + 16 & 0x1ff) << 8, src | 1);
 				break;
 			case 0x07: // HV反転
-				this.xfer16x16HV(data, x | y << 8, src & ~1);
-				this.xfer16x16HV(data, x | (y - 16 & 0x1ff) << 8, src | 1);
+				this.xfer16x16HV(data, x | y << 8, src | 1);
+				this.xfer16x16HV(data, x | (y + 16 & 0x1ff) << 8, src & ~1);
 				break;
 			case 0x08: // ノーマル
-				this.xfer16x16(data, x | y << 8, src & ~2);
-				this.xfer16x16(data, x - 16 & 0xff | y << 8, src | 2);
+				this.xfer16x16(data, x | y << 8, src | 2);
+				this.xfer16x16(data, x + 16 & 0xff | y << 8, src & ~2);
 				break;
 			case 0x09: // V反転
-				this.xfer16x16V(data, x | y << 8, src & ~2);
-				this.xfer16x16V(data, x - 16 & 0xff | y << 8, src | 2);
+				this.xfer16x16V(data, x | y << 8, src | 2);
+				this.xfer16x16V(data, x + 16 & 0xff | y << 8, src & ~2);
 				break;
 			case 0x0a: // H反転
-				this.xfer16x16H(data, x | y << 8, src | 2);
-				this.xfer16x16H(data, x - 16 & 0xff | y << 8, src & ~2);
+				this.xfer16x16H(data, x | y << 8, src & ~2);
+				this.xfer16x16H(data, x + 16 & 0xff | y << 8, src | 2);
 				break;
 			case 0x0b: // HV反転
-				this.xfer16x16HV(data, x | y << 8, src | 2);
-				this.xfer16x16HV(data, x - 16 & 0xff | y << 8, src & ~2);
+				this.xfer16x16HV(data, x | y << 8, src & ~2);
+				this.xfer16x16HV(data, x + 16 & 0xff | y << 8, src | 2);
 				break;
 			case 0x0c: // ノーマル
-				this.xfer16x16(data, x | y << 8, src & ~3 | 1);
-				this.xfer16x16(data, x | (y - 16 & 0x1ff) << 8, src & ~3);
-				this.xfer16x16(data, x - 16 & 0xff | y << 8, src | 3);
-				this.xfer16x16(data, x - 16 & 0xff | (y - 16 & 0x1ff) << 8, src & ~3 | 2);
+				this.xfer16x16(data, x | y << 8, src & ~3 | 2);
+				this.xfer16x16(data, x | (y + 16 & 0x1ff) << 8, src | 3);
+				this.xfer16x16(data, x + 16 & 0xff | y << 8, src & ~3);
+				this.xfer16x16(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
 				break;
 			case 0x0d: // V反転
-				this.xfer16x16V(data, x | y << 8, src & ~3);
-				this.xfer16x16V(data, x | (y - 16 & 0x1ff) << 8, src & ~3 | 1);
-				this.xfer16x16V(data, x - 16 & 0xff | y << 8, src & ~3 | 2);
-				this.xfer16x16V(data, x - 16 & 0xff | (y - 16 & 0x1ff) << 8, src | 3);
+				this.xfer16x16V(data, x | y << 8, src | 3);
+				this.xfer16x16V(data, x | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
+				this.xfer16x16V(data, x + 16 & 0xff | y << 8, src & ~3 | 1);
+				this.xfer16x16V(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3);
 				break;
 			case 0x0e: // H反転
-				this.xfer16x16H(data, x | y << 8, src | 3);
-				this.xfer16x16H(data, x | (y - 16 & 0x1ff) << 8, src & ~3 | 2);
-				this.xfer16x16H(data, x - 16 & 0xff | y << 8, src & ~3 | 1);
-				this.xfer16x16H(data, x - 16 & 0xff | (y - 16 & 0x1ff) << 8, src & ~3);
+				this.xfer16x16H(data, x | y << 8, src & ~3);
+				this.xfer16x16H(data, x | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
+				this.xfer16x16H(data, x + 16 & 0xff | y << 8, src & ~3 | 2);
+				this.xfer16x16H(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src | 3);
 				break;
 			case 0x0f: // HV反転
-				this.xfer16x16HV(data, x | y << 8, src & ~3 | 2);
-				this.xfer16x16HV(data, x | (y - 16 & 0x1ff) << 8, src | 3);
-				this.xfer16x16HV(data, x - 16 & 0xff | y << 8, src & ~3);
-				this.xfer16x16HV(data, x - 16 & 0xff | (y - 16 & 0x1ff) << 8, src & ~3 | 1);
+				this.xfer16x16HV(data, x | y << 8, src & ~3 | 1);
+				this.xfer16x16HV(data, x | (y + 16 & 0x1ff) << 8, src & ~3);
+				this.xfer16x16HV(data, x + 16 & 0xff | y << 8, src | 3);
+				this.xfer16x16HV(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
 				break;
 			}
 		}
@@ -580,31 +663,31 @@ class Toypop {
 
 /*
  *
- *	Toypop
+ *	Libble Rabble
  *
  */
 
-const url = 'toypop.zip';
+const url = 'liblrabl.zip';
 const PRG3 = new Uint8Array(0x8000).addBase();
 let PRG1, PRG2, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR, SND;
 
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from((zip.files['tp1-2.5b'].inflate() + zip.files['tp1-1.5c'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	PRG2 = Uint8Array.from(zip.files['tp1-3.2c'].inflate().split(''), c => c.charCodeAt(0)).addBase();
-	zip.files['tp1-4.8c'].inflate().split('').forEach((c, i) => PRG3[i << 1] = c.charCodeAt(0));
-	zip.files['tp1-5.10c'].inflate().split('').forEach((c, i) => PRG3[1 | i << 1] = c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['tp1-7.5p'].inflate().split(''), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['tp1-6.9t'].inflate().split(''), c => c.charCodeAt(0));
-	RED = Uint8Array.from(zip.files['tp1-3.1r'].inflate().split(''), c => c.charCodeAt(0));
-	GREEN = Uint8Array.from(zip.files['tp1-2.1s'].inflate().split(''), c => c.charCodeAt(0));
-	BLUE = Uint8Array.from(zip.files['tp1-1.1t'].inflate().split(''), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['tp1-4.5l'].inflate().split(''), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['tp1-5.2p'].inflate().split(''), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['tp1-6.3d'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = Uint8Array.from((zip.files['5b.rom'].inflate() + zip.files['5c.rom'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
+	PRG2 = Uint8Array.from(zip.files['2c.rom'].inflate().split(''), c => c.charCodeAt(0)).addBase();
+	zip.files['8c.rom'].inflate().split('').forEach((c, i) => PRG3[i << 1] = c.charCodeAt(0));
+	zip.files['10c.rom'].inflate().split('').forEach((c, i) => PRG3[1 | i << 1] = c.charCodeAt(0));
+	BG = Uint8Array.from(zip.files['5p.rom'].inflate().split(''), c => c.charCodeAt(0));
+	OBJ = Uint8Array.from(zip.files['9t.rom'].inflate().split(''), c => c.charCodeAt(0));
+	RED = Uint8Array.from(zip.files['lr1-3.1r'].inflate().split(''), c => c.charCodeAt(0));
+	GREEN = Uint8Array.from(zip.files['lr1-2.1s'].inflate().split(''), c => c.charCodeAt(0));
+	BLUE = Uint8Array.from(zip.files['lr1-1.1t'].inflate().split(''), c => c.charCodeAt(0));
+	BGCOLOR = Uint8Array.from(zip.files['lr1-5.5l'].inflate().split(''), c => c.charCodeAt(0));
+	OBJCOLOR = Uint8Array.from(zip.files['lr1-6.2p'].inflate().split(''), c => c.charCodeAt(0));
+	SND = Uint8Array.from(zip.files['lr1-4.3d'].inflate().split(''), c => c.charCodeAt(0));
 	rotate = true;
-	game = new Toypop();
+	game = new LibbleRabble();
 	sound = new MappySound({SND});
 	init();
 	loop();
