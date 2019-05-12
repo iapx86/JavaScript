@@ -37,7 +37,8 @@ class TTMahjong {
 
 		// CPU周りの初期化
 		this.ram = new Uint8Array(0x400).addBase();
-		this.vram = new Uint8Array(0x8000);
+		this.vram1 = new Uint8Array(0x4000);
+		this.vram2 = new Uint8Array(0x4000);
 		this.in = new Uint8Array(9);
 		this.select = 0;
 		this.psg = {addr: 0};
@@ -59,7 +60,7 @@ class TTMahjong {
 		this.cpu[0].memorymap[0x68].write = (addr, data) => sound.write(this.psg.addr, data);
 		this.cpu[0].memorymap[0x69].write = (addr, data) => this.psg.addr = data;
 		for (let i = 0; i < 0x40; i++)
-			this.cpu[0].memorymap[0x80 + i].write = (addr, data) => this.vram[addr & 0x3fff] = data;
+			this.cpu[0].memorymap[0x80 + i].write = (addr, data) => this.vram1[addr & 0x3fff] = data;
 
 		for (let i = 0; i < 0x18; i++)
 			this.cpu[1].memorymap[i].base = PRG2.base[i];
@@ -68,7 +69,7 @@ class TTMahjong {
 			this.cpu[1].memorymap[0x40 + i].write = null;
 		}
 		for (let i = 0; i < 0x40; i++)
-			this.cpu[1].memorymap[0x80 + i].write = (addr, data) => this.vram[addr & 0x3fff | 0x4000] = data;
+			this.cpu[1].memorymap[0x80 + i].write = (addr, data) => this.vram2[addr & 0x3fff] = data;
 
 		// Videoの初期化
 		this.rgb = Uint32Array.of(0xff000000, 0xffff0000, 0xff00ff00, 0xffffff00, 0xff0000ff, 0xffff00ff, 0xff00ffff, 0xffffffff);
@@ -154,11 +155,11 @@ class TTMahjong {
 	makeBitmap(data) {
 		for (let p = 252 * 256, k = 0x200, i = 240; i !== 0; p += 256 * 256 + 1, --i)
 			for (let j = 256 >>> 2; j !== 0; k++, p -= 4 * 256, --j) {
-				const p0 = this.vram[k], p1 = this.vram[0x4000 + k];
-				data[p] = this.rgb[(COLOR1[p0 >>> 3 & 1 | p0 >>> 6 & 2 | this.palette1] | COLOR2[p1 >>> 3 & 1 | p1 >>> 6 & 2 | this.palette2 | p0 << 4 & 0x80 | p0 & 0x80]) & 7];
-				data[p + 256] = this.rgb[(COLOR1[p0 >>> 2 & 1 | p0 >>> 5 & 2 | this.palette1] | COLOR2[p1 >>> 2 & 1 | p1 >>> 5 & 2 | this.palette2 | p0 << 5 & 0x80 | p0 << 1 & 0x80]) & 7];
-				data[p + 2 * 256] = this.rgb[(COLOR1[p0 >>> 1 & 1 | p0 >>> 4 & 2 | this.palette1] | COLOR2[p1 >>> 1 & 1 | p1 >>> 4 & 2 | this.palette2 | p0 << 6 & 0x80 | p0 << 2 & 0x80]) & 7];
-				data[p + 3 * 256] = this.rgb[(COLOR1[p0 & 1 | p0 >>> 3 & 2 | this.palette1] | COLOR2[p1 & 1 | p1 >>> 3 & 2 | this.palette2 | p0 << 7 & 0x80 | p0 << 3 & 0x80]) & 7];
+				const p1 = this.vram1[k], p2 = this.vram2[k];
+				data[p] = this.rgb[(COLOR1[p1 >>> 3 & 1 | p1 >>> 6 & 2 | this.palette1] | COLOR2[p2 >>> 3 & 1 | p2 >>> 6 & 2 | this.palette2 | p1 << 4 & 0x80 | p1 & 0x80]) & 7];
+				data[p + 256] = this.rgb[(COLOR1[p1 >>> 2 & 1 | p1 >>> 5 & 2 | this.palette1] | COLOR2[p2 >>> 2 & 1 | p2 >>> 5 & 2 | this.palette2 | p1 << 5 & 0x80 | p1 << 1 & 0x80]) & 7];
+				data[p + 2 * 256] = this.rgb[(COLOR1[p1 >>> 1 & 1 | p1 >>> 4 & 2 | this.palette1] | COLOR2[p2 >>> 1 & 1 | p2 >>> 4 & 2 | this.palette2 | p1 << 6 & 0x80 | p1 << 2 & 0x80]) & 7];
+				data[p + 3 * 256] = this.rgb[(COLOR1[p1 & 1 | p1 >>> 3 & 2 | this.palette1] | COLOR2[p2 & 1 | p2 >>> 3 & 2 | this.palette2 | p1 << 7 & 0x80 | p1 << 3 & 0x80]) & 7];
 			}
 	}
 }
