@@ -13042,21 +13042,21 @@ class MC68000 extends Cpu {
 
 	ror8(src, dst) {
 		src &= 63;
-		const r = dst >>> (src & 7) | dst << (7 - src & 7) + 1 & 0xff, c = src ? dst >>> (src - 1 & 7) & 1 : 0;
+		const r = dst >>> (src & 7) | dst << (~src & 7) + 1 & 0xff, c = src ? dst >>> (src - 1 & 7) & 1 : 0;
 		this.sr = this.sr & ~0x0f | r >>> 4 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	ror16(src, dst) {
 		src &= 63;
-		const r = dst >>> (src & 15) | dst << (15 - src & 15) + 1 & 0xffff, c = src ? dst >>> (src - 1 & 15) & 1 : 0;
+		const r = dst >>> (src & 15) | dst << (~src & 15) + 1 & 0xffff, c = src ? dst >>> (src - 1 & 15) & 1 : 0;
 		this.sr = this.sr & ~0x0f | r >>> 12 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	ror32(src, dst) {
 		src &= 63;
-		const r = dst >>> (src & 31) | dst << (31 - src & 31) + 1, c = src ? dst >>> (src - 1 & 31) & 1 : 0;
+		const r = dst >>> (src & 31) | dst << (~src & 31) + 1, c = src ? dst >>> (src - 1 & 31) & 1 : 0;
 		this.sr = this.sr & ~0x0f | r >>> 28 & 8 | !r << 2 | c;
 		return r;
 	}
@@ -13133,28 +13133,28 @@ class MC68000 extends Cpu {
 
 	roxl32(src, dst) {
 		src = (src & 63) % 33;
-		const r = dst << src | dst >>> 33 - src | (this.sr << 27 & 0x8000) >>> 32 - src, x = src ? dst >>> 32 - src & 1 : this.sr >>> 4 & 1;
+		const r = dst << src | dst >>> 33 - src | (this.sr << 27 & 0x80000000) >>> 32 - src, x = src ? dst >>> 32 - src & 1 : this.sr >>> 4 & 1;
 		this.sr = this.sr & ~0x1f | x << 4 | r >>> 28 & 8 | !r << 2 | x;
 		return r;
 	}
 
 	rol8(src, dst) {
 		src &= 63;
-		const r = dst << (src & 7) & 0xff | dst >>> (7 - src & 7) + 1, c = src ? dst >>> (-src & 7) & 1 : 0;
+		const r = dst << (src & 7) & 0xff | dst >>> (~src & 7) + 1, c = src ? dst >>> (-src & 7) & 1 : 0;
 		this.sr = this.sr & ~0x0f | r >>> 4 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	rol16(src, dst) {
 		src &= 63;
-		const r = dst << (src & 15) & 0xffff | dst >>> (15 - src & 15) + 1, c = src ? dst >>> (-src & 15) & 1 : 0;
+		const r = dst << (src & 15) & 0xffff | dst >>> (~src & 15) + 1, c = src ? dst >>> (-src & 15) & 1 : 0;
 		this.sr = this.sr & ~0x0f | r >>> 12 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	rol32(src, dst) {
 		src &= 63;
-		const r = dst << (src & 31) & 0xffff | dst >>> (31 - src & 31) + 1, c = src ? dst >>> (-src & 31) & 1 : 0;
+		const r = dst << (src & 31) | dst >>> (~src & 31) + 1, c = src ? dst >>> (-src & 31) & 1 : 0;
 		this.sr = this.sr & ~0x0f | r >>> 28 & 8 | !r << 2 | c;
 		return r;
 	}
