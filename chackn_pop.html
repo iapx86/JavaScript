@@ -525,6 +525,76 @@ class ChacknPop {
 	}
 }
 
+const keydown = e => {
+	switch (e.keyCode) {
+		case 37: // left
+			game.left(true);
+			break;
+		case 38: // up
+			game.up(true);
+			break;
+		case 39: // right
+			game.right(true);
+			break;
+		case 40: // down
+			game.down(true);
+			break;
+		case 48: // '0'
+			game.coin();
+			break;
+		case 49: // '1'
+			game.start1P();
+			break;
+		case 50: // '2'
+			game.start2P();
+			break;
+		case 77: // 'M'
+			if (audioCtx.state === 'suspended')
+				audioCtx.resume().catch();
+			else if (audioCtx.state === 'running')
+				audioCtx.suspend().catch();
+			break;
+		case 82: // 'R'
+			game.reset();
+			break;
+		case 84: // 'T'
+			if ((game.fTest = !game.fTest) === true)
+				game.fReset = true;
+			break;
+		case 32: // space
+		case 88: // 'X'
+			game.triggerB(true);
+			break;
+		case 90: // 'Z'
+			game.triggerA(true);
+			break;
+	}
+};
+
+const keyup = e => {
+	switch (e.keyCode) {
+		case 37: // left
+			game.left(false);
+			break;
+		case 38: // up
+			game.up(false);
+			break;
+		case 39: // right
+			game.right(false);
+			break;
+		case 40: // down
+			game.down(false);
+			break;
+		case 32: // space
+		case 88: // 'X'
+			game.triggerB(false);
+			break;
+		case 90: // 'Z'
+			game.triggerA(false);
+			break;
+	}
+};
+
 /*
  *
  *	Chack'n Pop
@@ -547,7 +617,7 @@ function success(zip) {
 	rotate = true;
 	game = new ChacknPop();
 	sound = [new AY_3_8910({clock: 1500000}), new AY_3_8910({clock: 1500000})];
-	init();
+	init({keydown, keyup});
 	loop();
 }
 
