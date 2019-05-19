@@ -567,7 +567,7 @@ const keyup = e => {
 		game.triggerA(false);
 		break;
 	case 90: // 'Z'
-		game.triggerX(true);
+		game.triggerX(false);
 		break;
 	}
 };
@@ -579,7 +579,7 @@ const keyup = e => {
  */
 
 const url = 'stratgyx.zip';
-let BG, RGB, PRG1, PRG2, MAPDATA;
+let BG, RGB, PRG1, PRG2, MAP;
 
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
