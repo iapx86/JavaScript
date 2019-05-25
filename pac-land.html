@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>Pac-Land</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -919,18 +920,18 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG1 = zip.files['paclandj/pl6_01.8b'].inflate() + zip.files['paclandj/pl6_02.8d'].inflate() + zip.files['pl1_3.8e'].inflate() + zip.files['pl1_4.8f'].inflate();
-	PRG1 = Uint8Array.from((PRG1 + zip.files['pl1_5.8h'].inflate() + zip.files['paclandj/pl1_6.8j'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	PRG2 = Uint8Array.from(zip.files['pl1_7.3e'].inflate().split(''), c => c.charCodeAt(0)).addBase();
-	PRG2I = Uint8Array.from(zip.files['cus60-60a1.mcu'].inflate().split(''), c => c.charCodeAt(0)).addBase();
-	FG = Uint8Array.from(zip.files['paclandj/pl6_12.6n'].inflate().split(''), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['paclandj/pl1_13.6t'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = new Uint8Array((PRG1 + zip.files['pl1_5.8h'].inflate() + zip.files['paclandj/pl1_6.8j'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2 = new Uint8Array(zip.files['pl1_7.3e'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+	FG = new Uint8Array(zip.files['paclandj/pl6_12.6n'].inflate().split('').map(c => c.charCodeAt(0)));
+	BG = new Uint8Array(zip.files['paclandj/pl1_13.6t'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJ = zip.files['paclandj/pl1_9b.6f'].inflate() + zip.files['paclandj/pl1_8.6e'].inflate() + zip.files['paclandj/pl1_10b.7e'].inflate();
-	OBJ = Uint8Array.from((OBJ + zip.files['paclandj/pl1_11.7f'].inflate()).split(''), c => c.charCodeAt(0));
-	RED = Uint8Array.from(zip.files['pl1-2.1t'].inflate().split(''), c => c.charCodeAt(0));
-	BLUE = Uint8Array.from(zip.files['pl1-1.1r'].inflate().split(''), c => c.charCodeAt(0));
-	FGCOLOR = Uint8Array.from(zip.files['pl1-5.5t'].inflate().split(''), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['pl1-4.4n'].inflate().split(''), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['pl1-3.6l'].inflate().split(''), c => c.charCodeAt(0));
+	OBJ = new Uint8Array((OBJ + zip.files['paclandj/pl1_11.7f'].inflate()).split('').map(c => c.charCodeAt(0)));
+	RED = new Uint8Array(zip.files['pl1-2.1t'].inflate().split('').map(c => c.charCodeAt(0)));
+	BLUE = new Uint8Array(zip.files['pl1-1.1r'].inflate().split('').map(c => c.charCodeAt(0)));
+	FGCOLOR = new Uint8Array(zip.files['pl1-5.5t'].inflate().split('').map(c => c.charCodeAt(0)));
+	BGCOLOR = new Uint8Array(zip.files['pl1-4.4n'].inflate().split('').map(c => c.charCodeAt(0)));
+	OBJCOLOR = new Uint8Array(zip.files['pl1-3.6l'].inflate().split('').map(c => c.charCodeAt(0)));
 	rotate = true;
 	game = new PacLand();
 	sound = new C30();

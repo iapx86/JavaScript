@@ -46,7 +46,7 @@ registerProcessor('MappySound', class extends AudioWorkletProcessor {
 });
 `;
 
-const addMappySound = audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + mappySound) : new Promise((resolve, reject) => reject());
+const addMappySound = !audioCtx ? undefined : audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + mappySound) : new Promise((resolve, reject) => reject());
 
 class MappySound {
 	constructor({SND, resolution = 1, gain = 0.1}) {
@@ -54,6 +54,8 @@ class MappySound {
 		this.resolution = resolution;
 		this.gain = gain;
 		this.tmpwheel = new Array(resolution);
+		if (!audioCtx)
+			return;
 		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
@@ -92,6 +94,8 @@ class MappySound {
 	}
 
 	mute(flag) {
+		if (!audioCtx)
+			return;
 		this.gainNode.gain.value = flag ? 0 : this.gain;
 	}
 

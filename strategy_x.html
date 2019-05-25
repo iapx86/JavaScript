@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>Strategy X</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -520,6 +521,8 @@ const keydown = e => {
 		game.start2P();
 		break;
 	case 77: // 'M'
+		if (!audioCtx)
+			break;
 		if (audioCtx.state === 'suspended')
 			audioCtx.resume().catch();
 		else if (audioCtx.state === 'running')
@@ -585,11 +588,11 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG1 = zip.files['2c_1.bin'].inflate() + zip.files['2e_2.bin'].inflate() + zip.files['2f_3.bin'].inflate() + zip.files['2h_4.bin'].inflate();
-	PRG1 = Uint8Array.from((PRG1 + zip.files['2j_5.bin'].inflate() + zip.files['2l_6.bin'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	PRG2 = Uint8Array.from((zip.files['s1.bin'].inflate() + zip.files['s2.bin'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	BG = Uint8Array.from((zip.files['5f_c2.bin'].inflate() + zip.files['5h_c1.bin'].inflate()).split(''), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['strategy.6e'].inflate().split(''), c => c.charCodeAt(0));
-	MAP = Uint8Array.from(zip.files['strategy.10k'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = new Uint8Array((PRG1 + zip.files['2j_5.bin'].inflate() + zip.files['2l_6.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2 = new Uint8Array((zip.files['s1.bin'].inflate() + zip.files['s2.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	BG = new Uint8Array((zip.files['5f_c2.bin'].inflate() + zip.files['5h_c1.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
+	RGB = new Uint8Array(zip.files['strategy.6e'].inflate().split('').map(c => c.charCodeAt(0)));
+	MAP = new Uint8Array(zip.files['strategy.10k'].inflate().split('').map(c => c.charCodeAt(0)));
 	rotate = true;
 	game = new StrategyX();
 	sound = [new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.5}), new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.5})];

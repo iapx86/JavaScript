@@ -64,7 +64,7 @@ registerProcessor('C30', class extends AudioWorkletProcessor {
 });
 `;
 
-const addC30 = audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + c30) : new Promise((resolve, reject) => reject());
+const addC30 = !audioCtx ? undefined : audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + c30) : new Promise((resolve, reject) => reject());
 
 class C30 {
 	constructor({resolution = 1, gain = 0.1} = {}) {
@@ -72,6 +72,8 @@ class C30 {
 		this.resolution = resolution;
 		this.gain = gain;
 		this.tmpwheel = new Array(resolution);
+		if (!audioCtx)
+			return;
 		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
@@ -121,6 +123,8 @@ class C30 {
 	}
 
 	mute(flag) {
+		if (!audioCtx)
+			return;
 		this.gainNode.gain.value = flag ? 0 : this.gain;
 	}
 

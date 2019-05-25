@@ -46,7 +46,7 @@ registerProcessor('PacManSound', class extends AudioWorkletProcessor {
 });
 `;
 
-const addPacManSound = audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + pacmanSound) : new Promise((resolve, reject) => reject());
+const addPacManSound = !audioCtx ? undefined : audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + pacmanSound) : new Promise((resolve, reject) => reject());
 
 class PacManSound {
 	constructor({SND, resolution = 1, gain = 0.1}) {
@@ -54,6 +54,8 @@ class PacManSound {
 		this.resolution = resolution;
 		this.gain = gain;
 		this.tmpwheel = new Array(resolution);
+		if (!audioCtx)
+			return;
 		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
@@ -92,6 +94,8 @@ class PacManSound {
 	}
 
 	mute(flag) {
+		if (!audioCtx)
+			return;
 		this.gainNode.gain.value = flag ? 0 : this.gain;
 	}
 

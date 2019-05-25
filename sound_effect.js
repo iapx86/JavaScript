@@ -7,6 +7,8 @@
 class SoundEffect {
 	constructor({se, freq = audioCtx.sampleRate, gain = 1}) {
 		this.se = se;
+		if (!audioCtx)
+			return;
 		se.forEach(se => {
 			se.audioBuffer = audioCtx.createBuffer(1, se.buf.length, audioCtx.sampleRate);
 			se.audioBuffer.getChannelData(0).forEach((e, i, buf) => buf[i] = se.buf[i] / 32767);
@@ -18,6 +20,10 @@ class SoundEffect {
 	}
 
 	update() {
+		if (!audioCtx) {
+			this.se.forEach(se => se.start = se.stop = false);
+			return;
+		}
 		this.se.forEach(se => {
 			if (se.stop && se.audioBufferSource) {
 				se.audioBufferSource.stop();

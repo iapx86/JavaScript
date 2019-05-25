@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>Baraduke</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -805,14 +806,14 @@ let PRG1, PRG2, PRG2I, FG, BG, OBJ, GREEN, RED;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from((zip.files['bd1_3.9c'].inflate() + zip.files['baraduke/bd1_1.9a'].inflate() + zip.files['baraduke/bd1_2.9b'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	PRG2 = Uint8Array.from(zip.files['baraduke/bd1_4b.3b'].inflate().split(''), c => c.charCodeAt(0)).addBase();
-	PRG2I = Uint8Array.from(zip.files['cus60-60a1.mcu'].inflate().split(''), c => c.charCodeAt(0)).addBase();
-	FG = Uint8Array.from(zip.files['bd1_5.3j'].inflate().split(''), c => c.charCodeAt(0));
-	BG = Uint8Array.from((zip.files['baraduke/bd1_8.4p'].inflate() + zip.files['bd1_7.4n'].inflate() + zip.files['baraduke/bd1_6.4m'].inflate()).split(''), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from((zip.files['bd1_9.8k'].inflate() + zip.files['bd1_10.8l'].inflate() + zip.files['bd1_11.8m'].inflate() + zip.files['bd1_12.8n'].inflate()).split(''), c => c.charCodeAt(0));
-	GREEN = Uint8Array.from(zip.files['bd1-1.1n'].inflate().split(''), c => c.charCodeAt(0));
-	RED = Uint8Array.from(zip.files['bd1-2.2m'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = new Uint8Array((zip.files['bd1_3.9c'].inflate() + zip.files['baraduke/bd1_1.9a'].inflate() + zip.files['baraduke/bd1_2.9b'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2 = new Uint8Array(zip.files['baraduke/bd1_4b.3b'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+	FG = new Uint8Array(zip.files['bd1_5.3j'].inflate().split('').map(c => c.charCodeAt(0)));
+	BG = new Uint8Array((zip.files['baraduke/bd1_8.4p'].inflate() + zip.files['bd1_7.4n'].inflate() + zip.files['baraduke/bd1_6.4m'].inflate()).split('').map(c => c.charCodeAt(0)));
+	OBJ = new Uint8Array((zip.files['bd1_9.8k'].inflate() + zip.files['bd1_10.8l'].inflate() + zip.files['bd1_11.8m'].inflate() + zip.files['bd1_12.8n'].inflate()).split('').map(c => c.charCodeAt(0)));
+	GREEN = new Uint8Array(zip.files['bd1-1.1n'].inflate().split('').map(c => c.charCodeAt(0)));
+	RED = new Uint8Array(zip.files['bd1-2.2m'].inflate().split('').map(c => c.charCodeAt(0)));
 	rotate = true;
 	game = new Baraduke();
 	sound = new C30({resolution: 400});

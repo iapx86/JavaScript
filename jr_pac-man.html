@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>Jr. Pac-Man</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -573,13 +574,13 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG = zip.files['jrp8d.8d'].inflate() + zip.files['jrp8e.8e'].inflate() + zip.files['jrp8h.8h'].inflate() + zip.files['jrp8j.8j'].inflate();
-	PRG = Uint8Array.from((PRG + zip.files['jrp8k.8k'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	BG = Uint8Array.from(zip.files['jrp2c.2c'].inflate().split(''), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['jrp2e.2e'].inflate().split(''), c => c.charCodeAt(0));
-	RGB_L = Uint8Array.from(zip.files['a290-27axv-bxhd.9e'].inflate().split(''), c => c.charCodeAt(0));
-	RGB_H = Uint8Array.from(zip.files['a290-27axv-cxhd.9f'].inflate().split(''), c => c.charCodeAt(0));
-	COLOR = Uint8Array.from(zip.files['a290-27axv-axhd.9p'].inflate().split(''), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['a290-27axv-dxhd.7p'].inflate().split(''), c => c.charCodeAt(0));
+	PRG = new Uint8Array((PRG + zip.files['jrp8k.8k'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	BG = new Uint8Array(zip.files['jrp2c.2c'].inflate().split('').map(c => c.charCodeAt(0)));
+	OBJ = new Uint8Array(zip.files['jrp2e.2e'].inflate().split('').map(c => c.charCodeAt(0)));
+	RGB_L = new Uint8Array(zip.files['a290-27axv-bxhd.9e'].inflate().split('').map(c => c.charCodeAt(0)));
+	RGB_H = new Uint8Array(zip.files['a290-27axv-cxhd.9f'].inflate().split('').map(c => c.charCodeAt(0)));
+	COLOR = new Uint8Array(zip.files['a290-27axv-axhd.9p'].inflate().split('').map(c => c.charCodeAt(0)));
+	SND = new Uint8Array(zip.files['a290-27axv-dxhd.7p'].inflate().split('').map(c => c.charCodeAt(0)));
 	JrPacMan.patchROM();
 	game = new JrPacMan();
 	sound = new PacManSound({SND});

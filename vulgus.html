@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>Vulgus</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -498,19 +499,18 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG1 = zip.files['vulgus.002'].inflate() + zip.files['vulgus.003'].inflate() + zip.files['vulgus.004'].inflate() + zip.files['vulgus.005'].inflate();
-	PRG1 = Uint8Array.from((PRG1 + zip.files['1-8n.bin'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	PRG2 = Uint8Array.from(zip.files['1-11c.bin'].inflate().split(''), c => c.charCodeAt(0)).addBase();
-	FG = Uint8Array.from(zip.files['1-3d.bin'].inflate().split(''), c => c.charCodeAt(0)).addBase();
+	PRG1 = new Uint8Array((PRG1 + zip.files['1-8n.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2 = new Uint8Array(zip.files['1-11c.bin'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+	FG = new Uint8Array(zip.files['1-3d.bin'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	BG = zip.files['2-2a.bin'].inflate() + zip.files['2-3a.bin'].inflate() + zip.files['2-4a.bin'].inflate() + zip.files['2-5a.bin'].inflate();
-	BG = Uint8Array.from((BG + zip.files['2-6a.bin'].inflate() + zip.files['2-7a.bin'].inflate()).split(''), c => c.charCodeAt(0));
-	OBJ = zip.files['2-2n.bin'].inflate() + zip.files['2-3n.bin'].inflate() + zip.files['2-4n.bin'].inflate() + zip.files['2-5n.bin'].inflate();
-	OBJ = Uint8Array.from(OBJ.split(''), c => c.charCodeAt(0));
-	RED = Uint8Array.from(zip.files['e8.bin'].inflate().split(''), c => c.charCodeAt(0));
-	GREEN = Uint8Array.from(zip.files['e9.bin'].inflate().split(''), c => c.charCodeAt(0));
-	BLUE = Uint8Array.from(zip.files['e10.bin'].inflate().split(''), c => c.charCodeAt(0));
-	FGCOLOR = Uint8Array.from(zip.files['d1.bin'].inflate().split(''), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['c9.bin'].inflate().split(''), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['j2.bin'].inflate().split(''), c => c.charCodeAt(0));
+	BG = new Uint8Array((BG + zip.files['2-6a.bin'].inflate() + zip.files['2-7a.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
+	OBJ = new Uint8Array((zip.files['2-2n.bin'].inflate() + zip.files['2-3n.bin'].inflate() + zip.files['2-4n.bin'].inflate() + zip.files['2-5n.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
+	RED = new Uint8Array(zip.files['e8.bin'].inflate().split('').map(c => c.charCodeAt(0)));
+	GREEN = new Uint8Array(zip.files['e9.bin'].inflate().split('').map(c => c.charCodeAt(0)));
+	BLUE = new Uint8Array(zip.files['e10.bin'].inflate().split('').map(c => c.charCodeAt(0)));
+	FGCOLOR = new Uint8Array(zip.files['d1.bin'].inflate().split('').map(c => c.charCodeAt(0)));
+	BGCOLOR = new Uint8Array(zip.files['c9.bin'].inflate().split('').map(c => c.charCodeAt(0)));
+	OBJCOLOR = new Uint8Array(zip.files['j2.bin'].inflate().split('').map(c => c.charCodeAt(0)));
 	game = new Vulgus();
 	sound = [new AY_3_8910({clock: 1500000, resolution: 8}), new AY_3_8910({clock: 1500000, resolution: 8})];
 	init();

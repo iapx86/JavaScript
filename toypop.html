@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>Toypop</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -227,12 +228,12 @@ class Toypop {
 			this.ram[0x2006] = 0x0c;
 		}
 		if ((this.ram[0x2018] & 0x0f) === 8) {
-			const sum = this.ram.subarray(0x2019, 0x2020).reduce((a, b) => a + (b & 0x0f));
+			const sum = new Array(this.ram.subarray(0x2019, 0x2020)).reduce((a, b) => a + (b & 0x0f));
 			this.ram[0x2010] = sum >> 4 & 0x0f;
 			this.ram[0x2011] = sum & 0x0f;
 		}
 		if ((this.ram[0x2028] & 0x0f) === 8) {
-			const sum = this.ram.subarray(0x2029, 0x2030).reduce((a, b) => a + (b & 0x0f));
+			const sum = new Array(this.ram.subarray(0x2029, 0x2030)).reduce((a, b) => a + (b & 0x0f));
 			this.ram[0x2020] = sum >> 4 & 0x0f;
 			this.ram[0x2021] = sum & 0x0f;
 		}
@@ -591,18 +592,18 @@ let PRG1, PRG2, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR, SND;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from((zip.files['tp1-2.5b'].inflate() + zip.files['tp1-1.5c'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	PRG2 = Uint8Array.from(zip.files['tp1-3.2c'].inflate().split(''), c => c.charCodeAt(0)).addBase();
+	PRG1 = new Uint8Array((zip.files['tp1-2.5b'].inflate() + zip.files['tp1-1.5c'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2 = new Uint8Array(zip.files['tp1-3.2c'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	zip.files['tp1-4.8c'].inflate().split('').forEach((c, i) => PRG3[i << 1] = c.charCodeAt(0));
 	zip.files['tp1-5.10c'].inflate().split('').forEach((c, i) => PRG3[1 | i << 1] = c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['tp1-7.5p'].inflate().split(''), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['tp1-6.9t'].inflate().split(''), c => c.charCodeAt(0));
-	RED = Uint8Array.from(zip.files['tp1-3.1r'].inflate().split(''), c => c.charCodeAt(0));
-	GREEN = Uint8Array.from(zip.files['tp1-2.1s'].inflate().split(''), c => c.charCodeAt(0));
-	BLUE = Uint8Array.from(zip.files['tp1-1.1t'].inflate().split(''), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['tp1-4.5l'].inflate().split(''), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['tp1-5.2p'].inflate().split(''), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['tp1-6.3d'].inflate().split(''), c => c.charCodeAt(0));
+	BG = new Uint8Array(zip.files['tp1-7.5p'].inflate().split('').map(c => c.charCodeAt(0)));
+	OBJ = new Uint8Array(zip.files['tp1-6.9t'].inflate().split('').map(c => c.charCodeAt(0)));
+	RED = new Uint8Array(zip.files['tp1-3.1r'].inflate().split('').map(c => c.charCodeAt(0)));
+	GREEN = new Uint8Array(zip.files['tp1-2.1s'].inflate().split('').map(c => c.charCodeAt(0)));
+	BLUE = new Uint8Array(zip.files['tp1-1.1t'].inflate().split('').map(c => c.charCodeAt(0)));
+	BGCOLOR = new Uint8Array(zip.files['tp1-4.5l'].inflate().split('').map(c => c.charCodeAt(0)));
+	OBJCOLOR = new Uint8Array(zip.files['tp1-5.2p'].inflate().split('').map(c => c.charCodeAt(0)));
+	SND = new Uint8Array(zip.files['tp1-6.3d'].inflate().split('').map(c => c.charCodeAt(0)));
 	rotate = true;
 	game = new Toypop();
 	sound = new MappySound({SND});

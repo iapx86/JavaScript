@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>The Tower of Druaga</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -606,14 +607,14 @@ let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from((zip.files['td2_3.1d'].inflate() + zip.files['td2_1.1b'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	PRG2 = Uint8Array.from(zip.files['td1_4.1k'].inflate().split(''), c => c.charCodeAt(0)).addBase();
-	BG = Uint8Array.from(zip.files['td1_5.3b'].inflate().split(''), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from((zip.files['td1_7.3n'].inflate() + zip.files['td1_6.3m'].inflate()).split(''), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['td1-5.5b'].inflate().split(''), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['td1-6.4c'].inflate().split(''), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['td1-7.5k'].inflate().split(''), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['td1-3.3m'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = new Uint8Array((zip.files['td2_3.1d'].inflate() + zip.files['td2_1.1b'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2 = new Uint8Array(zip.files['td1_4.1k'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+	BG = new Uint8Array(zip.files['td1_5.3b'].inflate().split('').map(c => c.charCodeAt(0)));
+	OBJ = new Uint8Array((zip.files['td1_7.3n'].inflate() + zip.files['td1_6.3m'].inflate()).split('').map(c => c.charCodeAt(0)));
+	RGB = new Uint8Array(zip.files['td1-5.5b'].inflate().split('').map(c => c.charCodeAt(0)));
+	BGCOLOR = new Uint8Array(zip.files['td1-6.4c'].inflate().split('').map(c => c.charCodeAt(0)));
+	OBJCOLOR = new Uint8Array(zip.files['td1-7.5k'].inflate().split('').map(c => c.charCodeAt(0)));
+	SND = new Uint8Array(zip.files['td1-3.3m'].inflate().split('').map(c => c.charCodeAt(0)));
 	game = new TheTowerOfDruaga();
 	sound = new MappySound({SND});
 	init();

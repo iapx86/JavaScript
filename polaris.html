@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>Polaris</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -262,10 +263,10 @@ let PRG1, PRG2, MAP, OBJ;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from((zip.files['ps01-1.30'].inflate() + zip.files['ps09.36'].inflate() + zip.files['ps03-1.31'].inflate() + zip.files['ps04.37'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	PRG2 = Uint8Array.from((zip.files['ps05.32'].inflate() + zip.files['ps10.38'].inflate() + zip.files['ps26'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	MAP = Uint8Array.from(zip.files['ps08.1b'].inflate().split(''), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['ps07.2c'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = new Uint8Array((zip.files['ps01-1.30'].inflate() + zip.files['ps09.36'].inflate() + zip.files['ps03-1.31'].inflate() + zip.files['ps04.37'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2 = new Uint8Array((zip.files['ps05.32'].inflate() + zip.files['ps10.38'].inflate() + zip.files['ps26'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	MAP = new Uint8Array(zip.files['ps08.1b'].inflate().split('').map(c => c.charCodeAt(0)));
+	OBJ = new Uint8Array(zip.files['ps07.2c'].inflate().split('').map(c => c.charCodeAt(0)));
 	game = new Polaris();
 	init();
 	loop();

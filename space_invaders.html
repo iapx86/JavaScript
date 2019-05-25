@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>Space Invaders</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -267,8 +268,8 @@ let PRG, MAP;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG = Uint8Array.from((zip.files['sicv/cv17.36'].inflate() + zip.files['sicv/cv18.35'].inflate() + zip.files['sicv/cv19.34'].inflate() + zip.files['sicv/cv20.33'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	MAP = Uint8Array.from(zip.files['sicv/cv01.1'].inflate().split(''), c => c.charCodeAt(0));
+	PRG = new Uint8Array((zip.files['sicv/cv17.36'].inflate() + zip.files['sicv/cv18.35'].inflate() + zip.files['sicv/cv19.34'].inflate() + zip.files['sicv/cv20.33'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	MAP = new Uint8Array(zip.files['sicv/cv01.1'].inflate().split('').map(c => c.charCodeAt(0)));
 	game = new SpaceInvaders();
 	init();
 	loop();

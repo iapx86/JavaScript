@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>Chack'n Pop</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -527,71 +528,73 @@ class ChacknPop {
 
 const keydown = e => {
 	switch (e.keyCode) {
-		case 37: // left
-			game.left(true);
+	case 37: // left
+		game.left(true);
+		break;
+	case 38: // up
+		game.up(true);
+		break;
+	case 39: // right
+		game.right(true);
+		break;
+	case 40: // down
+		game.down(true);
+		break;
+	case 48: // '0'
+		game.coin();
+		break;
+	case 49: // '1'
+		game.start1P();
+		break;
+	case 50: // '2'
+		game.start2P();
+		break;
+	case 77: // 'M'
+		if (!audioCtx)
 			break;
-		case 38: // up
-			game.up(true);
-			break;
-		case 39: // right
-			game.right(true);
-			break;
-		case 40: // down
-			game.down(true);
-			break;
-		case 48: // '0'
-			game.coin();
-			break;
-		case 49: // '1'
-			game.start1P();
-			break;
-		case 50: // '2'
-			game.start2P();
-			break;
-		case 77: // 'M'
-			if (audioCtx.state === 'suspended')
-				audioCtx.resume().catch();
-			else if (audioCtx.state === 'running')
-				audioCtx.suspend().catch();
-			break;
-		case 82: // 'R'
-			game.reset();
-			break;
-		case 84: // 'T'
-			if ((game.fTest = !game.fTest) === true)
-				game.fReset = true;
-			break;
-		case 32: // space
-		case 88: // 'X'
-			game.triggerB(true);
-			break;
-		case 90: // 'Z'
-			game.triggerA(true);
-			break;
+		if (audioCtx.state === 'suspended')
+			audioCtx.resume().catch();
+		else if (audioCtx.state === 'running')
+			audioCtx.suspend().catch();
+		break;
+	case 82: // 'R'
+		game.reset();
+		break;
+	case 84: // 'T'
+		if ((game.fTest = !game.fTest) === true)
+			game.fReset = true;
+		break;
+	case 32: // space
+	case 88: // 'X'
+		game.triggerB(true);
+		break;
+	case 90: // 'Z'
+		game.triggerA(true);
+		break;
 	}
 };
 
 const keyup = e => {
 	switch (e.keyCode) {
-		case 37: // left
-			game.left(false);
-			break;
-		case 38: // up
-			game.up(false);
-			break;
-		case 39: // right
-			game.right(false);
-			break;
-		case 40: // down
-			game.down(false);
-			break;
-		case 32: // space
-		case 88: // 'X'
-			game.triggerB(false);
-			break;
-		case 90: // 'Z'
-			game.triggerA(false);
-			break;
+	case 37: // left
+		game.left(false);
+		break;
+	case 38: // up
+		game.up(false);
+		break;
+	case 39: // right
+		game.right(false);
+		break;
+	case 40: // down
+		game.down(false);
+		break;
+	case 32: // space
+	case 88: // 'X'
+		game.triggerB(false);
+		break;
+	case 90: // 'Z'
+		game.triggerA(false);
+		break;
 	}
 };
 
@@ -608,12 +611,12 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG1 = zip.files['ao4_01.ic28'].inflate() + zip.files['ao4_02.ic27'].inflate() + zip.files['ao4_03.ic26'].inflate();
-	PRG1 = Uint8Array.from((PRG1 + zip.files['ao4_04.ic25'].inflate() + zip.files['ao4_05.ic3'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	PRG2 = Uint8Array.from(zip.files['ao4_06.ic23'].inflate().split(''), c => c.charCodeAt(0)).addBase();
-	OBJ = Uint8Array.from((zip.files['ao4_08.ic14'].inflate() + zip.files['ao4_07.ic15'].inflate()).split(''), c => c.charCodeAt(0));
-	BG = Uint8Array.from((zip.files['ao4_09.ic98'].inflate() + zip.files['ao4_10.ic97'].inflate()).split(''), c => c.charCodeAt(0));
-	RGB_L = Uint8Array.from(zip.files['ao4-11.ic96'].inflate().split(''), c => c.charCodeAt(0));
-	RGB_H = Uint8Array.from(zip.files['ao4-12.ic95'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = new Uint8Array((PRG1 + zip.files['ao4_04.ic25'].inflate() + zip.files['ao4_05.ic3'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2 = new Uint8Array(zip.files['ao4_06.ic23'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+	OBJ = new Uint8Array((zip.files['ao4_08.ic14'].inflate() + zip.files['ao4_07.ic15'].inflate()).split('').map(c => c.charCodeAt(0)));
+	BG = new Uint8Array((zip.files['ao4_09.ic98'].inflate() + zip.files['ao4_10.ic97'].inflate()).split('').map(c => c.charCodeAt(0)));
+	RGB_L = new Uint8Array(zip.files['ao4-11.ic96'].inflate().split('').map(c => c.charCodeAt(0)));
+	RGB_H = new Uint8Array(zip.files['ao4-12.ic95'].inflate().split('').map(c => c.charCodeAt(0)));
 	rotate = true;
 	game = new ChacknPop();
 	sound = [new AY_3_8910({clock: 1500000}), new AY_3_8910({clock: 1500000})];

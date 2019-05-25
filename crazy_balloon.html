@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>Crazy Balloon</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -366,9 +367,9 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG = zip.files['cl01.bin'].inflate() + zip.files['cl02.bin'].inflate() + zip.files['cl03.bin'].inflate() + zip.files['cl04.bin'].inflate();
-	PRG = Uint8Array.from((PRG + zip.files['cl05.bin'].inflate() + zip.files['cl06.bin'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	BG = Uint8Array.from(zip.files['cl07.bin'].inflate().split(''), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['cl08.bin'].inflate().split(''), c => c.charCodeAt(0));
+	PRG = new Uint8Array((PRG + zip.files['cl05.bin'].inflate() + zip.files['cl06.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	BG = new Uint8Array(zip.files['cl07.bin'].inflate().split('').map(c => c.charCodeAt(0)));
+	OBJ = new Uint8Array(zip.files['cl08.bin'].inflate().split('').map(c => c.charCodeAt(0)));
 	game = new CrazyBalloon();
 	init();
 	loop();

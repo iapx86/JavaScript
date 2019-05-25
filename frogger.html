@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>Frogger</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -483,10 +484,10 @@ let BG, RGB, PRG1, PRG2;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from((zip.files['frogger.26'].inflate() + zip.files['frogger.27'].inflate() + zip.files['frsm3.7'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	PRG2 = Uint8Array.from((zip.files['frogger.608'].inflate() + zip.files['frogger.609'].inflate() + zip.files['frogger.610'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	BG = Uint8Array.from((zip.files['frogger.607'].inflate() + zip.files['frogger.606'].inflate()).split(''), c => c.charCodeAt(0));
-	RGB = Uint8Array.from(zip.files['pr-91.6l'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = new Uint8Array((zip.files['frogger.26'].inflate() + zip.files['frogger.27'].inflate() + zip.files['frsm3.7'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2 = new Uint8Array((zip.files['frogger.608'].inflate() + zip.files['frogger.609'].inflate() + zip.files['frogger.610'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	BG = new Uint8Array((zip.files['frogger.607'].inflate() + zip.files['frogger.606'].inflate()).split('').map(c => c.charCodeAt(0)));
+	RGB = new Uint8Array(zip.files['pr-91.6l'].inflate().split('').map(c => c.charCodeAt(0)));
 	Frogger.decodeROM();
 	game = new Frogger();
 	sound = new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 1});

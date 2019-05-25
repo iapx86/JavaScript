@@ -76,7 +76,7 @@ registerProcessor('AY_3_8910', class extends AudioWorkletProcessor {
 });
 `;
 
-const addAY_3_8910 = audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + ay_3_8910) : new Promise((resolve, reject) => reject());
+const addAY_3_8910 = !audioCtx ? undefined : audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + ay_3_8910) : new Promise((resolve, reject) => reject());
 
 class AY_3_8910 {
 	constructor({clock, resolution = 1, gain = 0.1}) {
@@ -84,6 +84,8 @@ class AY_3_8910 {
 		this.resolution = resolution;
 		this.gain = gain;
 		this.tmpwheel = new Array(resolution);
+		if (!audioCtx)
+			return;
 		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
@@ -147,6 +149,8 @@ class AY_3_8910 {
 	}
 
 	mute(flag) {
+		if (!audioCtx)
+			return;
 		this.gainNode.gain.value = flag ? 0 : this.gain;
 	}
 

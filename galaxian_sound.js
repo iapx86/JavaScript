@@ -6,6 +6,8 @@
 
 class GalaxianSound {
 	constructor({SND, gain = 0.1}) {
+		if (!audioCtx)
+			return;
 		const repeat = 16;
 		this.audioBuffer = [];
 		for (let i = 0; i < 2; i++) {
@@ -28,10 +30,14 @@ class GalaxianSound {
 	}
 
 	mute(flag) {
+		if (!audioCtx)
+			return;
 		this.muteflag = flag;
 	}
 
 	update(game) {
+		if (!audioCtx)
+			return;
 		const reg = game.mmo;
 		const voice = reg[0x17] & 1;
 		const freq = (reg[0x17] + 1) * (256 - reg[0x30]);

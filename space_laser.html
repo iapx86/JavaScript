@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>Space Laser</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -242,7 +243,7 @@ let PRG;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG = Uint8Array.from((zip.files['la01'].inflate() + zip.files['la02'].inflate() + zip.files['la03'].inflate() + zip.files['la04'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
+	PRG = new Uint8Array((zip.files['la01'].inflate() + zip.files['la02'].inflate() + zip.files['la03'].inflate() + zip.files['la04'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	game = new SpaceLaser();
 	init();
 	loop();

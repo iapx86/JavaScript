@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>T.T Mahjong</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -236,6 +237,8 @@ const keydown = e => {
 		game.reset();
 		break;
 	case 86: // 'V' MUTE
+		if (!audioCtx)
+			break;
 		if (audioCtx.state === 'suspended')
 			audioCtx.resume().catch();
 		else if (audioCtx.state === 'running')
@@ -318,10 +321,10 @@ let PRG1, PRG2, COLOR1, COLOR2;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from((zip.files['ju04'].inflate() + zip.files['ju05'].inflate() + zip.files['ju06'].inflate() + zip.files['ju07'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	PRG2 = Uint8Array.from((zip.files['ju01'].inflate() + zip.files['ju02'].inflate() + zip.files['ju08'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	COLOR1 = Uint8Array.from(zip.files['ju03'].inflate().split(''), c => c.charCodeAt(0));
-	COLOR2 = Uint8Array.from(zip.files['ju09'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = new Uint8Array((zip.files['ju04'].inflate() + zip.files['ju05'].inflate() + zip.files['ju06'].inflate() + zip.files['ju07'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2 = new Uint8Array((zip.files['ju01'].inflate() + zip.files['ju02'].inflate() + zip.files['ju08'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	COLOR1 = new Uint8Array(zip.files['ju03'].inflate().split('').map(c => c.charCodeAt(0)));
+	COLOR2 = new Uint8Array(zip.files['ju09'].inflate().split('').map(c => c.charCodeAt(0)));
 	rotate = true;
 	game = new TTMahjong();
 	sound = new AY_3_8910({clock: 1250000});

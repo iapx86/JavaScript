@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>1942</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -505,19 +506,19 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG1 = zip.files['srb-03.m3'].inflate() + zip.files['srb-04.m4'].inflate() + zip.files['srb-05.m5'].inflate() + zip.files['srb-06.m6'].inflate();
-	PRG1 = Uint8Array.from((PRG1 + '\xff'.repeat(0x2000) + zip.files['srb-07.m7'].inflate() + '\xff'.repeat(0x4000)).split(''), c => c.charCodeAt(0)).addBase();
-	PRG2 = Uint8Array.from(zip.files['sr-01.c11'].inflate().split(''), c => c.charCodeAt(0)).addBase();
-	FG = Uint8Array.from(zip.files['sr-02.f2'].inflate().split(''), c => c.charCodeAt(0)).addBase();
+	PRG1 = new Uint8Array((PRG1 + '\xff'.repeat(0x2000) + zip.files['srb-07.m7'].inflate() + '\xff'.repeat(0x4000)).split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2 = new Uint8Array(zip.files['sr-01.c11'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+	FG = new Uint8Array(zip.files['sr-02.f2'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	BG = zip.files['sr-08.a1'].inflate() + zip.files['sr-09.a2'].inflate() + zip.files['sr-10.a3'].inflate() + zip.files['sr-11.a4'].inflate();
-	BG = Uint8Array.from((BG + zip.files['sr-12.a5'].inflate() + zip.files['sr-13.a6'].inflate()).split(''), c => c.charCodeAt(0));
+	BG = new Uint8Array((BG + zip.files['sr-12.a5'].inflate() + zip.files['sr-13.a6'].inflate()).split('').map(c => c.charCodeAt(0)));
 	OBJ = zip.files['sr-14.l1'].inflate() + zip.files['sr-15.l2'].inflate() + zip.files['sr-16.n1'].inflate() + zip.files['sr-17.n2'].inflate();
-	OBJ = Uint8Array.from(OBJ.split(''), c => c.charCodeAt(0));
-	RED = Uint8Array.from(zip.files['sb-5.e8'].inflate().split(''), c => c.charCodeAt(0));
-	GREEN = Uint8Array.from(zip.files['sb-6.e9'].inflate().split(''), c => c.charCodeAt(0));
-	BLUE = Uint8Array.from(zip.files['sb-7.e10'].inflate().split(''), c => c.charCodeAt(0));
-	FGCOLOR = Uint8Array.from(zip.files['sb-0.f1'].inflate().split(''), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['sb-4.d6'].inflate().split(''), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['sb-8.k3'].inflate().split(''), c => c.charCodeAt(0));
+	OBJ = new Uint8Array(OBJ.split('').map(c => c.charCodeAt(0)));
+	RED = new Uint8Array(zip.files['sb-5.e8'].inflate().split('').map(c => c.charCodeAt(0)));
+	GREEN = new Uint8Array(zip.files['sb-6.e9'].inflate().split('').map(c => c.charCodeAt(0)));
+	BLUE = new Uint8Array(zip.files['sb-7.e10'].inflate().split('').map(c => c.charCodeAt(0)));
+	FGCOLOR = new Uint8Array(zip.files['sb-0.f1'].inflate().split('').map(c => c.charCodeAt(0)));
+	BGCOLOR = new Uint8Array(zip.files['sb-4.d6'].inflate().split('').map(c => c.charCodeAt(0)));
+	OBJCOLOR = new Uint8Array(zip.files['sb-8.k3'].inflate().split('').map(c => c.charCodeAt(0)));
 	game = new _1942();
 	sound = [new AY_3_8910({clock: 1500000, resolution: 4}), new AY_3_8910({clock: 1500000, resolution: 4})];
 	init();

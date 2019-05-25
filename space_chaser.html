@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>Space Chaser</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -279,11 +280,10 @@ let PRG1, PRG2, MAP;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = zip.files['rt13.bin'].inflate() + zip.files['rt14.bin'].inflate() + zip.files['rt15.bin'].inflate() + zip.files['rt16.bin'].inflate();
-	PRG1 += zip.files['rt17.bin'].inflate() + zip.files['rt18.bin'].inflate() + zip.files['rt19.bin'].inflate() + zip.files['rt20.bin'].inflate();
-	PRG1 = Uint8Array.from(PRG1.split(''), c => c.charCodeAt(0)).addBase();
-	PRG2 = Uint8Array.from((zip.files['rt21.bin'].inflate() + zip.files['rt22.bin'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	MAP = Uint8Array.from(zip.files['rt06.ic2'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = zip.files['rt13.bin'].inflate() + zip.files['rt14.bin'].inflate() + zip.files['rt15.bin'].inflate() + zip.files['rt16.bin'].inflate() + zip.files['rt17.bin'].inflate();
+	PRG1 = new Uint8Array((PRG1 + zip.files['rt18.bin'].inflate() + zip.files['rt19.bin'].inflate() + zip.files['rt20.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2 = new Uint8Array((zip.files['rt21.bin'].inflate() + zip.files['rt22.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	MAP = new Uint8Array(zip.files['rt06.ic2'].inflate().split('').map(c => c.charCodeAt(0)));
 	game = new SpaceChaser();
 	init();
 	loop();

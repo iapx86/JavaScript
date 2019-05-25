@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>Balloon Bomber</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -269,9 +270,9 @@ let PRG1, PRG2, MAP;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from((zip.files['tn01'].inflate() + zip.files['tn02'].inflate() + zip.files['tn03'].inflate() + zip.files['tn04'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	PRG2 = Uint8Array.from(zip.files['tn05-1'].inflate().split(''), c => c.charCodeAt(0)).addBase();
-	MAP = Uint8Array.from(zip.files['tn06'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = new Uint8Array((zip.files['tn01'].inflate() + zip.files['tn02'].inflate() + zip.files['tn03'].inflate() + zip.files['tn04'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2 = new Uint8Array(zip.files['tn05-1'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+	MAP = new Uint8Array(zip.files['tn06'].inflate().split('').map(c => c.charCodeAt(0)));
 	game = new BalloonBomber();
 	init();
 	loop();

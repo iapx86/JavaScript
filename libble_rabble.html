@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>Libble Rabble</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -674,18 +675,18 @@ let PRG1, PRG2, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR, SND;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from((zip.files['5b.rom'].inflate() + zip.files['5c.rom'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	PRG2 = Uint8Array.from(zip.files['2c.rom'].inflate().split(''), c => c.charCodeAt(0)).addBase();
+	PRG1 = new Uint8Array((zip.files['5b.rom'].inflate() + zip.files['5c.rom'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2 = new Uint8Array(zip.files['2c.rom'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	zip.files['8c.rom'].inflate().split('').forEach((c, i) => PRG3[i << 1] = c.charCodeAt(0));
 	zip.files['10c.rom'].inflate().split('').forEach((c, i) => PRG3[1 | i << 1] = c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['5p.rom'].inflate().split(''), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from(zip.files['9t.rom'].inflate().split(''), c => c.charCodeAt(0));
-	RED = Uint8Array.from(zip.files['lr1-3.1r'].inflate().split(''), c => c.charCodeAt(0));
-	GREEN = Uint8Array.from(zip.files['lr1-2.1s'].inflate().split(''), c => c.charCodeAt(0));
-	BLUE = Uint8Array.from(zip.files['lr1-1.1t'].inflate().split(''), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['lr1-5.5l'].inflate().split(''), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['lr1-6.2p'].inflate().split(''), c => c.charCodeAt(0));
-	SND = Uint8Array.from(zip.files['lr1-4.3d'].inflate().split(''), c => c.charCodeAt(0));
+	BG = new Uint8Array(zip.files['5p.rom'].inflate().split('').map(c => c.charCodeAt(0)));
+	OBJ = new Uint8Array(zip.files['9t.rom'].inflate().split('').map(c => c.charCodeAt(0)));
+	RED = new Uint8Array(zip.files['lr1-3.1r'].inflate().split('').map(c => c.charCodeAt(0)));
+	GREEN = new Uint8Array(zip.files['lr1-2.1s'].inflate().split('').map(c => c.charCodeAt(0)));
+	BLUE = new Uint8Array(zip.files['lr1-1.1t'].inflate().split('').map(c => c.charCodeAt(0)));
+	BGCOLOR = new Uint8Array(zip.files['lr1-5.5l'].inflate().split('').map(c => c.charCodeAt(0)));
+	OBJCOLOR = new Uint8Array(zip.files['lr1-6.2p'].inflate().split('').map(c => c.charCodeAt(0)));
+	SND = new Uint8Array(zip.files['lr1-4.3d'].inflate().split('').map(c => c.charCodeAt(0)));
 	rotate = true;
 	game = new LibbleRabble();
 	sound = new MappySound({SND});

@@ -243,8 +243,8 @@ window.addEventListener('load', () => {
 });
 
 function success(zip) {
-	PRG2 = Uint8Array.from(zip.files['pl1_7.3e'].inflate().split(''), c => c.charCodeAt(0)).addBase();
-	PRG2I = Uint8Array.from(zip.files['cus60-60a1.mcu'].inflate().split(''), c => c.charCodeAt(0)).addBase();
+	PRG2 = new Uint8Array(zip.files['pl1_7.3e'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	game = new SoundTest();
 	sound = new C30();
 	canvas.addEventListener('click', () => game.triggerA().right());

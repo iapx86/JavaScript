@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>Sky Kid</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -839,17 +840,17 @@ let PRG1, PRG2, PRG2I, FG, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	PRG1 = Uint8Array.from((zip.files['sk2_2.6c'].inflate() + zip.files['sk1-1c.6b'].inflate() + zip.files['sk1_3.6d'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	PRG2 = Uint8Array.from(zip.files['sk2_4.3c'].inflate().split(''), c => c.charCodeAt(0)).addBase();
-	PRG2I = Uint8Array.from(zip.files['cus63-63a1.mcu'].inflate().split(''), c => c.charCodeAt(0)).addBase();
-	FG = Uint8Array.from(zip.files['sk1_6.6l'].inflate().split(''), c => c.charCodeAt(0));
-	BG = Uint8Array.from(zip.files['sk1_5.7e'].inflate().split(''), c => c.charCodeAt(0));
-	OBJ = Uint8Array.from((zip.files['sk1_8.10n'].inflate() + zip.files['sk1_7.10m'].inflate()).split(''), c => c.charCodeAt(0));
-	RED = Uint8Array.from(zip.files['sk1-1.2n'].inflate().split(''), c => c.charCodeAt(0));
-	GREEN = Uint8Array.from(zip.files['sk1-2.2p'].inflate().split(''), c => c.charCodeAt(0));
-	BLUE = Uint8Array.from(zip.files['sk1-3.2r'].inflate().split(''), c => c.charCodeAt(0));
-	BGCOLOR = Uint8Array.from(zip.files['sk1-4.5n'].inflate().split(''), c => c.charCodeAt(0));
-	OBJCOLOR = Uint8Array.from(zip.files['sk1-5.6n'].inflate().split(''), c => c.charCodeAt(0));
+	PRG1 = new Uint8Array((zip.files['sk2_2.6c'].inflate() + zip.files['sk1-1c.6b'].inflate() + zip.files['sk1_3.6d'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2 = new Uint8Array(zip.files['sk2_4.3c'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2I = new Uint8Array(zip.files['cus63-63a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+	FG = new Uint8Array(zip.files['sk1_6.6l'].inflate().split('').map(c => c.charCodeAt(0)));
+	BG = new Uint8Array(zip.files['sk1_5.7e'].inflate().split('').map(c => c.charCodeAt(0)));
+	OBJ = new Uint8Array((zip.files['sk1_8.10n'].inflate() + zip.files['sk1_7.10m'].inflate()).split('').map(c => c.charCodeAt(0)));
+	RED = new Uint8Array(zip.files['sk1-1.2n'].inflate().split('').map(c => c.charCodeAt(0)));
+	GREEN = new Uint8Array(zip.files['sk1-2.2p'].inflate().split('').map(c => c.charCodeAt(0)));
+	BLUE = new Uint8Array(zip.files['sk1-3.2r'].inflate().split('').map(c => c.charCodeAt(0)));
+	BGCOLOR = new Uint8Array(zip.files['sk1-4.5n'].inflate().split('').map(c => c.charCodeAt(0)));
+	OBJCOLOR = new Uint8Array(zip.files['sk1-5.6n'].inflate().split('').map(c => c.charCodeAt(0)));
 	rotate = true;
 	game = new SkyKid();
 	sound = new C30();

@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta charset="UTF-8">
 <title>Royal Mahjong</title>
 <link href="style.css" rel="stylesheet" type="text/css">
@@ -324,6 +325,8 @@ const keydown = e => {
 		game.in[10] ^= 1 << 2;
 		break;
 	case 86: // 'V' MUTE
+		if (!audioCtx)
+			break;
 		if (audioCtx.state === 'suspended')
 			audioCtx.resume().catch();
 		else if (audioCtx.state === 'running')
@@ -446,8 +449,8 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG = zip.files['1.p1'].inflate() + zip.files['2.p2'].inflate() + zip.files['3.p3'].inflate() + zip.files['4.p4'].inflate();
-	PRG = Uint8Array.from((PRG + zip.files['5.p5'].inflate() + zip.files['6.p6'].inflate()).split(''), c => c.charCodeAt(0)).addBase();
-	RGB = Uint8Array.from(zip.files['18s030n.6k'].inflate().split(''), c => c.charCodeAt(0));
+	PRG = new Uint8Array((PRG + zip.files['5.p5'].inflate() + zip.files['6.p6'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	RGB = new Uint8Array(zip.files['18s030n.6k'].inflate().split('').map(c => c.charCodeAt(0)));
 	rotate = true;
 	game = new RoyalMahjong();
 	sound = new AY_3_8910({clock: 1536000});
