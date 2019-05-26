@@ -46,7 +46,7 @@ registerProcessor('PacManSound', class extends AudioWorkletProcessor {
 });
 `;
 
-const addPacManSound = !audioCtx ? undefined : audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + pacmanSound) : new Promise((resolve, reject) => reject());
+const addPacManSound = !audioCtx ? 0 : audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + pacmanSound) : new Promise((resolve, reject) => reject());
 
 class PacManSound {
 	constructor({SND, resolution = 1, gain = 0.1}) {

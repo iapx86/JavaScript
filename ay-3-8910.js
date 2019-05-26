@@ -76,11 +76,11 @@ registerProcessor('AY_3_8910', class extends AudioWorkletProcessor {
 });
 `;
 
-const addAY_3_8910 = !audioCtx ? undefined : audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + ay_3_8910) : new Promise((resolve, reject) => reject());
+const addAY_3_8910 = !audioCtx ? 0 : audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + ay_3_8910) : new Promise((resolve, reject) => reject());
 
 class AY_3_8910 {
 	constructor({clock, resolution = 1, gain = 0.1}) {
-		this.tmp = new Uint8Array(0x10);
+		this.ram = new Uint8Array(0x10);
 		this.resolution = resolution;
 		this.gain = gain;
 		this.tmpwheel = new Array(resolution);
@@ -155,11 +155,11 @@ class AY_3_8910 {
 	}
 
 	read(addr) {
-		return this.tmp[addr & 0x0f];
+		return this.ram[addr & 0x0f];
 	}
 
 	write(addr, data, timer = 0) {
-		this.tmp[addr &= 0x0f] = data;
+		this.ram[addr &= 0x0f] = data;
 		if (addr >= 0x0e)
 			return;
 		if (this.tmpwheel[timer])

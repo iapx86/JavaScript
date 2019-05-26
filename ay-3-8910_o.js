@@ -7,7 +7,7 @@
 class AY_3_8910 {
 	constructor({clock, resolution = 1, gain = 0.1}) {
 		this.reg = new Uint8Array(0x10);
-		this.tmp = new Uint8Array(0x10);
+		this.ram = new Uint8Array(0x10);
 		const repeat = 16;
 		this.noiseBuffer = new AudioBuffer({length: 131071 * repeat, sampleRate: audioCtx.sampleRate});
 		for (let data = this.noiseBuffer.getChannelData(0), rng = 0xffff, i = 0; i < data.length; i++) {
@@ -44,11 +44,11 @@ class AY_3_8910 {
 	}
 
 	read(addr) {
-		return this.tmp[addr & 0x0f];
+		return this.ram[addr & 0x0f];
 	}
 
 	write(addr, data, timer = 0) {
-		this.tmp[addr &= 0x0f] = data;
+		this.ram[addr &= 0x0f] = data;
 		if (addr >= 0x0e)
 			return;
 		if (this.wheel[timer])

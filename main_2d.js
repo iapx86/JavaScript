@@ -4,7 +4,7 @@
  *
  */
 
-const audioCtx = window.AudioContext ? new window.AudioContext() : window.webkitAudioContext ? new window.webkitAudioContext() : undefined;
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const cxScreen = canvas.width;
@@ -20,19 +20,17 @@ let state = '';
 
 let game, sound, imageData, data;
 
-const volume0 = `data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
-eElEQVR42u3XywrAIAxE0fz/T09XXRRaTCvDnYoBV7o4oHlYkopctQF/B5yBAEQCRAJEAkQBRmED
-dGMaMBtvUvOy7wSok7oOwBPi9rwL0M4YJ6BVsJYGoFeAPkI8DT8VIrwUxzajmHYcM5BEjGQRQ2nE
-WL5/RmsADqNJE6QZh85dAAAAAElFTkSuQmCC
-`;
+const volume0 = 'data:image/png;base64,\
+iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAC4jAAAuIwF4pT92AAAAeElEQVR42u3XywrAIAxE0fz/T09XXRRaTCvDnYoBV7o4\
+oHlYkopctQF/B5yBAEQCRAJEAkQBRmEDdGMaMBtvUvOy7wSok7oOwBPi9rwL0M4YJ6BVsJYGoFeAPkI8DT8VIrwUxzajmHYcM5BEjGQRQ2nEWL5/RmsADqNJ\
+E6QZh85dAAAAAElFTkSuQmCC\
+';
 
-const volume1 = `data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAC4jAAAuIwF4pT92AAAA
-fklEQVR42u2XwQrAIAxD+/8/nZ12GrhoWoolBS9SyEOliQEgOlcY4HaAt1oAQAIs+zLEofRmiEMB
-zhAH+TYkgL9i7/2zrwozAGAA1IrTU6gECOYUDGAAA4ydA9uTsHIUS16gmlGaG+7acVkeOAkk6YlI
-iWQtoXRuLPfPaAbAA72UT2ikWgrdAAAAAElFTkSuQmCC
-`;
+const volume1 = 'data:image/png;base64,\
+iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAC4jAAAuIwF4pT92AAAAfklEQVR42u2XwQrAIAxD+/8/nZ12GrhoWoolBS9SyEOl\
+iQEgOlcY4HaAt1oAQAIs+zLEofRmiEMBzhAH+TYkgL9i7/2zrwozAGAA1IrTU6gECOYUDGAAA4ydA9uTsHIUS16gmlGaG+7acVkeOAkk6YlIiWQtoXRuLPfP\
+aAbAA72UT2ikWgrdAAAAAElFTkSuQmCC\
+';
 
 function init({keydown, keyup} = {}) {
 	imageData = ctx.createImageData(game.width, game.height);
@@ -132,12 +130,9 @@ function init({keydown, keyup} = {}) {
 }
 
 function loop() {
-	if (typeof sound !== 'undefined')
-		if (Array.isArray(sound))
-			sound.forEach(s => s.update(game));
-		else
-			sound.update(game);
-	ctx.putImageData(imageData, -game.xOffset, -game.yOffset);
+	if (sound)
+		Array.isArray(sound) ? sound.forEach(s => s.update(game)) : sound.update(game);
+	draw();
 	updateGamepad(game);
 	game.updateStatus().updateInput().execute().makeBitmap(data);
 	requestAnimationFrame(loop);
@@ -235,7 +230,7 @@ window.addEventListener('gamepaddisconnected', e => delete controllers[e.gamepad
 
 function updateGamepad(game) {
 	if (!haveEvents) {
-		const gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads() : []);
+		const gamepads = 'getGamepads' in navigator && navigator.getGamepads() || 'webkitGetGamepads' in navigator && navigator.webkitGetGamepads() || [];
 		controllers.splice(0);
 		for (let i = 0, n = gamepads.length; i < n; i++)
 			if (gamepads[i])
@@ -246,68 +241,68 @@ function updateGamepad(game) {
 		return;
 	let val, pressed;
 	val = controller.buttons[0];
-	if (game.triggerA && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[0])
+	if ('triggerA' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[0])
 		game.triggerA(gamepadStatus.buttons[0] = pressed);
 	val = controller.buttons[1];
-	if (game.triggerB && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[1])
+	if ('triggerB' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[1])
 		game.triggerB(gamepadStatus.buttons[1] = pressed);
 	val = controller.buttons[2];
-	if (game.triggerX && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[2])
+	if ('triggerX' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[2])
 		game.triggerX(gamepadStatus.buttons[2] = pressed);
 	val = controller.buttons[3];
-	if (game.triggerY && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[3])
+	if ('triggerY' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[3])
 		game.triggerY(gamepadStatus.buttons[3] = pressed);
 	val = controller.buttons[4];
-	if (game.triggerL1 && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[4])
+	if ('triggerL1' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[4])
 		game.triggerL1(gamepadStatus.buttons[4] = pressed);
 	val = controller.buttons[5];
-	if (game.triggerR1 && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[5])
+	if ('triggerR1' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[5])
 		game.triggerR1(gamepadStatus.buttons[5] = pressed);
 	val = controller.buttons[6];
-	if (game.triggerL2 && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[6])
+	if ('triggerL2' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[6])
 		game.triggerL2(gamepadStatus.buttons[6] = pressed);
 	val = controller.buttons[7];
-	if (game.triggerR2 && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[7])
+	if ('triggerR2' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[7])
 		game.triggerR2(gamepadStatus.buttons[7] = pressed);
 	val = controller.buttons[8];
-	if (game.coin && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[8] && (gamepadStatus.buttons[8] = pressed))
+	if ('coin' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[8] && (gamepadStatus.buttons[8] = pressed))
 		game.coin();
 	val = controller.buttons[9];
-	if (game.start1P && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[9] && (gamepadStatus.buttons[9] = pressed))
+	if ('start1P' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[9] && (gamepadStatus.buttons[9] = pressed))
 		game.start1P();
 	val = controller.buttons[10];
-	if (game.triggerL3 && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[10])
+	if ('triggerL3' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[10])
 		game.triggerL3(gamepadStatus.buttons[4] = pressed);
 	val = controller.buttons[11];
-	if (game.triggerR3 && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[11])
+	if ('triggerR3' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[11])
 		game.triggerR3(gamepadStatus.buttons[5] = pressed);
 	val = controller.buttons[12];
-	if (game.hatU && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[12])
+	if ('hatU' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[12])
 		game.hatU(gamepadStatus.buttons[12] = pressed);
 	val = controller.buttons[13];
-	if (game.hatD && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[13])
+	if ('hatD' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[13])
 		game.hatD(gamepadStatus.buttons[13] = pressed);
 	val = controller.buttons[14];
-	if (game.hatL && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[14])
+	if ('hatL' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[14])
 		game.hatL(gamepadStatus.buttons[14] = pressed);
 	val = controller.buttons[15];
-	if (game.hatR && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[15])
+	if ('hatR' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[15])
 		game.hatR(gamepadStatus.buttons[15] = pressed);
-	if (game.up && (pressed = controller.axes[1] < -0.5) !== gamepadStatus.up)
+	if ('up' in game && (pressed = controller.axes[1] < -0.5) !== gamepadStatus.up)
 		game.up(gamepadStatus.up = pressed);
-	if (game.right && (pressed = controller.axes[0] > 0.5) !== gamepadStatus.right)
+	if ('right' in game && (pressed = controller.axes[0] > 0.5) !== gamepadStatus.right)
 		game.right(gamepadStatus.right = pressed);
-	if (game.down && (pressed = controller.axes[1] > 0.5) !== gamepadStatus.down)
+	if ('down' in game && (pressed = controller.axes[1] > 0.5) !== gamepadStatus.down)
 		game.down(gamepadStatus.down = pressed);
-	if (game.left && (pressed = controller.axes[0] < -0.5) !== gamepadStatus.left)
+	if ('left' in game && (pressed = controller.axes[0] < -0.5) !== gamepadStatus.left)
 		game.left(gamepadStatus.left = pressed);
-	if (game.up2 && (pressed = controller.axes[3] < -0.5) !== gamepadStatus.up2)
+	if ('up2' in game && (pressed = controller.axes[3] < -0.5) !== gamepadStatus.up2)
 		game.up2(gamepadStatus.up2 = pressed);
-	if (game.right2 && (pressed = controller.axes[2] > 0.5) !== gamepadStatus.right2)
+	if ('right2' in game && (pressed = controller.axes[2] > 0.5) !== gamepadStatus.right2)
 		game.right2(gamepadStatus.right2 = pressed);
-	if (game.down2 && (pressed = controller.axes[3] > 0.5) !== gamepadStatus.down2)
+	if ('down2' in game && (pressed = controller.axes[3] > 0.5) !== gamepadStatus.down2)
 		game.down2(gamepadStatus.down2 = pressed);
-	if (game.left2 && (pressed = controller.axes[2] < -0.5) !== gamepadStatus.left2)
+	if ('left2' in game && (pressed = controller.axes[2] < -0.5) !== gamepadStatus.left2)
 		game.left2(gamepadStatus.left2 = pressed);
 }
 
