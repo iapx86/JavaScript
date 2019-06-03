@@ -4,7 +4,6 @@
  *
  */
 
-const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const cxScreen = canvas.width;
@@ -32,7 +31,8 @@ iQEgOlcY4HaAt1oAQAIs+zLEofRmiEMBzhAH+TYkgL9i7/2zrwozAGAA1IrTU6gECOYUDGAAA4ydA9uT
 aAbAA72UT2ikWgrdAAAAAElFTkSuQmCC\
 ';
 
-function init({keydown, keyup} = {}) {
+export function init({keydown, keyup, ...args} = {}) {
+	({game, sound, rotate} = args);
 	imageData = ctx.createImageData(game.width, game.height);
 	data = new Uint32Array(imageData.data.buffer);
 	document.addEventListener('keydown', keydown ? keydown : e => {
@@ -129,7 +129,7 @@ function init({keydown, keyup} = {}) {
 	});
 }
 
-function loop() {
+export function loop() {
 	if (sound)
 		Array.isArray(sound) ? sound.forEach(s => s.update(game)) : sound.update(game);
 	draw();
@@ -312,9 +312,9 @@ function updateGamepad(game) {
  *
  */
 
-const dummypage = new Uint8Array(0x100).fill(0xff);
+export const dummypage = new Uint8Array(0x100).fill(0xff);
 
-class Cpu {
+export default class Cpu {
 	constructor(arg = null) {
 		this.fActive = false;
 		this.fSuspend = false;

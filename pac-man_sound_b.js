@@ -4,7 +4,7 @@
  *
  */
 
-class PacManSound {
+export default class PacManSound {
 	constructor({SND, resolution = 1, gain = 0.1}) {
 		this.reg = new Uint8Array(0x20);
 		this.tmp = new Uint8Array(0x20);

@@ -10,16 +10,21 @@
 <canvas id="canvas" width="256" height="224"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="z80.js"></script>
-<script src="mc6805.js"></script>
-<script src="ay-3-8910.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Chack'n Pop
  *
  */
+
+import AY_3_8910 from './ay-3-8910.js';
+import Cpu, {init, loop} from './main.js';
+import Z80 from './z80.js';
+import MC6805 from './mc6805.js';
+let game, sound;
 
 class ChacknPop {
 	constructor() {
@@ -617,10 +622,15 @@ function success(zip) {
 	BG = new Uint8Array((zip.files['ao4_09.ic98'].inflate() + zip.files['ao4_10.ic97'].inflate()).split('').map(c => c.charCodeAt(0)));
 	RGB_L = new Uint8Array(zip.files['ao4-11.ic96'].inflate().split('').map(c => c.charCodeAt(0)));
 	RGB_H = new Uint8Array(zip.files['ao4-12.ic95'].inflate().split('').map(c => c.charCodeAt(0)));
-	rotate = true;
-	game = new ChacknPop();
-	sound = [new AY_3_8910({clock: 1500000}), new AY_3_8910({clock: 1500000})];
-	init({keydown, keyup});
+	init({
+		game: game = new ChacknPop(),
+		sound: sound = [
+			new AY_3_8910({clock: 1500000}),
+			new AY_3_8910({clock: 1500000}),
+		],
+		rotate: true,
+		keydown, keyup,
+	});
 	loop();
 }
 

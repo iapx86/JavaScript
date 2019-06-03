@@ -66,7 +66,7 @@ registerProcessor('C30', class extends AudioWorkletProcessor {
 
 const addC30 = !audioCtx ? 0 : audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + c30) : new Promise((resolve, reject) => reject());
 
-class C30 {
+export default class C30 {
 	constructor({resolution = 1, gain = 0.1} = {}) {
 		this.ram = new Uint8Array(0x400);
 		this.resolution = resolution;

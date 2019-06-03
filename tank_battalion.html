@@ -10,15 +10,20 @@
 <canvas id="canvas" width="224" height="256"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="mcs6502.js"></script>
-<script src="sound_effect.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Tank Battalion
  *
  */
+
+import SoundEffect from  './sound_effect.js';
+import {init, loop} from './main.js';
+import MCS6502 from './mcs6502.js';
+let game;
 
 class TankBattalion {
 	constructor() {
@@ -3378,9 +3383,10 @@ function success(zip) {
 	PRG = new Uint8Array((zip.files['tb1-1.1a'].inflate() + zip.files['tb1-2.1b'].inflate() + zip.files['tb1-3.1c'].inflate() + zip.files['tb1-4.1d'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	BG = new Uint8Array(zip.files['tb1-5.2k'].inflate().split('').map(c => c.charCodeAt(0)));
 	RGB = new Uint8Array(zip.files['bct1-1.l3'].inflate().split('').map(c => c.charCodeAt(0)));
-	game = new TankBattalion();
-	sound = new SoundEffect({se: game.se, freq: 22050});
-	init();
+	init({
+		game: game = new TankBattalion(),
+		sound: new SoundEffect({se: game.se, freq: 22050}),
+	});
 	loop();
 }
 

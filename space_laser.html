@@ -10,14 +10,18 @@
 <canvas id="canvas" width="224" height="256"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="i8080.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Space Laser
  *
  */
+
+import {init, loop} from './main.js';
+import I8080 from './i8080.js';
 
 class SpaceLaser {
 	constructor() {
@@ -244,8 +248,7 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG = new Uint8Array((zip.files['la01'].inflate() + zip.files['la02'].inflate() + zip.files['la03'].inflate() + zip.files['la04'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	game = new SpaceLaser();
-	init();
+	init({game: new SpaceLaser()});
 	loop();
 }
 

@@ -4,7 +4,9 @@
  *
  */
 
-class Z80 extends Cpu {
+import Cpu, {dummypage} from './main.js';
+
+export default class Z80 extends Cpu {
 	constructor(arg = null) {
 		super(arg);
 		this.b = 0;

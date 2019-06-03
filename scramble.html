@@ -10,15 +10,20 @@
 <canvas id="canvas" width="224" height="256"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="z80.js"></script>
-<script src="ay-3-8910.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Scramble
  *
  */
+
+import AY_3_8910 from './ay-3-8910.js';
+import {init, loop} from './main.js';
+import Z80 from './z80.js';
+let sound;
 
 class Scramble {
 	constructor() {
@@ -147,7 +152,6 @@ class Scramble {
 		for (let i = 0; i < 1024; i++)
 			this.stars.push({x: 0, y: 0, color: 0});
 		this.fStarEnable = false;
-		this.fStarMove = false;
 		this.fBackgroundEnable = false;
 		this.bg = new Uint32Array(0x20000);
 		this.obj = new Uint8Array(0x4000);
@@ -349,15 +353,6 @@ class Scramble {
 				}
 			}
 		}
-	}
-
-	moveStars() {
-		if (this.fStarEnable && (this.fStarMove = !this.fStarMove))
-			for (let i = 0; i < 256 && this.stars[i].color; i++)
-				if (++this.stars[i].y >= 0x100) {
-					this.stars[i].y &= 0xff;
-					this.stars[i].x = this.stars[i].x - 1 & 0xff;
-				}
 	}
 
 	makeBitmap(data) {
@@ -580,9 +575,13 @@ function success(zip) {
 	PRG2 = new Uint8Array((zip.files['ot1.5c'].inflate() + zip.files['ot2.5d'].inflate() + zip.files['ot3.5e'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	BG = new Uint8Array((zip.files['c2.5f'].inflate() + zip.files['c1.5h'].inflate()).split('').map(c => c.charCodeAt(0)));
 	RGB = new Uint8Array(zip.files['c01s.6e'].inflate().split('').map(c => c.charCodeAt(0)));
-	game = new Scramble();
-	sound = [new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.5}), new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.5})];
-	init();
+	init({
+		game: new Scramble(),
+		sound: sound = [
+			new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.5}),
+			new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.5}),
+		],
+	});
 	loop();
 }
 

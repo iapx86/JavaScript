@@ -10,16 +10,21 @@
 <canvas id="canvas" width="224" height="256"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="z80.js"></script>
-<script src="ay-3-8910.js"></script>
-<script src="sound_effect.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Jump Bug
  *
  */
+
+import AY_3_8910 from './ay-3-8910.js';
+import SoundEffect from  './sound_effect.js';
+import {init, loop} from './main.js';
+import Z80 from './z80.js';
+let game, sound;
 
 class JumpBug {
 	constructor() {
@@ -1676,9 +1681,13 @@ function success(zip) {
 	BG = zip.files['jbl'].inflate() + zip.files['jbn'].inflate() + zip.files['jbm'].inflate() + zip.files['jbi'].inflate();
 	BG = new Uint8Array((BG + zip.files['jbk'].inflate() + zip.files['jbj'].inflate()).split('').map(c => c.charCodeAt(0)));
 	RGB = new Uint8Array(zip.files['l06_prom.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	game = new JumpBug();
-	sound = [new AY_3_8910({clock: 1536000}), new SoundEffect({se: game.se, freq: 11025, gain: 0.5})];
-	init();
+	init({
+		game: game = new JumpBug(),
+		sound: sound = [
+			new AY_3_8910({clock: 1536000}),
+			new SoundEffect({se: game.se, freq: 11025, gain: 0.5}),
+		],
+	});
 	loop();
 }
 

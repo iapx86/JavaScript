@@ -4,7 +4,7 @@
  *
  */
 
-class GalaxianSound {
+export default class GalaxianSound {
 	constructor({SND, gain = 0.1}) {
 		if (!audioCtx)
 			return;

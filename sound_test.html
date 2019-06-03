@@ -70,15 +70,20 @@ K0lEQVR42mM4AAYNMIDGhnDxq8FUzzBq6KihQ8dQZM2Us0cNHSqGNtAAAADZbUjutEi02gAAAABJ
 RU5ErkJggg==">
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="mc6809.js"></script>
-<script src="mappy_sound.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Sound Test
  *
  */
+
+import MappySound from './mappy_sound.js';
+import {init, loop} from './main.js';
+import MC6809 from './mc6809.js';
+let game, sound;
 
 class SoundTest {
 	constructor() {
@@ -235,10 +240,11 @@ window.addEventListener('load', () => {
 function success(zip) {
 	PRG2 = new Uint8Array(zip.files['2c.rom'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	SND = new Uint8Array(zip.files['lr1-4.3d'].inflate().split('').map(c => c.charCodeAt(0)));
-	game = new SoundTest();
-	sound = new MappySound({SND});
+	init({
+		game: game = new SoundTest(),
+		sound: sound = new MappySound({SND}),
+	});
 	canvas.addEventListener('click', () => game.triggerA().right());
-	init();
 	loop();
 }
 

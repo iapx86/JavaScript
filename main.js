@@ -4,7 +4,6 @@
  *
  */
 
-const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
 const canvas = document.getElementById('canvas');
 const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
 const cxScreen = canvas.width;
@@ -75,7 +74,7 @@ const aTextureCoordHandle = gl.getAttribLocation(program, 'aTextureCoord');
 const positionBuffer = gl.createBuffer();
 const textureCoordBuffer = gl.createBuffer();
 const texture = gl.createTexture();
-let game, sound, pixel, data, rotate = false;
+let game, sound, rotate, pixel, data;
 
 const volume0 = 'data:image/png;base64,\
 iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAC4jAAAuIwF4pT92AAAAeElEQVR42u3XywrAIAxE0fz/T09XXRRaTCvDnYoBV7o4\
@@ -89,7 +88,8 @@ iQEgOlcY4HaAt1oAQAIs+zLEofRmiEMBzhAH+TYkgL9i7/2zrwozAGAA1IrTU6gECOYUDGAAA4ydA9uT
 aAbAA72UT2ikWgrdAAAAAElFTkSuQmCC\
 ';
 
-function init({keydown, keyup} = {}) {
+export function init({keydown, keyup, ...args} = {}) {
+	({game, sound, rotate} = args);
 	pixel = new Uint8Array(game.width * game.height * 4);
 	data = new Uint32Array(pixel.buffer);
 	gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -215,7 +215,7 @@ function draw() {
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
-function loop() {
+export function loop() {
 	if (sound)
 		Array.isArray(sound) ? sound.forEach(s => s.update(game)) : sound.update(game);
 	draw();
@@ -398,9 +398,9 @@ function updateGamepad(game) {
  *
  */
 
-const dummypage = new Uint8Array(0x100).fill(0xff);
+export const dummypage = new Uint8Array(0x100).fill(0xff);
 
-class Cpu {
+export default class Cpu {
 	constructor(arg = null) {
 		this.fActive = false;
 		this.fSuspend = false;

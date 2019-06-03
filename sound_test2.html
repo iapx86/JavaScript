@@ -70,15 +70,20 @@ K0lEQVR42mM4AAYNMIDGhnDxq8FUzzBq6KihQ8dQZM2Us0cNHSqGNtAAAADZbUjutEi02gAAAABJ
 RU5ErkJggg==">
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="mc6801.js"></script>
-<script src="c30.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Sound Test 2
  *
  */
+
+import C30 from './c30.js';
+import {init, loop} from './main.js';
+import MC6801 from './mc6801.js';
+let game, sound;
 
 class SoundTest {
 	constructor() {
@@ -245,10 +250,11 @@ window.addEventListener('load', () => {
 function success(zip) {
 	PRG2 = new Uint8Array(zip.files['pl1_7.3e'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	PRG2I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	game = new SoundTest();
-	sound = new C30();
+	init({
+		game: game = new SoundTest(),
+		sound: sound = new C30(),
+	});
 	canvas.addEventListener('click', () => game.triggerA().right());
-	init();
 	loop();
 }
 

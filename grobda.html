@@ -10,16 +10,21 @@
 <canvas id="canvas" width="224" height="288"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="mc6809.js"></script>
-<script src="mappy_sound.js"></script>
-<script src="sound_effect.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Grobda
  *
  */
+
+import MappySound from './mappy_sound.js';
+import SoundEffect from './sound_effect.js';
+import Cpu, {init, loop} from './main.js';
+import MC6809 from './mc6809.js';
+let game, sound;
 
 class Grobda {
 	constructor() {
@@ -711,9 +716,13 @@ function success(zip) {
 	OBJCOLOR = new Uint8Array(zip.files['gr1-4.3l'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['gr1-3.3m'].inflate().split('').map(c => c.charCodeAt(0)));
 	Grobda.convertGETREADY();
-	game = new Grobda();
-	sound = [new MappySound({SND}), new SoundEffect({se: game.se, freq: 22050})];
-	init();
+	init({
+		game: game = new Grobda(),
+		sound: sound = [
+			new MappySound({SND}),
+			new SoundEffect({se: game.se, freq: 22050}),
+		],
+	});
 	loop();
 }
 

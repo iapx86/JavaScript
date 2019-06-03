@@ -10,15 +10,20 @@
 <canvas id="canvas" width="224" height="272"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="i8080.js"></script>
-<script src="sound_effect.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Warp & Warp
  *
  */
+
+import SoundEffect from './sound_effect.js';
+import {init, loop} from './main.js';
+import I8080 from './i8080.js';
+let game;
 
 class WarpAndWarp {
 	constructor() {
@@ -3611,9 +3616,13 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 function success(zip) {
 	PRG = new Uint8Array((zip.files['ww1_prg1.s10'].inflate() + zip.files['ww1_prg2.s8'].inflate() + zip.files['ww1_prg3.s4'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	BG = new Uint8Array(zip.files['ww1_chg1.s12'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	game = new WarpAndWarp();
-	sound = [new WarpAndWarpSound(), new SoundEffect({se: game.se, freq: 22050})];
-	init();
+	init({
+		game: game = new WarpAndWarp(),
+		sound: [
+			new WarpAndWarpSound(),
+			new SoundEffect({se: game.se, freq: 22050}),
+		],
+	});
 	loop();
 }
 

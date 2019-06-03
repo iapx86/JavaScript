@@ -10,16 +10,21 @@
 <canvas id="canvas" width="285" height="224"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="z80.js"></script>
-<script src="pac-man_sound.js"></script>
-<script src="sound_effect.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Rally-X
  *
  */
+
+import PacManSound from './pac-man_sound.js';
+import SoundEffect from './sound_effect.js';
+import {init, loop} from './main.js';
+import Z80 from './z80.js';
+let game, sound;
 
 class RallyX {
 	constructor() {
@@ -1328,10 +1333,14 @@ function success(zip) {
 	RGB = new Uint8Array(zip.files['rx1-1.11n'].inflate().split('').map(c => c.charCodeAt(0)));
 	COLOR = new Uint8Array(zip.files['rx1-7.8p'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['rx1-5.3p'].inflate().split('').map(c => c.charCodeAt(0)));
-	rotate = true;
-	game = new RallyX();
-	sound = [new PacManSound({SND}), new SoundEffect({se: game.se, freq: 11025, gain: 9 / 16})];
-	init();
+	init({
+		game: game = new RallyX(),
+		sound: sound = [
+			new PacManSound({SND}),
+			new SoundEffect({se: game.se, freq: 11025, gain: 9 / 16}),
+		],
+		rotate: true,
+	});
 	loop();
 }
 

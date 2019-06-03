@@ -10,14 +10,18 @@
 <canvas id="canvas" width="224" height="256"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="i8080.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Polaris
  *
  */
+
+import {init, loop} from './main.js';
+import I8080 from './i8080.js';
 
 class Polaris {
 	constructor() {
@@ -267,8 +271,7 @@ function success(zip) {
 	PRG2 = new Uint8Array((zip.files['ps05.32'].inflate() + zip.files['ps10.38'].inflate() + zip.files['ps26'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	MAP = new Uint8Array(zip.files['ps08.1b'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJ = new Uint8Array(zip.files['ps07.2c'].inflate().split('').map(c => c.charCodeAt(0)));
-	game = new Polaris();
-	init();
+	init({game: new Polaris()});
 	loop();
 }
 

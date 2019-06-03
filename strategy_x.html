@@ -10,15 +10,20 @@
 <canvas id="canvas" width="256" height="224"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="z80.js"></script>
-<script src="ay-3-8910.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Strategy X
  *
  */
+
+import AY_3_8910 from './ay-3-8910.js';
+import {init, loop} from './main.js';
+import Z80 from './z80.js';
+let game, sound;
 
 class StrategyX {
 	constructor() {
@@ -593,10 +598,15 @@ function success(zip) {
 	BG = new Uint8Array((zip.files['5f_c2.bin'].inflate() + zip.files['5h_c1.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
 	RGB = new Uint8Array(zip.files['strategy.6e'].inflate().split('').map(c => c.charCodeAt(0)));
 	MAP = new Uint8Array(zip.files['strategy.10k'].inflate().split('').map(c => c.charCodeAt(0)));
-	rotate = true;
-	game = new StrategyX();
-	sound = [new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.5}), new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.5})];
-	init({keydown, keyup});
+	init({
+		game: game = new StrategyX(),
+		sound: sound = [
+			new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.5}),
+			new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.5}),
+		],
+		rotate: true,
+		keydown, keyup
+	});
 	loop();
 }
 

@@ -10,16 +10,21 @@
 <canvas id="canvas" width="224" height="288"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="z80.js"></script>
-<script src="pac-man_sound.js"></script>
-<script src="sound_effect.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Super Xevious
  *
  */
+
+import PacManSound from './pac-man_sound.js';
+import SoundEffect from './sound_effect.js';
+import Cpu, {init, loop} from './main.js';
+import Z80 from './z80.js';
+let game, sound;
 
 class SuperXevious {
 	constructor() {
@@ -2191,9 +2196,13 @@ function success(zip) {
 	OBJCOLOR_L = new Uint8Array(zip.files['xvi-4.3l'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJCOLOR_H = new Uint8Array(zip.files['xvi-5.3m'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['xvi-2.7n'].inflate().split('').map(c => c.charCodeAt(0)));
-	game = new SuperXevious();
-	sound = [new PacManSound({SND, resolution: 2}), new SoundEffect({se: game.se, freq: 11025, gain: 8})];
-	init();
+	init({
+		game: game = new SuperXevious(),
+		sound: sound = [
+			new PacManSound({SND, resolution: 2}),
+			new SoundEffect({se: game.se, freq: 11025, gain: 8}),
+		],
+	});
 	loop();
 }
 

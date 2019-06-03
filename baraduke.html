@@ -10,16 +10,21 @@
 <canvas id="canvas" width="288" height="224"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="mc6809.js"></script>
-<script src="mc6801.js"></script>
-<script src="c30.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Baraduke
  *
  */
+
+import C30 from './c30.js';
+import {init, loop} from './main.js';
+import MC6809 from './mc6809.js';
+import MC6801 from './mc6801.js';
+let sound;
 
 class Baraduke {
 	constructor() {
@@ -405,7 +410,7 @@ class Baraduke {
 				this.xfer8x8b0(data, p, k, back);
 
 		// obj描画
-		this.drawObj(0);
+		this.drawObj(data, 0);
 
 		// bg描画
 		back ^= 1;
@@ -416,7 +421,7 @@ class Baraduke {
 				this.xfer8x8b1(data, p, k, back);
 
 		// obj描画
-		this.drawObj(1);
+		this.drawObj(data, 1);
 
 		// fg描画
 		p = 256 * 8 * 4 + 232;
@@ -448,7 +453,7 @@ class Baraduke {
 				data[p] = this.rgb[data[p]];
 	}
 
-	drawObj(pri) {
+	drawObj(data, pri) {
 		const ram = this.ram;
 
 		for (let p = 0x1800, i = 127; i !== 0; p += 16, --i) {
@@ -814,10 +819,11 @@ function success(zip) {
 	OBJ = new Uint8Array((zip.files['bd1_9.8k'].inflate() + zip.files['bd1_10.8l'].inflate() + zip.files['bd1_11.8m'].inflate() + zip.files['bd1_12.8n'].inflate()).split('').map(c => c.charCodeAt(0)));
 	GREEN = new Uint8Array(zip.files['bd1-1.1n'].inflate().split('').map(c => c.charCodeAt(0)));
 	RED = new Uint8Array(zip.files['bd1-2.2m'].inflate().split('').map(c => c.charCodeAt(0)));
-	rotate = true;
-	game = new Baraduke();
-	sound = new C30({resolution: 400});
-	init();
+	init({
+		game: new Baraduke(),
+		sound: sound = new C30({resolution: 400}),
+		rotate: true,
+	});
 	loop();
 }
 

@@ -10,16 +10,21 @@
 <canvas id="canvas" width="288" height="224"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="mc6809.js"></script>
-<script src="mc68000.js"></script>
-<script src="mappy_sound.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Toypop
  *
  */
+
+import MappySound from './mappy_sound.js';
+import Cpu, {init, loop} from './main.js';
+import MC6809 from './mc6809.js';
+import MC68000 from  './mc68000.js';
+let sound;
 
 class Toypop {
 	constructor() {
@@ -604,10 +609,11 @@ function success(zip) {
 	BGCOLOR = new Uint8Array(zip.files['tp1-4.5l'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJCOLOR = new Uint8Array(zip.files['tp1-5.2p'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['tp1-6.3d'].inflate().split('').map(c => c.charCodeAt(0)));
-	rotate = true;
-	game = new Toypop();
-	sound = new MappySound({SND});
-	init();
+	init({
+		game: new Toypop(),
+		sound: sound = new MappySound({SND}),
+		rotate: true,
+	});
 	loop();
 }
 

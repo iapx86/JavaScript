@@ -4,7 +4,9 @@
  *
  */
 
-class MC6801 extends Cpu {
+import Cpu from './main.js';
+
+export default class MC6801 extends Cpu {
 	constructor(arg = null) {
 		super(arg);
 		this.a = 0;

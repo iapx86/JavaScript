@@ -10,15 +10,20 @@
 <canvas id="canvas" width="224" height="256"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="z80.js"></script>
-<script src="ay-3-8910.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	1942
  *
  */
+
+import AY_3_8910 from './ay-3-8910.js';
+import Cpu, {init, loop} from './main.js';
+import Z80 from './z80.js';
+let sound;
 
 class _1942 {
 	constructor() {
@@ -519,9 +524,13 @@ function success(zip) {
 	FGCOLOR = new Uint8Array(zip.files['sb-0.f1'].inflate().split('').map(c => c.charCodeAt(0)));
 	BGCOLOR = new Uint8Array(zip.files['sb-4.d6'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJCOLOR = new Uint8Array(zip.files['sb-8.k3'].inflate().split('').map(c => c.charCodeAt(0)));
-	game = new _1942();
-	sound = [new AY_3_8910({clock: 1500000, resolution: 4}), new AY_3_8910({clock: 1500000, resolution: 4})];
-	init();
+	init({
+		game: new _1942(),
+		sound: sound = [
+			new AY_3_8910({clock: 1500000, resolution: 4}),
+			new AY_3_8910({clock: 1500000, resolution: 4})
+		]
+	});
 	loop();
 }
 

@@ -10,15 +10,20 @@
 <canvas id="canvas" width="224" height="288"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="z80.js"></script>
-<script src="pac-man_sound.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Pengo
  *
  */
+
+import PacManSound from './pac-man_sound.js';
+import {init, loop} from './main.js';
+import Z80 from './z80.js';
+let sound;
 
 class Pengo {
 	constructor() {
@@ -530,9 +535,10 @@ function success(zip) {
 	COLOR = new Uint8Array(zip.files['pr1634.88'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['pr1635.51'].inflate().split('').map(c => c.charCodeAt(0)));
 	Pengo.decodeROM();
-	game = new Pengo();
-	sound = new PacManSound({SND});
-	init();
+	init({
+		game: new Pengo(),
+		sound: sound = new PacManSound({SND}),
+	});
 	loop();
 }
 

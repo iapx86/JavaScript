@@ -4,7 +4,9 @@
  *
  */
 
-class I8080 extends Cpu {
+import Cpu, {dummypage} from './main.js';
+
+export default class I8080 extends Cpu {
 	constructor(arg = null) {
 		super(arg);
 		this.b = 0;

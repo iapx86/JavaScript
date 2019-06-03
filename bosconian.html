@@ -10,16 +10,21 @@
 <canvas id="canvas" width="285" height="224"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="z80.js"></script>
-<script src="pac-man_sound.js"></script>
-<script src="sound_effect.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Bosconian
  *
  */
+
+import PacManSound from './pac-man_sound.js';
+import SoundEffect from './sound_effect.js';
+import Cpu, {init, loop, dummypage} from './main.js';
+import Z80 from './z80.js';
+let game, sound;
 
 class Bosconian {
 	constructor() {
@@ -4030,10 +4035,14 @@ function success(zip) {
 	RGB = new Uint8Array(zip.files['bos1-6.6b'].inflate().split('').map(c => c.charCodeAt(0)));
 	BGCOLOR = new Uint8Array(zip.files['bos1-5.4m'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['bos1-1.1d'].inflate().split('').map(c => c.charCodeAt(0)));
-	rotate = true;
-	game = new Bosconian();
-	sound = [new PacManSound({SND, resolution: 2}), new SoundEffect({se: game.se, freq: 11025, gain: 0.5})];
-	init();
+	init({
+		game: game = new Bosconian(),
+		sound: sound = [
+			new PacManSound({SND, resolution: 2}),
+			new SoundEffect({se: game.se, freq: 11025, gain: 0.5}),
+		],
+		rotate: true,
+	});
 	loop();
 }
 

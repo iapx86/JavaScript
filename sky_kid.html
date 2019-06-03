@@ -10,16 +10,21 @@
 <canvas id="canvas" width="288" height="224"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="mc6809.js"></script>
-<script src="mc6801.js"></script>
-<script src="c30.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Sky Kid
  *
  */
+
+import C30 from './c30.js';
+import {init, loop} from './main.js';
+import MC6809 from './mc6809.js';
+import MC6801 from './mc6801.js';
+let sound;
 
 class SkyKid {
 	constructor() {
@@ -851,10 +856,11 @@ function success(zip) {
 	BLUE = new Uint8Array(zip.files['sk1-3.2r'].inflate().split('').map(c => c.charCodeAt(0)));
 	BGCOLOR = new Uint8Array(zip.files['sk1-4.5n'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJCOLOR = new Uint8Array(zip.files['sk1-5.6n'].inflate().split('').map(c => c.charCodeAt(0)));
-	rotate = true;
-	game = new SkyKid();
-	sound = new C30();
-	init();
+	init({
+		game: new SkyKid(),
+		sound: sound = new C30(),
+		rotate: true,
+	});
 	loop();
 }
 

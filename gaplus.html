@@ -10,16 +10,21 @@
 <canvas id="canvas" width="224" height="288"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="mc6809.js"></script>
-<script src="mappy_sound.js"></script>
-<script src="sound_effect.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Gaplus
  *
  */
+
+import MappySound from './mappy_sound.js';
+import SoundEffect from './sound_effect.js';
+import Cpu, {init, loop} from './main.js';
+import MC6809 from './mc6809.js';
+let game, sound;
 
 class Gaplus {
 	constructor() {
@@ -1577,9 +1582,13 @@ function success(zip) {
 	OBJCOLOR_L = new Uint8Array(zip.files['gp2-6.6p'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJCOLOR_H = new Uint8Array(zip.files['gp2-5.6n'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['gp2-4.3f'].inflate().split('').map(c => c.charCodeAt(0)));
-	game = new Gaplus();
-	sound = [new MappySound({SND}), new SoundEffect({se: game.se, freq: 11025, gain: 0.75})];
-	init();
+	init({
+		game: game = new Gaplus(),
+		sound: sound = [
+			new MappySound({SND}),
+			new SoundEffect({se: game.se, freq: 11025, gain: 0.75}),
+		],
+	});
 	loop();
 }
 

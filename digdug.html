@@ -10,15 +10,20 @@
 <canvas id="canvas" width="224" height="288"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="z80.js"></script>
-<script src="pac-man_sound.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	DigDug
  *
  */
+
+import PacManSound from './pac-man_sound.js';
+import Cpu, {init, loop} from './main.js';
+import Z80 from './z80.js';
+let sound;
 
 class DigDug {
 	constructor() {
@@ -1187,9 +1192,10 @@ function success(zip) {
 	OBJCOLOR = new Uint8Array(zip.files['136007.111'].inflate().split('').map(c => c.charCodeAt(0)));
 	BGCOLOR = new Uint8Array(zip.files['136007.112'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['136007.110'].inflate().split('').map(c => c.charCodeAt(0)));
-	game = new DigDug();
-	sound = new PacManSound({SND, resolution: 2});
-	init();
+	init({
+		game: new DigDug(),
+		sound: sound = new PacManSound({SND, resolution: 2}),
+	});
 	loop();
 }
 

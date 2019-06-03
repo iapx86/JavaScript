@@ -4,7 +4,7 @@
  *
  */
 
-class AY_3_8910 {
+export default class AY_3_8910 {
 	constructor({clock, resolution = 1, gain = 0.1}) {
 		this.reg = new Uint8Array(0x10);
 		this.ram = new Uint8Array(0x10);

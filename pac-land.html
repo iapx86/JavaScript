@@ -10,16 +10,21 @@
 <canvas id="canvas" width="288" height="224"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="mc6809.js"></script>
-<script src="mc6801.js"></script>
-<script src="c30.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	Pac-Land
  *
  */
+
+import C30 from './c30.js';
+import {init, loop} from './main.js';
+import MC6809 from './mc6809.js';
+import MC6801 from './mc6801.js';
+let sound;
 
 class PacLand {
 	constructor() {
@@ -365,7 +370,7 @@ class PacLand {
 			data.fill(0, p, p + 224);
 
 		// obj描画
-		this.drawObj(0);
+		this.drawObj(data, 0);
 
 		// bg描画
 		p = 256 * 8 * 2 + 232 - (this.fFlip ? 4 + this.dwScroll1 & 7 : 5 + this.dwScroll1 & 7) * 256;
@@ -394,7 +399,7 @@ class PacLand {
 				this.xfer8x8(data, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
 
 		// obj描画
-		this.drawObj(1);
+		this.drawObj(data, 1);
 
 		// fg描画
 		p = 256 * 8 * 2 + 208 - (this.fFlip ? 1 + this.dwScroll0 & 7 : this.dwScroll0 & 7) * 256;
@@ -416,7 +421,7 @@ class PacLand {
 				this.xfer8x8(data, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
 
 		// obj描画
-		this.drawObj(2);
+		this.drawObj(data, 2);
 
 		// palette変換
 		p = 256 * 16 + 16;
@@ -425,7 +430,7 @@ class PacLand {
 				data[p] = this.rgb[this.palette | data[p]];
 	}
 
-	drawObj(cat) {
+	drawObj(data, cat) {
 		if (this.fFlip) {
 			for (let p = 0x2780, i = 64; i !== 0; p += 2, --i) {
 				const y = 0x167 - this.ram[p + 0x801] - this.ram[p + 0x1001] * 0x100 & 0x1ff;
@@ -932,10 +937,11 @@ function success(zip) {
 	FGCOLOR = new Uint8Array(zip.files['pl1-5.5t'].inflate().split('').map(c => c.charCodeAt(0)));
 	BGCOLOR = new Uint8Array(zip.files['pl1-4.4n'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJCOLOR = new Uint8Array(zip.files['pl1-3.6l'].inflate().split('').map(c => c.charCodeAt(0)));
-	rotate = true;
-	game = new PacLand();
-	sound = new C30();
-	init();
+	init({
+		game: new PacLand(),
+		sound: sound = new C30(),
+		rotate: true,
+	});
 	loop();
 }
 

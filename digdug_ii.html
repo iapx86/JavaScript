@@ -10,15 +10,20 @@
 <canvas id="canvas" width="224" height="288"></canvas>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/yatt/jquery.zip.inflate@master/jquery.zip.js"></script>
-<script src="main.js"></script>
-<script src="mc6809.js"></script>
-<script src="mappy_sound.js"></script>
 <script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+</script>
+<script type="module">
 /*
  *
  *	DigDug II
  *
  */
+
+import MappySound from './mappy_sound.js';
+import Cpu, {init, loop} from './main.js';
+import MC6809 from './mc6809.js';
+let sound;
 
 class DigDugII {
 	constructor() {
@@ -626,9 +631,10 @@ function success(zip) {
 	BGCOLOR = new Uint8Array(zip.files['d21-6.4c'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJCOLOR = new Uint8Array(zip.files['d21-7.5k'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['d21-3.3m'].inflate().split('').map(c => c.charCodeAt(0)));
-	game = new DigDugII();
-	sound = new MappySound({SND});
-	init();
+	init({
+		game: new DigDugII(),
+		sound: sound = new MappySound({SND}),
+	});
 	loop();
 }
 

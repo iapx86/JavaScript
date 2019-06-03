@@ -4,7 +4,9 @@
  *
  */
 
-class MC68000 extends Cpu {
+import Cpu, {dummypage} from './main.js';
+
+export default class MC68000 extends Cpu {
 	constructor(arg = null) {
 		super(arg);
 		this.d0 = 0;

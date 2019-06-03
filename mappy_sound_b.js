@@ -4,7 +4,7 @@
  *
  */
 
-class MappySound {
+export default class MappySound {
 	constructor({SND, resolution = 1, gain = 0.1}) {
 		this.reg = new Uint8Array(0x40);
 		this.ram = new Uint8Array(0x400);
