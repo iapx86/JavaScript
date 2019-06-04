@@ -1,0 +1,620 @@
+/*
+ *
+ *	Chack'n Pop
+ *
+ */
+
+import AY_3_8910 from './ay-3-8910.js';
+import Cpu, {init, loop} from './main.js';
+import Z80 from './z80.js';
+import MC6805 from './mc6805.js';
+let game, sound;
+
+class ChacknPop {
+	constructor() {
+		this.cxScreen = 224;
+		this.cyScreen = 256;
+		this.width = 256;
+		this.height = 512;
+		this.xOffset = 16;
+		this.yOffset = 16;
+		this.fReset = false;
+		this.fTest = false;
+		this.fDIPSwitchChanged = true;
+		this.fCoin = 0;
+		this.fStart1P = 0;
+		this.fStart2P = 0;
+		this.nLife = 3;
+		this.nBonus = 20000;
+
+		// CPU周りの初期化
+		this.ram = new Uint8Array(0xd00).addBase();
+		this.vram = new Uint8Array(0x8000).addBase();
+		this.ram2 = new Uint8Array(0x80);
+		this.in = Uint8Array.of(0x7d, 0xff, 0xff, 0xff, 0, 0x4f);
+		this.psg = [{addr: 0}, {addr: 0}];
+		this.mcu_command = 0;
+		this.mcu_result = 0;
+		this.mcu_flag = 0;
+
+		this.cpu = new Z80(this);
+		for (let i = 0; i < 0x80; i++)
+			this.cpu.memorymap[i].base = PRG1.base[i];
+		for (let i = 0; i < 8; i++) {
+			this.cpu.memorymap[0x80 + i].base = this.ram.base[i];
+			this.cpu.memorymap[0x80 + i].write = null;
+		}
+		this.cpu.memorymap[0x88].read = addr => {
+			switch (addr & 0xff) {
+			case 0x00:
+				this.mcu_flag &= ~2;
+				return this.mcu_result;
+			case 0x01:
+				return this.mcu_flag ^ 1 | 0xfc;
+			case 0x04:
+			case 0x05:
+				return sound[0].read(this.psg[0].addr);
+			case 0x06:
+			case 0x07:
+				return sound[1].read(this.psg[1].addr);
+			case 0x08:
+			case 0x09:
+			case 0x0a:
+			case 0x0b:
+				return this.in[addr & 3];
+			case 0x0c:
+				return this.mode;
+			}
+			return 0xff;
+		};
+		this.cpu.memorymap[0x88].write = (addr, data) => {
+			switch (addr & 0xff) {
+			case 0x00:
+				this.mcu_command = data;
+				this.mcu_flag |= 1;
+				this.mcu.int = true;
+				break;
+			case 0x04:
+				this.psg[0].addr = data;
+				break;
+			case 0x05:
+				(this.psg[0].addr & 0x0f) < 0x0e && sound[0].write(this.psg[0].addr, data);
+				break;
+			case 0x06:
+				this.psg[1].addr = data;
+				break;
+			case 0x07:
+				sound[1].write(this.psg[1].addr, data);
+				break;
+			case 0x0c:
+				if (((data ^ this.mode) & 4) !== 0) {
+					const bank = data << 4 & 0x40;
+					for (let i = 0; i < 0x40; i++)
+						this.cpu.memorymap[0xc0 + i].base = this.vram.base[bank + i];
+				}
+				this.mode = data;
+				break;
+			}
+		};
+		for (let i = 0; i < 4; i++) {
+			this.cpu.memorymap[0x90 + i].base = this.ram.base[8 + i];
+			this.cpu.memorymap[0x90 + i].write = null;
+		}
+		this.cpu.memorymap[0x98].base = this.ram.base[0x0c];
+		this.cpu.memorymap[0x98].write = null;
+		for (let i = 0; i < 0x20; i++)
+			this.cpu.memorymap[0xa0 + i].base = PRG1.base[0x80 + i];
+		for (let i = 0; i < 0x40; i++) {
+			this.cpu.memorymap[0xc0 + i].base = this.vram.base[i];
+			this.cpu.memorymap[0xc0 + i].write = null;
+		}
+
+		this.mcu = new MC6805(this);
+		this.mcu.memorymap[0].fetch = addr => addr >= 0x80 ? PRG2[addr] : this.ram2[addr];
+		this.mcu.memorymap[0].read = addr => {
+			if (addr >= 0x80)
+				return PRG2[addr];
+			switch (addr) {
+			case 0:
+				return this.mcu_command;
+			case 2:
+				return this.mcu_flag ^ 2 | 0xfc;
+			}
+			return this.ram2[addr];
+		};
+		this.mcu.memorymap[0].write = (addr, data) => {
+			if (addr >= 0x80)
+				return;
+			if (addr === 1 && (~this.ram2[1] & data & 2) !== 0) {
+				this.mcu_flag &= ~1;
+				this.mcu.int = false;
+			}
+			if (addr === 1 && (this.ram2[1] & ~data & 4) !== 0) {
+				this.mcu_result = this.ram2[0];
+				this.mcu_flag |= 2;
+			}
+			this.ram2[addr] = data;
+		};
+		for (let i = 1; i < 8; i++)
+			this.mcu.memorymap[i].base = PRG2.base[i];
+
+		this.mcu.check_interrupt = () => this.mcu.int && this.mcu.interrupt();
+
+		// Videoの初期化
+		this.bg = new Uint8Array(0x10000);
+		this.obj = new Uint8Array(0x10000);
+		this.rgb = new Uint32Array(0x400);
+		this.mode = 0;
+		this.convertRGB();
+		this.convertBG();
+		this.convertOBJ();
+	}
+
+	execute() {
+		this.cpu.interrupt();
+		Cpu.multiple_execute([this.cpu, this.mcu], 0x2000);
+		return this;
+	}
+
+	reset() {
+		this.fReset = true;
+	}
+
+	updateStatus() {
+		// DIPスイッチの更新
+		if (this.fDIPSwitchChanged) {
+			this.fDIPSwitchChanged = false;
+			switch (this.nLife) {
+			case 6:
+				this.in[5] &= ~0x18;
+				break;
+			case 3:
+				this.in[5] = this.in[5] & ~0x18 | 0x08;
+				break;
+			case 2:
+				this.in[5] = this.in[5] & ~0x18 | 0x18;
+				break;
+			case 1:
+				this.in[5] |= 0x18;
+				break;
+			}
+			switch (this.nBonus) {
+			case 80000:
+				this.in[5] &= ~3;
+				break;
+			case 60000:
+				this.in[5] = this.in[5] & ~3 | 1;
+				break;
+			case 40000:
+				this.in[5] = this.in[5] & ~3 | 2;
+				break;
+			case 20000:
+				this.in[5] |= 3;
+				break;
+			}
+			sound[0].write(0x0e, this.in[4]);
+			sound[0].write(0x0f, this.in[5]);
+			if (!this.fTest)
+				this.fReset = true;
+		}
+
+		// リセット処理
+		if (this.fReset) {
+			this.fReset = false;
+			this.cpu.reset();
+			this.mcu.reset();
+			this.mcu_command = 0;
+			this.mcu_result = 0;
+			this.mcu_flag = 0;
+		}
+		return this;
+	}
+
+	updateInput() {
+		// クレジット/スタートボタン処理
+		if (this.fCoin) {
+			--this.fCoin;
+			this.in[2] &= ~(1 << 2);
+		}
+		else
+			this.in[2] |= 1 << 2;
+		if (this.fStart1P) {
+			--this.fStart1P;
+			this.in[2] &= ~(1 << 4);
+		}
+		else
+			this.in[2] |= 1 << 4;
+		if (this.fStart2P) {
+			--this.fStart2P;
+			this.in[2] &= ~(1 << 5);
+		}
+		else
+			this.in[2] |= 1 << 5;
+		return this;
+	}
+
+	coin() {
+		this.fCoin = 2;
+	}
+
+	start1P() {
+		this.fStart1P = 2;
+	}
+
+	start2P() {
+		this.fStart2P = 2;
+	}
+
+	up(fDown) {
+		if (fDown)
+			this.in[1] = this.in[1] & ~(1 << 3) | 1 << 2;
+		else
+			this.in[1] |= 1 << 3;
+	}
+
+	right(fDown) {
+		if (fDown)
+			this.in[1] = this.in[1] & ~(1 << 1) | 1 << 0;
+		else
+			this.in[1] |= 1 << 1;
+	}
+
+	down(fDown) {
+		if (fDown)
+			this.in[1] = this.in[1] & ~(1 << 2) | 1 << 3;
+		else
+			this.in[1] |= 1 << 2;
+	}
+
+	left(fDown) {
+		if (fDown)
+			this.in[1] = this.in[1] & ~(1 << 0) | 1 << 1;
+		else
+			this.in[1] |= 1 << 0;
+	}
+
+	triggerA(fDown) {
+		if (fDown)
+			this.in[1] &= ~(1 << 4);
+		else
+			this.in[1] |= 1 << 4;
+	}
+
+	triggerB(fDown) {
+		if (fDown)
+			this.in[1] &= ~(1 << 5);
+		else
+			this.in[1] |= 1 << 5;
+	}
+
+	convertRGB() {
+		for (let i = 0; i < 0x400; i++)
+			this.rgb[i] = ((RGB_H[i] << 4 & 0xf0 | RGB_L[i] & 0x0f) & 7) * 255 / 7		// Red
+				| ((RGB_H[i] << 4 & 0xf0 | RGB_L[i] & 0x0f) >>> 3 & 7) * 255 / 7 << 8	// Green
+				| ((RGB_H[i] << 4 & 0xf0 | RGB_L[i] & 0x0f) >>> 6) * 255 / 3 << 16		// Blue
+				| 0xff000000;															// Alpha
+	}
+
+	convertBG() {
+		for (let p = 0, q = 0, i = 1024; i !== 0; q += 8, --i)
+			for (let j = 7; j >= 0; --j)
+				for (let k = 7; k >= 0; --k)
+					this.bg[p++] = BG[q + k + 0x2000] >>> j & 1 | BG[q + k] >>> j << 1 & 2;
+	}
+
+	convertOBJ() {
+		for (let p = 0, q = 0, i = 256; i !== 0; q += 32, --i) {
+			for (let j = 7; j >= 0; --j) {
+				for (let k = 7; k >= 0; --k)
+					this.obj[p++] = OBJ[q + k + 0x2000 + 16] >>> j & 1 | OBJ[q + k + 16] >>> j << 1 & 2;
+				for (let k = 7; k >= 0; --k)
+					this.obj[p++] = OBJ[q + k + 0x2000] >>> j & 1 | OBJ[q + k] >>> j << 1 & 2;
+			}
+			for (let j = 7; j >= 0; --j) {
+				for (let k = 7; k >= 0; --k)
+					this.obj[p++] = OBJ[q + k + 0x2000 + 24] >>> j & 1 | OBJ[q + k + 24] >>> j << 1 & 2;
+				for (let k = 7; k >= 0; --k)
+					this.obj[p++] = OBJ[q + k + 0x2000 + 8] >>> j & 1 | OBJ[q + k + 8] >>> j << 1 & 2;
+			}
+		}
+	}
+
+	makeBitmap(data) {
+		// bg 描画
+		let p = 256 * 8 * 2 + 232;
+		let k = 0x840;
+		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
+			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
+				this.xfer8x8(data, p, k);
+
+		// obj 描画
+		for (let k = 0xc40, i = 48; i !== 0; k += 4, --i) {
+			const x = this.ram[k] - 1 & 0xff;
+			const y = this.ram[k + 3] + 16;
+			switch (this.ram[k + 1] & 0xc0) {
+				case 0x00: // ノーマル
+					this.xfer16x16(data, x | y << 8, this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6);
+					break;
+				case 0x40: // V反転
+					this.xfer16x16V(data, x | y << 8, this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6);
+					break;
+				case 0x80: // H反転
+					this.xfer16x16H(data, x | y << 8, this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6);
+					break;
+				case 0xc0: // HV反転
+					this.xfer16x16HV(data, x | y << 8, this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6);
+					break;
+			}
+		}
+
+		// bitmap 描画
+		for (let p = 256 * 8 * 33 + 16, k = 0x0200, i = 256 >>> 3; i !== 0; --i) {
+			for (let j = 224 >>> 2; j !== 0; k += 0x80, p += 4, --j) {
+				let [p0, p1, p2, p3] = [this.vram[k], this.vram[0x2000 + k], this.vram[0x4000 + k], this.vram[0x6000 + k]];
+				data[p + 7 * 256] = this.rgb[p0 << 9 & 0x200 | p2 << 8 & 0x100 | p1 << 7 & 0x80 | p3 << 6 & 0x40 | data[p + 7 * 256]];
+				data[p + 6 * 256] = this.rgb[p0 << 8 & 0x200 | p2 << 7 & 0x100 | p1 << 6 & 0x80 | p3 << 5 & 0x40 | data[p + 6 * 256]];
+				data[p + 5 * 256] = this.rgb[p0 << 7 & 0x200 | p2 << 6 & 0x100 | p1 << 5 & 0x80 | p3 << 4 & 0x40 | data[p + 5 * 256]];
+				data[p + 4 * 256] = this.rgb[p0 << 6 & 0x200 | p2 << 5 & 0x100 | p1 << 4 & 0x80 | p3 << 3 & 0x40 | data[p + 4 * 256]];
+				data[p + 3 * 256] = this.rgb[p0 << 5 & 0x200 | p2 << 4 & 0x100 | p1 << 3 & 0x80 | p3 << 2 & 0x40 | data[p + 3 * 256]];
+				data[p + 2 * 256] = this.rgb[p0 << 4 & 0x200 | p2 << 3 & 0x100 | p1 << 2 & 0x80 | p3 << 1 & 0x40 | data[p + 2 * 256]];
+				data[p + 256] = this.rgb[p0 << 3 & 0x200 | p2 << 2 & 0x100 | p1 << 1 & 0x80 | p3 << 0 & 0x40 | data[p + 256]];
+				data[p] = this.rgb[p0 << 2 & 0x200 | p2 << 1 & 0x100 | p1 << 0 & 0x80 | p3 >> 1 & 0x40 | data[p]];
+				[p0, p1, p2, p3] = [this.vram[0x20 + k], this.vram[0x2020 + k], this.vram[0x4020 + k], this.vram[0x6020 + k]];
+				data[p + 1 + 7 * 256] = this.rgb[p0 << 9 & 0x200 | p2 << 8 & 0x100 | p1 << 7 & 0x80 | p3 << 6 & 0x40 | data[p + 1 + 7 * 256]];
+				data[p + 1 + 6 * 256] = this.rgb[p0 << 8 & 0x200 | p2 << 7 & 0x100 | p1 << 6 & 0x80 | p3 << 5 & 0x40 | data[p + 1 + 6 * 256]];
+				data[p + 1 + 5 * 256] = this.rgb[p0 << 7 & 0x200 | p2 << 6 & 0x100 | p1 << 5 & 0x80 | p3 << 4 & 0x40 | data[p + 1 + 5 * 256]];
+				data[p + 1 + 4 * 256] = this.rgb[p0 << 6 & 0x200 | p2 << 5 & 0x100 | p1 << 4 & 0x80 | p3 << 3 & 0x40 | data[p + 1 + 4 * 256]];
+				data[p + 1 + 3 * 256] = this.rgb[p0 << 5 & 0x200 | p2 << 4 & 0x100 | p1 << 3 & 0x80 | p3 << 2 & 0x40 | data[p + 1 + 3 * 256]];
+				data[p + 1 + 2 * 256] = this.rgb[p0 << 4 & 0x200 | p2 << 3 & 0x100 | p1 << 2 & 0x80 | p3 << 1 & 0x40 | data[p + 1 + 2 * 256]];
+				data[p + 1 + 256] = this.rgb[p0 << 3 & 0x200 | p2 << 2 & 0x100 | p1 << 1 & 0x80 | p3 << 0 & 0x40 | data[p + 1 + 256]];
+				data[p + 1] = this.rgb[p0 << 2 & 0x200 | p2 << 1 & 0x100 | p1 << 0 & 0x80 | p3 >> 1 & 0x40 | data[p + 1]];
+				[p0, p1, p2, p3] = [this.vram[0x40 + k], this.vram[0x2040 + k], this.vram[0x4040 + k], this.vram[0x6040 + k]];
+				data[p + 2 + 7 * 256] = this.rgb[p0 << 9 & 0x200 | p2 << 8 & 0x100 | p1 << 7 & 0x80 | p3 << 6 & 0x40 | data[p + 2 + 7 * 256]];
+				data[p + 2 + 6 * 256] = this.rgb[p0 << 8 & 0x200 | p2 << 7 & 0x100 | p1 << 6 & 0x80 | p3 << 5 & 0x40 | data[p + 2 + 6 * 256]];
+				data[p + 2 + 5 * 256] = this.rgb[p0 << 7 & 0x200 | p2 << 6 & 0x100 | p1 << 5 & 0x80 | p3 << 4 & 0x40 | data[p + 2 + 5 * 256]];
+				data[p + 2 + 4 * 256] = this.rgb[p0 << 6 & 0x200 | p2 << 5 & 0x100 | p1 << 4 & 0x80 | p3 << 3 & 0x40 | data[p + 2 + 4 * 256]];
+				data[p + 2 + 3 * 256] = this.rgb[p0 << 5 & 0x200 | p2 << 4 & 0x100 | p1 << 3 & 0x80 | p3 << 2 & 0x40 | data[p + 2 + 3 * 256]];
+				data[p + 2 + 2 * 256] = this.rgb[p0 << 4 & 0x200 | p2 << 3 & 0x100 | p1 << 2 & 0x80 | p3 << 1 & 0x40 | data[p + 2 + 2 * 256]];
+				data[p + 2 + 256] = this.rgb[p0 << 3 & 0x200 | p2 << 2 & 0x100 | p1 << 1 & 0x80 | p3 << 0 & 0x40 | data[p + 2 + 256]];
+				data[p + 2] = this.rgb[p0 << 2 & 0x200 | p2 << 1 & 0x100 | p1 << 0 & 0x80 | p3 >> 1 & 0x40 | data[p + 2]];
+				[p0, p1, p2, p3] = [this.vram[0x60 + k], this.vram[0x2060 + k], this.vram[0x4060 + k], this.vram[0x6060 + k]];
+				data[p + 3 + 7 * 256] = this.rgb[p0 << 9 & 0x200 | p2 << 8 & 0x100 | p1 << 7 & 0x80 | p3 << 6 & 0x40 | data[p + 3 + 7 * 256]];
+				data[p + 3 + 6 * 256] = this.rgb[p0 << 8 & 0x200 | p2 << 7 & 0x100 | p1 << 6 & 0x80 | p3 << 5 & 0x40 | data[p + 3 + 6 * 256]];
+				data[p + 3 + 5 * 256] = this.rgb[p0 << 7 & 0x200 | p2 << 6 & 0x100 | p1 << 5 & 0x80 | p3 << 4 & 0x40 | data[p + 3 + 5 * 256]];
+				data[p + 3 + 4 * 256] = this.rgb[p0 << 6 & 0x200 | p2 << 5 & 0x100 | p1 << 4 & 0x80 | p3 << 3 & 0x40 | data[p + 3 + 4 * 256]];
+				data[p + 3 + 3 * 256] = this.rgb[p0 << 5 & 0x200 | p2 << 4 & 0x100 | p1 << 3 & 0x80 | p3 << 2 & 0x40 | data[p + 3 + 3 * 256]];
+				data[p + 3 + 2 * 256] = this.rgb[p0 << 4 & 0x200 | p2 << 3 & 0x100 | p1 << 2 & 0x80 | p3 << 1 & 0x40 | data[p + 3 + 2 * 256]];
+				data[p + 3 + 256] = this.rgb[p0 << 3 & 0x200 | p2 << 2 & 0x100 | p1 << 1 & 0x80 | p3 << 0 & 0x40 | data[p + 3 + 256]];
+				data[p + 3] = this.rgb[p0 << 2 & 0x200 | p2 << 1 & 0x100 | p1 << 0 & 0x80 | p3 >> 1 & 0x40 | data[p + 3]];
+			}
+			k -= 0x20 * 224 - 1;
+			p -= 224 + 256 * 8;
+		}
+	}
+
+	xfer8x8(data, p, k) {
+		const q = (this.ram[k] ^ ((this.mode & 0x20) !== 0 && this.ram[k] >= 0xc0 ? 0x140 : 0) | this.mode << 2 & 0x200) << 6;
+		const idx = (this.ram[k] === 0x74 ? this.ram[0xc0b] : this.ram[0xc01]) << 2 & 0x1c | 0x20;
+
+		data[p + 0x000] = idx | this.bg[q + 0x00];
+		data[p + 0x001] = idx | this.bg[q + 0x01];
+		data[p + 0x002] = idx | this.bg[q + 0x02];
+		data[p + 0x003] = idx | this.bg[q + 0x03];
+		data[p + 0x004] = idx | this.bg[q + 0x04];
+		data[p + 0x005] = idx | this.bg[q + 0x05];
+		data[p + 0x006] = idx | this.bg[q + 0x06];
+		data[p + 0x007] = idx | this.bg[q + 0x07];
+		data[p + 0x100] = idx | this.bg[q + 0x08];
+		data[p + 0x101] = idx | this.bg[q + 0x09];
+		data[p + 0x102] = idx | this.bg[q + 0x0a];
+		data[p + 0x103] = idx | this.bg[q + 0x0b];
+		data[p + 0x104] = idx | this.bg[q + 0x0c];
+		data[p + 0x105] = idx | this.bg[q + 0x0d];
+		data[p + 0x106] = idx | this.bg[q + 0x0e];
+		data[p + 0x107] = idx | this.bg[q + 0x0f];
+		data[p + 0x200] = idx | this.bg[q + 0x10];
+		data[p + 0x201] = idx | this.bg[q + 0x11];
+		data[p + 0x202] = idx | this.bg[q + 0x12];
+		data[p + 0x203] = idx | this.bg[q + 0x13];
+		data[p + 0x204] = idx | this.bg[q + 0x14];
+		data[p + 0x205] = idx | this.bg[q + 0x15];
+		data[p + 0x206] = idx | this.bg[q + 0x16];
+		data[p + 0x207] = idx | this.bg[q + 0x17];
+		data[p + 0x300] = idx | this.bg[q + 0x18];
+		data[p + 0x301] = idx | this.bg[q + 0x19];
+		data[p + 0x302] = idx | this.bg[q + 0x1a];
+		data[p + 0x303] = idx | this.bg[q + 0x1b];
+		data[p + 0x304] = idx | this.bg[q + 0x1c];
+		data[p + 0x305] = idx | this.bg[q + 0x1d];
+		data[p + 0x306] = idx | this.bg[q + 0x1e];
+		data[p + 0x307] = idx | this.bg[q + 0x1f];
+		data[p + 0x400] = idx | this.bg[q + 0x20];
+		data[p + 0x401] = idx | this.bg[q + 0x21];
+		data[p + 0x402] = idx | this.bg[q + 0x22];
+		data[p + 0x403] = idx | this.bg[q + 0x23];
+		data[p + 0x404] = idx | this.bg[q + 0x24];
+		data[p + 0x405] = idx | this.bg[q + 0x25];
+		data[p + 0x406] = idx | this.bg[q + 0x26];
+		data[p + 0x407] = idx | this.bg[q + 0x27];
+		data[p + 0x500] = idx | this.bg[q + 0x28];
+		data[p + 0x501] = idx | this.bg[q + 0x29];
+		data[p + 0x502] = idx | this.bg[q + 0x2a];
+		data[p + 0x503] = idx | this.bg[q + 0x2b];
+		data[p + 0x504] = idx | this.bg[q + 0x2c];
+		data[p + 0x505] = idx | this.bg[q + 0x2d];
+		data[p + 0x506] = idx | this.bg[q + 0x2e];
+		data[p + 0x507] = idx | this.bg[q + 0x2f];
+		data[p + 0x600] = idx | this.bg[q + 0x30];
+		data[p + 0x601] = idx | this.bg[q + 0x31];
+		data[p + 0x602] = idx | this.bg[q + 0x32];
+		data[p + 0x603] = idx | this.bg[q + 0x33];
+		data[p + 0x604] = idx | this.bg[q + 0x34];
+		data[p + 0x605] = idx | this.bg[q + 0x35];
+		data[p + 0x606] = idx | this.bg[q + 0x36];
+		data[p + 0x607] = idx | this.bg[q + 0x37];
+		data[p + 0x700] = idx | this.bg[q + 0x38];
+		data[p + 0x701] = idx | this.bg[q + 0x39];
+		data[p + 0x702] = idx | this.bg[q + 0x3a];
+		data[p + 0x703] = idx | this.bg[q + 0x3b];
+		data[p + 0x704] = idx | this.bg[q + 0x3c];
+		data[p + 0x705] = idx | this.bg[q + 0x3d];
+		data[p + 0x706] = idx | this.bg[q + 0x3e];
+		data[p + 0x707] = idx | this.bg[q + 0x3f];
+	}
+
+	xfer16x16(data, dst, src) {
+		const idx = src >>> 4 & 0x1c;
+		let px;
+
+		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)
+			return;
+		src = src << 8 & 0x3f00 | src << 5 & 0xc000;
+		for (let i = 16; i !== 0; dst += 256 - 16, --i)
+			for (let j = 16; j !== 0; dst++, --j)
+				if ((px = this.obj[src++]) !== 0)
+					data[dst] = idx | px;
+	}
+
+	xfer16x16V(data, dst, src) {
+		const idx = src >>> 4 & 0x1c;
+		let px;
+
+		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)
+			return;
+		src = (src << 8 & 0x3f00 | src << 5 & 0xc000) + 256 - 16;
+		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
+			for (let j = 16; j !== 0; dst++, --j)
+				if ((px = this.obj[src++]) !== 0)
+					data[dst] = idx | px;
+	}
+
+	xfer16x16H(data, dst, src) {
+		const idx = src >>> 4 & 0x1c;
+		let px;
+
+		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)
+			return;
+		src = (src << 8 & 0x3f00 | src << 5 & 0xc000) + 16;
+		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
+			for (let j = 16; j !== 0; dst++, --j)
+				if ((px = this.obj[--src]) !== 0)
+					data[dst] = idx | px;
+	}
+
+	xfer16x16HV(data, dst, src) {
+		const idx = src >>> 4 & 0x1c;
+		let px;
+
+		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)
+			return;
+		src = (src << 8 & 0x3f00 | src << 5 & 0xc000) + 256;
+		for (let i = 16; i !== 0; dst += 256 - 16, --i)
+			for (let j = 16; j !== 0; dst++, --j)
+				if ((px = this.obj[--src]) !== 0)
+					data[dst] = idx | px;
+	}
+}
+
+const keydown = e => {
+	switch (e.keyCode) {
+	case 37: // left
+		game.left(true);
+		break;
+	case 38: // up
+		game.up(true);
+		break;
+	case 39: // right
+		game.right(true);
+		break;
+	case 40: // down
+		game.down(true);
+		break;
+	case 48: // '0'
+		game.coin();
+		break;
+	case 49: // '1'
+		game.start1P();
+		break;
+	case 50: // '2'
+		game.start2P();
+		break;
+	case 77: // 'M'
+		if (!audioCtx)
+			break;
+		if (audioCtx.state === 'suspended')
+			audioCtx.resume().catch();
+		else if (audioCtx.state === 'running')
+			audioCtx.suspend().catch();
+		break;
+	case 82: // 'R'
+		game.reset();
+		break;
+	case 84: // 'T'
+		if ((game.fTest = !game.fTest) === true)
+			game.fReset = true;
+		break;
+	case 32: // space
+	case 88: // 'X'
+		game.triggerB(true);
+		break;
+	case 90: // 'Z'
+		game.triggerA(true);
+		break;
+	}
+};
+
+const keyup = e => {
+	switch (e.keyCode) {
+	case 37: // left
+		game.left(false);
+		break;
+	case 38: // up
+		game.up(false);
+		break;
+	case 39: // right
+		game.right(false);
+		break;
+	case 40: // down
+		game.down(false);
+		break;
+	case 32: // space
+	case 88: // 'X'
+		game.triggerB(false);
+		break;
+	case 90: // 'Z'
+		game.triggerA(false);
+		break;
+	}
+};
+
+/*
+ *
+ *	Chack'n Pop
+ *
+ */
+
+const url = 'chaknpop.zip';
+let PRG1, PRG2, OBJ, BG, RGB_L, RGB_H;
+
+window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
+
+function success(zip) {
+	PRG1 = zip.files['ao4_01.ic28'].inflate() + zip.files['ao4_02.ic27'].inflate() + zip.files['ao4_03.ic26'].inflate();
+	PRG1 = new Uint8Array((PRG1 + zip.files['ao4_04.ic25'].inflate() + zip.files['ao4_05.ic3'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2 = new Uint8Array(zip.files['ao4_06.ic23'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+	OBJ = new Uint8Array((zip.files['ao4_08.ic14'].inflate() + zip.files['ao4_07.ic15'].inflate()).split('').map(c => c.charCodeAt(0)));
+	BG = new Uint8Array((zip.files['ao4_09.ic98'].inflate() + zip.files['ao4_10.ic97'].inflate()).split('').map(c => c.charCodeAt(0)));
+	RGB_L = new Uint8Array(zip.files['ao4-11.ic96'].inflate().split('').map(c => c.charCodeAt(0)));
+	RGB_H = new Uint8Array(zip.files['ao4-12.ic95'].inflate().split('').map(c => c.charCodeAt(0)));
+	init({
+		game: game = new ChacknPop(),
+		sound: sound = [
+			new AY_3_8910({clock: 1500000}),
+			new AY_3_8910({clock: 1500000}),
+		],
+		rotate: true,
+		keydown, keyup,
+	});
+	loop();
+}
+
