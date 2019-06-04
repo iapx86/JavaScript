@@ -5,7 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
-import {init, loop} from './main.js';
+import {init, loop, canvas} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 

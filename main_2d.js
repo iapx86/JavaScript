@@ -4,7 +4,7 @@
  *
  */
 
-const canvas = document.getElementById('canvas');
+export const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const cxScreen = canvas.width;
 const cyScreen = canvas.height;
@@ -132,7 +132,7 @@ export function init({keydown, keyup, ...args} = {}) {
 export function loop() {
 	if (sound)
 		Array.isArray(sound) ? sound.forEach(s => s.update(game)) : sound.update(game);
-	draw();
+	ctx.putImageData(imageData, -game.xOffset, -game.yOffset);
 	updateGamepad(game);
 	game.updateStatus().updateInput().execute().makeBitmap(data);
 	requestAnimationFrame(loop);

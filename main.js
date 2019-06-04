@@ -4,7 +4,7 @@
  *
  */
 
-const canvas = document.getElementById('canvas');
+export const canvas = document.getElementById('canvas');
 const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
 const cxScreen = canvas.width;
 const cyScreen = canvas.height;
@@ -18,23 +18,23 @@ let state = '';
 	gl.viewport(0, 0, canvas.width, canvas.height);
 })();
 
-const vsSource = '\
-	attribute vec4 aVertexPosition;\
-	attribute vec2 aTextureCoord;\
-	varying highp vec2 vTextureCoord;\
-	void main(void) {\
-		gl_Position = aVertexPosition;\
-		vTextureCoord = aTextureCoord;\
-	}\
-';
+const vsSource = `
+	attribute vec4 aVertexPosition;
+	attribute vec2 aTextureCoord;
+	varying highp vec2 vTextureCoord;
+	void main(void) {
+		gl_Position = aVertexPosition;
+		vTextureCoord = aTextureCoord;
+	}
+`;
 
-const fsSource = '\
-	varying highp vec2 vTextureCoord;\
-	uniform sampler2D uSampler;\
-	void main(void) {\
-		gl_FragColor = texture2D(uSampler, vTextureCoord);\
-	}\
-';
+const fsSource = `
+	varying highp vec2 vTextureCoord;
+	uniform sampler2D uSampler;
+	void main(void) {
+		gl_FragColor = texture2D(uSampler, vTextureCoord);
+	}
+`;
 
 function loadShader(gl, type, source) {
 	const shader = gl.createShader(type);

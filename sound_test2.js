@@ -5,7 +5,7 @@
  */
 
 import C30 from './c30.js';
-import {init, loop} from './main.js';
+import {init, loop, canvas} from './main.js';
 import MC6801 from './mc6801.js';
 let game, sound;
 
