@@ -74,13 +74,13 @@ module.exports = {
 		title: e.title,
 		width: e.width,
 		height: e.height,
-		inlineSource: '.js$'
+		inlineSource: '.js$',
 	})).concat(list2.map(e => new HtmlWebpackPlugin({
 		filename: `${e.name}.html`,
 		template: 'sound_test.html',
 		chunks: [e.name],
 		title: e.title,
-		inlineSource: '.js$'
+		inlineSource: '.js$',
 	}))).concat([
 		new HtmlWebpackInlineSourcePlugin(),
 	]),

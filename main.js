@@ -229,6 +229,16 @@ export function loop() {
  *	Array supplementary
  *
  */
+
+Uint8Array.prototype.addBase = function () {
+	this.base = [];
+	for (let begin = 0; begin < this.length; begin += 0x100) {
+		const end = Math.min(begin + 0x100, this.length);
+		this.base.push(this.subarray(begin, end));
+	}
+	return this;
+};
+
 if (!Array.prototype.fill)
 	Array.prototype.fill = function (value, start, end) {
 		if (start === undefined)
@@ -292,30 +302,37 @@ if (!Uint32Array.prototype.fill)
 if (!Uint32Array.of)
 	Uint32Array.of = function () {return new Uint32Array(arguments);};
 
-Uint8Array.prototype.addBase = function () {
-	this.base = [];
-	for (let begin = 0; begin < this.length; begin += 0x100) {
-		const end = Math.min(begin + 0x100, this.length);
-		this.base.push(this.subarray(begin, end));
-	}
-	return this;
-};
-
 if (!String.prototype.repeat)
 	String.prototype.repeat = function (count) {
 		let str = '' + this;
-		count = Math.floor(count);
 		if (str.length === 0 || count === 0)
 			return '';
 		const maxCount = str.length * count;
-		count = Math.floor(Math.log(count) / Math.log(2));
-		while (count) {
+		for (let i = 1; i * 2 <= count; i *= 2)
 			str += str;
-			count--;
-		}
 		str += str.substring(0, maxCount - str.length);
 		return str;
 	};
+
+if (typeof Object.assign !== 'function')
+	Object.defineProperty(Object, "assign", {
+		value: function assign(target, varArgs) {
+			const to = Object(target);
+			for (let index = 1; index < arguments.length; index++) {
+				const nextSource = arguments[index];
+				if (nextSource !== null && nextSource !== undefined)
+					for (const nextKey in nextSource)
+						if (Object.prototype.hasOwnProperty.call(nextSource, nextKey))
+							to[nextKey] = nextSource[nextKey];
+			}
+			return to;
+		},
+		writable: true,
+		configurable: true
+	});
+
+if (!Math.log2)
+	Math.log2 = x => Math.log(x) / Math.LN2;
 
 /*
  *
