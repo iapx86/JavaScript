@@ -60,6 +60,7 @@ const list2 = [
 	{name: 'sound_test', title: 'Sound Test'},
 	{name: 'sound_test2', title: 'Sound Test 2'},
 	{name: 'sound_test3', title: 'Sound Test 3'},
+	{name: 'sound_test4', title: 'Sound Test 4'},
 ];
 
 module.exports = {
