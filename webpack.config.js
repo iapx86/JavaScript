@@ -1,3 +1,4 @@
+const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const HtmlWebpackInlineSourcePlugin = require('html-webpack-inline-source-plugin');
 
@@ -65,8 +66,9 @@ module.exports = {
 	entry: list.concat(list2).reduce((a, b) => Object.assign(a, {[b.name]: `./${b.name}.js`}), {}),
 	output: {
 		filename: '[name].bundle.js',
-		path: __dirname + '/dist',
+		path: path.resolve(__dirname, 'dist'),
 	},
+	devServer: {contentBase: path.resolve(__dirname, 'dist')},
 	plugins: list.map(e => new HtmlWebpackPlugin({
 		filename: `${e.name}.html`,
 		template: 'index.html',

@@ -1,3 +1,10 @@
+Webpackのインストール
+$ npm init -y
+$ npm install webpack webpack-cli html-webpack-plugin html-webpack-inline-source-plugin babel-loader @babel/core @babel/preset-env --save-dev
+
+Webpackの実行
+$ webpack
+
 jquery.zip.jsが必要な場合はこちらから取ってきてください。
 https://github.com/yatt/jquery.zip.inflate
 
@@ -7,9 +14,8 @@ Chromeで実行する場合の注意
 IEで実行する場合の注意
 ローカルフォルダに置いて実行する方法はありません。Webサーバー経由で実行してください。
 
-Webpackのインストール
-$ npm init -y
-$ npm install webpack webpack-cli html-webpack-plugin html-webpack-inline-source-plugin babel-loader @babel/core @babel/preset-env --save-dev
+DevServerのインストール
+$ npm install webpack-dev-server --save-dev
 
-Webpackの実行
-$ webpack
+DevServerの実行例
+$ webpack-dev-server --open iexplore --open-page 1942.html
