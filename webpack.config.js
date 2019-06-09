@@ -59,6 +59,7 @@ const list = [
 const list2 = [
 	{name: 'sound_test', title: 'Sound Test'},
 	{name: 'sound_test2', title: 'Sound Test 2'},
+	{name: 'sound_test3', title: 'Sound Test 3'},
 ];
 
 module.exports = {
@@ -69,23 +70,25 @@ module.exports = {
 		path: path.resolve(__dirname, 'dist'),
 	},
 	devServer: {contentBase: path.resolve(__dirname, 'dist')},
-	plugins: list.map(e => new HtmlWebpackPlugin({
-		filename: `${e.name}.html`,
-		template: 'index.html',
-		chunks: [e.name],
-		title: e.title,
-		width: e.width,
-		height: e.height,
-		inlineSource: '.js$',
-	})).concat(list2.map(e => new HtmlWebpackPlugin({
-		filename: `${e.name}.html`,
-		template: 'sound_test.html',
-		chunks: [e.name],
-		title: e.title,
-		inlineSource: '.js$',
-	}))).concat([
+	plugins: [].concat(
+		list.map(e => new HtmlWebpackPlugin({
+			filename: `${e.name}.html`,
+			template: 'index.html',
+			chunks: [e.name],
+			title: e.title,
+			width: e.width,
+			height: e.height,
+			inlineSource: '.js$',
+		})),
+		list2.map(e => new HtmlWebpackPlugin({
+			filename: `${e.name}.html`,
+			template: 'sound_test.html',
+			chunks: [e.name],
+			title: e.title,
+			inlineSource: '.js$',
+		})),
 		new HtmlWebpackInlineSourcePlugin(),
-	]),
+	),
 	module: {
 		rules: [{
 			test: /\.js$/,
