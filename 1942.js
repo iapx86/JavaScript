@@ -366,7 +366,7 @@ class _1942 {
 
 		// palette変換
 		p = 256 * 16 + 16;
-		for (let i = 0; i < 288; p += 256 - 224, i++)
+		for (let i = 0; i < 256; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
 				data[p] = this.rgb[data[p]];
 	}
