@@ -24,15 +24,13 @@ class SeaFighterPoseidon {
 		this.fCoin = 0;
 		this.fStart1P = 0;
 		this.fStart2P = 0;
-		this.nBonus = 10000;
 		this.nLife = 3;
-		this.nRank = 'Easiest';
 
 		// CPU周りの初期化
 		this.ram = new Uint8Array(0x4b00).addBase();
 		this.ram2 = new Uint8Array(0x400).addBase();
 		this.ram3 = new Uint8Array(0x80);
-		this.in = Uint8Array.of(0xff, 0xff, 0x7f, 0xff, 0xef, 0x0f, 0, 0xff);
+		this.in = Uint8Array.of(0xff, 0xff, 0x4f, 0xff, 0xef, 0x0f, 0, 0xff);
 		this.psg = [{addr: 0}, {addr: 0}, {addr: 0}, {addr: 0}];
 		this.count = 0;
 		this.timer = 0;
@@ -311,46 +309,18 @@ class SeaFighterPoseidon {
 		// DIPスイッチの更新
 		if (this.fDIPSwitchChanged) {
 			this.fDIPSwitchChanged = false;
-			switch (this.nBonus) {
-			case 10000:
-				this.in[2] |= 3;
-				break;
-			case 15000:
-				this.in[2] = this.in[2] & ~3 | 2;
-				break;
-			case 20000:
-				this.in[2] = this.in[2] & ~3 | 1;
-				break;
-			case 25000:
-				this.in[2] &= ~3;
-				break;
-			}
 			switch (this.nLife) {
+			case 2:
+				this.in[2] &= ~0x18;
+				break;
 			case 3:
-				this.in[2] |= 0x18;
+				this.in[2] = this.in[2] & ~0x18 | 0x08;
 				break;
 			case 4:
 				this.in[2] = this.in[2] & ~0x18 | 0x10;
 				break;
 			case 5:
-				this.in[2] = this.in[2] & ~0x18 | 0x08;
-				break;
-			case 6:
-				this.in[2] &= ~0x18;
-				break;
-			}
-			switch (this.nRank) {
-			case 'Easiest':
-				this.in[7] |= 3;
-				break;
-			case 'Easy':
-				this.in[7] = this.in[7] & ~3 | 2;
-				break;
-			case 'Normal':
-				this.in[7] = this.in[7] & ~3 | 1;
-				break;
-			case 'Hard':
-				this.in[7] &= ~3;
+				this.in[2] |= 0x18;
 				break;
 			}
 			sound[0].write(0x0e, this.in[6]);
