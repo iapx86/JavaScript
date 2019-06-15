@@ -1745,6 +1745,11 @@ export default class Z80 extends Cpu {
 		case 0x36: // LD (IX+d),n
 			this.write(this.disp(this.ixh, this.ixl), this.fetch());
 			break;
+		case 0x39: // ADD IX,SP
+			this.ixl = (v = Z80.aAdd[0][this.sp & 0xff][this.ixl]) & 0xff;
+			this.ixh = (v = Z80.aAdd[v >>> 8 & 1][this.sp >>> 8][this.ixh]) & 0xff;
+			this.f = this.f & 0xc4 | v >>> 8 & 1;
+			break;
 		case 0x44: // LD B,IXH (undefined operation)
 			this.b = this.ixh;
 			break;
@@ -2338,6 +2343,11 @@ export default class Z80 extends Cpu {
 			break;
 		case 0x36: // LD (IY+d),n
 			this.write(this.disp(this.iyh, this.iyl), this.fetch());
+			break;
+		case 0x39: // ADD IY,SP
+			this.iyl = (v = Z80.aAdd[0][this.sp & 0xff][this.iyl]) & 0xff;
+			this.iyh = (v = Z80.aAdd[v >>> 8 & 1][this.sp >>> 8][this.iyh]) & 0xff;
+			this.f = this.f & 0xc4 | v >>> 8 & 1;
 			break;
 		case 0x44: // LD B,IYH (undefined operation)
 			this.b = this.iyh;

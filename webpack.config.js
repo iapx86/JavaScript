@@ -40,6 +40,7 @@ const list = [
 	{name: 'rally-x', title: 'Rally-X', width: 285, height: 224},
 	{name: 'royal_mahjong', title: 'Royal Mahjong', width: 256, height: 240},
 	{name: 'scramble', title: 'Scramble', width: 224, height: 256},
+	{name: 'sea_fighter_poseidon', title: 'Sea Fighter Poseidon', width: 256, height: 224},
 	{name: 'sky_kid', title: 'Sky Kid', width: 288, height: 224},
 	{name: 'space_chaser', title: 'Space Chaser', width: 224, height: 256},
 	{name: 'space_invaders', title: 'Space Invaders', width: 224, height: 256},
