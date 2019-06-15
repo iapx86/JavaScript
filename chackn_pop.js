@@ -172,7 +172,7 @@ class ChacknPop {
 				this.in[5] = this.in[5] & ~0x18 | 0x08;
 				break;
 			case 2:
-				this.in[5] = this.in[5] & ~0x18 | 0x18;
+				this.in[5] = this.in[5] & ~0x18 | 0x10;
 				break;
 			case 1:
 				this.in[5] |= 0x18;
