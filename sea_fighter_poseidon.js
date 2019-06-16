@@ -27,6 +27,9 @@ class SeaFighterPoseidon {
 		this.nLife = 3;
 
 		// CPU周りの初期化
+		this.fNmiEnable = false;
+		this.bank = 0x60;
+
 		this.ram = new Uint8Array(0x4b00).addBase();
 		this.ram2 = new Uint8Array(0x400).addBase();
 		this.ram3 = new Uint8Array(0x80);
@@ -37,7 +40,6 @@ class SeaFighterPoseidon {
 		this.cpu2_command = 0;
 		this.cpu2_flag = 0;
 		this.cpu2_flag2 = 0;
-		this.fNmiEnable = false;
 		this.mcu_command = 0;
 		this.mcu_result = 0;
 		this.mcu_flag = 0;
@@ -143,12 +145,12 @@ class SeaFighterPoseidon {
 				this.cpu2.nmi2 = (data & 1) !== 0;
 				break;
 			case 0xe:
-				if ((data & 0x80) === 0)
-					for (let i = 0; i < 0x20; i++)
-						this.cpu.memorymap[0x60 + i].base = PRG1.base[0x60 + i];
-				else
-					for (let i = 0; i < 0x20; i++)
-						this.cpu.memorymap[0x60 + i].base = PRG1.base[0x80 + i];
+				const bank = (data >> 2 & 0x20) + 0x60;
+				if (bank === this.bank)
+					break;
+				for (let i = 0; i < 0x20; i++)
+					this.cpu.memorymap[0x60 + i].base = PRG1.base[bank + i];
+				this.bank = bank;
 				break;
 			}
 		};

@@ -29,6 +29,8 @@ class ElevatorAction {
 		this.nRank = 'Easiest';
 
 		// CPU周りの初期化
+		this.fNmiEnable = false;
+
 		this.ram = new Uint8Array(0x4b00).addBase();
 		this.ram2 = new Uint8Array(0x400).addBase();
 		this.ram3 = new Uint8Array(0x80);
@@ -39,7 +41,6 @@ class ElevatorAction {
 		this.cpu2_command = 0;
 		this.cpu2_flag = 0;
 		this.cpu2_flag2 = 0;
-		this.fNmiEnable = false;
 		this.mcu_command = 0;
 		this.mcu_result = 0;
 		this.mcu_flag = 0;
