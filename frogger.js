@@ -480,7 +480,7 @@ function success(zip) {
 	Frogger.decodeROM();
 	init({
 		game: new Frogger(),
-		sound: sound = new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 1}),
+		sound: sound = new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.5}),
 	});
 	loop();
 }

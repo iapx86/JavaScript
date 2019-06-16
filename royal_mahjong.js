@@ -442,7 +442,7 @@ function success(zip) {
 	RGB = new Uint8Array(zip.files['18s030n.6k'].inflate().split('').map(c => c.charCodeAt(0)));
 	init({
 		game: game = new RoyalMahjong(),
-		sound: sound = new AY_3_8910({clock: 1536000}),
+		sound: sound = new AY_3_8910({clock: 1536000, gain: 0.2}),
 		rotate: true,
 		keydown, keyup
 	});

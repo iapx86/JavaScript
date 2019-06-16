@@ -169,7 +169,6 @@ class StrategyX {
 			this.cpu.reset();
 			this.fInterruptEnable = false;
 			this.fSoundEnable = false;
-			this.fStarEnable = false;
 			this.command.splice(0);
 			this.cpu2.reset();
 			this.timer = 0;
@@ -585,8 +584,8 @@ function success(zip) {
 	init({
 		game: game = new StrategyX(),
 		sound: sound = [
-			new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.5}),
-			new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.5}),
+			new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.3}),
+			new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.3}),
 		],
 		rotate: true,
 		keydown, keyup

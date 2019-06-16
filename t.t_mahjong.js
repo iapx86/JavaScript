@@ -316,7 +316,7 @@ function success(zip) {
 	COLOR2 = new Uint8Array(zip.files['ju09'].inflate().split('').map(c => c.charCodeAt(0)));
 	init({
 		game: game = new TTMahjong(),
-		sound: sound = new AY_3_8910({clock: 1250000}),
+		sound: sound = new AY_3_8910({clock: 1250000, gain: 0.2}),
 		rotate: true,
 		keydown, keyup,
 	});

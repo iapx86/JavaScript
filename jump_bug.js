@@ -1669,7 +1669,7 @@ function success(zip) {
 		game: game = new JumpBug(),
 		sound: sound = [
 			new AY_3_8910({clock: 1536000}),
-			new SoundEffect({se: game.se, freq: 11025, gain: 0.5}),
+			new SoundEffect({se: game.se, freq: 11025, gain: 0.3}),
 		],
 	});
 	loop();

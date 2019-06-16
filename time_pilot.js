@@ -735,8 +735,8 @@ function success(zip) {
 	init({
 		game: new TimePilot(),
 		sound: sound = [
-			new AY_3_8910({clock: 14318181 / 8, resolution: 58, gain: 0.5}),
-			new AY_3_8910({clock: 14318181 / 8, resolution: 58, gain: 0.5}),
+			new AY_3_8910({clock: 14318181 / 8, resolution: 58, gain: 0.3}),
+			new AY_3_8910({clock: 14318181 / 8, resolution: 58, gain: 0.3}),
 		],
 	});
 	loop();
