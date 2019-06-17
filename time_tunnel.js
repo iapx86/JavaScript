@@ -5,9 +5,10 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
+import SoundEffect from './sound_effect.js';
 import Cpu, {init, loop} from './main.js';
 import Z80 from './z80.js';
-let game, sound;
+let game, sound, pcm = [];
 
 class TimeTunnel {
 	constructor() {
@@ -220,6 +221,13 @@ class TimeTunnel {
 			return false;
 		};
 
+		this.cpu2.breakpoint = () => {
+			this.se.forEach(se => se.stop = true);
+			if (this.cpu2.a > 0 && this.cpu2.a < 16)
+				this.se[this.cpu2.a - 1].start = true;
+		};
+		this.cpu2.set_breakpoint(0x04f3);
+
 		// Videoの初期化
 		this.bg = new Uint8Array(0x8000);
 		this.obj = new Uint8Array(0x8000);
@@ -237,6 +245,9 @@ class TimeTunnel {
 		this.colorbank = new Uint8Array(2);
 		this.mode = 0;
 		this.convertPRI();
+
+		// 効果音の初期化
+		this.se = pcm.map(buf => ({buf: buf, loop: false, start: false, stop: false}));
 	}
 
 	execute() {
@@ -430,6 +441,52 @@ class TimeTunnel {
 				for (let k = 7; k >= 0; --k)
 					this.obj[p++] = this.ram[q + k + 8] >>> j & 1 | this.ram[q + k + 0x800 + 8] >>> j << 1 & 2 | this.ram[q + k + 0x1000 + 8] >>> j << 2 & 4;
 			}
+		}
+	}
+
+	static convertPCM() {
+		const clock = 3000000, rate = 48000, buf = [];
+
+		for (let idx = 1; idx < 16; idx++) {
+			const desc1 = PRG2[0x05f3 + idx * 2] | PRG2[0x05f3 + idx * 2 + 1] << 8;
+			const [n, w1, r1, desc2_l, desc2_h] = PRG2.subarray(desc1, desc1 + 5), desc2 = desc2_l | desc2_h << 8;
+			let timer = 0, m = 0x80, vol = 0;
+			for (let i = 0; i < r1; i++) {
+				for (timer += 84 * rate; timer >= clock; timer -= clock)
+					buf.push((m - 0x80) * vol);
+				for (let j = 0; j < n; j++) {
+					let [len, w2, r2, dw2, addr_l, addr_h, _vol, dv] = PRG2.subarray(desc2 + j * 8, desc2 + j * 8 + 8), addr = addr_l | addr_h << 8;
+					for (timer += 314 * rate; timer >= clock; timer -= clock)
+						buf.push((m - 0x80) * vol);
+					vol = _vol;
+					for (timer += 4 * rate; timer >= clock; timer -= clock)
+						buf.push((m - 0x80) * vol);
+					for (let k = 0; k < r2; k++) {
+						for (timer += 33 * rate; timer >= clock; timer -= clock)
+							buf.push((m - 0x80) * vol);
+						for (let l = 0; l < len; l++) {
+							for (timer += (83 + (w1 - 1 & 0xff) * 16) * rate; timer >= clock; timer -= clock)
+								buf.push((m - 0x80) * vol);
+							m = PRG2[addr + l];
+							for (timer += (50 + (w2 - 1 & 0xff) * 16) * rate; timer >= clock; timer -= clock)
+								buf.push((m - 0x80) * vol);
+						}
+						_vol = _vol + dv & 0xff;
+						w2 = w2 + dw2 & 0xff;
+						for (timer += 103 * rate; timer >= clock; timer -= clock)
+							buf.push((m - 0x80) * vol);
+						vol = _vol;
+						for (timer += 49 * rate; timer >= clock; timer -= clock)
+							buf.push((m - 0x80) * vol);
+					}
+					for (timer += 62 * rate; timer >= clock; timer -= clock)
+						buf.push((m - 0x80) * vol);
+				}
+				for (timer += 47 * rate; timer >= clock; timer -= clock)
+					buf.push((m - 0x80) * vol);
+			}
+			pcm.push(new Int16Array(buf));
+			buf.splice(0);
 		}
 	}
 
@@ -663,6 +720,7 @@ function success(zip) {
 	GFX = zip.files['un11.1'].inflate() + zip.files['un12.2'].inflate() + zip.files['un13.3'].inflate() + zip.files['un14.4'].inflate() + zip.files['un15.5'].inflate();
 	GFX = new Uint8Array((GFX + zip.files['un16.6'].inflate() + zip.files['un17.7'].inflate() + zip.files['un18.8'].inflate()).split('').map(c => c.charCodeAt(0)));
 	PRI = new Uint8Array(zip.files['eb16.22'].inflate().split('').map(c => c.charCodeAt(0)));
+	TimeTunnel.convertPCM();
 	init({
 		game: game = new TimeTunnel(),
 		sound: sound = [
@@ -670,6 +728,7 @@ function success(zip) {
 			new AY_3_8910({clock: 1500000, resolution: 3}),
 			new AY_3_8910({clock: 1500000, resolution: 3}),
 			new AY_3_8910({clock: 1500000, resolution: 3}),
+			new SoundEffect({se: game.se, freq: 48000, gain: 0.7}),
 		],
 		rotate: true,
 	});
