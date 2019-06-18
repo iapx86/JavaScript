@@ -503,47 +503,57 @@ class SeaFighterPoseidon {
 	}
 
 	static convertPCM() {
-		const clock = 3000000, rate = 48000, buf = [];
+		const clock = 3000000, rate = 48000;
 
 		for (let idx = 0; idx < pcmtable.length; idx++) {
 			const desc1 = pcmtable[idx];
-			const [, r1, n, desc2_l, desc2_h, w1] = PRG2.subarray(desc1, desc1 + 6), desc2 = desc2_l | desc2_h << 8;
-			let timer = 0, m = 0x80, vol = 0;
-			for (timer += 61 * rate; timer >= clock; timer -= clock)
-				buf.push((m - 0x80) * vol);
+			const r1 = PRG2[desc1 + 1], n = PRG2[desc1 + 2], desc2 = PRG2[desc1 + 3] | PRG2[desc1 + 4] << 8, w1 = PRG2[desc1 + 5];
+			let timer = 61;
 			for (let i = 0; i < r1; i++) {
 				for (let j = 0; j < n; j++) {
-					let [len, w2, r2, dw2, addr_l, addr_h, _vol, dv] = PRG2.subarray(desc2 + j * 8, desc2 + j * 8 + 8), addr = addr_l | addr_h << 8;
+					let len = PRG2[desc2 + j * 8], w2 = PRG2[desc2 + j * 8 + 1], r2 = PRG2[desc2 + j * 8 + 2], dw2 = PRG2[desc2 + j * 8 + 3];
+					for (let k = 0; k < r2; w2 = w2 + dw2 & 0xff, k++)
+						timer += 46 + 57 + (53 + 63 + (w1 - 1 & 0xff) * 16 + (w2 - 1 & 0xff) * 16) * len + 174;
+					if (j < n - 1)
+						timer += 388 + (j + 1) * 38;
+				}
+				if (i < r1 - 1)
+					timer += 496;
+			}
+			timer += 138;
+			const buf = new Int16Array(Math.floor(timer * rate / clock));
+			let e = 0, m = 0, vol = 0, cnt = 0;
+			const advance = cycle => {
+				for (timer += cycle * rate; timer >= clock; timer -= clock)
+					buf[cnt++] = e;
+			};
+			timer = 0;
+			advance(61);
+			for (let i = 0; i < r1; i++) {
+				for (let j = 0; j < n; j++) {
+					let len = PRG2[desc2 + j * 8], w2 = PRG2[desc2 + j * 8 + 1], r2 = PRG2[desc2 + j * 8 + 2], dw2 = PRG2[desc2 + j * 8 + 3];
+					let addr = PRG2[desc2 + j * 8 + 4] | PRG2[desc2 + j * 8 + 5] << 8, _vol = PRG2[desc2 + j * 8 + 6], dv = PRG2[desc2 + j * 8 + 7];
 					for (let k = 0; k < r2; k++) {
-						for (timer += 46 * rate; timer >= clock; timer -= clock)
-							buf.push((m - 0x80) * vol);
-						vol = _vol;
-						for (timer += 57 * rate; timer >= clock; timer -= clock)
-							buf.push((m - 0x80) * vol);
+						advance(46);
+						e = (m - 0x80) * (vol = _vol);
+						advance(57);
 						for (let l = 0; l < len; l++) {
-							for (timer += 53 * rate; timer >= clock; timer -= clock)
-								buf.push((m - 0x80) * vol);
-							m = PRG2[addr + l];
-							for (timer += (63 + (w1 - 1 & 0xff) * 16 + (w2 - 1 & 0xff) * 16) * rate; timer >= clock; timer -= clock)
-								buf.push((m - 0x80) * vol);
+							advance(53);
+							e = ((m = PRG2[addr + l]) - 0x80) * vol;
+							advance(63 + (w1 - 1 & 0xff) * 16 + (w2 - 1 & 0xff) * 16);
 						}
 						_vol = _vol + dv & 0xff;
 						w2 = w2 + dw2 & 0xff;
-						for (timer += 174 * rate; timer >= clock; timer -= clock)
-							buf.push((m - 0x80) * vol);
+						advance(174);
 					}
 					if (j < n - 1)
-						for (timer += (388 + 38 * (j + 1)) * rate; timer >= clock; timer -= clock)
-							buf.push((m - 0x80) * vol);
+						advance(388 + (j + 1) * 38);
 				}
 				if (i < r1 - 1)
-					for (timer += 496 * rate; timer >= clock; timer -= clock)
-						buf.push((m - 0x80) * vol);
+					advance(496)
 			}
-			for (timer += 138 * rate; timer >= clock; timer -= clock)
-				buf.push((m - 0x80) * vol);
-			pcm.push(new Int16Array(buf));
-			buf.splice(0);
+			advance(138);
+			pcm.push(buf);
 		}
 	}
 

@@ -445,48 +445,56 @@ class TimeTunnel {
 	}
 
 	static convertPCM() {
-		const clock = 3000000, rate = 48000, buf = [];
+		const clock = 3000000, rate = 48000;
 
 		for (let idx = 1; idx < 16; idx++) {
 			const desc1 = PRG2[0x05f3 + idx * 2] | PRG2[0x05f3 + idx * 2 + 1] << 8;
-			const [n, w1, r1, desc2_l, desc2_h] = PRG2.subarray(desc1, desc1 + 5), desc2 = desc2_l | desc2_h << 8;
-			let timer = 0, m = 0x80, vol = 0;
+			const n = PRG2[desc1], w1 = PRG2[desc1 + 1], r1 = PRG2[desc1 + 2], desc2 = PRG2[desc1 + 3] | PRG2[desc1 + 4] << 8;
+			let timer = 0;
 			for (let i = 0; i < r1; i++) {
-				for (timer += 84 * rate; timer >= clock; timer -= clock)
-					buf.push((m - 0x80) * vol);
+				timer += 84;
 				for (let j = 0; j < n; j++) {
-					let [len, w2, r2, dw2, addr_l, addr_h, _vol, dv] = PRG2.subarray(desc2 + j * 8, desc2 + j * 8 + 8), addr = addr_l | addr_h << 8;
-					for (timer += 314 * rate; timer >= clock; timer -= clock)
-						buf.push((m - 0x80) * vol);
-					vol = _vol;
-					for (timer += 4 * rate; timer >= clock; timer -= clock)
-						buf.push((m - 0x80) * vol);
+					let len = PRG2[desc2 + j * 8], w2 = PRG2[desc2 + j * 8 + 1], r2 = PRG2[desc2 + j * 8 + 2], dw2 = PRG2[desc2 + j * 8 + 3];
+					timer += 314 + 4;
+					for (let k = 0; k < r2; w2 = w2 + dw2 & 0xff, k++)
+						timer += 33 + (83 + (w1 - 1 & 0xff) * 16 + 50 + (w2 - 1 & 0xff) * 16) * len + 103 + 49;
+					timer += 62;
+				}
+				timer += 47;
+			}
+			const buf = new Int16Array(Math.floor(timer * rate / clock));
+			let e = 0, m = 0, vol = 0, cnt = 0;
+			const advance = cycle => {
+				for (timer += cycle * rate; timer >= clock; timer -= clock)
+					buf[cnt++] = e;
+			};
+			timer = 0;
+			for (let i = 0; i < r1; i++) {
+				advance(84);
+				for (let j = 0; j < n; j++) {
+					let len = PRG2[desc2 + j * 8], w2 = PRG2[desc2 + j * 8 + 1], r2 = PRG2[desc2 + j * 8 + 2], dw2 = PRG2[desc2 + j * 8 + 3];
+					let addr = PRG2[desc2 + j * 8 + 4] | PRG2[desc2 + j * 8 + 5] << 8, _vol = PRG2[desc2 + j * 8 + 6], dv = PRG2[desc2 + j * 8 + 7];
+					advance(314);
+					e = (m - 0x80) * (vol = _vol);
+					advance(4);
 					for (let k = 0; k < r2; k++) {
-						for (timer += 33 * rate; timer >= clock; timer -= clock)
-							buf.push((m - 0x80) * vol);
+						advance(33);
 						for (let l = 0; l < len; l++) {
-							for (timer += (83 + (w1 - 1 & 0xff) * 16) * rate; timer >= clock; timer -= clock)
-								buf.push((m - 0x80) * vol);
-							m = PRG2[addr + l];
-							for (timer += (50 + (w2 - 1 & 0xff) * 16) * rate; timer >= clock; timer -= clock)
-								buf.push((m - 0x80) * vol);
+							advance(83 + (w1 - 1 & 0xff) * 16);
+							e = ((m = PRG2[addr + l]) - 0x80) * vol;
+							advance(50 + (w2 - 1 & 0xff) * 16);
 						}
 						_vol = _vol + dv & 0xff;
 						w2 = w2 + dw2 & 0xff;
-						for (timer += 103 * rate; timer >= clock; timer -= clock)
-							buf.push((m - 0x80) * vol);
-						vol = _vol;
-						for (timer += 49 * rate; timer >= clock; timer -= clock)
-							buf.push((m - 0x80) * vol);
+						advance(103);
+						e = (m - 0x80) * (vol = _vol);
+						advance(49);
 					}
-					for (timer += 62 * rate; timer >= clock; timer -= clock)
-						buf.push((m - 0x80) * vol);
+					advance(62);
 				}
-				for (timer += 47 * rate; timer >= clock; timer -= clock)
-					buf.push((m - 0x80) * vol);
+				advance(47);
 			}
-			pcm.push(new Int16Array(buf));
-			buf.splice(0);
+			pcm.push(buf);
 		}
 	}
 
