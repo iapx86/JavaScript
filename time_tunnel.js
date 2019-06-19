@@ -475,7 +475,7 @@ class TimeTunnel {
 					let len = PRG2[desc2 + j * 8], w2 = PRG2[desc2 + j * 8 + 1], r2 = PRG2[desc2 + j * 8 + 2], dw2 = PRG2[desc2 + j * 8 + 3];
 					let addr = PRG2[desc2 + j * 8 + 4] | PRG2[desc2 + j * 8 + 5] << 8, _vol = PRG2[desc2 + j * 8 + 6], dv = PRG2[desc2 + j * 8 + 7];
 					advance(314);
-					e = (m - 0x80) * (vol = _vol);
+					e = (m - 0x80) * (vol = ~_vol & 0xff);
 					advance(4);
 					for (let k = 0; k < r2; k++) {
 						advance(33);
@@ -487,7 +487,7 @@ class TimeTunnel {
 						_vol = _vol + dv & 0xff;
 						w2 = w2 + dw2 & 0xff;
 						advance(103);
-						e = (m - 0x80) * (vol = _vol);
+						e = (m - 0x80) * (vol = ~_vol & 0xff);
 						advance(49);
 					}
 					advance(62);
@@ -736,7 +736,7 @@ function success(zip) {
 			new AY_3_8910({clock: 1500000, resolution: 3}),
 			new AY_3_8910({clock: 1500000, resolution: 3}),
 			new AY_3_8910({clock: 1500000, resolution: 3}),
-			new SoundEffect({se: game.se, freq: 48000, gain: 0.7}),
+			new SoundEffect({se: game.se, freq: 48000, gain: 0.2}),
 		],
 		rotate: true,
 	});
