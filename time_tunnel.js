@@ -564,9 +564,41 @@ class TimeTunnel {
 				continue;
 			p = 256 * 16 + 16;
 			for (let j = 0; j < 256; p += 256 - 224, j++)
-				for (let k = 0; k < 224; p++, k++)
-					if ((layer[p] & 7) !== 0)
-						data[p] = layer[p];
+				for (let k = 0; k < 7; p += 32, k++) {
+					let px;
+					if (((px = layer[p]) & 7) !== 0) data[p] = px;
+					if (((px = layer[p + 0x01]) & 7) !== 0) data[p + 0x01] = px;
+					if (((px = layer[p + 0x02]) & 7) !== 0) data[p + 0x02] = px;
+					if (((px = layer[p + 0x03]) & 7) !== 0) data[p + 0x03] = px;
+					if (((px = layer[p + 0x04]) & 7) !== 0) data[p + 0x04] = px;
+					if (((px = layer[p + 0x05]) & 7) !== 0) data[p + 0x05] = px;
+					if (((px = layer[p + 0x06]) & 7) !== 0) data[p + 0x06] = px;
+					if (((px = layer[p + 0x07]) & 7) !== 0) data[p + 0x07] = px;
+					if (((px = layer[p + 0x08]) & 7) !== 0) data[p + 0x08] = px;
+					if (((px = layer[p + 0x09]) & 7) !== 0) data[p + 0x09] = px;
+					if (((px = layer[p + 0x0a]) & 7) !== 0) data[p + 0x0a] = px;
+					if (((px = layer[p + 0x0b]) & 7) !== 0) data[p + 0x0b] = px;
+					if (((px = layer[p + 0x0c]) & 7) !== 0) data[p + 0x0c] = px;
+					if (((px = layer[p + 0x0d]) & 7) !== 0) data[p + 0x0d] = px;
+					if (((px = layer[p + 0x0e]) & 7) !== 0) data[p + 0x0e] = px;
+					if (((px = layer[p + 0x0f]) & 7) !== 0) data[p + 0x0f] = px;
+					if (((px = layer[p + 0x10]) & 7) !== 0) data[p + 0x10] = px;
+					if (((px = layer[p + 0x11]) & 7) !== 0) data[p + 0x11] = px;
+					if (((px = layer[p + 0x12]) & 7) !== 0) data[p + 0x12] = px;
+					if (((px = layer[p + 0x13]) & 7) !== 0) data[p + 0x13] = px;
+					if (((px = layer[p + 0x14]) & 7) !== 0) data[p + 0x14] = px;
+					if (((px = layer[p + 0x15]) & 7) !== 0) data[p + 0x15] = px;
+					if (((px = layer[p + 0x16]) & 7) !== 0) data[p + 0x16] = px;
+					if (((px = layer[p + 0x17]) & 7) !== 0) data[p + 0x17] = px;
+					if (((px = layer[p + 0x18]) & 7) !== 0) data[p + 0x18] = px;
+					if (((px = layer[p + 0x19]) & 7) !== 0) data[p + 0x19] = px;
+					if (((px = layer[p + 0x1a]) & 7) !== 0) data[p + 0x1a] = px;
+					if (((px = layer[p + 0x1b]) & 7) !== 0) data[p + 0x1b] = px;
+					if (((px = layer[p + 0x1c]) & 7) !== 0) data[p + 0x1c] = px;
+					if (((px = layer[p + 0x1d]) & 7) !== 0) data[p + 0x1d] = px;
+					if (((px = layer[p + 0x1e]) & 7) !== 0) data[p + 0x1e] = px;
+					if (((px = layer[p + 0x1f]) & 7) !== 0) data[p + 0x1f] = px;
+				}
 		}
 
 		// palette変換
@@ -580,15 +612,82 @@ class TimeTunnel {
 		let q = (this.ram[k] | color << 5 & 0x100) << 6;
 		const idx = color << 3 & 0x38;
 
+		if (p < 0x10900) {
+			data[p + 0x000] = idx | this.bg[q + 0x00];
+			data[p + 0x001] = idx | this.bg[q + 0x01];
+			data[p + 0x002] = idx | this.bg[q + 0x02];
+			data[p + 0x003] = idx | this.bg[q + 0x03];
+			data[p + 0x004] = idx | this.bg[q + 0x04];
+			data[p + 0x005] = idx | this.bg[q + 0x05];
+			data[p + 0x006] = idx | this.bg[q + 0x06];
+			data[p + 0x007] = idx | this.bg[q + 0x07];
+			data[p + 0x100] = idx | this.bg[q + 0x08];
+			data[p + 0x101] = idx | this.bg[q + 0x09];
+			data[p + 0x102] = idx | this.bg[q + 0x0a];
+			data[p + 0x103] = idx | this.bg[q + 0x0b];
+			data[p + 0x104] = idx | this.bg[q + 0x0c];
+			data[p + 0x105] = idx | this.bg[q + 0x0d];
+			data[p + 0x106] = idx | this.bg[q + 0x0e];
+			data[p + 0x107] = idx | this.bg[q + 0x0f];
+			data[p + 0x200] = idx | this.bg[q + 0x10];
+			data[p + 0x201] = idx | this.bg[q + 0x11];
+			data[p + 0x202] = idx | this.bg[q + 0x12];
+			data[p + 0x203] = idx | this.bg[q + 0x13];
+			data[p + 0x204] = idx | this.bg[q + 0x14];
+			data[p + 0x205] = idx | this.bg[q + 0x15];
+			data[p + 0x206] = idx | this.bg[q + 0x16];
+			data[p + 0x207] = idx | this.bg[q + 0x17];
+			data[p + 0x300] = idx | this.bg[q + 0x18];
+			data[p + 0x301] = idx | this.bg[q + 0x19];
+			data[p + 0x302] = idx | this.bg[q + 0x1a];
+			data[p + 0x303] = idx | this.bg[q + 0x1b];
+			data[p + 0x304] = idx | this.bg[q + 0x1c];
+			data[p + 0x305] = idx | this.bg[q + 0x1d];
+			data[p + 0x306] = idx | this.bg[q + 0x1e];
+			data[p + 0x307] = idx | this.bg[q + 0x1f];
+			data[p + 0x400] = idx | this.bg[q + 0x20];
+			data[p + 0x401] = idx | this.bg[q + 0x21];
+			data[p + 0x402] = idx | this.bg[q + 0x22];
+			data[p + 0x403] = idx | this.bg[q + 0x23];
+			data[p + 0x404] = idx | this.bg[q + 0x24];
+			data[p + 0x405] = idx | this.bg[q + 0x25];
+			data[p + 0x406] = idx | this.bg[q + 0x26];
+			data[p + 0x407] = idx | this.bg[q + 0x27];
+			data[p + 0x500] = idx | this.bg[q + 0x28];
+			data[p + 0x501] = idx | this.bg[q + 0x29];
+			data[p + 0x502] = idx | this.bg[q + 0x2a];
+			data[p + 0x503] = idx | this.bg[q + 0x2b];
+			data[p + 0x504] = idx | this.bg[q + 0x2c];
+			data[p + 0x505] = idx | this.bg[q + 0x2d];
+			data[p + 0x506] = idx | this.bg[q + 0x2e];
+			data[p + 0x507] = idx | this.bg[q + 0x2f];
+			data[p + 0x600] = idx | this.bg[q + 0x30];
+			data[p + 0x601] = idx | this.bg[q + 0x31];
+			data[p + 0x602] = idx | this.bg[q + 0x32];
+			data[p + 0x603] = idx | this.bg[q + 0x33];
+			data[p + 0x604] = idx | this.bg[q + 0x34];
+			data[p + 0x605] = idx | this.bg[q + 0x35];
+			data[p + 0x606] = idx | this.bg[q + 0x36];
+			data[p + 0x607] = idx | this.bg[q + 0x37];
+			data[p + 0x700] = idx | this.bg[q + 0x38];
+			data[p + 0x701] = idx | this.bg[q + 0x39];
+			data[p + 0x702] = idx | this.bg[q + 0x3a];
+			data[p + 0x703] = idx | this.bg[q + 0x3b];
+			data[p + 0x704] = idx | this.bg[q + 0x3c];
+			data[p + 0x705] = idx | this.bg[q + 0x3d];
+			data[p + 0x706] = idx | this.bg[q + 0x3e];
+			data[p + 0x707] = idx | this.bg[q + 0x3f];
+			return;
+		}
 		for (let i = 0; i < 8; p += 256, p -= (p >= 0x11000) * 0x10000, q += 8, i++) {
 			data[p] = idx | this.bg[q];
-			data[p + 1] = idx | this.bg[q + 1];
-			data[p + 2] = idx | this.bg[q + 2];
-			data[p + 3] = idx | this.bg[q + 3];
-			data[p + 4] = idx | this.bg[q + 4];
-			data[p + 5] = idx | this.bg[q + 5];
-			data[p + 6] = idx | this.bg[q + 6];
-			data[p + 7] = idx | this.bg[q + 7];
+			data[p + 0x001] = idx | this.bg[q + 0x01];
+			data[p + 0x002] = idx | this.bg[q + 0x02];
+			data[p + 0x003] = idx | this.bg[q + 0x03];
+			data[p + 0x004] = idx | this.bg[q + 0x04];
+			data[p + 0x005] = idx | this.bg[q + 0x05];
+			data[p + 0x006] = idx | this.bg[q + 0x06];
+			data[p + 0x007] = idx | this.bg[q + 0x07];
 		}
 	}
 
