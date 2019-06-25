@@ -38,7 +38,7 @@ registerProcessor('PacManSound', class extends AudioWorkletProcessor {
 			}
 			for (let j = 0; j < 3; j++) {
 				data[i] += this.snd[reg[0x05 + j * 5] << 5 & 0xe0 | this.phase[j] >>> 27] * reg[0x15 + j * 5] / 15;
-				this.phase[j] += ((j ? 0 : reg[0x10]) | reg[0x11 + j * 5] << 4 | reg[0x12 + j * 5] << 8 | reg[0x13 + j * 5] << 12 | reg[0x14 + j * 5] << 16) * this.rate
+				this.phase[j] += ((j ? 0 : reg[0x10]) | reg[0x11 + j * 5] << 4 | reg[0x12 + j * 5] << 8 | reg[0x13 + j * 5] << 12 | reg[0x14 + j * 5] << 16) * this.rate;
 			}
 		});
 		return true;
@@ -82,7 +82,7 @@ export default class PacManSound {
 					}
 					for (let j = 0; j < 3; j++) {
 						data[i] += this.snd[reg[0x05 + j * 5] << 5 & 0xe0 | this.phase[j] >>> 27] * reg[0x15 + j * 5] / 15;
-						this.phase[j] += ((j ? 0 : reg[0x10]) | reg[0x11 + j * 5] << 4 | reg[0x12 + j * 5] << 8 | reg[0x13 + j * 5] << 12 | reg[0x14 + j * 5] << 16) * this.rate
+						this.phase[j] += ((j ? 0 : reg[0x10]) | reg[0x11 + j * 5] << 4 | reg[0x12 + j * 5] << 8 | reg[0x13 + j * 5] << 12 | reg[0x14 + j * 5] << 16) * this.rate;
 					}
 				});
 			};
