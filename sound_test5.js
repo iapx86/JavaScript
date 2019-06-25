@@ -75,7 +75,13 @@ class SoundTest {
 					sound[2].write(1, this.scc.reg1 = data, this.count);
 				sound[1].write(this.psg[1].addr, data);
 			}
-		}
+		};
+
+		this.cpu2.breakpoint = () => {
+			this.ram2.set(PRG1.subarray(0x30000, 0x33e00));
+			this.ram2[0] = this.ram2[1] = 1;
+		};
+		this.cpu2.set_breakpoint(0x220);
 	}
 
 	execute() {
@@ -98,9 +104,9 @@ class SoundTest {
 		if (this.fReset) {
 			this.fReset = false;
 			this.nSound = 1;
+			this.command.splice(0);
 			this.cpu2.reset();
 			this.timer = 0;
-			this.command.splice(0);
 		}
 		return this;
 	}
@@ -128,7 +134,7 @@ class SoundTest {
 	right(fDown = false) {
 		if (fDown)
 			return this;
-		this.nSound = this.nSound + 1 & 0x1f;
+		this.nSound = this.nSound + 1 & 0xff;
 		if (!this.nSound)
 			this.nSound = 1;
 		return this;
@@ -141,9 +147,9 @@ class SoundTest {
 	left(fDown = false) {
 		if (fDown)
 			return this;
-		this.nSound = this.nSound - 1 & 0x1f;
+		this.nSound = this.nSound - 1 & 0xff;
 		if (!this.nSound)
-			this.nSound = 0x1f;
+			this.nSound = 0xff;
 		return this;
 	}
 
@@ -175,12 +181,12 @@ class SoundTest {
 			reg[i] = sound[i >>> 4].read(i & 0xf);
 
 		if (this.scc.freq0 && (this.scc.reg0 & 0xf)) {
-			const pitch = Math.floor(Math.log2(14318180 / 4 / 16 / this.scc.freq0 / 440) * 12 + 45.5);
+			const pitch = Math.floor(Math.log2(14318180 / 4 / 32 / this.scc.freq0 / 440) * 12 + 45.5);
 			if (pitch > 0 && pitch < 12 * 8)
 				SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12), key[pitch % 12 + 1]);
 		}
 		if (this.scc.freq1 && (this.scc.reg1 & 0xf)) {
-			const pitch = Math.floor(Math.log2(14318180 / 4 / 16 / this.scc.freq1 / 440) * 12 + 45.5);
+			const pitch = Math.floor(Math.log2(14318180 / 4 / 32 / this.scc.freq1 / 440) * 12 + 45.5);
 			if (pitch > 0 && pitch < 12 * 8)
 				SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16, key[pitch % 12 + 1]);
 		}
@@ -212,6 +218,7 @@ class SoundTest {
 
 const key = [];
 const url = 'twinbee.zip';
+const PRG1 = new Uint8Array(0x50000);
 let PRG2, SND;
 
 window.addEventListener('load', () => {
@@ -225,6 +232,10 @@ window.addEventListener('load', () => {
 });
 
 function success(zip) {
+	zip.files['400-a06.15l'].inflate().split('').forEach((c, i) => PRG1[i << 1] = c.charCodeAt(0));
+	zip.files['400-a04.10l'].inflate().split('').forEach((c, i) => PRG1[1 + (i << 1)] = c.charCodeAt(0));
+	zip.files['412-a07.17l'].inflate().split('').forEach((c, i) => PRG1[0x10000 + (i << 1)] = c.charCodeAt(0));
+	zip.files['412-a05.12l'].inflate().split('').forEach((c, i) => PRG1[0x10001 + (i << 1)] = c.charCodeAt(0));
 	PRG2 = new Uint8Array(zip.files['400-e03.5l'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	SND = new Uint8Array((zip.files['400-a01.fse'].inflate()+ zip.files['400-a02.fse'].inflate()).split('').map(c => c.charCodeAt(0)));
 	init({
