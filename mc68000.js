@@ -25,7 +25,7 @@ export default class MC68000 extends Cpu {
 		this.a5 = 0;
 		this.a6 = 0;
 		this.a7 = 0;
-//		this.ssp = 0;
+		this.ssp = 0;
 		this.usp = 0;
 		this.sr = 0; // sr:t-s--iii ccr:---xnzvc
 		this.memorymap.splice(0);
@@ -50,6 +50,8 @@ export default class MC68000 extends Cpu {
 	}
 
 	exception(vector) {
+		if ((this.sr & 0x2000) === 0)
+			[this.usp, this.a7] = [this.a7, this.ssp];
 		this.write32(this.pc, this.a7 = this.a7 - 4 | 0);
 		this.write16(this.sr, this.a7 = this.a7 - 2 | 0);
 		this.pc = this.read32(vector << 2);
@@ -133,6 +135,8 @@ export default class MC68000 extends Cpu {
 				this.rwop16(op, this.or16, this.fetch16());
 				break;
 			case 4: // ORI #<data>,SR
+				if ((this.sr & 0x2000) === 0)
+					return void this.exception(8);
 				this.sr |= this.fetch16();
 				break;
 			default:
@@ -260,7 +264,11 @@ export default class MC68000 extends Cpu {
 				this.rwop16(op, this.and16, this.fetch16());
 				break;
 			case 4: // ANDI #<data>,SR
+				if ((this.sr & 0x2000) === 0)
+					return void this.exception(8);
 				this.sr &= this.fetch16();
+				if ((this.sr & 0x2000) === 0)
+					[this.ssp, this.a7] = [this.a7, this.usp];
 				break;
 			default:
 				return void this.exception(4);
@@ -720,7 +728,7 @@ export default class MC68000 extends Cpu {
 				this.rwop8(op, this.eor8, this.fetch16());
 				break;
 			case 4: // EORI #<data>,CCR
-				this.sr |= this.fetch16() & 0xff;
+				this.sr ^= this.fetch16() & 0xff;
 				break;
 			default:
 				return void this.exception(4);
@@ -741,7 +749,11 @@ export default class MC68000 extends Cpu {
 				this.rwop16(op, this.eor16, this.fetch16());
 				break;
 			case 4: // EORI #<data>,SR
-				this.sr |= this.fetch16();
+				if ((this.sr & 0x2000) === 0)
+					return void this.exception(8);
+				this.sr ^= this.fetch16();
+				if ((this.sr & 0x2000) === 0)
+					[this.ssp, this.a7] = [this.a7, this.usp];
 				break;
 			default:
 				return void this.exception(4);
@@ -3622,12 +3634,20 @@ export default class MC68000 extends Cpu {
 		case 0o334: // MOVE -(An),SR
 		case 0o335: // MOVE d(An),SR
 		case 0o336: // MOVE d(An,Xi),SR
+			if ((this.sr & 0x2000) === 0)
+				return void this.exception(8);
 			this.sr = this.rop16(op);
+			if ((this.sr & 0x2000) === 0)
+				[this.ssp, this.a7] = [this.a7, this.usp];
 			break;
 		case 0o337: // MOVE Abs...,SR
 			if ((op & 7) >= 5)
 				return void this.exception(4);
+			if ((this.sr & 0x2000) === 0)
+				return void this.exception(8);
 			this.sr = this.rop16(op);
+			if ((this.sr & 0x2000) === 0)
+				[this.ssp, this.a7] = [this.a7, this.usp];
 			break;
 		case 0o360: // CHK Dn,D3
 		case 0o362: // CHK (An),D3
@@ -3865,25 +3885,37 @@ export default class MC68000 extends Cpu {
 			this.rwop32(op & 7 | 0o10, this.unlk);
 			break;
 		case 0o714: // MOVE An,USP
+			if ((this.sr & 0x2000) === 0)
+				return void this.exception(8);
 			this.usp = this.rop32(op & 7 | 0o10);
 			break;
 		case 0o715: // MOVE USP,An
+			if ((this.sr & 0x2000) === 0)
+				return void this.exception(8);
 			this.rwop32(op & 7 | 0o10, src => src, this.usp);
 			break;
 		case 0o716:
 			switch(op & 7) {
 			case 0: // RESET
+				if ((this.sr & 0x2000) === 0)
+					return void this.exception(8);
 				this.reset();
 				break;
 			case 1: // NOP
 				break;
 			case 2: // STOP
+				if ((this.sr & 0x2000) === 0)
+					return void this.exception(8);
 				this.fSuspend = true;
 				break;
 			case 3: // RTE
+				if ((this.sr & 0x2000) === 0)
+					return void this.exception(8);
 				this.sr = this.read16(this.a7);
 				this.pc = this.read32(this.a7 = this.a7 + 2 | 0);
 				this.a7 = this.a7 + 4 | 0;
+				if ((this.sr & 0x2000) === 0)
+					[this.ssp, this.a7] = [this.a7, this.usp];
 				break;
 			case 4: // RTD 68010
 				return void this.exception(4);
