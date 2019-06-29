@@ -4,7 +4,7 @@
  *
  */
 
-import SN76496 from './sn76496.js';
+import SN76489 from './sn76489.js';
 import Cpu, {init, loop} from './main.js';
 import Z80 from './z80.js';
 let sound;
@@ -668,9 +668,9 @@ function success(zip) {
 	init({
 		game: new StarForce(),
 		sound: sound = [
-			new SN76496({clock: 2000000, resolution: 3}),
-			new SN76496({clock: 2000000, resolution: 3}),
-			new SN76496({clock: 2000000, resolution: 3}),
+			new SN76489({clock: 2000000, resolution: 3}),
+			new SN76489({clock: 2000000, resolution: 3}),
+			new SN76489({clock: 2000000, resolution: 3}),
 		],
 	});
 	loop();

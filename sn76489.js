@@ -1,11 +1,11 @@
 /*
  *
- *	SN76496 Sound Module
+ *	SN76489 Sound Module
  *
  */
 
-const sn76496 = `
-registerProcessor('SN76496', class extends AudioWorkletProcessor {
+const sn76489 = `
+registerProcessor('SN76489', class extends AudioWorkletProcessor {
 	constructor (options) {
 		super(options);
 		const {processorOptions: {clock, resolution}} = options;
@@ -21,7 +21,7 @@ registerProcessor('SN76496', class extends AudioWorkletProcessor {
 		for (let i = 0; i < 3; i++)
 			this.channel.push({freq: 0, count: 0, output: 0});
 		this.ncount = 0;
-		this.rng = 0x10000;
+		this.rng = 0x4000;
 		this.port.onmessage = ({data: {wheel}}) => {
 			if (!wheel)
 				return;
@@ -46,7 +46,7 @@ registerProcessor('SN76496', class extends AudioWorkletProcessor {
 				const vol = ~reg[j * 2 + 1] & 0x0f;
 				data[i] += ((ch.output & 1) * 2 - 1) * (vol ? Math.pow(10, (vol - 15) / 10) : 0);
 			});
-			const nfreq = (reg[6] & 3) === 3 ? this.channel[2].freq << 1 : 4 << (reg[6] & 3), nvol = ~reg[7] & 0x0f;
+			const nfreq = (reg[6] & 3) === 3 ? this.channel[2].freq << 1 : 32 << (reg[6] & 3), nvol = ~reg[7] & 0x0f;
 			data[i] += ((this.rng & 1) * 2 - 1) * (nvol ? Math.pow(10, (nvol - 15) / 10) : 0);
 			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {
 				this.channel.forEach(ch => {
@@ -57,7 +57,7 @@ registerProcessor('SN76496', class extends AudioWorkletProcessor {
 				});
 				if ((--this.ncount & 0x7ff) === 0) {
 					this.ncount = nfreq;
-					this.rng = this.rng >>> 1 | (this.rng << 14 ^ this.rng << 13 & reg[6] << 14) & 0x10000;
+					this.rng = this.rng >>> 1 | (this.rng << 14 ^ this.rng << 13 & reg[6] << 12) & 0x4000;
 				}
 			}
 		});
@@ -71,14 +71,14 @@ registerProcessor('SN76496', class extends AudioWorkletProcessor {
 		else
 			this.reg[this.addr] = this.reg[this.addr] & 0x0f | data << 4 & 0x3f0;
 		if (this.addr === 6)
-			this.rng = 0x10000;
+			this.rng = 0x4000;
 	}
 });
 `;
 
-const addSN76496 = !audioCtx ? 0 : audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + sn76496) : new Promise((resolve, reject) => reject());
+const addSN76489 = !audioCtx ? 0 : audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + sn76489) : new Promise((resolve, reject) => reject());
 
-export default class SN76496 {
+export default class SN76489 {
 	constructor({clock, resolution = 1, gain = 0.1}) {
 		this.resolution = resolution;
 		this.gain = gain;
@@ -88,8 +88,8 @@ export default class SN76496 {
 		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
-		addSN76496.then(() => {
-			this.worklet = new AudioWorkletNode(audioCtx, 'SN76496', {processorOptions: {clock, resolution}});
+		addSN76489.then(() => {
+			this.worklet = new AudioWorkletNode(audioCtx, 'SN76489', {processorOptions: {clock, resolution}});
 			this.worklet.port.start();
 			this.source.connect(this.worklet).connect(this.gainNode).connect(audioCtx.destination);
 			this.source.start();
@@ -105,7 +105,7 @@ export default class SN76496 {
 			for (let i = 0; i < 3; i++)
 				this.channel.push({freq: 0, count: 0, output: 0});
 			this.ncount = 0;
-			this.rng = 0x10000;
+			this.rng = 0x4000;
 			this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 			this.scriptNode.onaudioprocess = ({outputBuffer}) => {
 				const reg = this.reg;
@@ -119,7 +119,7 @@ export default class SN76496 {
 						const vol = ~reg[j * 2 + 1] & 0x0f;
 						data[i] += ((ch.output & 1) * 2 - 1) * (vol ? Math.pow(10, (vol - 15) / 10) : 0);
 					});
-					const nfreq = (reg[6] & 3) === 3 ? this.channel[2].freq << 1 : 4 << (reg[6] & 3), nvol = ~reg[7] & 0x0f;
+					const nfreq = (reg[6] & 3) === 3 ? this.channel[2].freq << 1 : 32 << (reg[6] & 3), nvol = ~reg[7] & 0x0f;
 					data[i] += ((this.rng & 1) * 2 - 1) * (nvol ? Math.pow(10, (nvol - 15) / 10) : 0);
 					for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {
 						this.channel.forEach(ch => {
@@ -130,7 +130,7 @@ export default class SN76496 {
 						});
 						if ((--this.ncount & 0x7ff) === 0) {
 							this.ncount = nfreq;
-							this.rng = this.rng >>> 1 | (this.rng << 14 ^ this.rng << 13 & reg[6] << 14) & 0x10000;
+							this.rng = this.rng >>> 1 | (this.rng << 14 ^ this.rng << 13 & reg[6] << 12) & 0x4000;
 						}
 					}
 				});
@@ -177,7 +177,7 @@ export default class SN76496 {
 		else
 			this.reg[this.addr] = this.reg[this.addr] & 0x0f | data << 4 & 0x3f0;
 		if (this.addr === 6)
-			this.rng = 0x10000;
+			this.rng = 0x4000;
 	}
 }
 
