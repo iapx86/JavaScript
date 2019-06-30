@@ -65,7 +65,7 @@ class SoundTest {
 				break;
 			}
 		};
-		this.cpu2.memorymap[0xe1].write = (addr, data) => addr === 0xe106 && this.psg[0].addr !== 0xe && sound[0].write(this.psg[0].addr, data);
+		this.cpu2.memorymap[0xe1].write = (addr, data) => addr === 0xe106 && this.psg[0].addr !== 0xe && sound[0].write(this.psg[0].addr, data, this.count);
 		this.cpu2.memorymap[0xe2].read = addr => addr === 0xe205 ? sound[1].read(this.psg[1].addr) : 0xff;
 		this.cpu2.memorymap[0xe4].write = (addr, data) => {
 			if (addr === 0xe405) {
@@ -73,7 +73,7 @@ class SoundTest {
 					sound[2].write(0, this.scc.reg0 = data, this.count);
 				if (this.psg[1].addr === 0xf)
 					sound[2].write(1, this.scc.reg1 = data, this.count);
-				sound[1].write(this.psg[1].addr, data);
+				sound[1].write(this.psg[1].addr, data, this.count);
 			}
 		};
 

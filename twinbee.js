@@ -25,6 +25,7 @@ class TwinBee {
 		this.fCoin = 0;
 		this.fStart1P = 0;
 		this.fStart2P = 0;
+		this.fTurbo = 0;
 		this.nLife = 3;
 		this.nBonus = '30000 120000';
 		this.nRank = 'Normal';
@@ -149,13 +150,13 @@ class TwinBee {
 				break;
 			}
 		};
-		this.cpu2.memorymap[0xe1].write = (addr, data) => addr === 0xe106 && this.psg[0].addr !== 0xe && sound[0].write(this.psg[0].addr, data);
+		this.cpu2.memorymap[0xe1].write = (addr, data) => addr === 0xe106 && this.psg[0].addr !== 0xe && sound[0].write(this.psg[0].addr, data, this.count);
 		this.cpu2.memorymap[0xe2].read = addr => addr === 0xe205 ? sound[1].read(this.psg[1].addr) : 0xff;
 		this.cpu2.memorymap[0xe4].write = (addr, data) => {
 			if (addr === 0xe405) {
 				if ((this.psg[1].addr & 0xe) === 0xe)
 					sound[2].write(this.psg[1].addr & 1, data, this.count);
-				sound[1].write(this.psg[1].addr, data);
+				sound[1].write(this.psg[1].addr, data, this.count);
 			}
 		};
 
@@ -288,6 +289,10 @@ class TwinBee {
 		}
 		else
 			this.in[3] |= 1 << 4;
+
+		// 連射処理
+		if (this.fTurbo)
+			this.in[4] ^= 1 << 4;
 		return this;
 	}
 
@@ -343,6 +348,11 @@ class TwinBee {
 			this.in[4] &= ~(1 << 5);
 		else
 			this.in[4] |= 1 << 5;
+	}
+
+	triggerY(fDown) {
+		if ((this.fTurbo = fDown) === false)
+			this.in[4] |= 1 << 4;
 	}
 
 	makeBitmap(data) {
