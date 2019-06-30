@@ -134,8 +134,8 @@ class SoundTest {
 	right(fDown = false) {
 		if (fDown)
 			return this;
-		this.nSound = this.nSound + 1 & 0xff;
-		if (!this.nSound)
+		this.nSound = this.nSound + 1;
+		if (this.nSound >= 0x90)
 			this.nSound = 1;
 		return this;
 	}
@@ -147,9 +147,9 @@ class SoundTest {
 	left(fDown = false) {
 		if (fDown)
 			return this;
-		this.nSound = this.nSound - 1 & 0xff;
-		if (!this.nSound)
-			this.nSound = 0xff;
+		this.nSound = this.nSound - 1;
+		if (this.nSound < 1)
+			this.nSound = 0x8f;
 		return this;
 	}
 
