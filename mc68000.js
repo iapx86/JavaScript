@@ -510,7 +510,7 @@ export default class MC68000 extends Cpu {
 			this.rwop32(op, this.add32, this.fetch32());
 			break;
 		case 0o340: // BTST D3,Dn
-			this.btst32(this.d2, this.rop32(op));
+			this.btst32(this.d3, this.rop32(op));
 			break;
 		case 0o341: // MOVEP.W d(Ay),D3
 			this.d3 = this.d3 & ~0xffff | this.movep(op);
