@@ -575,52 +575,52 @@ class Gradius {
 		}
 	}
 
-	xferHxW(data, src, color, y, x, h, w, zoom) {
+	xferHxW(data, src, color, y0, x0, h, w, zoom) {
 		const dh = Math.floor(h * 0x80 / zoom), dw = Math.floor(w * 0x80 / zoom);
-		let px, i, j, dy = y + dh - 1 & 0x1ff, dx = x - dw + 1 & 0xff;
+		let px, i, j, y = y0 + dh - 1 & 0x1ff, x = x0 - dw + 1 & 0xff;
 
-		if (dh <= 256 && (y < 16 || y >= 272) && (dy < 16 || dy >= 272) || dw <= 32 && (x < 16 || x >= 240) && (dx < 16 || dx >= 240))
+		if (dh <= 256 && (y0 < 16 || y0 >= 272) && (y < 16 || y >= 272) || dw <= 32 && (x0 < 16 || x0 >= 240) && (x < 16 || x >= 240))
 			return;
-		for (dx = 0, i = 0; i >>> 7 < w; --dx, i += zoom)
-			for (dy = 0, j = 0; j >>> 7 < h; dy++, j += zoom)
+		for (x = x0, i = 0; i >>> 7 < w; --x, i += zoom)
+			for (y = y0, j = 0; j >>> 7 < h; y++, j += zoom)
 				if ((px = this.chr[src | j >>> 7 | (i >>> 7) * h]) !== 0)
-					data[y + dy << 8 & 0x1ff00 | x + dx & 0xff] = color | px;
+					data[y << 8 & 0x1ff00 | x & 0xff] = color | px;
 	}
 
-	xferHxW_V(data, src, color, y, x, h, w, zoom) {
+	xferHxW_V(data, src, color, y0, x0, h, w, zoom) {
 		const dh = Math.floor(h * 0x80 / zoom), dw = Math.floor(w * 0x80 / zoom);
-		let px, i, j, dy = y + dh - 1 & 0x1ff, dx = x - dw + 1 & 0xff;
+		let px, i, j, y = y0 + dh - 1 & 0x1ff, x = x0 - dw + 1 & 0xff;
 
-		if (dh <= 256 && (y < 16 || y >= 272) && (dy < 16 || dy >= 272) || dw <= 32 && (x < 16 || x >= 240) && (dx < 16 || dx >= 240))
+		if (dh <= 256 && (y0 < 16 || y0 >= 272) && (y < 16 || y >= 272) || dw <= 32 && (x0 < 16 || x0 >= 240) && (x < 16 || x >= 240))
 			return;
-		for (dx = 0, i = 0; i >>> 7 < w; --dx, i += zoom)
-			for (dy = dh - 1, j = 0; j >>> 7 < h; --dy, j += zoom)
+		for (x = x0, i = 0; i >>> 7 < w; --x, i += zoom)
+			for (y = y0 + dh - 1, j = 0; j >>> 7 < h; --y, j += zoom)
 				if ((px = this.chr[src | j >>> 7 | (i >>> 7) * h]) !== 0)
-					data[y + dy << 8 & 0x1ff00 | x + dx & 0xff] = color | px;
+					data[y << 8 & 0x1ff00 | x & 0xff] = color | px;
 	}
 
-	xferHxW_H(data, src, color, y, x, h, w, zoom) {
+	xferHxW_H(data, src, color, y0, x0, h, w, zoom) {
 		const dh = Math.floor(h * 0x80 / zoom), dw = Math.floor(w * 0x80 / zoom);
-		let px, i, j, dy = y + dh - 1 & 0x1ff, dx = x - dw + 1 & 0xff;
+		let px, i, j, y = y0 + dh - 1 & 0x1ff, x = x0 - dw + 1 & 0xff;
 
-		if (dh <= 256 && (y < 16 || y >= 272) && (dy < 16 || dy >= 272) || dw <= 32 && (x < 16 || x >= 240) && (dx < 16 || dx >= 240))
+		if (dh <= 256 && (y0 < 16 || y0 >= 272) && (y < 16 || y >= 272) || dw <= 32 && (x0 < 16 || x0 >= 240) && (x < 16 || x >= 240))
 			return;
-		for (dx = -dw + 1, i = 0; i >>> 7 < w; dx++, i += zoom)
-			for (dy = 0, j = 0; j >>> 7 < h; dy++, j += zoom)
+		for (x = x0 - dw + 1, i = 0; i >>> 7 < w; x++, i += zoom)
+			for (y = y0, j = 0; j >>> 7 < h; y++, j += zoom)
 				if ((px = this.chr[src | j >>> 7 | (i >>> 7) * h]) !== 0)
-					data[y + dy << 8 & 0x1ff00 | x + dx & 0xff] = color | px;
+					data[y << 8 & 0x1ff00 | x & 0xff] = color | px;
 	}
 
-	xferHxW_HV(data, src, color, y, x, h, w, zoom) {
+	xferHxW_HV(data, src, color, y0, x0, h, w, zoom) {
 		const dh = Math.floor(h * 0x80 / zoom), dw = Math.floor(w * 0x80 / zoom);
-		let px, i, j, dy = y + dh - 1 & 0x1ff, dx = x - dw + 1 & 0xff;
+		let px, i, j, y = y0 + dh - 1 & 0x1ff, x = x0 - dw + 1 & 0xff;
 
-		if (dh <= 256 && (y < 16 || y >= 272) && (dy < 16 || dy >= 272) || dw <= 32 && (x < 16 || x >= 240) && (dx < 16 || dx >= 240))
+		if (dh <= 256 && (y0 < 16 || y0 >= 272) && (y < 16 || y >= 272) || dw <= 32 && (x0 < 16 || x0 >= 240) && (x < 16 || x >= 240))
 			return;
-		for (dx = -dw + 1, i = 0; i >>> 7 < w; dx++, i += zoom)
-			for (dy = dh - 1, j = 0; j >>> 7 < h; --dy, j += zoom)
+		for (x = x0 - dw + 1, i = 0; i >>> 7 < w; x++, i += zoom)
+			for (y = y0 + dh - 1, j = 0; j >>> 7 < h; --y, j += zoom)
 				if ((px = this.chr[src | j >>> 7 | (i >>> 7) * h]) !== 0)
-					data[y + dy << 8 & 0x1ff00 | x + dx & 0xff] = color | px;
+					data[y << 8 & 0x1ff00 | x & 0xff] = color | px;
 	}
 }
 
