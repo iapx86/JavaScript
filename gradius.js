@@ -576,51 +576,51 @@ class Gradius {
 	}
 
 	xferHxW(data, src, color, y0, x0, h, w, zoom) {
-		const dh = Math.floor(h * 0x80 / zoom), dw = Math.floor(w * 0x80 / zoom);
-		let px, i, j, y = y0 + dh - 1 & 0x1ff, x = x0 - dw + 1 & 0xff;
+		const dh = Math.floor(h * 0x80 / zoom), dw = Math.floor(w * 0x80 / zoom), y1 = y0 + dh - 1 & 0x1ff, x1 = x0 - dw + 1 & 0xff;
+		let px;
 
-		if (dh <= 256 && (y0 < 16 || y0 >= 272) && (y < 16 || y >= 272) || dw <= 32 && (x0 < 16 || x0 >= 240) && (x < 16 || x >= 240))
+		if (dh <= 256 && (y0 < 16 || y0 >= 272) && (y1 < 16 || y1 >= 272) || dw <= 32 && (x0 < 16 || x0 >= 240) && (x1 < 16 || x1 >= 240))
 			return;
-		for (x = x0, i = 0; i >>> 7 < w; --x, i += zoom)
-			for (y = y0, j = 0; j >>> 7 < h; y++, j += zoom)
-				if ((px = this.chr[src | j >>> 7 | (i >>> 7) * h]) !== 0)
-					data[y << 8 & 0x1ff00 | x & 0xff] = color | px;
+		for (let x = x0, i = 0; i >>> 7 < w; x = x - 1 & 0xff, i += zoom)
+			for (let y = y0, j = 0; j >>> 7 < h; y = y + 1 & 0x1ff, j += zoom)
+				if ((px = this.chr[src | (i >>> 7) * h | j >>> 7]) !== 0)
+					data[y << 8 | x] = color | px;
 	}
 
 	xferHxW_V(data, src, color, y0, x0, h, w, zoom) {
-		const dh = Math.floor(h * 0x80 / zoom), dw = Math.floor(w * 0x80 / zoom);
-		let px, i, j, y = y0 + dh - 1 & 0x1ff, x = x0 - dw + 1 & 0xff;
+		const dh = Math.floor(h * 0x80 / zoom), dw = Math.floor(w * 0x80 / zoom), y1 = y0 + dh - 1 & 0x1ff, x1 = x0 - dw + 1 & 0xff;
+		let px;
 
-		if (dh <= 256 && (y0 < 16 || y0 >= 272) && (y < 16 || y >= 272) || dw <= 32 && (x0 < 16 || x0 >= 240) && (x < 16 || x >= 240))
+		if (dh <= 256 && (y0 < 16 || y0 >= 272) && (y1 < 16 || y1 >= 272) || dw <= 32 && (x0 < 16 || x0 >= 240) && (x1 < 16 || x1 >= 240))
 			return;
-		for (x = x0, i = 0; i >>> 7 < w; --x, i += zoom)
-			for (y = y0 + dh - 1, j = 0; j >>> 7 < h; --y, j += zoom)
-				if ((px = this.chr[src | j >>> 7 | (i >>> 7) * h]) !== 0)
-					data[y << 8 & 0x1ff00 | x & 0xff] = color | px;
+		for (let x = x0, i = 0; i >>> 7 < w; x = x - 1 & 0xff, i += zoom)
+			for (let y = y1, j = 0; j >>> 7 < h; y = y - 1 & 0x1ff, j += zoom)
+				if ((px = this.chr[src | (i >>> 7) * h | j >>> 7]) !== 0)
+					data[y << 8 | x] = color | px;
 	}
 
 	xferHxW_H(data, src, color, y0, x0, h, w, zoom) {
-		const dh = Math.floor(h * 0x80 / zoom), dw = Math.floor(w * 0x80 / zoom);
-		let px, i, j, y = y0 + dh - 1 & 0x1ff, x = x0 - dw + 1 & 0xff;
+		const dh = Math.floor(h * 0x80 / zoom), dw = Math.floor(w * 0x80 / zoom), y1 = y0 + dh - 1 & 0x1ff, x1 = x0 - dw + 1 & 0xff;
+		let px;
 
-		if (dh <= 256 && (y0 < 16 || y0 >= 272) && (y < 16 || y >= 272) || dw <= 32 && (x0 < 16 || x0 >= 240) && (x < 16 || x >= 240))
+		if (dh <= 256 && (y0 < 16 || y0 >= 272) && (y1 < 16 || y1 >= 272) || dw <= 32 && (x0 < 16 || x0 >= 240) && (x1 < 16 || x1 >= 240))
 			return;
-		for (x = x0 - dw + 1, i = 0; i >>> 7 < w; x++, i += zoom)
-			for (y = y0, j = 0; j >>> 7 < h; y++, j += zoom)
-				if ((px = this.chr[src | j >>> 7 | (i >>> 7) * h]) !== 0)
-					data[y << 8 & 0x1ff00 | x & 0xff] = color | px;
+		for (let x = x1, i = 0; i >>> 7 < w; x = x + 1 & 0xff, i += zoom)
+			for (let y = y0, j = 0; j >>> 7 < h; y = y + 1 & 0x1ff, j += zoom)
+				if ((px = this.chr[src | (i >>> 7) * h | j >>> 7]) !== 0)
+					data[y << 8 | x] = color | px;
 	}
 
 	xferHxW_HV(data, src, color, y0, x0, h, w, zoom) {
-		const dh = Math.floor(h * 0x80 / zoom), dw = Math.floor(w * 0x80 / zoom);
-		let px, i, j, y = y0 + dh - 1 & 0x1ff, x = x0 - dw + 1 & 0xff;
+		const dh = Math.floor(h * 0x80 / zoom), dw = Math.floor(w * 0x80 / zoom), y1 = y0 + dh - 1 & 0x1ff, x1 = x0 - dw + 1 & 0xff;
+		let px;
 
-		if (dh <= 256 && (y0 < 16 || y0 >= 272) && (y < 16 || y >= 272) || dw <= 32 && (x0 < 16 || x0 >= 240) && (x < 16 || x >= 240))
+		if (dh <= 256 && (y0 < 16 || y0 >= 272) && (y1 < 16 || y1 >= 272) || dw <= 32 && (x0 < 16 || x0 >= 240) && (x1 < 16 || x1 >= 240))
 			return;
-		for (x = x0 - dw + 1, i = 0; i >>> 7 < w; x++, i += zoom)
-			for (y = y0 + dh - 1, j = 0; j >>> 7 < h; --y, j += zoom)
-				if ((px = this.chr[src | j >>> 7 | (i >>> 7) * h]) !== 0)
-					data[y << 8 & 0x1ff00 | x & 0xff] = color | px;
+		for (let x = x1, i = 0; i >>> 7 < w; x = x + 1 & 0xff, i += zoom)
+			for (let y = y1, j = 0; j >>> 7 < h; y = y - 1 & 0x1ff, j += zoom)
+				if ((px = this.chr[src | (i >>> 7) * h | j >>> 7]) !== 0)
+					data[y << 8 | x] = color | px;
 	}
 }
 
