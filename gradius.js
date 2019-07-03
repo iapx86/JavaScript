@@ -720,7 +720,7 @@ function success(zip) {
 	zip.files['gradius/456-a07.17l'].inflate().split('').forEach((c, i) => PRG1[0x10000 + (i << 1)] = c.charCodeAt(0));
 	zip.files['gradius/456-a05.12l'].inflate().split('').forEach((c, i) => PRG1[0x10001 + (i << 1)] = c.charCodeAt(0));
 	PRG2 = new Uint8Array(zip.files['gradius/400-e03.5l'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	SND = new Uint8Array((zip.files['400-a01.fse'].inflate()+ zip.files['400-a02.fse'].inflate()).split('').map(c => c.charCodeAt(0)));
+	SND = new Uint8Array((zip.files['400-a01.fse'].inflate() + zip.files['400-a02.fse'].inflate()).split('').map(c => c.charCodeAt(0)));
 	init({
 		game: game = new Gradius(),
 		sound: sound = [
