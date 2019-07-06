@@ -6,6 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import K005289 from './k005289.js';
+import VLM5030 from './vlm5030.js';
 import {init, loop} from './main.js';
 import MC68000 from  './mc68000.js';
 import Z80 from './z80.js';
@@ -36,10 +37,12 @@ class Gradius {
 		this.fInterrupt4Enable = false;
 
 		this.ram = new Uint8Array(0x49000).addBase();
-		this.ram2 = new Uint8Array(0x4800).addBase();
+		this.ram2 = new Uint8Array(0x4000).addBase();
+		this.vlm = new Uint8Array(0x800).addBase();
 		this.in = Uint8Array.of(0xff, 0x53, 0xff, 0xff, 0xff, 0xff);
 		this.psg = [{addr: 0}, {addr: 0}];
 		this.scc = {freq0: 0, freq1: 0};
+		this.vlm_latch = 0;
 		this.count = 0;
 		this.timer = 0;
 		this.command = [];
@@ -111,9 +114,13 @@ class Gradius {
 		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
-		for (let i = 0; i < 0x48; i++) {
+		for (let i = 0; i < 0x40; i++) {
 			this.cpu2.memorymap[0x40 + i].base = this.ram2.base[i];
 			this.cpu2.memorymap[0x40 + i].write = null;
+		}
+		for (let i = 0; i < 8; i++) {
+			this.cpu2.memorymap[0x80 + i].base = this.vlm.base[i];
+			this.cpu2.memorymap[0x80 + i].write = null;
 		}
 		for (let i = 0; i < 0x10; i++) {
 			this.cpu2.memorymap[0xa0 + i].write = addr => this.scc.freq0 = ~addr & 0xfff;
@@ -131,7 +138,7 @@ class Gradius {
 		this.cpu2.memorymap[0xe0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				// vlm5030
+				this.vlm_latch = data;
 				break;
 			case 3:
 				sound[2].write(2, this.scc.freq0, this.count);
@@ -146,7 +153,7 @@ class Gradius {
 				this.psg[0].addr = data;
 				break;
 			case 0x30:
-				// speech start
+				sound[3].st(this.vlm_latch);
 				break;
 			}
 		};
@@ -194,7 +201,7 @@ class Gradius {
 		}
 		for (this.count = 0; this.count < 58; this.count++) { // 14318180 / 4 / 60 / 1024
 			this.command.length && this.cpu2.interrupt();
-			sound[0].write(0x0e, this.timer & 0x2f | 0xd0);
+			sound[0].write(0x0e, this.timer & 0x2f | sound[3].BSY << 5 | 0xd0);
 			this.cpu2.execute(146);
 			this.timer = this.timer + 1 & 0xff;
 		}
@@ -727,6 +734,7 @@ function success(zip) {
 			new AY_3_8910({clock: 14318180 / 8, resolution: 58, gain: 0.3}),
 			new AY_3_8910({clock: 14318180 / 8, resolution: 58, gain: 0.3}),
 			new K005289({SND, clock: 14318180 / 4, resolution: 58, gain: 0.3}),
+			new VLM5030({VLM: game.vlm, clock: 14318180 / 4, gain: 5}),
 		],
 		rotate: true,
 		keydown, keyup,
