@@ -24,47 +24,33 @@ export default class VLM5030 {
 		this.pcount = 0;
 		this.pitch0 = 0;
 		this.energy0 = 0;
-		this.k0 = new Int16Array(10).fill(0);
+		this.k0 = new Int16Array(10);
 		this.npitch = 0;
 		this.nenergy = 0;
-		this.nk = new Int16Array(10).fill(0);
+		this.nk = new Int16Array(10);
 		this.pitch1 = 0;
 		this.energy1 = 0;
 		this.k1 = this.k0;
 		this.pitch = 0;
 		this.energy = 0;
-		this.k = new Int16Array(10).fill(0);
-		this.x = new Int32Array(10).fill(0);
+		this.k = new Int16Array(10);
+		this.x = new Int32Array(10);
 		this.output = 0;
 		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => {
 			outputBuffer.getChannelData(0).forEach((e, i, data) => {
 				data[i] = this.output;
 				for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {
-					if (!this.BSY)
+					if (this.BSY === 0)
 						continue;
 					if (this.scount === 0) {
 						this.scount = [40, 30, 20, 20, 40, 60, 50, 50][this.param >>> 3 & 7];
 						if (this.icount === 0) {
 							[this.pitch0, this.energy0, this.k0] = [this.npitch, this.nenergy, this.nk];
+							this.npitch = this.nenergy = 0;
 							this.nk = new Int16Array(10);
-							const frame = this.base[this.offset];
-							if ((frame & 1) !== 0) {
-								this.nenergy = this.npitch = 0;
-								this.nk.fill(0);
-								if ((frame & 2) === 0) {
-									this.offset++;
-									this.icount = (frame & 0xc) + 4 << 1;
-								}
-								else if (this.energy0 === 0) {
-									this.BSY = 0;
-									continue;
-								}
-								else
-									this.icount = 4;
-							}
-							else {
-								const frame = this.base.subarray(this.offset, this.offset + 6);
+							const frame = this.base.subarray(this.offset);
+							if ((frame[0] & 1) === 0) {
 								this.npitch = VLM5030.table.p[frame[0] >>> 1 & 0x1f] + [0, 8, -8, -8][this.param >>> 6 & 3] & 0xff;
 								this.nenergy = VLM5030.table.e[frame[0] >>> 6 | frame[1] << 2 & 0x1c];
 								this.nk[9] = VLM5030.table.k4_9[frame[1] >>> 3 & 7];
@@ -74,16 +60,26 @@ export default class VLM5030 {
 								this.nk[5] = VLM5030.table.k4_9[frame[2] >>> 7 | frame[3] << 1 & 6];
 								this.nk[4] = VLM5030.table.k4_9[frame[3] >>> 2 & 7];
 								this.nk[3] = VLM5030.table.k2_3[frame[3] >>> 5 | frame[4] << 3 & 8];
-								this.nk[2] = VLM5030.table.k2_3[frame[4] >>> 1 & 15];
+								this.nk[2] = VLM5030.table.k2_3[frame[4] >>> 1 & 0xf];
 								this.nk[1] = VLM5030.table.k1[frame[4] >>> 5 | frame[5] << 3 & 0x18];
 								this.nk[0] = VLM5030.table.k0[frame[5] >>> 2];
 								this.offset += 6;
 								this.icount = 4;
 							}
-							if (this.energy0 === 0)
-								[this.pitch1, this.energy1, this.k1] = [this.pitch0, this.energy0, this.k0];
-							else
+							else if ((frame[0] & 2) === 0) {
+								this.offset++;
+								this.icount = (frame[0] & 0xc) + 4 << 1;
+							}
+							else if (this.energy0 !== 0)
+								this.icount = 4;
+							else {
+								this.BSY = 0;
+								continue;
+							}
+							if (this.energy0 !== 0)
 								[this.pitch1, this.energy1, this.k1] = [this.npitch, this.nenergy, this.nk];
+							else
+								[this.pitch1, this.energy1, this.k1] = [this.pitch0, this.energy0, this.k0];
 						}
 						const ieffect = ~(this.icount -= [1, 2, 4, 4][this.param & 3]) & 3 + 1;
 						this.pitch = this.pitch0 > 1 ? this.pitch0 + ((this.pitch1 - this.pitch0) * ieffect >> 2) : 0;
