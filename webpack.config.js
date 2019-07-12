@@ -71,6 +71,7 @@ const list2 = [
 	{name: 'sound_test5', title: 'Sound Test 5'},
 	{name: 'sound_test6', title: 'Sound Test 6'},
 	{name: 'sound_test7', title: 'Sound Test 7'},
+	{name: 'sound_test8', title: 'Sound Test 8'},
 ];
 
 module.exports = {
