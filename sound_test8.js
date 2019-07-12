@@ -27,7 +27,6 @@ class SoundTest {
 		this.command = [];
 
 		this.cpu2 = new Z80(this);
-		this.cpu2.nmi = false;
 		for (let i = 0; i < 0x80; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
 		this.cpu2.memorymap[0xe8].read = addr => addr === 0xe800 && this.command.length ? this.command.shift() : 0xff;
