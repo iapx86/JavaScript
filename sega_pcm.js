@@ -67,7 +67,7 @@ registerProcessor('SegaPCM', class extends AudioWorkletProcessor {
 const addSegaPCM = !audioCtx ? 0 : audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + segaPCM) : new Promise((resolve, reject) => reject());
 
 export default class SegaPCM {
-	constructor({PCM, clock, resolution = 1, gain = 0.1}) {
+	constructor({PCM, clock, resolution = 1, gain = 1}) {
 		this.ram = new Uint8Array(0x800);
 		this.resolution = resolution;
 		this.gain = gain;

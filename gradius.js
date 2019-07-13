@@ -169,7 +169,7 @@ class Gradius {
 
 		// Videoの初期化
 		this.chr = new Uint8Array(0x20000);
-		this.rgb = new Uint32Array(0x800);
+		this.rgb = new Uint32Array(0x800).fill(0xff000000);
 		this.flip = 0;
 
 		// 輝度の計算

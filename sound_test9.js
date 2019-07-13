@@ -217,8 +217,8 @@ function success(zip) {
 	init({
 		game: game = new SoundTest(),
 		sound: sound = [
-			new YM2151({clock: 4000000, resolution: 65, gain: 5}),
-			new SegaPCM({PCM, clock: 4000000, resolution: 65, gain: 2}),
+			new YM2151({clock: 4000000, resolution: 65}),
+			new SegaPCM({PCM, clock: 4000000, resolution: 65}),
 		],
 	});
 	canvas.addEventListener('click', () => game.triggerA().right());

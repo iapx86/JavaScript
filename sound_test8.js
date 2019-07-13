@@ -208,7 +208,7 @@ function success(zip) {
 	PRG2 = new Uint8Array(zip.files['fantzone1/epr-7535.12'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	init({
 		game: game = new SoundTest(),
-		sound: sound = new YM2151({clock: 4000000, resolution: 65, gain: 5}),
+		sound: sound = new YM2151({clock: 4000000, resolution: 65}),
 	});
 	canvas.addEventListener('click', () => game.triggerA().right());
 	loop();
