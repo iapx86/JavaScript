@@ -387,13 +387,13 @@ class FantasyZone {
 		for (let p = 0x9000; p < 0x9800; p += 0x10) {
 			const x1 = ~this.ram[p] & 0xff, x0 = ~this.ram[p + 1] & 0xff;
 			const y0 = (this.ram[p + 2] << 8 & 0x100 | this.ram[p + 3]) - 173 & 0x1ff;
-			if ((this.ram[p + 9] & 3) !== cat || x1 < 0x0f || x0 <= x1 || y0 >= 336)
+			if ((this.ram[p + 9] & 3) !== cat || x1 < 0x0f || x0 <= x1)
 				continue;
 			const pitch = this.ram[p + 4] << 9 | this.ram[p + 5] << 1;
 			const idx = this.ram[p + 8] << 4 & 0x3f0 | 0x400, bank = this.ram[p + 9] << 12 & 0x30000;
 			for (let addr = this.ram[p + 6] << 9 | this.ram[p + 7] << 1, x = x0; x > x1; --x) {
 				if (((addr += pitch) & 0x10000) === 0)
-					for (let a = addr & 0xfffe, y = y0, px = 0; px !== 0xf; a = a + 2 & 0xfffe, y += 4) {
+					for (let a = addr & 0xfffe, y = y0, px = 0; px !== 0xf && y < y0 + 512; a = a + 2 & 0xfffe, y += 4) {
 						let px0 = OBJ[a | bank], px1 = OBJ[1 | a | bank];
 						if ((px = px0 >>> 4) !== 0 && px !== 0xf)
 							data[x - 17 & 0xff | y << 8 & 0x1ff00] = idx | px;
@@ -405,7 +405,7 @@ class FantasyZone {
 							data[x - 17 & 0xff | y + 3 << 8 & 0x1ff00] = idx | px;
 					}
 				else
-					for (let a = addr & 0xfffe, y = y0, px = 0; px !== 0xf; a = a - 2 & 0xfffe, y += 4) {
+					for (let a = addr & 0xfffe, y = y0, px = 0; px !== 0xf && y < y0 + 512; a = a - 2 & 0xfffe, y += 4) {
 						let px0 = OBJ[a | bank], px1 = OBJ[1 | a | bank];
 						if ((px = px1 & 0xf) !== 0 && px !== 0xf)
 							data[x - 17 & 0xff | y << 8 & 0x1ff00] = idx | px;
@@ -603,10 +603,10 @@ let BG, PRG2;
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
 function success(zip) {
-	zip.files['fantzone1/epr-7385.43'].inflate().split('').forEach((c, i) => PRG1[i << 1] = c.charCodeAt(0));
-	zip.files['fantzone1/epr-7382.26'].inflate().split('').forEach((c, i) => PRG1[1 | i << 1] = c.charCodeAt(0));
-	zip.files['fantzone1/epr-7386.42'].inflate().split('').forEach((c, i) => PRG1[0x10000 | i << 1] = c.charCodeAt(0));
-	zip.files['fantzone1/epr-7383.25'].inflate().split('').forEach((c, i) => PRG1[0x10001 | i << 1] = c.charCodeAt(0));
+	zip.files['epr-7385a.43'].inflate().split('').forEach((c, i) => PRG1[i << 1] = c.charCodeAt(0));
+	zip.files['epr-7382a.26'].inflate().split('').forEach((c, i) => PRG1[1 | i << 1] = c.charCodeAt(0));
+	zip.files['epr-7386a.42'].inflate().split('').forEach((c, i) => PRG1[0x10000 | i << 1] = c.charCodeAt(0));
+	zip.files['epr-7383a.25'].inflate().split('').forEach((c, i) => PRG1[0x10001 | i << 1] = c.charCodeAt(0));
 	zip.files['epr-7387.41'].inflate().split('').forEach((c, i) => PRG1[0x20000 | i << 1] = c.charCodeAt(0));
 	zip.files['epr-7384.24'].inflate().split('').forEach((c, i) => PRG1[0x20001 | i << 1] = c.charCodeAt(0));
 	BG = new Uint8Array((zip.files['epr-7388.95'].inflate() + zip.files['epr-7389.94'].inflate() + zip.files['epr-7390.93'].inflate()).split('').map(c => c.charCodeAt(0)));
@@ -616,7 +616,7 @@ function success(zip) {
 	zip.files['epr-7397.18'].inflate().split('').forEach((c, i) => OBJ[0x10000 | i << 1] = c.charCodeAt(0));
 	zip.files['epr-7394.23'].inflate().split('').forEach((c, i) => OBJ[0x20001 | i << 1] = c.charCodeAt(0));
 	zip.files['epr-7398.24'].inflate().split('').forEach((c, i) => OBJ[0x20000 | i << 1] = c.charCodeAt(0));
-	PRG2 = new Uint8Array(zip.files['fantzone1/epr-7535.12'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+	PRG2 = new Uint8Array(zip.files['epr-7535a.12'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	init({
 		game: new FantasyZone(),
 		sound: sound = new YM2151({clock: 4000000, resolution: 65}),
