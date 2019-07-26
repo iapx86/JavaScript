@@ -56,471 +56,324 @@ export default class MCS6502 extends Cpu {
 			this.push(this.ccr |= 0x10);
 			this.ccr |= 0x04;
 			this.pc = this.read(0xfffe) | this.read(0xffff) << 8;
-			break;
+			return;
 		case 0x01: // ORA (n,X)
-			this.ora(this.indx());
-			break;
+			return void this.ora(this.indx());
 		case 0x05: // ORA n
-			this.ora(this.fetch());
-			break;
+			return void this.ora(this.fetch());
 		case 0x06: // ASL
-			this.asl(this.fetch());
-			break;
+			return void this.asl(this.fetch());
 		case 0x08: // PHP
-			this.push(this.ccr);
-			break;
+			return void this.push(this.ccr);
 		case 0x09: // ORA #n
-			this.ora(null);
-			break;
+			return void this.ora(null);
 		case 0x0a: // ASLA
 			this.a = (v = MCS6502.aRl[0][this.a]) & 0xff;
 			this.ccr = this.ccr & ~0x83 | v >>> 8;
-			break;
+			return;
 		case 0x0d: // ORA nn
-			this.ora(this.abs());
-			break;
+			return void this.ora(this.abs());
 		case 0x0e: // ASL n
-			this.asl(this.abs());
-			break;
+			return void this.asl(this.abs());
 		case 0x10: // BPL
-			this.bcc((this.ccr & 0x80) === 0);
-			break;
+			return void this.bcc((this.ccr & 0x80) === 0);
 		case 0x11: // ORA (n),Y
-			this.ora(this.indy());
-			break;
+			return void this.ora(this.indy());
 		case 0x15: // ORA n,X
-			this.ora(this.zpx());
-			break;
+			return void this.ora(this.zpx());
 		case 0x16: // ASL n,X
-			this.asl(this.zpx());
-			break;
+			return void this.asl(this.zpx());
 		case 0x18: // CLC
-			this.ccr &= ~1;
-			break;
+			return void(this.ccr &= ~1);
 		case 0x19: // ORA nn,Y
-			this.ora(this.absy());
-			break;
+			return void this.ora(this.absy());
 		case 0x1d: // ORA nn,X
-			this.ora(this.absx());
-			break;
+			return void this.ora(this.absx());
 		case 0x1e: // ASL nn,X
-			this.asl(this.absx());
-			break;
+			return void this.asl(this.absx());
 		case 0x20: // JSR nn
 			ea = this.abs();
 			this.push(this.pc >>> 8);
 			this.push(this.pc & 0xff);
 			this.pc = ea;
-			break;
+			return;
 		case 0x21: // AND (n,X)
-			this.and(this.indx());
-			break;
+			return void this.and(this.indx());
 		case 0x24: // BIT n
-			this.bit(this.fetch());
-			break;
+			return void this.bit(this.fetch());
 		case 0x25: // AND n
-			this.and(this.fetch());
-			break;
+			return void this.and(this.fetch());
 		case 0x26: // ROL n
-			this.rol(this.fetch());
-			break;
+			return void this.rol(this.fetch());
 		case 0x28: // PLP
-			this.ccr = this.pull() | 0x20;
-			break;
+			return void(this.ccr = this.pull() | 0x20);
 		case 0x29: // AND #n
-			this.and(null);
-			break;
+			return void this.and(null);
 		case 0x2a: // ROLA
 			this.a = (v = MCS6502.aRl[this.ccr & 1][this.a]) & 0xff;
 			this.ccr = this.ccr & ~0x83 | v >>> 8;
-			break;
+			return;
 		case 0x2c: // BIT nn
-			this.bit(this.abs());
-			break;
+			return void this.bit(this.abs());
 		case 0x2d: // AND nn
-			this.and(this.abs());
-			break;
+			return void this.and(this.abs());
 		case 0x2e: // ROL nn
-			this.rol(this.abs());
-			break;
+			return void this.rol(this.abs());
 		case 0x30: // BMI
-			this.bcc((this.ccr & 0x80) !== 0);
-			break;
+			return void this.bcc((this.ccr & 0x80) !== 0);
 		case 0x31: // AND (n),Y
-			this.and(this.indy());
-			break;
+			return void this.and(this.indy());
 		case 0x35: // AND n,X
-			this.and(this.zpx());
-			break;
+			return void this.and(this.zpx());
 		case 0x36: // ROL n,X
-			this.rol(this.zpx());
-			break;
+			return void this.rol(this.zpx());
 		case 0x38: // SEC
-			this.ccr |= 1;
-			break;
+			return void(this.ccr |= 1);
 		case 0x39: // AND nn,Y
-			this.and(this.absy());
-			break;
+			return void this.and(this.absy());
 		case 0x3d: // AND nn,X
-			this.and(this.absx());
-			break;
+			return void this.and(this.absx());
 		case 0x3e: // ROL nn,X
-			this.rol(this.absx());
-			break;
+			return void this.rol(this.absx());
 		case 0x40: // RTI
-			this.ccr = this.pull() | 0x20;
-			this.pc = this.pull();
-			this.pc |= this.pull() << 8;
-			break;
+			return void([this.ccr, this.pc] = [this.pull() | 0x20, this.pull() | this.pull() << 8]);
 		case 0x41: // EOR (n,X)
-			this.eor(this.indx());
-			break;
+			return void this.eor(this.indx());
 		case 0x45: // EOR n
-			this.eor(this.fetch());
-			break;
+			return void this.eor(this.fetch());
 		case 0x46: // LSR n
-			this.lsr(this.fetch());
-			break;
+			return void this.lsr(this.fetch());
 		case 0x48: // PHA
-			this.push(this.a);
-			break;
+			return void this.push(this.a);
 		case 0x49: // EOR #n
-			this.eor(null);
-			break;
+			return void this.eor(null);
 		case 0x4a: // LSRA
 			this.a = (v = MCS6502.aRr[0][this.a]) & 0xff;
 			this.ccr = this.ccr & ~0x83 | v >>> 8;
-			break;
+			return;
 		case 0x4c: // JMP nn
-			this.pc = this.abs();
-			break;
+			return void(this.pc = this.abs());
 		case 0x4d: // EOR nn
-			this.eor(this.abs());
-			break;
+			return void this.eor(this.abs());
 		case 0x4e: // LSR nn
-			this.lsr(this.abs());
-			break;
+			return void this.lsr(this.abs());
 		case 0x50: // BVC
-			this.bcc((this.ccr & 0x40) === 0);
-			break;
+			return void this.bcc((this.ccr & 0x40) === 0);
 		case 0x51: // EOR (n),Y
-			this.eor(this.indy());
-			break;
+			return void this.eor(this.indy());
 		case 0x55: // EOR n,X
-			this.eor(this.zpx());
-			break;
+			return void this.eor(this.zpx());
 		case 0x56: // LSR n,X
-			this.lsr(this.zpx());
-			break;
+			return void this.lsr(this.zpx());
 		case 0x58: // CLI
-			this.ccr &= ~4;
-			break;
+			return void(this.ccr &= ~4);
 		case 0x59: // EOR nn,Y
-			this.eor(this.absy());
-			break;
+			return void this.eor(this.absy());
 		case 0x5d: // EOR nn,X
-			this.eor(this.absx());
-			break;
+			return void this.eor(this.absx());
 		case 0x5e: // LSR nn,X
-			this.lsr(this.absx());
-			break;
+			return void this.lsr(this.absx());
 		case 0x60: // RTS
-			this.pc = this.pull();
-			this.pc |= this.pull() << 8;
-			break;
+			return void(this.pc = this.pull() | this.pull() << 8);
 		case 0x61: // ADC (n,X)
-			this.adc(this.indx());
-			break;
+			return void this.adc(this.indx());
 		case 0x65: // ADC n
-			this.adc(this.fetch());
-			break;
+			return void this.adc(this.fetch());
 		case 0x66: // ROR n
-			this.ror(this.fetch());
-			break;
+			return void this.ror(this.fetch());
 		case 0x68: // PLA
-			this.a = this.pull();
-			break;
+			return void(this.a = this.pull());
 		case 0x69: // ADC #n
-			this.adc(null);
-			break;
+			return void this.adc(null);
 		case 0x6a: // RORA
 			this.a = (v = MCS6502.aRr[this.ccr & 1][this.a]) & 0xff;
 			this.ccr = this.ccr & ~0x83 | v >>> 8;
-			break;
+			return;
 		case 0x6c: // JMP (nn)
-			this.pc = this.read(ea = this.abs()) | this.read(ea + 1 & 0xffff) << 8;
-			break;
+			return void(this.pc = this.read(ea = this.abs()) | this.read(ea + 1 & 0xffff) << 8);
 		case 0x6d: // ADC nn
-			this.adc(this.abs());
-			break;
+			return void this.adc(this.abs());
 		case 0x6e: // ROR nn
-			this.ror(this.abs());
-			break;
+			return void this.ror(this.abs());
 		case 0x70: // BVS
-			this.bcc((this.ccr & 0x40) !== 0);
-			break;
+			return void this.bcc((this.ccr & 0x40) !== 0);
 		case 0x71: // ADC (n),Y
-			this.adc(this.indy());
-			break;
+			return void this.adc(this.indy());
 		case 0x75: // ADC n,X
-			this.adc(this.zpx());
-			break;
+			return void this.adc(this.zpx());
 		case 0x76: // ROR n,X
-			this.ror(this.zpx());
-			break;
+			return void this.ror(this.zpx());
 		case 0x78: // SEI
-			this.ccr |= 4;
-			break;
+			return void(this.ccr |= 4);
 		case 0x79: // ADC nn,Y
-			this.adc(this.absy());
-			break;
+			return void this.adc(this.absy());
 		case 0x7d: // ADC nn,X
-			this.adc(this.absx());
-			break;
+			return void this.adc(this.absx());
 		case 0x7e: // ROR nn,X
-			this.ror(this.absx());
-			break;
+			return void this.ror(this.absx());
 		case 0x81: // STA (n,X)
-			this.write(this.indx(), this.a);
-			break;
+			return void this.write(this.indx(), this.a);
 		case 0x84: // STY n
-			this.write(this.fetch(), this.iy);
-			break;
+			return void this.write(this.fetch(), this.iy);
 		case 0x85: // STA n
-			this.write(this.fetch(), this.a);
-			break;
+			return void this.write(this.fetch(), this.a);
 		case 0x86: // STX n
-			this.write(this.fetch(), this.ix);
-			break;
+			return void this.write(this.fetch(), this.ix);
 		case 0x88: // DEY
-			this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.iy = this.iy - 1 & 0xff];
-			break;
+			return void(this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.iy = this.iy - 1 & 0xff]);
 		case 0x8a: // TXA
-			this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.a = this.ix];
-			break;
+			return void(this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.a = this.ix]);
 		case 0x8c: // STY nn
-			this.write(this.abs(), this.iy);
-			break;
+			return void this.write(this.abs(), this.iy);
 		case 0x8d: // STA nn
-			this.write(this.abs(), this.a);
-			break;
+			return void this.write(this.abs(), this.a);
 		case 0x8e: // STX nn
-			this.write(this.abs(), this.ix);
-			break;
+			return void this.write(this.abs(), this.ix);
 		case 0x90: // BCC
-			this.bcc((this.ccr & 1) === 0);
-			break;
+			return void this.bcc((this.ccr & 1) === 0);
 		case 0x91: // STA (n),Y
-			this.write(this.indy(), this.a);
-			break;
+			return void this.write(this.indy(), this.a);
 		case 0x94: // STY n,X
-			this.write(this.zpx(), this.iy);
-			break;
+			return void this.write(this.zpx(), this.iy);
 		case 0x95: // STA n,X
-			this.write(this.zpx(), this.a);
-			break;
+			return void this.write(this.zpx(), this.a);
 		case 0x96: // STX n,Y
-			this.write(this.zpy(), this.ix);
-			break;
+			return void this.write(this.zpy(), this.ix);
 		case 0x98: // TYA
-			this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.a = this.iy];
-			break;
+			return void(this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.a = this.iy]);
 		case 0x99: // STA nn,Y
-			this.write(this.absy(), this.a);
-			break;
+			return void this.write(this.absy(), this.a);
 		case 0x9a: // TXS
-			this.sp = this.ix;
-			break;
+			return void(this.sp = this.ix);
 		case 0x9d: // STA nn,X
-			this.write(this.absx(), this.a);
-			break;
+			return void this.write(this.absx(), this.a);
 		case 0xa0: // LDY #n
-			this.ldy(null);
-			break;
+			return void this.ldy(null);
 		case 0xa1: // LDA (n,X)
-			this.lda(this.indx());
-			break;
+			return void this.lda(this.indx());
 		case 0xa2: // LDX #n
-			this.ldx(null);
-			break;
+			return void this.ldx(null);
 		case 0xa4: // LDY n
-			this.ldy(this.fetch());
-			break;
+			return void this.ldy(this.fetch());
 		case 0xa5: // LDA n
-			this.lda(this.fetch());
-			break;
+			return void this.lda(this.fetch());
 		case 0xa6: // LDX n
-			this.ldx(this.fetch());
-			break;
+			return void this.ldx(this.fetch());
 		case 0xa8: // TAY
-			this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.iy = this.a];
-			break;
+			return void(this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.iy = this.a]);
 		case 0xa9: // LDA #n
-			this.lda(null);
-			break;
+			return void this.lda(null);
 		case 0xaa: // TAX
-			this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.ix = this.a];
-			break;
+			return void(this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.ix = this.a]);
 		case 0xac: // LDY nn
-			this.ldy(this.abs());
-			break;
+			return void this.ldy(this.abs());
 		case 0xad: // LDA nn
-			this.lda(this.abs());
-			break;
+			return void this.lda(this.abs());
 		case 0xae: // LDX nn
-			this.ldx(this.abs());
-			break;
+			return void this.ldx(this.abs());
 		case 0xb0: // BCS
-			this.bcc((this.ccr & 1) !== 0);
-			break;
+			return void this.bcc((this.ccr & 1) !== 0);
 		case 0xb1: // LDA (n),Y
-			this.lda(this.indy());
-			break;
+			return void this.lda(this.indy());
 		case 0xb4: // LDY n,X
-			this.ldy(this.zpx());
-			break;
+			return void this.ldy(this.zpx());
 		case 0xb5: // LDA n,X
-			this.lda(this.zpx());
-			break;
+			return void this.lda(this.zpx());
 		case 0xb6: // LDX n,Y
-			this.ldx(this.zpy());
-			break;
+			return void this.ldx(this.zpy());
 		case 0xb8: // CLV
-			this.ccr &= ~0x40;
-			break;
+			return void(this.ccr &= ~0x40);
 		case 0xb9: // LDA nn,Y
-			this.lda(this.absy());
-			break;
+			return void this.lda(this.absy());
 		case 0xba: // TSX
-			this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.ix = this.sp];
-			break;
+			return void(this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.ix = this.sp]);
 		case 0xbc: // LDY nn,X
-			this.ldy(this.absx());
-			break;
+			return void this.ldy(this.absx());
 		case 0xbd: // LDA nn,X
-			this.lda(this.absx());
-			break;
+			return void this.lda(this.absx());
 		case 0xbe: // LDX nn,Y
-			this.ldx(this.absy());
-			break;
+			return void this.ldx(this.absy());
 		case 0xc0: // CPY #n
-			this.cpy(null);
-			break;
+			return void this.cpy(null);
 		case 0xc1: // CMP (n,X)
-			this.cmp(this.indx());
-			break;
+			return void this.cmp(this.indx());
 		case 0xc4: // CPY n
-			this.cpy(this.fetch());
-			break;
+			return void this.cpy(this.fetch());
 		case 0xc5: // CMP n
-			this.cmp(this.fetch());
-			break;
+			return void this.cmp(this.fetch());
 		case 0xc6: // DEC n
-			this.dec(this.fetch());
-			break;
+			return void this.dec(this.fetch());
 		case 0xc8: // INY
-			this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.iy = this.iy + 1 & 0xff];
-			break;
+			return void(this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.iy = this.iy + 1 & 0xff]);
 		case 0xc9: // CMP #n
-			this.cmp(null);
-			break;
+			return void this.cmp(null);
 		case 0xca: // DEX
-			this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.ix = this.ix - 1 & 0xff];
-			break;
+			return void(this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.ix = this.ix - 1 & 0xff]);
 		case 0xcc: // CPY nn
-			this.cpy(this.abs());
-			break;
+			return void this.cpy(this.abs());
 		case 0xcd: // CMP nn
-			this.cmp(this.abs());
-			break;
+			return void this.cmp(this.abs());
 		case 0xce: // DEC nn
-			this.dec(this.abs());
-			break;
+			return void this.dec(this.abs());
 		case 0xd0: // BNE
-			this.bcc((this.ccr & 2) === 0);
-			break;
+			return void this.bcc((this.ccr & 2) === 0);
 		case 0xd1: // CMP (n),Y
-			this.cmp(this.indy());
-			break;
+			return void this.cmp(this.indy());
 		case 0xd5: // CMP n,X
-			this.cmp(this.zpx());
-			break;
+			return void this.cmp(this.zpx());
 		case 0xd6: // DEC n,X
-			this.dec(this.zpx());
-			break;
+			return void this.dec(this.zpx());
 		case 0xd8: // CLD
-			this.ccr &= ~8;
-			break;
+			return void(this.ccr &= ~8);
 		case 0xd9: // CMP nn,Y
-			this.cmp(this.absy());
-			break;
+			return void this.cmp(this.absy());
 		case 0xdd: // CMP nn,X
-			this.cmp(this.absx());
-			break;
+			return void this.cmp(this.absx());
 		case 0xde: // DEC nn,X
-			this.dec(this.absx());
-			break;
+			return void this.dec(this.absx());
 		case 0xe0: // CPX #n
-			this.cpx(null);
-			break;
+			return void this.cpx(null);
 		case 0xe1: // SBC (n,X)
-			this.sbc(this.indx());
-			break;
+			return void this.sbc(this.indx());
 		case 0xe4: // CPX n
-			this.cpx(this.fetch());
-			break;
+			return void this.cpx(this.fetch());
 		case 0xe5: // SBC n
-			this.sbc(this.fetch());
-			break;
+			return void this.sbc(this.fetch());
 		case 0xe6: // INC n
-			this.inc(this.fetch());
-			break;
+			return void this.inc(this.fetch());
 		case 0xe8: // INX
-			this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.ix = this.ix + 1 & 0xff];
-			break;
+			return void(this.ccr = this.ccr & ~0x82 | MCS6502.fLogic[this.ix = this.ix + 1 & 0xff]);
 		case 0xe9: // SBC #n
-			this.sbc(null);
-			break;
+			return void this.sbc(null);
 		case 0xea: // NOP
-			break;
+			return;
 		case 0xec: // CPX nn
-			this.cpx(this.abs());
-			break;
+			return void this.cpx(this.abs());
 		case 0xed: // SBC nn
-			this.sbc(this.abs());
-			break;
+			return void this.sbc(this.abs());
 		case 0xee: // INC nn
-			this.inc(this.abs());
-			break;
+			return void this.inc(this.abs());
 		case 0xf0: // BEQ
-			this.bcc((this.ccr & 2) !== 0);
-			break;
+			return void this.bcc((this.ccr & 2) !== 0);
 		case 0xf1: // SBC (n),Y
-			this.sbc(this.indy());
-			break;
+			return void this.sbc(this.indy());
 		case 0xf5: // SBC n,X
-			this.sbc(this.zpx());
-			break;
+			return void this.sbc(this.zpx());
 		case 0xf6: // INC n,X
-			this.inc(this.zpx());
-			break;
+			return void this.inc(this.zpx());
 		case 0xf8: // SED
-			this.ccr |= 8;
-			break;
+			return void(this.ccr |= 8);
 		case 0xf9: // SBC nn,Y
-			this.sbc(this.absy());
-			break;
+			return void this.sbc(this.absy());
 		case 0xfd: // SBC nn,X
-			this.sbc(this.absx());
-			break;
+			return void this.sbc(this.absx());
 		case 0xfe: // INC nn,X
-			this.inc(this.absx());
-			break;
+			return void this.inc(this.absx());
 		default:
 			this.undefsize = 1;
 			if (this.undef)
 				this.undef(this.arg);
-			break;
+			return;
 		}
 	}
 

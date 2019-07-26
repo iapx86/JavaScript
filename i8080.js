@@ -16,7 +16,7 @@ export default class I8080 extends Cpu {
 		this.h = 0;
 		this.l = 0;
 		this.a = 0;
-		this.f = 0; // f:sz_h_p_c
+		this.f = 0; // f:sz-h-p-c
 		this.iff = 0;
 		this.r = 0;
 		this.sp = 0;
@@ -70,668 +70,463 @@ export default class I8080 extends Cpu {
 
 		switch (this.fetch()) {
 		case 0x00: // NOP
-			break;
+			return;
 		case 0x01: // LXI B,data16
-			this.c = this.fetch();
-			this.b = this.fetch();
-			break;
+			return void([this.c, this.b] = [this.fetch(), this.fetch()]);
 		case 0x02: // STAX B
-			this.write(this.c | this.b << 8, this.a);
-			break;
+			return void this.write(this.c | this.b << 8, this.a);
 		case 0x03: // INX B
-			this.incbc();
-			break;
+			return void this.incbc();
 		case 0x04: // INR B
-			this.b = this.inc(this.b);
-			break;
+			return void(this.b = this.inc(this.b));
 		case 0x05: // DCR B
-			this.b = this.dec(this.b);
-			break;
+			return void(this.b = this.dec(this.b));
 		case 0x06: // MVI B,data
-			this.b = this.fetch();
-			break;
+			return void(this.b = this.fetch());
 		case 0x07: // RLC
-			this.rlca();
-			break;
+			return void this.rlca();
 		case 0x09: // DAD B
 			this.l = (v = I8080.aAdd[0][this.c][this.l]) & 0xff;
 			this.h = (v = I8080.aAdd[v >>> 8 & 1][this.b][this.h]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
-			break;
+			return;
 		case 0x0a: // LDAX B
-			this.a = this.read(this.c | this.b << 8);
-			break;
+			return void(this.a = this.read(this.c | this.b << 8));
 		case 0x0b: // DCX B
-			this.decbc();
-			break;
+			return void this.decbc();
 		case 0x0c: // INR C
-			this.c = this.inc(this.c);
-			break;
+			return void(this.c = this.inc(this.c));
 		case 0x0d: // DCR C
-			this.c = this.dec(this.c);
-			break;
+			return void(this.c = this.dec(this.c));
 		case 0x0e: // MVI C,data
-			this.c = this.fetch();
-			break;
+			return void(this.c = this.fetch());
 		case 0x0f: // RRC
-			this.rrca();
-			break;
+			return void this.rrca();
 		case 0x11: // LXI D,data16
-			this.e = this.fetch();
-			this.d = this.fetch();
-			break;
+			return void([this.e, this.d] = [this.fetch(), this.fetch()]);
 		case 0x12: // STAX D
-			this.write(this.e | this.d << 8, this.a);
-			break;
+			return void this.write(this.e | this.d << 8, this.a);
 		case 0x13: // INX D
-			this.incde();
-			break;
+			return void this.incde();
 		case 0x14: // INR D
-			this.d = this.inc(this.d);
-			break;
+			return void(this.d = this.inc(this.d));
 		case 0x15: // DCR D
-			this.d = this.dec(this.d);
-			break;
+			return void(this.d = this.dec(this.d));
 		case 0x16: // MVI D,data
-			this.d = this.fetch();
-			break;
+			return void(this.d = this.fetch());
 		case 0x17: // RAL
-			this.rla();
-			break;
+			return void this.rla();
 		case 0x19: // DAD D
 			this.l = (v = I8080.aAdd[0][this.e][this.l]) & 0xff;
 			this.h = (v = I8080.aAdd[v >>> 8 & 1][this.d][this.h]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
-			break;
+			return;
 		case 0x1a: // LDAX D
-			this.a = this.read(this.e | this.d << 8);
-			break;
+			return void(this.a = this.read(this.e | this.d << 8));
 		case 0x1b: // DCX D
-			this.decde();
-			break;
+			return void this.decde();
 		case 0x1c: // INR E
-			this.e = this.inc(this.e);
-			break;
+			return void(this.e = this.inc(this.e));
 		case 0x1d: // DCR E
-			this.e = this.dec(this.e);
-			break;
+			return void(this.e = this.dec(this.e));
 		case 0x1e: // MVI E,data
-			this.e = this.fetch();
-			break;
+			return void(this.e = this.fetch());
 		case 0x1f: // RAR
-			this.rra();
-			break;
+			return void this.rra();
 		case 0x21: // LXI H,data16
-			this.l = this.fetch();
-			this.h = this.fetch();
-			break;
+			return void([this.l, this.h] = [this.fetch(), this.fetch()]);
 		case 0x22: // SHLD addr
 			this.write(v = this.fetch() | this.fetch() << 8, this.l);
 			this.write1(v, this.h);
-			break;
+			return;
 		case 0x23: // INX H
-			this.inchl();
-			break;
+			return void this.inchl();
 		case 0x24: // INR H
-			this.h = this.inc(this.h);
-			break;
+			return void(this.h = this.inc(this.h));
 		case 0x25: // DCR H
-			this.h = this.dec(this.h);
-			break;
+			return void(this.h = this.dec(this.h));
 		case 0x26: // MVI H,data
-			this.h = this.fetch();
-			break;
+			return void(this.h = this.fetch());
 		case 0x27: // DAA
 			this.a = (v = I8080.aDaa[this.f >>> 3 & 2 | this.f & 1][this.a]) & 0xff;
 			this.f = v >>> 8;
-			break;
+			return;
 		case 0x29: // DAD H
 			this.l = (v = I8080.aAdd[0][this.l][this.l]) & 0xff;
 			this.h = (v = I8080.aAdd[v >>> 8 & 1][this.h][this.h]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
-			break;
+			return;
 		case 0x2a: // LHLD addr
 			this.l = this.read(v = this.fetch() | this.fetch() << 8);
 			this.h = this.read1(v);
-			break;
+			return;
 		case 0x2b: // DCX H
-			this.dechl();
-			break;
+			return void this.dechl();
 		case 0x2c: // INR L
-			this.l = this.inc(this.l);
-			break;
+			return void(this.l = this.inc(this.l));
 		case 0x2d: // DCR L
-			this.l = this.dec(this.l);
-			break;
+			return void(this.l = this.dec(this.l));
 		case 0x2e: // MVI L,data
-			this.l = this.fetch();
-			break;
+			return void(this.l = this.fetch());
 		case 0x2f: // CMA
 			this.a ^= 0xff;
 			this.f |= 0x12;
-			break;
+			return;
 		case 0x31: // LXI SP,data16
-			this.sp = this.fetch() | this.fetch() << 8;
-			break;
+			return void(this.sp = this.fetch() | this.fetch() << 8);
 		case 0x32: // STA addr
-			this.write(this.fetch() | this.fetch() << 8, this.a);
-			break;
+			return void this.write(this.fetch() | this.fetch() << 8, this.a);
 		case 0x33: // INX SP
-			this.sp = this.sp + 1 & 0xffff;
-			break;
+			return void(this.sp = this.sp + 1 & 0xffff);
 		case 0x34: // INR M
-			this.write(v = this.l | this.h << 8, this.inc(this.read(v)));
-			break;
+			return void this.write(v = this.l | this.h << 8, this.inc(this.read(v)));
 		case 0x35: // DCR M
-			this.write(v = this.l | this.h << 8, this.dec(this.read(v)));
-			break;
+			return void this.write(v = this.l | this.h << 8, this.dec(this.read(v)));
 		case 0x36: // MVI M,data
-			this.write(this.l | this.h << 8, this.fetch());
-			break;
+			return void this.write(this.l | this.h << 8, this.fetch());
 		case 0x37: // STC
-			this.f = this.f & 0xc4 | 1;
-			break;
+			return void(this.f = this.f & 0xc4 | 1);
 		case 0x39: // DAD SP
 			this.l = (v = I8080.aAdd[0][this.sp & 0xff][this.l]) & 0xff;
 			this.h = (v = I8080.aAdd[v >>> 8 & 1][this.sp >>> 8][this.h]) & 0xff;
 			this.f = this.f & 0xc4 | v >>> 8 & 1;
-			break;
+			return;
 		case 0x3a: // LDA addr
-			this.a = this.read(this.fetch() | this.fetch() << 8);
-			break;
+			return void(this.a = this.read(this.fetch() | this.fetch() << 8));
 		case 0x3b: // DCX SP
-			this.sp = this.sp - 1 & 0xffff;
-			break;
+			return void(this.sp = this.sp - 1 & 0xffff);
 		case 0x3c: // INR A
-			this.a = this.inc(this.a);
-			break;
+			return void(this.a = this.inc(this.a));
 		case 0x3d: // DCR A
-			this.a = this.dec(this.a);
-			break;
+			return void(this.a = this.dec(this.a));
 		case 0x3e: // MVI A,data
-			this.a = this.fetch();
-			break;
+			return void(this.a = this.fetch());
 		case 0x3f: // CMC
-			this.f = this.f & 0xc5 ^ 1;
-			break;
+			return void(this.f = this.f & 0xc5 ^ 1);
 		case 0x40: // MOV B,B
-			break;
+			return;
 		case 0x41: // MOV B,C
-			this.b = this.c;
-			break;
+			return void(this.b = this.c);
 		case 0x42: // MOV B,D
-			this.b = this.d;
-			break;
+			return void(this.b = this.d);
 		case 0x43: // MOV B,E
-			this.b = this.e;
-			break;
+			return void(this.b = this.e);
 		case 0x44: // MOV B,H
-			this.b = this.h;
-			break;
+			return void(this.b = this.h);
 		case 0x45: // MOV B,L
-			this.b = this.l;
-			break;
+			return void(this.b = this.l);
 		case 0x46: // MOV B,M
-			this.b = this.read(this.l | this.h << 8);
-			break;
+			return void(this.b = this.read(this.l | this.h << 8));
 		case 0x47: // MOV B,A
-			this.b = this.a;
-			break;
+			return void(this.b = this.a);
 		case 0x48: // MOV C,B
-			this.c = this.b;
-			break;
+			return void(this.c = this.b);
 		case 0x49: // MOV C,C
-			break;
+			return;
 		case 0x4a: // MOV C,D
-			this.c = this.d;
-			break;
+			return void(this.c = this.d);
 		case 0x4b: // MOV C,E
-			this.c = this.e;
-			break;
+			return void(this.c = this.e);
 		case 0x4c: // MOV C,H
-			this.c = this.h;
-			break;
+			return void(this.c = this.h);
 		case 0x4d: // MOV C,L
-			this.c = this.l;
-			break;
+			return void(this.c = this.l);
 		case 0x4e: // MOV C,M
-			this.c = this.read(this.l | this.h << 8);
-			break;
+			return void(this.c = this.read(this.l | this.h << 8));
 		case 0x4f: // MOV C,A
-			this.c = this.a;
-			break;
+			return void(this.c = this.a);
 		case 0x50: // MOV D,B
-			this.d = this.b;
-			break;
+			return void(this.d = this.b);
 		case 0x51: // MOV D,C
-			this.d = this.c;
-			break;
+			return void(this.d = this.c);
 		case 0x52: // MOV D,D
-			break;
+			return;
 		case 0x53: // MOV D,E
-			this.d = this.e;
-			break;
+			return void(this.d = this.e);
 		case 0x54: // MOV D,H
-			this.d = this.h;
-			break;
+			return void(this.d = this.h);
 		case 0x55: // MOV D,L
-			this.d = this.l;
-			break;
+			return void(this.d = this.l);
 		case 0x56: // MOV D,(HL)
-			this.d = this.read(this.l | this.h << 8);
-			break;
+			return void(this.d = this.read(this.l | this.h << 8));
 		case 0x57: // MOV D,A
-			this.d = this.a;
-			break;
+			return void(this.d = this.a);
 		case 0x58: // MOV E,B
-			this.e = this.b;
-			break;
+			return void(this.e = this.b);
 		case 0x59: // MOV E,C
-			this.e = this.c;
-			break;
+			return void(this.e = this.c);
 		case 0x5a: // MOV E,D
-			this.e = this.d;
-			break;
+			return void(this.e = this.d);
 		case 0x5b: // MOV E,E
-			break;
+			return;
 		case 0x5c: // MOV E,H
-			this.e = this.h;
-			break;
+			return void(this.e = this.h);
 		case 0x5d: // MOV E,L
-			this.e = this.l;
-			break;
+			return void(this.e = this.l);
 		case 0x5e: // MOV E,M
-			this.e = this.read(this.l | this.h << 8);
-			break;
+			return void(this.e = this.read(this.l | this.h << 8));
 		case 0x5f: // MOV E,A
-			this.e = this.a;
-			break;
+			return void(this.e = this.a);
 		case 0x60: // MOV H,B
-			this.h = this.b;
-			break;
+			return void(this.h = this.b);
 		case 0x61: // MOV H,C
-			this.h = this.c;
-			break;
+			return void(this.h = this.c);
 		case 0x62: // MOV H,D
-			this.h = this.d;
-			break;
+			return void(this.h = this.d);
 		case 0x63: // MOV H,E
-			this.h = this.e;
-			break;
+			return void(this.h = this.e);
 		case 0x64: // MOV H,H
-			break;
+			return;
 		case 0x65: // MOV H,L
-			this.h = this.l;
-			break;
+			return void(this.h = this.l);
 		case 0x66: // MOV H,M
-			this.h = this.read(this.l | this.h << 8);
-			break;
+			return void(this.h = this.read(this.l | this.h << 8));
 		case 0x67: // MOV H,A
-			this.h = this.a;
-			break;
+			return void(this.h = this.a);
 		case 0x68: // MOV L,B
-			this.l = this.b;
-			break;
+			return void(this.l = this.b);
 		case 0x69: // MOV L,C
-			this.l = this.c;
-			break;
+			return void(this.l = this.c);
 		case 0x6a: // MOV L,D
-			this.l = this.d;
-			break;
+			return void(this.l = this.d);
 		case 0x6b: // MOV L,E
-			this.l = this.e;
-			break;
+			return void(this.l = this.e);
 		case 0x6c: // MOV L,H
-			this.l = this.h;
-			break;
+			return void(this.l = this.h);
 		case 0x6d: // MOV L,L
-			break;
+			return;
 		case 0x6e: // MOV L,M
-			this.l = this.read(this.l | this.h << 8);
-			break;
+			return void(this.l = this.read(this.l | this.h << 8));
 		case 0x6f: // MOV L,A
-			this.l = this.a;
-			break;
+			return void(this.l = this.a);
 		case 0x70: // MOV M,B
-			this.write(this.l | this.h << 8, this.b);
-			break;
+			return void this.write(this.l | this.h << 8, this.b);
 		case 0x71: // MOV M,C
-			this.write(this.l | this.h << 8, this.c);
-			break;
+			return void this.write(this.l | this.h << 8, this.c);
 		case 0x72: // MOV M,D
-			this.write(this.l | this.h << 8, this.d);
-			break;
+			return void this.write(this.l | this.h << 8, this.d);
 		case 0x73: // MOV M,E
-			this.write(this.l | this.h << 8, this.e);
-			break;
+			return void this.write(this.l | this.h << 8, this.e);
 		case 0x74: // MOV M,H
-			this.write(this.l | this.h << 8, this.h);
-			break;
+			return void this.write(this.l | this.h << 8, this.h);
 		case 0x75: // MOV M,L
-			this.write(this.l | this.h << 8, this.l);
-			break;
+			return void this.write(this.l | this.h << 8, this.l);
 		case 0x76: // HLT
-			this.suspend();
-			break;
+			return void this.suspend();
 		case 0x77: // MOV M,A
-			this.write(this.l | this.h << 8, this.a);
-			break;
+			return void this.write(this.l | this.h << 8, this.a);
 		case 0x78: // MOV A,B
-			this.a = this.b;
-			break;
+			return void(this.a = this.b);
 		case 0x79: // MOV A,C
-			this.a = this.c;
-			break;
+			return void(this.a = this.c);
 		case 0x7a: // MOV A,D
-			this.a = this.d;
-			break;
+			return void(this.a = this.d);
 		case 0x7b: // MOV A,E
-			this.a = this.e;
-			break;
+			return void(this.a = this.e);
 		case 0x7c: // MOV A,H
-			this.a = this.h;
-			break;
+			return void(this.a = this.h);
 		case 0x7d: // MOV A,L
-			this.a = this.l;
-			break;
+			return void(this.a = this.l);
 		case 0x7e: // MOV A,M
-			this.a = this.read(this.l | this.h << 8);
-			break;
+			return void(this.a = this.read(this.l | this.h << 8));
 		case 0x7f: // MOV A,A
-			break;
+			return;
 		case 0x80: // ADD B
-			this.add(this.b);
-			break;
+			return void this.add(this.b);
 		case 0x81: // ADD C
-			this.add(this.c);
-			break;
+			return void this.add(this.c);
 		case 0x82: // ADD D
-			this.add(this.d);
-			break;
+			return void this.add(this.d);
 		case 0x83: // ADD E
-			this.add(this.e);
-			break;
+			return void this.add(this.e);
 		case 0x84: // ADD H
-			this.add(this.h);
-			break;
+			return void this.add(this.h);
 		case 0x85: // ADD L
-			this.add(this.l);
-			break;
+			return void this.add(this.l);
 		case 0x86: // ADD M
-			this.add(this.read(this.l | this.h << 8));
-			break;
+			return void this.add(this.read(this.l | this.h << 8));
 		case 0x87: // ADD A
-			this.add(this.a);
-			break;
+			return void this.add(this.a);
 		case 0x88: // ADC B
-			this.adc(this.b);
-			break;
+			return void this.adc(this.b);
 		case 0x89: // ADC C
-			this.adc(this.c);
-			break;
+			return void this.adc(this.c);
 		case 0x8a: // ADC D
-			this.adc(this.d);
-			break;
+			return void this.adc(this.d);
 		case 0x8b: // ADC E
-			this.adc(this.e);
-			break;
+			return void this.adc(this.e);
 		case 0x8c: // ADC H
-			this.adc(this.h);
-			break;
+			return void this.adc(this.h);
 		case 0x8d: // ADC L
-			this.adc(this.l);
-			break;
+			return void this.adc(this.l);
 		case 0x8e: // ADC M
-			this.adc(this.read(this.l | this.h << 8));
-			break;
+			return void this.adc(this.read(this.l | this.h << 8));
 		case 0x8f: // ADC A
-			this.adc(this.a);
-			break;
+			return void this.adc(this.a);
 		case 0x90: // SUB B
-			this.sub(this.b);
-			break;
+			return void this.sub(this.b);
 		case 0x91: // SUB C
-			this.sub(this.c);
-			break;
+			return void this.sub(this.c);
 		case 0x92: // SUB D
-			this.sub(this.d);
-			break;
+			return void this.sub(this.d);
 		case 0x93: // SUB E
-			this.sub(this.e);
-			break;
+			return void this.sub(this.e);
 		case 0x94: // SUB H
-			this.sub(this.h);
-			break;
+			return void this.sub(this.h);
 		case 0x95: // SUB L
-			this.sub(this.l);
-			break;
+			return void this.sub(this.l);
 		case 0x96: // SUB M
-			this.sub(this.read(this.l | this.h << 8));
-			break;
+			return void this.sub(this.read(this.l | this.h << 8));
 		case 0x97: // SUB A
-			this.sub(this.a);
-			break;
+			return void this.sub(this.a);
 		case 0x98: // SBB B
-			this.sbc(this.b);
-			break;
+			return void this.sbc(this.b);
 		case 0x99: // SBB C
-			this.sbc(this.c);
-			break;
+			return void this.sbc(this.c);
 		case 0x9a: // SBB D
-			this.sbc(this.d);
-			break;
+			return void this.sbc(this.d);
 		case 0x9b: // SBB E
-			this.sbc(this.e);
-			break;
+			return void this.sbc(this.e);
 		case 0x9c: // SBB H
-			this.sbc(this.h);
-			break;
+			return void this.sbc(this.h);
 		case 0x9d: // SBB L
-			this.sbc(this.l);
-			break;
+			return void this.sbc(this.l);
 		case 0x9e: // SBB M
-			this.sbc(this.read(this.l | this.h << 8));
-			break;
+			return void this.sbc(this.read(this.l | this.h << 8));
 		case 0x9f: // SBB A
-			this.sbc(this.a);
-			break;
+			return void this.sbc(this.a);
 		case 0xa0: // ANA B
-			this.and(this.b);
-			break;
+			return void this.and(this.b);
 		case 0xa1: // ANA C
-			this.and(this.c);
-			break;
+			return void this.and(this.c);
 		case 0xa2: // ANA D
-			this.and(this.d);
-			break;
+			return void this.and(this.d);
 		case 0xa3: // ANA E
-			this.and(this.e);
-			break;
+			return void this.and(this.e);
 		case 0xa4: // ANA H
-			this.and(this.h);
-			break;
+			return void this.and(this.h);
 		case 0xa5: // ANA L
-			this.and(this.l);
-			break;
+			return void this.and(this.l);
 		case 0xa6: // ANA M
-			this.and(this.read(this.l | this.h << 8));
-			break;
+			return void this.and(this.read(this.l | this.h << 8));
 		case 0xa7: // ANA A
-			this.and(this.a);
-			break;
+			return void this.and(this.a);
 		case 0xa8: // XRA B
-			this.xor(this.b);
-			break;
+			return void this.xor(this.b);
 		case 0xa9: // XRA C
-			this.xor(this.c);
-			break;
+			return void this.xor(this.c);
 		case 0xaa: // XRA D
-			this.xor(this.d);
-			break;
+			return void this.xor(this.d);
 		case 0xab: // XRA E
-			this.xor(this.e);
-			break;
+			return void this.xor(this.e);
 		case 0xac: // XRA H
-			this.xor(this.h);
-			break;
+			return void this.xor(this.h);
 		case 0xad: // XRA L
-			this.xor(this.l);
-			break;
+			return void this.xor(this.l);
 		case 0xae: // XRA M
-			this.xor(this.read(this.l | this.h << 8));
-			break;
+			return void this.xor(this.read(this.l | this.h << 8));
 		case 0xaf: // XRA A
-			this.xor(this.a);
-			break;
+			return void this.xor(this.a);
 		case 0xb0: // ORA B
-			this.or(this.b);
-			break;
+			return void this.or(this.b);
 		case 0xb1: // ORA C
-			this.or(this.c);
-			break;
+			return void this.or(this.c);
 		case 0xb2: // ORA D
-			this.or(this.d);
-			break;
+			return void this.or(this.d);
 		case 0xb3: // ORA E
-			this.or(this.e);
-			break;
+			return void this.or(this.e);
 		case 0xb4: // ORA H
-			this.or(this.h);
-			break;
+			return void this.or(this.h);
 		case 0xb5: // ORA L
-			this.or(this.l);
-			break;
+			return void this.or(this.l);
 		case 0xb6: // ORA M
-			this.or(this.read(this.l | this.h << 8));
-			break;
+			return void this.or(this.read(this.l | this.h << 8));
 		case 0xb7: // ORA A
-			this.or(this.a);
-			break;
+			return void this.or(this.a);
 		case 0xb8: // CMP B
-			this.cp(this.b);
-			break;
+			return void this.cp(this.b);
 		case 0xb9: // CMP C
-			this.cp(this.c);
-			break;
+			return void this.cp(this.c);
 		case 0xba: // CMP D
-			this.cp(this.d);
-			break;
+			return void this.cp(this.d);
 		case 0xbb: // CMP E
-			this.cp(this.e);
-			break;
+			return void this.cp(this.e);
 		case 0xbc: // CMP H
-			this.cp(this.h);
-			break;
+			return void this.cp(this.h);
 		case 0xbd: // CMP L
-			this.cp(this.l);
-			break;
+			return void this.cp(this.l);
 		case 0xbe: // CMP M
-			this.cp(this.read(this.l | this.h << 8));
-			break;
+			return void this.cp(this.read(this.l | this.h << 8));
 		case 0xbf: // CMP A
-			this.cp(this.a);
-			break;
+			return void this.cp(this.a);
 		case 0xc0: // RNZ
-			this.ret((this.f & 0x40) === 0);
-			break;
+			return void this.ret((this.f & 0x40) === 0);
 		case 0xc1: // POP B
-			this.c = this.pop();
-			this.b = this.pop();
-			break;
+			return void([this.c, this.b] = [this.pop(), this.pop()]);
 		case 0xc2: // JNZ addr
-			this.jp((this.f & 0x40) === 0);
-			break;
+			return void this.jp((this.f & 0x40) === 0);
 		case 0xc3: // JMP addr
-			this.jp(true);
-			break;
+			return void this.jp(true);
 		case 0xc4: // CNZ addr
-			this.call((this.f & 0x40) === 0);
-			break;
+			return void this.call((this.f & 0x40) === 0);
 		case 0xc5: // PUSH B
 			this.push(this.b);
 			this.push(this.c);
-			break;
+			return;
 		case 0xc6: // ADI data
-			this.add(this.fetch());
-			break;
+			return void this.add(this.fetch());
 		case 0xc7: // RST 00h
-			this.rst(0x00);
-			break;
+			return void this.rst(0x00);
 		case 0xc8: // RZ
-			this.ret((this.f & 0x40) !== 0);
-			break;
+			return void this.ret((this.f & 0x40) !== 0);
 		case 0xc9: // RET
-			this.ret(true);
-			break;
+			return void this.ret(true);
 		case 0xca: // JZ addr
-			this.jp((this.f & 0x40) !== 0);
-			break;
+			return void this.jp((this.f & 0x40) !== 0);
 		case 0xcc: // CZ addr
-			this.call((this.f & 0x40) !== 0);
-			break;
+			return void this.call((this.f & 0x40) !== 0);
 		case 0xcd: // CALL addr
-			this.call(true);
-			break;
+			return void this.call(true);
 		case 0xce: // ACI data
-			this.adc(this.fetch());
-			break;
+			return void this.adc(this.fetch());
 		case 0xcf: // RST 08h
-			this.rst(0x08);
-			break;
+			return void this.rst(0x08);
 		case 0xd0: // RNC
-			this.ret((this.f & 1) === 0);
-			break;
+			return void this.ret((this.f & 1) === 0);
 		case 0xd1: // POP D
-			this.e = this.pop();
-			this.d = this.pop();
-			break;
+			return void([this.e, this.d] = [this.pop(), this.pop()]);
 		case 0xd2: // JNC addr
-			this.jp((this.f & 1) === 0);
-			break;
+			return void this.jp((this.f & 1) === 0);
 		case 0xd3: // OUT port
-			this.iowrite(this.a, this.fetch(), this.a);
-			break;
+			return void this.iowrite(this.a, this.fetch(), this.a);
 		case 0xd4: // CNC addr
-			this.call((this.f & 1) === 0);
-			break;
+			return void this.call((this.f & 1) === 0);
 		case 0xd5: // PUSH D
 			this.push(this.d);
 			this.push(this.e);
-			break;
+			return;
 		case 0xd6: // SUI data
-			this.sub(this.fetch());
-			break;
+			return void this.sub(this.fetch());
 		case 0xd7: // RST 10h
-			this.rst(0x10);
-			break;
+			return void this.rst(0x10);
 		case 0xd8: // RC
-			this.ret((this.f & 1) !== 0);
-			break;
+			return void this.ret((this.f & 1) !== 0);
 		case 0xda: // JC addr
-			this.jp((this.f & 1) !== 0);
-			break;
+			return void this.jp((this.f & 1) !== 0);
 		case 0xdb: // IN port
-			this.a = this.ioread(this.a, this.fetch());
-			break;
+			return void(this.a = this.ioread(this.a, this.fetch()));
 		case 0xdc: // CC addr
-			this.call((this.f & 1) !== 0);
-			break;
+			return void this.call((this.f & 1) !== 0);
 		case 0xde: // SBI data
-			this.sbc(this.fetch());
-			break;
+			return void this.sbc(this.fetch());
 		case 0xdf: // RST 18h
-			this.rst(0x18);
-			break;
+			return void this.rst(0x18);
 		case 0xe0: // RPO
-			this.ret((this.f & 4) === 0);
-			break;
+			return void this.ret((this.f & 4) === 0);
 		case 0xe1: // POP H
-			this.l = this.pop();
-			this.h = this.pop();
-			break;
+			return void([this.l, this.h] = [this.pop(), this.pop()]);
 		case 0xe2: // JPO addr
-			this.jp((this.f & 4) === 0);
-			break;
+			return void this.jp((this.f & 4) === 0);
 		case 0xe3: // XTHL
 			v = this.read(this.sp);
 			this.write(this.sp, this.l);
@@ -739,98 +534,68 @@ export default class I8080 extends Cpu {
 			v = this.read1(this.sp);
 			this.write1(this.sp, this.h);
 			this.h = v;
-			break;
+			return;
 		case 0xe4: // CPO addr
-			this.call((this.f & 4) === 0);
-			break;
+			return void this.call((this.f & 4) === 0);
 		case 0xe5: // PUSH H
 			this.push(this.h);
 			this.push(this.l);
-			break;
+			return;
 		case 0xe6: // ANI data
-			this.and(this.fetch());
-			break;
+			return void this.and(this.fetch());
 		case 0xe7: // RST 20h
-			this.rst(0x20);
-			break;
+			return void this.rst(0x20);
 		case 0xe8: // RPE
-			this.ret((this.f & 4) !== 0);
-			break;
+			return void this.ret((this.f & 4) !== 0);
 		case 0xe9: // PCHL
-			this.pc = this.l | this.h << 8;
-			break;
+			return void(this.pc = this.l | this.h << 8);
 		case 0xea: // JPE addr
-			this.jp((this.f & 4) !== 0);
-			break;
+			return void this.jp((this.f & 4) !== 0);
 		case 0xeb: // XCHG
-			v = this.d;
-			this.d = this.h;
-			this.h = v;
-			v = this.e;
-			this.e = this.l;
-			this.l = v;
-			break;
+			return void([this.l, this.h, this.e, this.d] = [this.e, this.d, this.l, this.h]);
 		case 0xec: // CPE addr
-			this.call((this.f & 4) !== 0);
-			break;
+			return void this.call((this.f & 4) !== 0);
 		case 0xee: // XRI data
-			this.xor(this.fetch());
-			break;
+			return void this.xor(this.fetch());
 		case 0xef: // RST 28h
-			this.rst(0x28);
-			break;
+			return void this.rst(0x28);
 		case 0xf0: // RP
-			this.ret((this.f & 0x80) === 0);
-			break;
+			return void this.ret((this.f & 0x80) === 0);
 		case 0xf1: // POP PSW
-			this.f = this.pop();
-			this.a = this.pop();
-			break;
+			return void([this.f, this.a] = [this.pop(), this.pop()]);
 		case 0xf2: // JP addr
-			this.jp((this.f & 0x80) === 0);
-			break;
+			return void this.jp((this.f & 0x80) === 0);
 		case 0xf3: // DI
-			this.iff = 0;
-			break;
+			return void(this.iff = 0);
 		case 0xf4: // CP addr
-			this.call((this.f & 0x80) === 0);
-			break;
+			return void this.call((this.f & 0x80) === 0);
 		case 0xf5: // PUSH PSW
 			this.push(this.a);
 			this.push(this.f);
-			break;
+			return;
 		case 0xf6: // ORI data
-			this.or(this.fetch());
-			break;
+			return void this.or(this.fetch());
 		case 0xf7: // RST 30h
-			this.rst(0x30);
-			break;
+			return void this.rst(0x30);
 		case 0xf8: // RM
-			this.ret((this.f & 0x80) !== 0);
-			break;
+			return void this.ret((this.f & 0x80) !== 0);
 		case 0xf9: // SPHL
-			this.sp = this.l | this.h << 8;
-			break;
+			return void(this.sp = this.l | this.h << 8);
 		case 0xfa: // JM addr
-			this.jp((this.f & 0x80) !== 0);
-			break;
+			return void this.jp((this.f & 0x80) !== 0);
 		case 0xfb: // EI
-			this.iff = 3;
-			break;
+			return void(this.iff = 3);
 		case 0xfc: // CM addr
-			this.call((this.f & 0x80) !== 0);
-			break;
+			return void this.call((this.f & 0x80) !== 0);
 		case 0xfe: // CPI data
-			this.cp(this.fetch());
-			break;
+			return void this.cp(this.fetch());
 		case 0xff: // RST 38h
-			this.rst(0x38);
-			break;
+			return void this.rst(0x38);
 		default:
 			this.undefsize = 1;
 			if (this.undef)
 				this.undef(this.arg);
-			break;
+			return;
 		}
 	}
 
