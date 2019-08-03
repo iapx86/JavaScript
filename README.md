@@ -14,6 +14,9 @@ Chromeで実行する場合の注意
 IEで実行する場合の注意
 ローカルフォルダに置いて実行する方法はありません。Webサーバー経由で実行してください。
 
+Firefoxで実行する場合の注意
+バージョン68でローカルフォルダからのファイル読み込みが制限されました。ローカルフォルダに置いて実行する場合は、about:configのprivacy.file_unique_originの値をfalseにしてください。
+
 DevServerのインストール
 $ npm install webpack-dev-server --save-dev
 
