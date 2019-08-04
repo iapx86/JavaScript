@@ -59,8 +59,8 @@ export default class I80186 extends Cpu {
 
 	exception(vector) {
 		this.push(this.flags, this.cs, this.ip);
-		this.flags = this.flags & ~0x100 | 0x200;
-		[this.ip, this.cs] = this.rop32(0, vector << 2);
+		this.flags = this.flags & ~0x300;
+		[this.ip, this.cs] = [this.read16(0, vector << 2), this.read16(0, vector << 2 | 2)];
 	}
 
 	non_maskable_interrupt() {
@@ -71,98 +71,26 @@ export default class I80186 extends Cpu {
 	}
 
 	interrupt(vector) {
-		if (!super.interrupt() || this.intmask || (this.flags & 0x200) !== 0)
+		if (!super.interrupt() || this.intmask || (this.flags & 0x200) === 0)
 			return false;
 		this.exception(vector);
 		return true;
 	}
 
 	_execute() {
-		let prefix = 0, sego = -1, rep = -1, op, v;
+		let prefix = 0, sego = -1, rep = -1, op;
 
 		this.intmask = false;
 		for (;;)
 			switch (this.fetch8()) {
-			case 0x00:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ADD r/m8,AL
-					return void this.rwop8(op, sego, this.add8, this.ax);
-				case 1: // ADD r/m8,CL
-					return void this.rwop8(op, sego, this.add8, this.cx);
-				case 2: // ADD r/m8,DL
-					return void this.rwop8(op, sego, this.add8, this.dx);
-				case 3: // ADD r/m8,BL
-					return void this.rwop8(op, sego, this.add8, this.bx);
-				case 4: // ADD r/m8,AH
-					return void this.rwop8(op, sego, this.add8, this.ax >>> 8);
-				case 5: // ADD r/m8,CH
-					return void this.rwop8(op, sego, this.add8, this.cx >>> 8);
-				case 6: // ADD r/m8,DH
-					return void this.rwop8(op, sego, this.add8, this.dx >>> 8);
-				case 7: // ADD r/m8,BH
-					return void this.rwop8(op, sego, this.add8, this.bx >>> 8);
-				}
-				break;
-			case 0x01:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ADD r/m16,AX
-					return void this.rwop16(op, sego, this.add16, this.ax);
-				case 1: // ADD r/m16,CX
-					return void this.rwop16(op, sego, this.add16, this.cx);
-				case 2: // ADD r/m16,DX
-					return void this.rwop16(op, sego, this.add16, this.dx);
-				case 3: // ADD r/m16,BX
-					return void this.rwop16(op, sego, this.add16, this.bx);
-				case 4: // ADD r/m16,SP
-					return void this.rwop16(op, sego, this.add16, this.sp);
-				case 5: // ADD r/m16,BP
-					return void this.rwop16(op, sego, this.add16, this.bp);
-				case 6: // ADD r/m16,SI
-					return void this.rwop16(op, sego, this.add16, this.si);
-				case 7: // ADD r/m16,DI
-					return void this.rwop16(op, sego, this.add16, this.di);
-				}
-				break;
-			case 0x02:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ADD AL,r/m8
-					return void(this.ax = this.ax & 0xff00 | this.add8(this.ax, this.rop8(op, sego)));
-				case 1: // ADD CL,r/m8
-					return void(this.cx = this.cx & 0xff00 | this.add8(this.cx, this.rop8(op, sego)));
-				case 2: // ADD DL,r/m8
-					return void(this.dx = this.dx & 0xff00 | this.add8(this.dx, this.rop8(op, sego)));
-				case 3: // ADD BL,r/m8
-					return void(this.bx = this.bx & 0xff00 | this.add8(this.bx, this.rop8(op, sego)));
-				case 4: // ADD AH,r/m8
-					return void(this.ax = this.ax & 0xff | this.add8(this.ax >>> 8, this.rop8(op, sego)) << 8);
-				case 5: // ADD CH,r/m8
-					return void(this.cx = this.cx & 0xff | this.add8(this.cx >>> 8, this.rop8(op, sego)) << 8);
-				case 6: // ADD DH,r/m8
-					return void(this.dx = this.dx & 0xff | this.add8(this.dx >>> 8, this.rop8(op, sego)) << 8);
-				case 7: // ADD BH,r/m8
-					return void(this.bx = this.bx & 0xff | this.add8(this.bx >>> 8, this.rop8(op, sego)) << 8);
-				}
-				break;
-			case 0x03:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ADD AX,r/m16
-					return void(this.ax = this.add16(this.ax, this.rop16(op, sego)));
-				case 1: // ADD CX,r/m16
-					return void(this.cx = this.add16(this.cx, this.rop16(op, sego)));
-				case 2: // ADD DX,r/m16
-					return void(this.dx = this.add16(this.dx, this.rop16(op, sego)));
-				case 3: // ADD BX,r/m16
-					return void(this.bx = this.add16(this.bx, this.rop16(op, sego)));
-				case 4: // ADD SP,r/m16
-					return void(this.sp = this.add16(this.sp, this.rop16(op, sego)));
-				case 5: // ADD BP,r/m16
-					return void(this.bp = this.add16(this.bp, this.rop16(op, sego)));
-				case 6: // ADD SI,r/m16
-					return void(this.si = this.add16(this.si, this.rop16(op, sego)));
-				case 7: // ADD DI,r/m16
-					return void(this.di = this.add16(this.di, this.rop16(op, sego)));
-				}
-				break;
+			case 0x00: // ADD r/m8,r8
+				return void this.execute_00(sego);
+			case 0x01: // ADD r/m16,r16
+				return void this.execute_01(sego);
+			case 0x02: // ADD r8,r/m8
+				return void this.execute_02(sego);
+			case 0x03: // ADD r16,r/m16
+				return void this.execute_03(sego);
 			case 0x04: // ADD AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.add8(this.ax, this.fetch8()));
 			case 0x05: // ADD AX,imm16
@@ -171,172 +99,28 @@ export default class I80186 extends Cpu {
 				return void this.push(this.es);
 			case 0x07: // POP ES
 				return void(this.es = this.pop());
-			case 0x08:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // OR r/m8,AL
-					return void this.rwop8(op, sego, this.or8, this.ax);
-				case 1: // OR r/m8,CL
-					return void this.rwop8(op, sego, this.or8, this.cx);
-				case 2: // OR r/m8,DL
-					return void this.rwop8(op, sego, this.or8, this.dx);
-				case 3: // OR r/m8,BL
-					return void this.rwop8(op, sego, this.or8, this.bx);
-				case 4: // OR r/m8,AH
-					return void this.rwop8(op, sego, this.or8, this.ax >>> 8);
-				case 5: // OR r/m8,CH
-					return void this.rwop8(op, sego, this.or8, this.cx >>> 8);
-				case 6: // OR r/m8,DH
-					return void this.rwop8(op, sego, this.or8, this.dx >>> 8);
-				case 7: // OR r/m8,BH
-					return void this.rwop8(op, sego, this.or8, this.bx >>> 8);
-				}
-				break;
-			case 0x09:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // OR r/m16,AX
-					return void this.rwop16(op, sego, this.or16, this.ax);
-				case 1: // OR r/m16,CX
-					return void this.rwop16(op, sego, this.or16, this.cx);
-				case 2: // OR r/m16,DX
-					return void this.rwop16(op, sego, this.or16, this.dx);
-				case 3: // OR r/m16,BX
-					return void this.rwop16(op, sego, this.or16, this.bx);
-				case 4: // OR r/m16,SP
-					return void this.rwop16(op, sego, this.or16, this.sp);
-				case 5: // OR r/m16,BP
-					return void this.rwop16(op, sego, this.or16, this.bp);
-				case 6: // OR r/m16,SI
-					return void this.rwop16(op, sego, this.or16, this.si);
-				case 7: // OR r/m16,DI
-					return void this.rwop16(op, sego, this.or16, this.di);
-				}
-				break;
-			case 0x0a:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // OR AL,r/m8
-					return void(this.ax = this.ax & 0xff00 | this.or8(this.ax, this.rop8(op, sego)));
-				case 1: // OR CL,r/m8
-					return void(this.cx = this.cx & 0xff00 | this.or8(this.cx, this.rop8(op, sego)));
-				case 2: // OR DL,r/m8
-					return void(this.dx = this.dx & 0xff00 | this.or8(this.dx, this.rop8(op, sego)));
-				case 3: // OR BL,r/m8
-					return void(this.bx = this.bx & 0xff00 | this.or8(this.bx, this.rop8(op, sego)));
-				case 4: // OR AH,r/m8
-					return void(this.ax = this.ax & 0xff | this.or8(this.ax >>> 8, this.rop8(op, sego)) << 8);
-				case 5: // OR CH,r/m8
-					return void(this.cx = this.cx & 0xff | this.or8(this.cx >>> 8, this.rop8(op, sego)) << 8);
-				case 6: // OR DH,r/m8
-					return void(this.dx = this.dx & 0xff | this.or8(this.dx >>> 8, this.rop8(op, sego)) << 8);
-				case 7: // OR BH,r/m8
-					return void(this.bx = this.bx & 0xff | this.or8(this.bx >>> 8, this.rop8(op, sego)) << 8);
-				}
-				break;
-			case 0x0b:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // OR AX,r/m16
-					return void(this.ax = this.or16(this.ax, this.rop16(op, sego)));
-				case 1: // OR CX,r/m16
-					return void(this.cx = this.or16(this.cx, this.rop16(op, sego)));
-				case 2: // OR DX,r/m16
-					return void(this.dx = this.or16(this.dx, this.rop16(op, sego)));
-				case 3: // OR BX,r/m16
-					return void(this.bx = this.or16(this.bx, this.rop16(op, sego)));
-				case 4: // OR SP,r/m16
-					return void(this.sp = this.or16(this.sp, this.rop16(op, sego)));
-				case 5: // OR BP,r/m16
-					return void(this.bp = this.or16(this.bp, this.rop16(op, sego)));
-				case 6: // OR SI,r/m16
-					return void(this.si = this.or16(this.si, this.rop16(op, sego)));
-				case 7: // OR DI,r/m16
-					return void(this.di = this.or16(this.di, this.rop16(op, sego)));
-				}
-				break;
+			case 0x08: // OR r/m8,r8
+				return void this.execute_08(sego);
+			case 0x09: // OR r/m16,r16
+				return void this.execute_09(sego);
+			case 0x0a: // OR r8,r/m8
+				return void this.execute_0a(sego);
+			case 0x0b: // OR r16,r/m16
+				return void this.execute_0b(sego);
 			case 0x0c: // OR AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.or8(this.ax, this.fetch8()));
 			case 0x0d: // OR AX,imm16
 				return void(this.ax = this.or16(this.ax, this.fetch16()));
 			case 0x0e: // PUSH CS
 				return void this.push(this.cs);
-			case 0x10:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ADC r/m8,AL
-					return void this.rwop8(op, sego, this.adc8, this.ax);
-				case 1: // ADC r/m8,CL
-					return void this.rwop8(op, sego, this.adc8, this.cx);
-				case 2: // ADC r/m8,DL
-					return void this.rwop8(op, sego, this.adc8, this.dx);
-				case 3: // ADC r/m8,BL
-					return void this.rwop8(op, sego, this.adc8, this.bx);
-				case 4: // ADC r/m8,AH
-					return void this.rwop8(op, sego, this.adc8, this.ax >>> 8);
-				case 5: // ADC r/m8,CH
-					return void this.rwop8(op, sego, this.adc8, this.cx >>> 8);
-				case 6: // ADC r/m8,DH
-					return void this.rwop8(op, sego, this.adc8, this.dx >>> 8);
-				case 7: // ADC r/m8,BH
-					return void this.rwop8(op, sego, this.adc8, this.bx >>> 8);
-				}
-				break;
-			case 0x11:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ADC r/m16,AX
-					return void this.rwop16(op, sego, this.adc16, this.ax);
-				case 1: // ADC r/m16,CX
-					return void this.rwop16(op, sego, this.adc16, this.cx);
-				case 2: // ADC r/m16,DX
-					return void this.rwop16(op, sego, this.adc16, this.dx);
-				case 3: // ADC r/m16,BX
-					return void this.rwop16(op, sego, this.adc16, this.bx);
-				case 4: // ADC r/m16,SP
-					return void this.rwop16(op, sego, this.adc16, this.sp);
-				case 5: // ADC r/m16,BP
-					return void this.rwop16(op, sego, this.adc16, this.bp);
-				case 6: // ADC r/m16,SI
-					return void this.rwop16(op, sego, this.adc16, this.si);
-				case 7: // ADC r/m16,DI
-					return void this.rwop16(op, sego, this.adc16, this.di);
-				}
-				break;
-			case 0x12:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ADC AL,r/m8
-					return void(this.ax = this.ax & 0xff00 | this.adc8(this.ax, this.rop8(op, sego)));
-				case 1: // ADC CL,r/m8
-					return void(this.cx = this.cx & 0xff00 | this.adc8(this.cx, this.rop8(op, sego)));
-				case 2: // ADC DL,r/m8
-					return void(this.dx = this.dx & 0xff00 | this.adc8(this.dx, this.rop8(op, sego)));
-				case 3: // ADC BL,r/m8
-					return void(this.bx = this.bx & 0xff00 | this.adc8(this.bx, this.rop8(op, sego)));
-				case 4: // ADC AH,r/m8
-					return void(this.ax = this.ax & 0xff | this.adc8(this.ax >>> 8, this.rop8(op, sego)) << 8);
-				case 5: // ADC CH,r/m8
-					return void(this.cx = this.cx & 0xff | this.adc8(this.cx >>> 8, this.rop8(op, sego)) << 8);
-				case 6: // ADC DH,r/m8
-					return void(this.dx = this.dx & 0xff | this.adc8(this.dx >>> 8, this.rop8(op, sego)) << 8);
-				case 7: // ADC BH,r/m8
-					return void(this.bx = this.bx & 0xff | this.adc8(this.bx >>> 8, this.rop8(op, sego)) << 8);
-				}
-				break;
-			case 0x13:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ADC AX,r/m16
-					return void(this.ax = this.adc16(this.ax, this.rop16(op, sego)));
-				case 1: // ADC CX,r/m16
-					return void(this.cx = this.adc16(this.cx, this.rop16(op, sego)));
-				case 2: // ADC DX,r/m16
-					return void(this.dx = this.adc16(this.dx, this.rop16(op, sego)));
-				case 3: // ADC BX,r/m16
-					return void(this.bx = this.adc16(this.bx, this.rop16(op, sego)));
-				case 4: // ADC SP,r/m16
-					return void(this.sp = this.adc16(this.sp, this.rop16(op, sego)));
-				case 5: // ADC BP,r/m16
-					return void(this.bp = this.adc16(this.bp, this.rop16(op, sego)));
-				case 6: // ADC SI,r/m16
-					return void(this.si = this.adc16(this.si, this.rop16(op, sego)));
-				case 7: // ADC DI,r/m16
-					return void(this.di = this.adc16(this.di, this.rop16(op, sego)));
-				}
-				break;
+			case 0x10: // ADC r/m8,r8
+				return void this.execute_10(sego);
+			case 0x11: // ADC r/m16,r16
+				return void this.execute_11(sego);
+			case 0x12: // ADC r8,r/m8
+				return void this.execute_12(sego);
+			case 0x13: // ADC r16,r/m16
+				return void this.execute_13(sego);
 			case 0x14: // ADC AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.adc8(this.ax, this.fetch8()));
 			case 0x15: // ADC AX,imm16
@@ -346,86 +130,14 @@ export default class I80186 extends Cpu {
 			case 0x17: // POP SS
 				this.intmask = true;
 				return void(this.ss = this.pop());
-			case 0x18:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // SBB r/m8,AL
-					return void this.rwop8(op, sego, this.sbb8, this.ax);
-				case 1: // SBB r/m8,CL
-					return void this.rwop8(op, sego, this.sbb8, this.cx);
-				case 2: // SBB r/m8,DL
-					return void this.rwop8(op, sego, this.sbb8, this.dx);
-				case 3: // SBB r/m8,BL
-					return void this.rwop8(op, sego, this.sbb8, this.bx);
-				case 4: // SBB r/m8,AH
-					return void this.rwop8(op, sego, this.sbb8, this.ax >>> 8);
-				case 5: // SBB r/m8,CH
-					return void this.rwop8(op, sego, this.sbb8, this.cx >>> 8);
-				case 6: // SBB r/m8,DH
-					return void this.rwop8(op, sego, this.sbb8, this.dx >>> 8);
-				case 7: // SBB r/m8,BH
-					return void this.rwop8(op, sego, this.sbb8, this.bx >>> 8);
-				}
-				break;
-			case 0x19:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // SBB r/m16,AX
-					return void this.rwop16(op, sego, this.sbb16, this.ax);
-				case 1: // SBB r/m16,CX
-					return void this.rwop16(op, sego, this.sbb16, this.cx);
-				case 2: // SBB r/m16,DX
-					return void this.rwop16(op, sego, this.sbb16, this.dx);
-				case 3: // SBB r/m16,BX
-					return void this.rwop16(op, sego, this.sbb16, this.bx);
-				case 4: // SBB r/m16,SP
-					return void this.rwop16(op, sego, this.sbb16, this.sp);
-				case 5: // SBB r/m16,BP
-					return void this.rwop16(op, sego, this.sbb16, this.bp);
-				case 6: // SBB r/m16,SI
-					return void this.rwop16(op, sego, this.sbb16, this.si);
-				case 7: // SBB r/m16,DI
-					return void this.rwop16(op, sego, this.sbb16, this.di);
-				}
-				break;
-			case 0x1a:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // SBB AL,r/m8
-					return void(this.ax = this.ax & 0xff00 | this.sbb8(this.ax, this.rop8(op, sego)));
-				case 1: // SBB CL,r/m8
-					return void(this.cx = this.cx & 0xff00 | this.sbb8(this.cx, this.rop8(op, sego)));
-				case 2: // SBB DL,r/m8
-					return void(this.dx = this.dx & 0xff00 | this.sbb8(this.dx, this.rop8(op, sego)));
-				case 3: // SBB BL,r/m8
-					return void(this.bx = this.bx & 0xff00 | this.sbb8(this.bx, this.rop8(op, sego)));
-				case 4: // SBB AH,r/m8
-					return void(this.ax = this.ax & 0xff | this.sbb8(this.ax >>> 8, this.rop8(op, sego)) << 8);
-				case 5: // SBB CH,r/m8
-					return void(this.cx = this.cx & 0xff | this.sbb8(this.cx >>> 8, this.rop8(op, sego)) << 8);
-				case 6: // SBB DH,r/m8
-					return void(this.dx = this.dx & 0xff | this.sbb8(this.dx >>> 8, this.rop8(op, sego)) << 8);
-				case 7: // SBB BH,r/m8
-					return void(this.bx = this.bx & 0xff | this.sbb8(this.bx >>> 8, this.rop8(op, sego)) << 8);
-				}
-				break;
-			case 0x1b:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // SBB AX,r/m16
-					return void(this.ax = this.sbb16(this.ax, this.rop16(op, sego)));
-				case 1: // SBB CX,r/m16
-					return void(this.cx = this.sbb16(this.cx, this.rop16(op, sego)));
-				case 2: // SBB DX,r/m16
-					return void(this.dx = this.sbb16(this.dx, this.rop16(op, sego)));
-				case 3: // SBB BX,r/m16
-					return void(this.bx = this.sbb16(this.bx, this.rop16(op, sego)));
-				case 4: // SBB SP,r/m16
-					return void(this.sp = this.sbb16(this.sp, this.rop16(op, sego)));
-				case 5: // SBB BP,r/m16
-					return void(this.bp = this.sbb16(this.bp, this.rop16(op, sego)));
-				case 6: // SBB SI,r/m16
-					return void(this.si = this.sbb16(this.si, this.rop16(op, sego)));
-				case 7: // SBB DI,r/m16
-					return void(this.di = this.sbb16(this.di, this.rop16(op, sego)));
-				}
-				break;
+			case 0x18: // SBB r/m8,r8
+				return void this.execute_18(sego);
+			case 0x19: // SBB r/m16,r16
+				return void this.execute_19(sego);
+			case 0x1a: // SBB r8,r/m8
+				return void this.execute_1a(sego);
+			case 0x1b: // SBB r16,r/m16
+				return void this.execute_1b(sego);
 			case 0x1c: // SBB AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.sbb8(this.ax, this.fetch8()));
 			case 0x1d: // SBB AX,imm16
@@ -434,86 +146,14 @@ export default class I80186 extends Cpu {
 				return void this.push(this.ds);
 			case 0x1f: // POP DS
 				return void(this.ds = this.pop());
-			case 0x20:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // AND r/m8,AL
-					return void this.rwop8(op, sego, this.and8, this.ax);
-				case 1: // AND r/m8,CL
-					return void this.rwop8(op, sego, this.and8, this.cx);
-				case 2: // AND r/m8,DL
-					return void this.rwop8(op, sego, this.and8, this.dx);
-				case 3: // AND r/m8,BL
-					return void this.rwop8(op, sego, this.and8, this.bx);
-				case 4: // AND r/m8,AH
-					return void this.rwop8(op, sego, this.and8, this.ax >>> 8);
-				case 5: // AND r/m8,CH
-					return void this.rwop8(op, sego, this.and8, this.cx >>> 8);
-				case 6: // AND r/m8,DH
-					return void this.rwop8(op, sego, this.and8, this.dx >>> 8);
-				case 7: // AND r/m8,BH
-					return void this.rwop8(op, sego, this.and8, this.bx >>> 8);
-				}
-				break;
-			case 0x21:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // AND r/m16,AX
-					return void this.rwop16(op, sego, this.and16, this.ax);
-				case 1: // AND r/m16,CX
-					return void this.rwop16(op, sego, this.and16, this.cx);
-				case 2: // AND r/m16,DX
-					return void this.rwop16(op, sego, this.and16, this.dx);
-				case 3: // AND r/m16,BX
-					return void this.rwop16(op, sego, this.and16, this.bx);
-				case 4: // AND r/m16,SP
-					return void this.rwop16(op, sego, this.and16, this.sp);
-				case 5: // AND r/m16,BP
-					return void this.rwop16(op, sego, this.and16, this.bp);
-				case 6: // AND r/m16,SI
-					return void this.rwop16(op, sego, this.and16, this.si);
-				case 7: // AND r/m16,DI
-					return void this.rwop16(op, sego, this.and16, this.di);
-				}
-				break;
-			case 0x22:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // AND AL,r/m8
-					return void(this.ax = this.ax & 0xff00 | this.and8(this.ax, this.rop8(op, sego)));
-				case 1: // AND CL,r/m8
-					return void(this.cx = this.cx & 0xff00 | this.and8(this.cx, this.rop8(op, sego)));
-				case 2: // AND DL,r/m8
-					return void(this.dx = this.dx & 0xff00 | this.and8(this.dx, this.rop8(op, sego)));
-				case 3: // AND BL,r/m8
-					return void(this.bx = this.bx & 0xff00 | this.and8(this.bx, this.rop8(op, sego)));
-				case 4: // AND AH,r/m8
-					return void(this.ax = this.ax & 0xff | this.and8(this.ax >>> 8, this.rop8(op, sego)) << 8);
-				case 5: // AND CH,r/m8
-					return void(this.cx = this.cx & 0xff | this.and8(this.cx >>> 8, this.rop8(op, sego)) << 8);
-				case 6: // AND DH,r/m8
-					return void(this.dx = this.dx & 0xff | this.and8(this.dx >>> 8, this.rop8(op, sego)) << 8);
-				case 7: // AND BH,r/m8
-					return void(this.bx = this.bx & 0xff | this.and8(this.bx >>> 8, this.rop8(op, sego)) << 8);
-				}
-				break;
-			case 0x23:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // AND AX,r/m16
-					return void(this.ax = this.and16(this.ax, this.rop16(op, sego)));
-				case 1: // AND CX,r/m16
-					return void(this.cx = this.and16(this.cx, this.rop16(op, sego)));
-				case 2: // AND DX,r/m16
-					return void(this.dx = this.and16(this.dx, this.rop16(op, sego)));
-				case 3: // AND BX,r/m16
-					return void(this.bx = this.and16(this.bx, this.rop16(op, sego)));
-				case 4: // AND SP,r/m16
-					return void(this.sp = this.and16(this.sp, this.rop16(op, sego)));
-				case 5: // AND BP,r/m16
-					return void(this.bp = this.and16(this.bp, this.rop16(op, sego)));
-				case 6: // AND SI,r/m16
-					return void(this.si = this.and16(this.si, this.rop16(op, sego)));
-				case 7: // AND DI,r/m16
-					return void(this.di = this.and16(this.di, this.rop16(op, sego)));
-				}
-				break;
+			case 0x20: // AND r/m8,r8
+				return void this.execute_20(sego);
+			case 0x21: // AND r/m16,r16
+				return void this.execute_21(sego);
+			case 0x22: // AND r8,r/m8
+				return void this.execute_22(sego);
+			case 0x23: // AND r16,r/m16
+				return void this.execute_23(sego);
 			case 0x24: // AND AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.and8(this.ax, this.fetch8()));
 			case 0x25: // AND AX,imm16
@@ -524,86 +164,14 @@ export default class I80186 extends Cpu {
 				break;
 			case 0x27: // DAA
 				return void this.daa();
-			case 0x28:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // SUB r/m8,AL
-					return void this.rwop8(op, sego, this.sub8, this.ax);
-				case 1: // SUB r/m8,CL
-					return void this.rwop8(op, sego, this.sub8, this.cx);
-				case 2: // SUB r/m8,DL
-					return void this.rwop8(op, sego, this.sub8, this.dx);
-				case 3: // SUB r/m8,BL
-					return void this.rwop8(op, sego, this.sub8, this.bx);
-				case 4: // SUB r/m8,AH
-					return void this.rwop8(op, sego, this.sub8, this.ax >>> 8);
-				case 5: // SUB r/m8,CH
-					return void this.rwop8(op, sego, this.sub8, this.cx >>> 8);
-				case 6: // SUB r/m8,DH
-					return void this.rwop8(op, sego, this.sub8, this.dx >>> 8);
-				case 7: // SUB r/m8,BH
-					return void this.rwop8(op, sego, this.sub8, this.bx >>> 8);
-				}
-				break;
-			case 0x29:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // SUB r/m16,AX
-					return void this.rwop16(op, sego, this.sub16, this.ax);
-				case 1: // SUB r/m16,CX
-					return void this.rwop16(op, sego, this.sub16, this.cx);
-				case 2: // SUB r/m16,DX
-					return void this.rwop16(op, sego, this.sub16, this.dx);
-				case 3: // SUB r/m16,BX
-					return void this.rwop16(op, sego, this.sub16, this.bx);
-				case 4: // SUB r/m16,SP
-					return void this.rwop16(op, sego, this.sub16, this.sp);
-				case 5: // SUB r/m16,BP
-					return void this.rwop16(op, sego, this.sub16, this.bp);
-				case 6: // SUB r/m16,SI
-					return void this.rwop16(op, sego, this.sub16, this.si);
-				case 7: // SUB r/m16,DI
-					return void this.rwop16(op, sego, this.sub16, this.di);
-				}
-				break;
-			case 0x2a:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // SUB AL,r/m8
-					return void(this.ax = this.ax & 0xff00 | this.sub8(this.ax, this.rop8(op, sego)));
-				case 1: // SUB CL,r/m8
-					return void(this.cx = this.cx & 0xff00 | this.sub8(this.cx, this.rop8(op, sego)));
-				case 2: // SUB DL,r/m8
-					return void(this.dx = this.dx & 0xff00 | this.sub8(this.dx, this.rop8(op, sego)));
-				case 3: // SUB BL,r/m8
-					return void(this.bx = this.bx & 0xff00 | this.sub8(this.bx, this.rop8(op, sego)));
-				case 4: // SUB AH,r/m8
-					return void(this.ax = this.ax & 0xff | this.sub8(this.ax >>> 8, this.rop8(op, sego)) << 8);
-				case 5: // SUB CH,r/m8
-					return void(this.cx = this.cx & 0xff | this.sub8(this.cx >>> 8, this.rop8(op, sego)) << 8);
-				case 6: // SUB DH,r/m8
-					return void(this.dx = this.dx & 0xff | this.sub8(this.dx >>> 8, this.rop8(op, sego)) << 8);
-				case 7: // SUB BH,r/m8
-					return void(this.bx = this.bx & 0xff | this.sub8(this.bx >>> 8, this.rop8(op, sego)) << 8);
-				}
-				break;
-			case 0x2b:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // SUB AX,r/m16
-					return void(this.ax = this.sub16(this.ax, this.rop16(op, sego)));
-				case 1: // SUB CX,r/m16
-					return void(this.cx = this.sub16(this.cx, this.rop16(op, sego)));
-				case 2: // SUB DX,r/m16
-					return void(this.dx = this.sub16(this.dx, this.rop16(op, sego)));
-				case 3: // SUB BX,r/m16
-					return void(this.bx = this.sub16(this.bx, this.rop16(op, sego)));
-				case 4: // SUB SP,r/m16
-					return void(this.sp = this.sub16(this.sp, this.rop16(op, sego)));
-				case 5: // SUB BP,r/m16
-					return void(this.bp = this.sub16(this.bp, this.rop16(op, sego)));
-				case 6: // SUB SI,r/m16
-					return void(this.si = this.sub16(this.si, this.rop16(op, sego)));
-				case 7: // SUB DI,r/m16
-					return void(this.di = this.sub16(this.di, this.rop16(op, sego)));
-				}
-				break;
+			case 0x28: // SUB r/m8,r8
+				return void this.execute_28(sego);
+			case 0x29: // SUB r/m16,r16
+				return void this.execute_29(sego);
+			case 0x2a: // SUB r8,r/m8
+				return void this.execute_2a(sego);
+			case 0x2b: // SUB r16,r/m16
+				return void this.execute_2b(sego);
 			case 0x2c: // SUB AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.sub8(this.ax, this.fetch8()));
 			case 0x2d: // SUB AX,imm16
@@ -614,86 +182,14 @@ export default class I80186 extends Cpu {
 				break;
 			case 0x2f: // DAS
 				return void this.das();
-			case 0x30:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // XOR r/m8,AL
-					return void this.rwop8(op, sego, this.xor8, this.ax);
-				case 1: // XOR r/m8,CL
-					return void this.rwop8(op, sego, this.xor8, this.cx);
-				case 2: // XOR r/m8,DL
-					return void this.rwop8(op, sego, this.xor8, this.dx);
-				case 3: // XOR r/m8,BL
-					return void this.rwop8(op, sego, this.xor8, this.bx);
-				case 4: // XOR r/m8,AH
-					return void this.rwop8(op, sego, this.xor8, this.ax >>> 8);
-				case 5: // XOR r/m8,CH
-					return void this.rwop8(op, sego, this.xor8, this.cx >>> 8);
-				case 6: // XOR r/m8,DH
-					return void this.rwop8(op, sego, this.xor8, this.dx >>> 8);
-				case 7: // XOR r/m8,BH
-					return void this.rwop8(op, sego, this.xor8, this.bx >>> 8);
-				}
-				break;
-			case 0x31:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // XOR r/m16,AX
-					return void this.rwop16(op, sego, this.xor16, this.ax);
-				case 1: // XOR r/m16,CX
-					return void this.rwop16(op, sego, this.xor16, this.cx);
-				case 2: // XOR r/m16,DX
-					return void this.rwop16(op, sego, this.xor16, this.dx);
-				case 3: // XOR r/m16,BX
-					return void this.rwop16(op, sego, this.xor16, this.bx);
-				case 4: // XOR r/m16,SP
-					return void this.rwop16(op, sego, this.xor16, this.sp);
-				case 5: // XOR r/m16,BP
-					return void this.rwop16(op, sego, this.xor16, this.bp);
-				case 6: // XOR r/m16,SI
-					return void this.rwop16(op, sego, this.xor16, this.si);
-				case 7: // XOR r/m16,DI
-					return void this.rwop16(op, sego, this.xor16, this.di);
-				}
-				break;
-			case 0x32:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // XOR AL,r/m8
-					return void(this.ax = this.ax & 0xff00 | this.xor8(this.ax, this.rop8(op, sego)));
-				case 1: // XOR CL,r/m8
-					return void(this.cx = this.cx & 0xff00 | this.xor8(this.cx, this.rop8(op, sego)));
-				case 2: // XOR DL,r/m8
-					return void(this.dx = this.dx & 0xff00 | this.xor8(this.dx, this.rop8(op, sego)));
-				case 3: // XOR BL,r/m8
-					return void(this.bx = this.bx & 0xff00 | this.xor8(this.bx, this.rop8(op, sego)));
-				case 4: // XOR AH,r/m8
-					return void(this.ax = this.ax & 0xff | this.xor8(this.ax >>> 8, this.rop8(op, sego)) << 8);
-				case 5: // XOR CH,r/m8
-					return void(this.cx = this.cx & 0xff | this.xor8(this.cx >>> 8, this.rop8(op, sego)) << 8);
-				case 6: // XOR DH,r/m8
-					return void(this.dx = this.dx & 0xff | this.xor8(this.dx >>> 8, this.rop8(op, sego)) << 8);
-				case 7: // XOR BH,r/m8
-					return void(this.bx = this.bx & 0xff | this.xor8(this.bx >>> 8, this.rop8(op, sego)) << 8);
-				}
-				break;
-			case 0x33:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // XOR AX,r/m16
-					return void(this.ax = this.xor16(this.ax, this.rop16(op, sego)));
-				case 1: // XOR CX,r/m16
-					return void(this.cx = this.xor16(this.cx, this.rop16(op, sego)));
-				case 2: // XOR DX,r/m16
-					return void(this.dx = this.xor16(this.dx, this.rop16(op, sego)));
-				case 3: // XOR BX,r/m16
-					return void(this.bx = this.xor16(this.bx, this.rop16(op, sego)));
-				case 4: // XOR SP,r/m16
-					return void(this.sp = this.xor16(this.sp, this.rop16(op, sego)));
-				case 5: // XOR BP,r/m16
-					return void(this.bp = this.xor16(this.bp, this.rop16(op, sego)));
-				case 6: // XOR SI,r/m16
-					return void(this.si = this.xor16(this.si, this.rop16(op, sego)));
-				case 7: // XOR DI,r/m16
-					return void(this.di = this.xor16(this.di, this.rop16(op, sego)));
-				}
-				break;
+			case 0x30: // XOR r/m8,r8
+				return void this.execute_30(sego);
+			case 0x31: // XOR r/m16,r16
+				return void this.execute_31(sego);
+			case 0x32: // XOR r8,r/m8
+				return void this.execute_32(sego);
+			case 0x33: // XOR r16,r/m16
+				return void this.execute_33(sego);
 			case 0x34: // XOR AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.xor8(this.ax, this.fetch8()));
 			case 0x35: // XOR AX,imm16
@@ -704,86 +200,14 @@ export default class I80186 extends Cpu {
 				break;
 			case 0x37: // AAA
 				return void this.aaa();
-			case 0x38:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // CMP r/m8,AL
-					return void this.sub8(this.rop8(op, sego), this.ax);
-				case 1: // CMP r/m8,CL
-					return void this.sub8(this.rop8(op, sego), this.cx);
-				case 2: // CMP r/m8,DL
-					return void this.sub8(this.rop8(op, sego), this.dx);
-				case 3: // CMP r/m8,BL
-					return void this.sub8(this.rop8(op, sego), this.bx);
-				case 4: // CMP r/m8,AH
-					return void this.sub8(this.rop8(op, sego), this.ax >>> 8);
-				case 5: // CMP r/m8,CH
-					return void this.sub8(this.rop8(op, sego), this.cx >>> 8);
-				case 6: // CMP r/m8,DH
-					return void this.sub8(this.rop8(op, sego), this.dx >>> 8);
-				case 7: // CMP r/m8,BH
-					return void this.sub8(this.rop8(op, sego), this.bx >>> 8);
-				}
-				break;
-			case 0x39:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // CMP r/m16,AX
-					return void this.sub16(this.rop16(op, sego), this.ax);
-				case 1: // CMP r/m16,CX
-					return void this.sub16(this.rop16(op, sego), this.cx);
-				case 2: // CMP r/m16,DX
-					return void this.sub16(this.rop16(op, sego), this.dx);
-				case 3: // CMP r/m16,BX
-					return void this.sub16(this.rop16(op, sego), this.bx);
-				case 4: // CMP r/m16,SP
-					return void this.sub16(this.rop16(op, sego), this.sp);
-				case 5: // CMP r/m16,BP
-					return void this.sub16(this.rop16(op, sego), this.bp);
-				case 6: // CMP r/m16,SI
-					return void this.sub16(this.rop16(op, sego), this.si);
-				case 7: // CMP r/m16,DI
-					return void this.sub16(this.rop16(op, sego), this.di);
-				}
-				break;
-			case 0x3a:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // CMP AL,r/m8
-					return void this.sub8(this.ax, this.rop8(op, sego));
-				case 1: // CMP CL,r/m8
-					return void this.sub8(this.cx, this.rop8(op, sego));
-				case 2: // CMP DL,r/m8
-					return void this.sub8(this.dx, this.rop8(op, sego));
-				case 3: // CMP BL,r/m8
-					return void this.sub8(this.bx, this.rop8(op, sego));
-				case 4: // CMP AH,r/m8
-					return void this.sub8(this.ax >>> 8, this.rop8(op, sego));
-				case 5: // CMP CH,r/m8
-					return void this.sub8(this.cx >>> 8, this.rop8(op, sego));
-				case 6: // CMP DH,r/m8
-					return void this.sub8(this.dx >>> 8, this.rop8(op, sego));
-				case 7: // CMP BH,r/m8
-					return void this.sub8(this.bx >>> 8, this.rop8(op, sego));
-				}
-				break;
-			case 0x3b:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // CMP AX,r/m16
-					return void this.sub16(this.ax, this.rop16(op, sego));
-				case 1: // CMP CX,r/m16
-					return void this.sub16(this.cx, this.rop16(op, sego));
-				case 2: // CMP DX,r/m16
-					return void this.sub16(this.dx, this.rop16(op, sego));
-				case 3: // CMP BX,r/m16
-					return void this.sub16(this.bx, this.rop16(op, sego));
-				case 4: // CMP SP,r/m16
-					return void this.sub16(this.sp, this.rop16(op, sego));
-				case 5: // CMP BP,r/m16
-					return void this.sub16(this.bp, this.rop16(op, sego));
-				case 6: // CMP SI,r/m16
-					return void this.sub16(this.si, this.rop16(op, sego));
-				case 7: // CMP DI,r/m16
-					return void this.sub16(this.di, this.rop16(op, sego));
-				}
-				break;
+			case 0x38: // CMP r/m8,r8
+				return void this.execute_38(sego);
+			case 0x39: // CMP r/m16,r16
+				return void this.execute_39(sego);
+			case 0x3a: // CMP r8,r/m8
+				return void this.execute_3a(sego);
+			case 0x3b: // CMP r16,r/m16
+				return void this.execute_3b(sego);
 			case 0x3c: // CMP AL,imm8
 				return void this.sub8(this.ax, this.fetch8());
 			case 0x3d: // CMP AX,imm16
@@ -862,70 +286,16 @@ export default class I80186 extends Cpu {
 				return void this.push(this.ax, this.cx, this.dx, this.bx, this.sp, this.bp, this.si, this.di);
 			case 0x61: // POPA
 				return void([this.di, this.si, this.bp,, this.bx, this.dx, this.cx, this.ax] = this.pop(8));
-			case 0x62:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // BOUND AX,m16&16
-					return void this.bound(this.ax, ...this.rop32(op, sego));
-				case 1: // BOUND CX,m16&16
-					return void this.bound(this.cx, ...this.rop32(op, sego));
-				case 2: // BOUND DX,m16&16
-					return void this.bound(this.dx, ...this.rop32(op, sego));
-				case 3: // BOUND BX,m16&16
-					return void this.bound(this.bx, ...this.rop32(op, sego));
-				case 4: // BOUND SP,m16&16
-					return void this.bound(this.sp, ...this.rop32(op, sego));
-				case 5: // BOUND BP,m16&16
-					return void this.bound(this.bp, ...this.rop32(op, sego));
-				case 6: // BOUND SI,m16&16
-					return void this.bound(this.si, ...this.rop32(op, sego));
-				case 7: // BOUND DI,m16&16
-					return void this.bound(this.di, ...this.rop32(op, sego));
-				}
-				break;
+			case 0x62: // BOUND r16,m16&16
+				return void this.execute_62(sego);
 			case 0x68: // PUSH imm16
 				return void this.push(this.fetch16());
-			case 0x69:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // IMUL AX,r/m16,imm16
-					return void(this.ax = this.imul16i(this.rop16(op, sego)));
-				case 1: // IMUL CX,r/m16,imm16
-					return void(this.cx = this.imul16i(this.rop16(op, sego)));
-				case 2: // IMUL(DX,r/m16,imm16
-					return void(this.dx = this.imul16i(this.rop16(op, sego)));
-				case 3: // IMUL BX,r/m16,imm16
-					return void(this.bx = this.imul16i(this.rop16(op, sego)));
-				case 4: // IMUL SP,r/m16,imm16
-					return void(this.sp = this.imul16i(this.rop16(op, sego)));
-				case 5: // IMUL BP,r/m16,imm16
-					return void(this.bp = this.imul16i(this.rop16(op, sego)));
-				case 6: // IMUL SI,r/m16,imm16
-					return void(this.si = this.imul16i(this.rop16(op, sego)));
-				case 7: // IMUL DI,r/m16,imm16
-					return void(this.di = this.imul16i(this.rop16(op, sego)));
-				}
-				break;
+			case 0x69: // IMUL r16,r/m16,imm16
+				return void this.execute_69(sego);
 			case 0x6a: // PUSH imm8
 				return void this.push(this.fetch8s());
-			case 0x6b:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // IMUL AX,r/m16,imm8
-					return void(this.ax = this.imul16is(this.rop16(op, sego)));
-				case 1: // IMUL CX,r/m16,imm8
-					return void(this.cx = this.imul16is(this.rop16(op, sego)));
-				case 2: // IMUL(DX,r/m16,imm8
-					return void(this.dx = this.imul16is(this.rop16(op, sego)));
-				case 3: // IMUL BX,r/m16,imm8
-					return void(this.bx = this.imul16is(this.rop16(op, sego)));
-				case 4: // IMUL SP,r/m16,imm8
-					return void(this.sp = this.imul16is(this.rop16(op, sego)));
-				case 5: // IMUL BP,r/m16,imm8
-					return void(this.bp = this.imul16is(this.rop16(op, sego)));
-				case 6: // IMUL SI,r/m16,imm8
-					return void(this.si = this.imul16is(this.rop16(op, sego)));
-				case 7: // IMUL DI,r/m16,imm8
-					return void(this.di = this.imul16is(this.rop16(op, sego)));
-				}
-				break;
+			case 0x6b: // IMUL r16,r/m16,imm8
+				return void this.execute_6b(sego);
 			case 0x6c: // INSB
 				this.write8(this.es, this.di, this.ioread8(this.dx));
 				this.di = this.di - (this.flags >>> 9 & 2) + 1 & 0xffff;
@@ -975,298 +345,35 @@ export default class I80186 extends Cpu {
 			case 0x7f: // JNLE/JG rel8
 				return void this.jcc(((this.flags ^ this.flags << 4 | this.flags << 5) & 0x800) === 0);
 			case 0x80:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ADD r/m8,imm8
-					return void this.rwop8i(op, sego, this.add8);
-				case 1: // OR r/m8,imm8
-					return void this.rwop8i(op, sego, this.or8);
-				case 2: // ADC r/m8,imm8
-					return void this.rwop8i(op, sego, this.adc8);
-				case 3: // SBB r/m8,imm8
-					return void this.rwop8i(op, sego, this.sbb8);
-				case 4: // AND r/m8,imm8
-					return void this.rwop8i(op, sego, this.and8);
-				case 5: // SUB r/m8,imm8
-					return void this.rwop8i(op, sego, this.sub8);
-				case 6: // XOR r/m8,imm8
-					return void this.rwop8i(op, sego, this.xor8);
-				case 7: // CMP r/m8,imm8
-					return void this.rop8i(op, sego, this.sub8);
-				}
-				break;
+				return void this.execute_80(sego);
 			case 0x81:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ADD r/m16,imm16
-					return void this.rwop16i(op, sego, this.add16);
-				case 1: // OR r/m16,imm16
-					return void this.rwop16i(op, sego, this.or16);
-				case 2: // ADC r/m16,imm16
-					return void this.rwop16i(op, sego, this.adc16);
-				case 3: // SBB r/m16,imm16
-					return void this.rwop16i(op, sego, this.sbb16);
-				case 4: // AND r/m16,imm16
-					return void this.rwop16i(op, sego, this.and16);
-				case 5: // SUB r/m16,imm16
-					return void this.rwop16i(op, sego, this.sub16);
-				case 6: // XOR r/m16,imm16
-					return void this.rwop16i(op, sego, this.xor16);
-				case 7: // CMP r/m16,imm16
-					return void this.rop16i(op, sego, this.sub16);
-				}
-				break;
+				return void this.execute_81(sego);
 			case 0x82:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ADD r/m8,imm8
-					return void this.rwop8i(op, sego, this.add8);
-				case 2: // ADC r/m8,imm8
-					return void this.rwop8i(op, sego, this.adc8);
-				case 3: // SBB r/m8,imm8
-					return void this.rwop8i(op, sego, this.sbb8);
-				case 5: // SUB r/m8,imm8
-					return void this.rwop8i(op, sego, this.sub8);
-				case 7: // CMP r/m8,imm8
-					return void this.rop8i(op, sego, this.sub8);
-				default:
-					return void this.exception(6);
-				}
+				return void this.execute_82(sego);
 			case 0x83:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ADD r/m16,imm8
-					return void this.rwop16is(op, sego, this.add16);
-				case 2: // ADC r/m16,imm8
-					return void this.rwop16is(op, sego, this.adc16);
-				case 3: // SBB r/m16,imm8
-					return void this.rwop16is(op, sego, this.sbb16);
-				case 5: // SUB r/m16,imm8
-					return void this.rwop16is(op, sego, this.sub16);
-				case 7: // CMP r/m16,imm8
-					return void this.rop16is(op, sego, this.sub16);
-				default:
-					return void this.exception(6);
-				}
-			case 0x84:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // TEST AL,r/m8
-					return void this.and8(this.ax, this.rop8(op, sego));
-				case 1: // TEST CL,r/m8
-					return void this.and8(this.cx, this.rop8(op, sego));
-				case 2: // TEST DL,r/m8
-					return void this.and8(this.dx, this.rop8(op, sego));
-				case 3: // TEST BL,r/m8
-					return void this.and8(this.bx, this.rop8(op, sego));
-				case 4: // TEST AH,r/m8
-					return void this.and8(this.ax >>> 8, this.rop8(op, sego));
-				case 5: // TEST CH,r/m8
-					return void this.and8(this.cx >>> 8, this.rop8(op, sego));
-				case 6: // TEST DH,r/m8
-					return void this.and8(this.dx >>> 8, this.rop8(op, sego));
-				case 7: // TEST BH,r/m8
-					return void this.and8(this.bx >>> 8, this.rop8(op, sego));
-				}
-				break;
-			case 0x85:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // TEST AX,r/m16
-					return void this.and16(this.ax, this.rop16(op, sego));
-				case 1: // TEST CX,r/m16
-					return void this.and16(this.cx, this.rop16(op, sego));
-				case 2: // TEST DX,r/m16
-					return void this.and16(this.dx, this.rop16(op, sego));
-				case 3: // TEST BX,r/m16
-					return void this.and16(this.bx, this.rop16(op, sego));
-				case 4: // TEST SP,r/m16
-					return void this.and16(this.sp, this.rop16(op, sego));
-				case 5: // TEST BP,r/m16
-					return void this.and16(this.bp, this.rop16(op, sego));
-				case 6: // TEST SI,r/m16
-					return void this.and16(this.si, this.rop16(op, sego));
-				case 7: // TEST DI,r/m16
-					return void this.and16(this.di, this.rop16(op, sego));
-				}
-				break;
-			case 0x86:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // XCHG AL,r/m8
-					[this.ax, v] = [this.ax & 0xff00 | this.rop8(op, sego), this.ax & 0xff];
-					return void this.wop8(op, sego, v);
-				case 1: // XCHG CL,r/m8
-					[this.cx, v] = [this.ax & 0xff00 | this.rop8(op, sego), this.cx & 0xff];
-					return void this.wop8(op, sego, v);
-				case 2: // XCHG DL,r/m8
-					[this.dx, v] = [this.ax & 0xff00 | this.rop8(op, sego), this.dx & 0xff];
-					return void this.wop8(op, sego, v);
-				case 3: // XCHG BL,r/m8
-					[this.bx, v] = [this.ax & 0xff00 | this.rop8(op, sego), this.bx & 0xff];
-					return void this.wop8(op, sego, v);
-				case 4: // XCHG AH,r/m8
-					[this.ax, v] = [this.ax & 0xff | this.rop8(op, sego) << 8, this.ax >>> 8];
-					return void this.wop8(op, sego, v);
-				case 5: // XCHG CH,r/m8
-					[this.cx, v] = [this.cx & 0xff | this.rop8(op, sego) << 8, this.cx >>> 8];
-					return void this.wop8(op, sego, v);
-				case 6: // XCHG DH,r/m8
-					[this.dx, v] = [this.dx & 0xff | this.rop8(op, sego) << 8, this.dx >>> 8];
-					return void this.wop8(op, sego, v);
-				case 7: // XCHG BH,r/m8
-					[this.bx, v] = [this.bx & 0xff | this.rop8(op, sego) << 8, this.bx >>> 8];
-					return void this.wop8(op, sego, v);
-				}
-				break;
-			case 0x87:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // XCHG AX,r/m16
-					[this.ax, v] = [this.rop16(op, sego), this.ax];
-					return void this.wop16(op, sego, v);
-				case 1: // XCHG CX,r/m16
-					[this.cx, v] = [this.rop16(op, sego), this.cx];
-					return void this.wop16(op, sego, v);
-				case 2: // XCHG DX,r/m16
-					[this.dx, v] = [this.rop16(op, sego), this.dx];
-					return void this.wop16(op, sego, v);
-				case 3: // XCHG BX,r/m16
-					[this.bx, v] = [this.rop16(op, sego), this.bx];
-					return void this.wop16(op, sego, v);
-				case 4: // XCHG SP,r/m16
-					[this.sp, v] = [this.rop16(op, sego), this.sp];
-					return void this.wop16(op, sego, v);
-				case 5: // XCHG BP,r/m16
-					[this.bp, v] = [this.rop16(op, sego), this.bp];
-					return void this.wop16(op, sego, v);
-				case 6: // XCHG SI,r/m16
-					[this.si, v] = [this.rop16(op, sego), this.si];
-					return void this.wop16(op, sego, v);
-				case 7: // XCHG DI,r/m16
-					[this.di, v] = [this.rop16(op, sego), this.di];
-					return void this.wop16(op, sego, v);
-				}
-				break;
-			case 0x88:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // MOV r/m8,AL
-					return void this.wop8(op, sego, this.ax & 0xff);
-				case 1: // MOV r/m8,CL
-					return void this.wop8(op, sego, this.cx & 0xff);
-				case 2: // MOV r/m8,DL
-					return void this.wop8(op, sego, this.dx & 0xff);
-				case 3: // MOV r/m8,BL
-					return void this.wop8(op, sego, this.bx & 0xff);
-				case 4: // MOV r/m8,AH
-					return void this.wop8(op, sego, this.ax >>> 8);
-				case 5: // MOV r/m8,CH
-					return void this.wop8(op, sego, this.cx >>> 8);
-				case 6: // MOV r/m8,DH
-					return void this.wop8(op, sego, this.dx >>> 8);
-				case 7: // MOV r/m8,BH
-					return void this.wop8(op, sego, this.bx >>> 8);
-				}
-				break;
-			case 0x89:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // MOV r/m16,AX
-					return void this.wop16(op, sego, this.ax);
-				case 1: // MOV r/m16,CX
-					return void this.wop16(op, sego, this.cx);
-				case 2: // MOV r/m16,DX
-					return void this.wop16(op, sego, this.dx);
-				case 3: // MOV r/m16,BX
-					return void this.wop16(op, sego, this.bx);
-				case 4: // MOV r/m16,SP
-					return void this.wop16(op, sego, this.sp);
-				case 5: // MOV r/m16,BP
-					return void this.wop16(op, sego, this.bp);
-				case 6: // MOV r/m16,SI
-					return void this.wop16(op, sego, this.si);
-				case 7: // MOV r/m16,DI
-					return void this.wop16(op, sego, this.di);
-				}
-				break;
-			case 0x8a:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // MOV AL,r/m8
-					return void(this.ax = this.ax & 0xff00 | this.rop8(op, sego));
-				case 1: // MOV CL,r/m8
-					return void(this.cx = this.cx & 0xff00 | this.rop8(op, sego));
-				case 2: // MOV DL,r/m8
-					return void(this.dx = this.dx & 0xff00 | this.rop8(op, sego));
-				case 3: // MOV BL,r/m8
-					return void(this.bx = this.bx & 0xff00 | this.rop8(op, sego));
-				case 4: // MOV AH,r/m8
-					return void(this.ax = this.ax & 0xff | this.rop8(op, sego) << 8);
-				case 5: // MOV CH,r/m8
-					return void(this.cx = this.cx & 0xff | this.rop8(op, sego) << 8);
-				case 6: // MOV DH,r/m8
-					return void(this.dx = this.dx & 0xff | this.rop8(op, sego) << 8);
-				case 7: // MOV BH,r/m8
-					return void(this.bx = this.bx & 0xff | this.rop8(op, sego) << 8);
-				}
-				break;
-			case 0x8b:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // MOV AX,r/m16
-					return void(this.ax = this.rop16(op, sego));
-				case 1: // MOV CX,r/m16
-					return void(this.cx = this.rop16(op, sego));
-				case 2: // MOV DX,r/m16
-					return void(this.dx = this.rop16(op, sego));
-				case 3: // MOV BX,r/m16
-					return void(this.bx = this.rop16(op, sego));
-				case 4: // MOV SP,r/m16
-					return void(this.sp = this.rop16(op, sego));
-				case 5: // MOV BP,r/m16
-					return void(this.bp = this.rop16(op, sego));
-				case 6: // MOV SI,r/m16
-					return void(this.si = this.rop16(op, sego));
-				case 7: // MOV DI,r/m16
-					return void(this.di = this.rop16(op, sego));
-				}
-				break;
-			case 0x8c:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // MOV r/m16,ES
-					return void this.wop16(op, sego, this.es);
-				case 1: // MOV r/m16,CS
-					return void this.wop16(op, sego, this.cs);
-				case 2: // MOV r/m16,SS
-					return void this.wop16(op, sego, this.ss);
-				case 3: // MOV r/m16,DS
-					return void this.wop16(op, sego, this.ds);
-				default:
-					return void this.exception(6);
-				}
-			case 0x8d:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // LEA AX,m16
-					return void(this.ax = this.lea(op));
-				case 1: // LEA CX,m16
-					return void(this.cx = this.lea(op));
-				case 2: // LEA DX,m16
-					return void(this.dx = this.lea(op));
-				case 3: // LEA BX,m16
-					return void(this.bx = this.lea(op));
-				case 4: // LEA SP,m16
-					return void(this.sp = this.lea(op));
-				case 5: // LEA BP,m16
-					return void(this.bp = this.lea(op));
-				case 6: // LEA SI,m16
-					return void(this.si = this.lea(op));
-				case 7: // LEA DI,m16
-					return void(this.di = this.lea(op));
-				}
-				break;
-			case 0x8e:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // MOV ES,r/m16
-					return void(this.es = this.rop16(op, sego));
-				case 1: // MOV CS,r/m16
-					return void(this.cs = this.rop16(op, sego));
-				case 2: // MOV SS,r/m16
-					this.intmask = true;
-					return void(this.ss = this.rop16(op, sego));
-				case 3: // MOV DS,r/m16
-					return void(this.ds = this.rop16(op, sego));
-				default:
-					return void this.exception(6);
-				}
+				return void this.execute_83(sego);
+			case 0x84: // TEST r8,r/m8
+				return void this.execute_84(sego);
+			case 0x85: // TEST r16,r/m16
+				return void this.execute_85(sego);
+			case 0x86: // XCHG r8,r/m8
+				return void this.execute_86(sego);
+			case 0x87: // XCHG r16,r/m16
+				return void this.execute_87(sego);
+			case 0x88: // MOV r/m8,r8
+				return void this.execute_88(sego);
+			case 0x89: // MOV r/m16,r16
+				return void this.execute_89(sego);
+			case 0x8a: // MOV r8,r/m8
+				return void this.execute_8a(sego);
+			case 0x8b: // MOV r16,r/m16
+				return void this.execute_8b(sego);
+			case 0x8c: // MOV r/m16,sreg
+				return void this.execute_8c(sego);
+			case 0x8d: // LEA r16,m16
+				return void this.execute_8d();
+			case 0x8e: // MOV sreg,r/m16
+				return void this.execute_8e(sego);
 			case 0x8f: // POP r/m16
 				if (((op = this.fetch8()) >>> 3 & 7) === 0)
 					return void this.wop8(op, sego, this.pop());
@@ -1386,88 +493,18 @@ export default class I80186 extends Cpu {
 			case 0xbf: // MOV DI,imm16
 				return void(this.di = this.fetch16());
 			case 0xc0:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ROL r/m8,imm8
-					return void this.rwop8(op, sego, this.rol8, this.fetch8());
-				case 1: // ROR r/m8,imm8
-					return void this.rwop8(op, sego, this.ror8, this.fetch8());
-				case 2: // RCL r/m8,imm8
-					return void this.rwop8(op, sego, this.rcl8, this.fetch8());
-				case 3: // RCR r/m8,imm8
-					return void this.rwop8(op, sego, this.rcr8, this.fetch8());
-				case 4: // SAL/SHL r/m8,imm8
-					return void this.rwop8(op, sego, this.shl8, this.fetch8());
-				case 5: // SHR r/m8,imm8
-					return void this.rwop8(op, sego, this.shr8, this.fetch8());
-				case 7: // SAR r/m8,imm8
-					return void this.rwop8(op, sego, this.sar8, this.fetch8());
-				default:
-					return void this.exception(6);
-				}
+				return void this.execute_c0(sego);
 			case 0xc1:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ROL r/m16,imm8
-					return void this.rwop16(op, sego, this.rol16, this.fetch8());
-				case 1: // ROR r/m16,imm8
-					return void this.rwop16(op, sego, this.ror16, this.fetch8());
-				case 2: // RCL r/m16,imm8
-					return void this.rwop16(op, sego, this.rcl16, this.fetch8());
-				case 3: // RCR r/m16,imm8
-					return void this.rwop16(op, sego, this.rcr16, this.fetch8());
-				case 4: // SAL/SHL r/m16,imm8
-					return void this.rwop16(op, sego, this.shl16, this.fetch8());
-				case 5: // SHR r/m16,imm8
-					return void this.rwop16(op, sego, this.shr16, this.fetch8());
-				case 7: // SAR r/m16,imm8
-					return void this.rwop16(op, sego, this.sar16, this.fetch8());
-				default:
-					return void this.exception(6);
-				}
+				return void this.execute_c1(sego);
 			case 0xc2: // RET imm16
 				this.sp = this.sp + this.fetch16() & 0xffff;
 				return void(this.ip = this.pop());
 			case 0xc3: // RET
 				return void(this.ip = this.pop());
-			case 0xc4:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // LES AX,m16:16
-					return void([this.ax, this.es] = this.rop32(op, sego));
-				case 1: // LES CX,m16:16
-					return void([this.cx, this.es] = this.rop32(op, sego));
-				case 2: // LES DX,m16:16
-					return void([this.dx, this.es] = this.rop32(op, sego));
-				case 3: // LES BX,m16:16
-					return void([this.bx, this.es] = this.rop32(op, sego));
-				case 4: // LES SP,m16:16
-					return void([this.sp, this.es] = this.rop32(op, sego));
-				case 5: // LES BP,m16:16
-					return void([this.bp, this.es] = this.rop32(op, sego));
-				case 6: // LES SI,m16:16
-					return void([this.si, this.es] = this.rop32(op, sego));
-				case 7: // LES DI,m16:16
-					return void([this.di, this.es] = this.rop32(op, sego));
-				}
-				break;
-			case 0xc5:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // LDS AX,m16:16
-					return void([this.ax, this.ds] = this.rop32(op, sego));
-				case 1: // LDS CX,m16:16
-					return void([this.cx, this.ds] = this.rop32(op, sego));
-				case 2: // LDS DX,m16:16
-					return void([this.dx, this.ds] = this.rop32(op, sego));
-				case 3: // LDS BX,m16:16
-					return void([this.bx, this.ds] = this.rop32(op, sego));
-				case 4: // LDS SP,m16:16
-					return void([this.sp, this.ds] = this.rop32(op, sego));
-				case 5: // LDS BP,m16:16
-					return void([this.bp, this.ds] = this.rop32(op, sego));
-				case 6: // LDS SI,m16:16
-					return void([this.si, this.ds] = this.rop32(op, sego));
-				case 7: // LDS DI,m16:16
-					return void([this.di, this.ds] = this.rop32(op, sego));
-				}
-				break;
+			case 0xc4: // LES r16,m16:16
+				return void this.execute_c4(sego);
+			case 0xc5: // LDS r16,m16:16
+				return void this.execute_c5(sego);
 			case 0xc6: // MOV r/m8,imm8
 				if (((op = this.fetch8()) >>> 3 & 7) === 0)
 					return void this.wop8i(op, sego);
@@ -1495,81 +532,13 @@ export default class I80186 extends Cpu {
 			case 0xcf: // IRET
 				return void([this.ip, this.cs, this.flags] = this.pop(3));
 			case 0xd0:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ROL r/m8,1
-					return void this.rwop8(op, sego, this.rol8, 1);
-				case 1: // ROR r/m8,1
-					return void this.rwop8(op, sego, this.ror8, 1);
-				case 2: // RCL r/m8,1
-					return void this.rwop8(op, sego, this.rcl8, 1);
-				case 3: // RCR r/m8,1
-					return void this.rwop8(op, sego, this.rcr8, 1);
-				case 4: // SAL/SHL r/m8,1
-					return void this.rwop8(op, sego, this.shl8, 1);
-				case 5: // SHR r/m8,1
-					return void this.rwop8(op, sego, this.shr8, 1);
-				case 7: // SAR r/m8,1
-					return void this.rwop8(op, sego, this.sar8, 1);
-				default:
-					return void this.exception(6);
-				}
+				return void this.execute_d0(sego);
 			case 0xd1:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ROL r/m16,1
-					return void this.rwop16(op, sego, this.rol16, 1);
-				case 1: // ROR r/m16,1
-					return void this.rwop16(op, sego, this.ror16, 1);
-				case 2: // RCL r/m16,1
-					return void this.rwop16(op, sego, this.rcl16, 1);
-				case 3: // RCR r/m16,1
-					return void this.rwop16(op, sego, this.rcr16, 1);
-				case 4: // SAL/SHL r/m16,1
-					return void this.rwop16(op, sego, this.shl16, 1);
-				case 5: // SHR r/m16,1
-					return void this.rwop16(op, sego, this.shr16, 1);
-				case 7: // SAR r/m16,1
-					return void this.rwop16(op, sego, this.sar16, 1);
-				default:
-					return void this.exception(6);
-				}
+				return void this.execute_d1(sego);
 			case 0xd2:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ROL r/m8,CL
-					return void this.rwop8(op, sego, this.rol8, this.cx & 0xff);
-				case 1: // ROR r/m8,CL
-					return void this.rwop8(op, sego, this.ror8, this.cx & 0xff);
-				case 2: // RCL r/m8,CL
-					return void this.rwop8(op, sego, this.rcl8, this.cx & 0xff);
-				case 3: // RCR r/m8,CL
-					return void this.rwop8(op, sego, this.rcr8, this.cx & 0xff);
-				case 4: // SAL/SHL r/m8,CL
-					return void this.rwop8(op, sego, this.shl8, this.cx & 0xff);
-				case 5: // SHR r/m8,CL
-					return void this.rwop8(op, sego, this.shr8, this.cx & 0xff);
-				case 7: // SAR r/m8,CL
-					return void this.rwop8(op, sego, this.sar8, this.cx & 0xff);
-				default:
-					return void this.exception(6);
-				}
+				return void this.execute_d2(sego);
 			case 0xd3:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // ROL r/m16,CL
-					return void this.rwop16(op, sego, this.rol16, this.cx & 0xff);
-				case 1: // ROR r/m16,CL
-					return void this.rwop16(op, sego, this.ror16, this.cx & 0xff);
-				case 2: // RCL r/m16,CL
-					return void this.rwop16(op, sego, this.rcl16, this.cx & 0xff);
-				case 3: // RCR r/m16,CL
-					return void this.rwop16(op, sego, this.rcr16, this.cx & 0xff);
-				case 4: // SAL/SHL r/m16,CL
-					return void this.rwop16(op, sego, this.shl16, this.cx & 0xff);
-				case 5: // SHR r/m16,CL
-					return void this.rwop16(op, sego, this.shr16, this.cx & 0xff);
-				case 7: // SAR r/m16,CL
-					return void this.rwop16(op, sego, this.sar16, this.cx & 0xff);
-				default:
-					return void this.exception(6);
-				}
+				return void this.execute_d3(sego);
 			case 0xd4: // AAM
 				return void this.aam(this.fetch8());
 			case 0xd5: // AAD
@@ -1633,43 +602,9 @@ export default class I80186 extends Cpu {
 			case 0xf5: // CMC
 				return void(this.flags ^= 1);
 			case 0xf6:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // TEST r/m8,imm8
-					return void this.rop8i(op, sego, this.and8);
-				case 2: // NOT r/m8
-					return void this.rwop8(op, sego, dst => ~dst & 0xff);
-				case 3: // NEG r/m8
-					return void this.rwop8(op, sego, this.neg8);
-				case 4: // MUL r/m8
-					return void this.mul8(this.rop8(op, sego));
-				case 5: // IMUL r/m8
-					return void this.imul8(this.rop8(op, sego));
-				case 6: // DIV r/m8
-					return void this.div8(this.rop8(op, sego));
-				case 7: // IDIV r/m8
-					return void this.idiv8(this.rop8(op, sego));
-				default:
-					return void this.exception(6);
-				}
+				return void this.execute_f6(sego);
 			case 0xf7:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // TEST r/m16,imm16
-					return void this.rop16i(op, sego, this.and16);
-				case 2: // NOT r/m16
-					return void this.rwop16(op, sego, dst => ~dst & 0xffff);
-				case 3: // NEG r/m16
-					return void this.rwop16(op, sego, this.neg16);
-				case 4: // MUL r/m16
-					return void this.mul16(this.rop16(op, sego));
-				case 5: // IMUL r/m16
-					return void this.imul16(this.rop16(op, sego));
-				case 6: // DIV r/m16
-					return void this.div16(this.rop16(op, sego));
-				case 7: // IDIV r/m16
-					return void this.idiv16(this.rop16(op, sego));
-				default:
-					return void this.exception(6);
-				}
+				return void this.execute_f7(sego);
 			case 0xf8: // CLC
 				return void(this.flags &= ~1);
 			case 0xf9: // STC
@@ -1683,36 +618,1427 @@ export default class I80186 extends Cpu {
 			case 0xfd: // STD
 				return void(this.flags |= 0x400);
 			case 0xfe:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // INC r/m8
-					return void this.rwop8(op, sego, this.inc8);
-				case 1: // DEC r/m8
-					return void this.rwop8(op, sego, this.dec8);
-				default:
-					return void this.exception(6);
-				}
+				return void this.execute_fe(sego);
 			case 0xff:
-				switch ((op = this.fetch8()) >>> 3 & 7) {
-				case 0: // INC r/m16
-					return void this.rwop16(op, sego, this.inc16);
-				case 1: // DEC r/m16
-					return void this.rwop16(op, sego, this.dec16);
-				case 2: // CALL r/m16
-					return void this.call16a(this.rop16(op, sego));
-				case 3: // CALL m16:16
-					return void this.call32(...this.rop32(op, sego));
-				case 4: // JMP r/m16
-					return void(this.ip = this.rop16(op, sego));
-				case 5: // JMP m16:16
-					return void([this.ip, this.cs] = this.rop32(op, sego));
-				case 6: // PUSH r/m16
-					return void this.push(this.rop16(op, sego));
-				default:
-					return void this.exception(6);
-				}
+				return void this.execute_ff(sego);
 			default:
 				return void this.exception(6);
 			}
+	}
+
+	execute_00(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ADD r/m8,AL
+			return void this.rwop8(op, sego, this.add8, this.ax);
+		case 1: // ADD r/m8,CL
+			return void this.rwop8(op, sego, this.add8, this.cx);
+		case 2: // ADD r/m8,DL
+			return void this.rwop8(op, sego, this.add8, this.dx);
+		case 3: // ADD r/m8,BL
+			return void this.rwop8(op, sego, this.add8, this.bx);
+		case 4: // ADD r/m8,AH
+			return void this.rwop8(op, sego, this.add8, this.ax >>> 8);
+		case 5: // ADD r/m8,CH
+			return void this.rwop8(op, sego, this.add8, this.cx >>> 8);
+		case 6: // ADD r/m8,DH
+			return void this.rwop8(op, sego, this.add8, this.dx >>> 8);
+		case 7: // ADD r/m8,BH
+			return void this.rwop8(op, sego, this.add8, this.bx >>> 8);
+		}
+	}
+
+	execute_01(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ADD r/m16,AX
+			return void this.rwop16(op, sego, this.add16, this.ax);
+		case 1: // ADD r/m16,CX
+			return void this.rwop16(op, sego, this.add16, this.cx);
+		case 2: // ADD r/m16,DX
+			return void this.rwop16(op, sego, this.add16, this.dx);
+		case 3: // ADD r/m16,BX
+			return void this.rwop16(op, sego, this.add16, this.bx);
+		case 4: // ADD r/m16,SP
+			return void this.rwop16(op, sego, this.add16, this.sp);
+		case 5: // ADD r/m16,BP
+			return void this.rwop16(op, sego, this.add16, this.bp);
+		case 6: // ADD r/m16,SI
+			return void this.rwop16(op, sego, this.add16, this.si);
+		case 7: // ADD r/m16,DI
+			return void this.rwop16(op, sego, this.add16, this.di);
+		}
+	}
+
+	execute_02(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ADD AL,r/m8
+			return void(this.ax = this.ax & 0xff00 | this.add8(this.ax, this.rop8(op, sego)));
+		case 1: // ADD CL,r/m8
+			return void(this.cx = this.cx & 0xff00 | this.add8(this.cx, this.rop8(op, sego)));
+		case 2: // ADD DL,r/m8
+			return void(this.dx = this.dx & 0xff00 | this.add8(this.dx, this.rop8(op, sego)));
+		case 3: // ADD BL,r/m8
+			return void(this.bx = this.bx & 0xff00 | this.add8(this.bx, this.rop8(op, sego)));
+		case 4: // ADD AH,r/m8
+			return void(this.ax = this.ax & 0xff | this.add8(this.ax >>> 8, this.rop8(op, sego)) << 8);
+		case 5: // ADD CH,r/m8
+			return void(this.cx = this.cx & 0xff | this.add8(this.cx >>> 8, this.rop8(op, sego)) << 8);
+		case 6: // ADD DH,r/m8
+			return void(this.dx = this.dx & 0xff | this.add8(this.dx >>> 8, this.rop8(op, sego)) << 8);
+		case 7: // ADD BH,r/m8
+			return void(this.bx = this.bx & 0xff | this.add8(this.bx >>> 8, this.rop8(op, sego)) << 8);
+		}
+	}
+
+	execute_03(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ADD AX,r/m16
+			return void(this.ax = this.add16(this.ax, this.rop16(op, sego)));
+		case 1: // ADD CX,r/m16
+			return void(this.cx = this.add16(this.cx, this.rop16(op, sego)));
+		case 2: // ADD DX,r/m16
+			return void(this.dx = this.add16(this.dx, this.rop16(op, sego)));
+		case 3: // ADD BX,r/m16
+			return void(this.bx = this.add16(this.bx, this.rop16(op, sego)));
+		case 4: // ADD SP,r/m16
+			return void(this.sp = this.add16(this.sp, this.rop16(op, sego)));
+		case 5: // ADD BP,r/m16
+			return void(this.bp = this.add16(this.bp, this.rop16(op, sego)));
+		case 6: // ADD SI,r/m16
+			return void(this.si = this.add16(this.si, this.rop16(op, sego)));
+		case 7: // ADD DI,r/m16
+			return void(this.di = this.add16(this.di, this.rop16(op, sego)));
+		}
+	}
+
+	execute_08(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // OR r/m8,AL
+			return void this.rwop8(op, sego, this.or8, this.ax);
+		case 1: // OR r/m8,CL
+			return void this.rwop8(op, sego, this.or8, this.cx);
+		case 2: // OR r/m8,DL
+			return void this.rwop8(op, sego, this.or8, this.dx);
+		case 3: // OR r/m8,BL
+			return void this.rwop8(op, sego, this.or8, this.bx);
+		case 4: // OR r/m8,AH
+			return void this.rwop8(op, sego, this.or8, this.ax >>> 8);
+		case 5: // OR r/m8,CH
+			return void this.rwop8(op, sego, this.or8, this.cx >>> 8);
+		case 6: // OR r/m8,DH
+			return void this.rwop8(op, sego, this.or8, this.dx >>> 8);
+		case 7: // OR r/m8,BH
+			return void this.rwop8(op, sego, this.or8, this.bx >>> 8);
+		}
+	}
+
+	execute_09(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // OR r/m16,AX
+			return void this.rwop16(op, sego, this.or16, this.ax);
+		case 1: // OR r/m16,CX
+			return void this.rwop16(op, sego, this.or16, this.cx);
+		case 2: // OR r/m16,DX
+			return void this.rwop16(op, sego, this.or16, this.dx);
+		case 3: // OR r/m16,BX
+			return void this.rwop16(op, sego, this.or16, this.bx);
+		case 4: // OR r/m16,SP
+			return void this.rwop16(op, sego, this.or16, this.sp);
+		case 5: // OR r/m16,BP
+			return void this.rwop16(op, sego, this.or16, this.bp);
+		case 6: // OR r/m16,SI
+			return void this.rwop16(op, sego, this.or16, this.si);
+		case 7: // OR r/m16,DI
+			return void this.rwop16(op, sego, this.or16, this.di);
+		}
+	}
+
+	execute_0a(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // OR AL,r/m8
+			return void(this.ax = this.ax & 0xff00 | this.or8(this.ax, this.rop8(op, sego)));
+		case 1: // OR CL,r/m8
+			return void(this.cx = this.cx & 0xff00 | this.or8(this.cx, this.rop8(op, sego)));
+		case 2: // OR DL,r/m8
+			return void(this.dx = this.dx & 0xff00 | this.or8(this.dx, this.rop8(op, sego)));
+		case 3: // OR BL,r/m8
+			return void(this.bx = this.bx & 0xff00 | this.or8(this.bx, this.rop8(op, sego)));
+		case 4: // OR AH,r/m8
+			return void(this.ax = this.ax & 0xff | this.or8(this.ax >>> 8, this.rop8(op, sego)) << 8);
+		case 5: // OR CH,r/m8
+			return void(this.cx = this.cx & 0xff | this.or8(this.cx >>> 8, this.rop8(op, sego)) << 8);
+		case 6: // OR DH,r/m8
+			return void(this.dx = this.dx & 0xff | this.or8(this.dx >>> 8, this.rop8(op, sego)) << 8);
+		case 7: // OR BH,r/m8
+			return void(this.bx = this.bx & 0xff | this.or8(this.bx >>> 8, this.rop8(op, sego)) << 8);
+		}
+	}
+
+	execute_0b(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // OR AX,r/m16
+			return void(this.ax = this.or16(this.ax, this.rop16(op, sego)));
+		case 1: // OR CX,r/m16
+			return void(this.cx = this.or16(this.cx, this.rop16(op, sego)));
+		case 2: // OR DX,r/m16
+			return void(this.dx = this.or16(this.dx, this.rop16(op, sego)));
+		case 3: // OR BX,r/m16
+			return void(this.bx = this.or16(this.bx, this.rop16(op, sego)));
+		case 4: // OR SP,r/m16
+			return void(this.sp = this.or16(this.sp, this.rop16(op, sego)));
+		case 5: // OR BP,r/m16
+			return void(this.bp = this.or16(this.bp, this.rop16(op, sego)));
+		case 6: // OR SI,r/m16
+			return void(this.si = this.or16(this.si, this.rop16(op, sego)));
+		case 7: // OR DI,r/m16
+			return void(this.di = this.or16(this.di, this.rop16(op, sego)));
+		}
+	}
+
+	execute_10(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ADC r/m8,AL
+			return void this.rwop8(op, sego, this.adc8, this.ax);
+		case 1: // ADC r/m8,CL
+			return void this.rwop8(op, sego, this.adc8, this.cx);
+		case 2: // ADC r/m8,DL
+			return void this.rwop8(op, sego, this.adc8, this.dx);
+		case 3: // ADC r/m8,BL
+			return void this.rwop8(op, sego, this.adc8, this.bx);
+		case 4: // ADC r/m8,AH
+			return void this.rwop8(op, sego, this.adc8, this.ax >>> 8);
+		case 5: // ADC r/m8,CH
+			return void this.rwop8(op, sego, this.adc8, this.cx >>> 8);
+		case 6: // ADC r/m8,DH
+			return void this.rwop8(op, sego, this.adc8, this.dx >>> 8);
+		case 7: // ADC r/m8,BH
+			return void this.rwop8(op, sego, this.adc8, this.bx >>> 8);
+		}
+	}
+
+	execute_11(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ADC r/m16,AX
+			return void this.rwop16(op, sego, this.adc16, this.ax);
+		case 1: // ADC r/m16,CX
+			return void this.rwop16(op, sego, this.adc16, this.cx);
+		case 2: // ADC r/m16,DX
+			return void this.rwop16(op, sego, this.adc16, this.dx);
+		case 3: // ADC r/m16,BX
+			return void this.rwop16(op, sego, this.adc16, this.bx);
+		case 4: // ADC r/m16,SP
+			return void this.rwop16(op, sego, this.adc16, this.sp);
+		case 5: // ADC r/m16,BP
+			return void this.rwop16(op, sego, this.adc16, this.bp);
+		case 6: // ADC r/m16,SI
+			return void this.rwop16(op, sego, this.adc16, this.si);
+		case 7: // ADC r/m16,DI
+			return void this.rwop16(op, sego, this.adc16, this.di);
+		}
+	}
+
+	execute_12(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ADC AL,r/m8
+			return void(this.ax = this.ax & 0xff00 | this.adc8(this.ax, this.rop8(op, sego)));
+		case 1: // ADC CL,r/m8
+			return void(this.cx = this.cx & 0xff00 | this.adc8(this.cx, this.rop8(op, sego)));
+		case 2: // ADC DL,r/m8
+			return void(this.dx = this.dx & 0xff00 | this.adc8(this.dx, this.rop8(op, sego)));
+		case 3: // ADC BL,r/m8
+			return void(this.bx = this.bx & 0xff00 | this.adc8(this.bx, this.rop8(op, sego)));
+		case 4: // ADC AH,r/m8
+			return void(this.ax = this.ax & 0xff | this.adc8(this.ax >>> 8, this.rop8(op, sego)) << 8);
+		case 5: // ADC CH,r/m8
+			return void(this.cx = this.cx & 0xff | this.adc8(this.cx >>> 8, this.rop8(op, sego)) << 8);
+		case 6: // ADC DH,r/m8
+			return void(this.dx = this.dx & 0xff | this.adc8(this.dx >>> 8, this.rop8(op, sego)) << 8);
+		case 7: // ADC BH,r/m8
+			return void(this.bx = this.bx & 0xff | this.adc8(this.bx >>> 8, this.rop8(op, sego)) << 8);
+		}
+	}
+
+	execute_13(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ADC AX,r/m16
+			return void(this.ax = this.adc16(this.ax, this.rop16(op, sego)));
+		case 1: // ADC CX,r/m16
+			return void(this.cx = this.adc16(this.cx, this.rop16(op, sego)));
+		case 2: // ADC DX,r/m16
+			return void(this.dx = this.adc16(this.dx, this.rop16(op, sego)));
+		case 3: // ADC BX,r/m16
+			return void(this.bx = this.adc16(this.bx, this.rop16(op, sego)));
+		case 4: // ADC SP,r/m16
+			return void(this.sp = this.adc16(this.sp, this.rop16(op, sego)));
+		case 5: // ADC BP,r/m16
+			return void(this.bp = this.adc16(this.bp, this.rop16(op, sego)));
+		case 6: // ADC SI,r/m16
+			return void(this.si = this.adc16(this.si, this.rop16(op, sego)));
+		case 7: // ADC DI,r/m16
+			return void(this.di = this.adc16(this.di, this.rop16(op, sego)));
+		}
+	}
+
+	execute_18(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // SBB r/m8,AL
+			return void this.rwop8(op, sego, this.sbb8, this.ax);
+		case 1: // SBB r/m8,CL
+			return void this.rwop8(op, sego, this.sbb8, this.cx);
+		case 2: // SBB r/m8,DL
+			return void this.rwop8(op, sego, this.sbb8, this.dx);
+		case 3: // SBB r/m8,BL
+			return void this.rwop8(op, sego, this.sbb8, this.bx);
+		case 4: // SBB r/m8,AH
+			return void this.rwop8(op, sego, this.sbb8, this.ax >>> 8);
+		case 5: // SBB r/m8,CH
+			return void this.rwop8(op, sego, this.sbb8, this.cx >>> 8);
+		case 6: // SBB r/m8,DH
+			return void this.rwop8(op, sego, this.sbb8, this.dx >>> 8);
+		case 7: // SBB r/m8,BH
+			return void this.rwop8(op, sego, this.sbb8, this.bx >>> 8);
+		}
+	}
+
+	execute_19(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // SBB r/m16,AX
+			return void this.rwop16(op, sego, this.sbb16, this.ax);
+		case 1: // SBB r/m16,CX
+			return void this.rwop16(op, sego, this.sbb16, this.cx);
+		case 2: // SBB r/m16,DX
+			return void this.rwop16(op, sego, this.sbb16, this.dx);
+		case 3: // SBB r/m16,BX
+			return void this.rwop16(op, sego, this.sbb16, this.bx);
+		case 4: // SBB r/m16,SP
+			return void this.rwop16(op, sego, this.sbb16, this.sp);
+		case 5: // SBB r/m16,BP
+			return void this.rwop16(op, sego, this.sbb16, this.bp);
+		case 6: // SBB r/m16,SI
+			return void this.rwop16(op, sego, this.sbb16, this.si);
+		case 7: // SBB r/m16,DI
+			return void this.rwop16(op, sego, this.sbb16, this.di);
+		}
+	}
+
+	execute_1a(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // SBB AL,r/m8
+			return void(this.ax = this.ax & 0xff00 | this.sbb8(this.ax, this.rop8(op, sego)));
+		case 1: // SBB CL,r/m8
+			return void(this.cx = this.cx & 0xff00 | this.sbb8(this.cx, this.rop8(op, sego)));
+		case 2: // SBB DL,r/m8
+			return void(this.dx = this.dx & 0xff00 | this.sbb8(this.dx, this.rop8(op, sego)));
+		case 3: // SBB BL,r/m8
+			return void(this.bx = this.bx & 0xff00 | this.sbb8(this.bx, this.rop8(op, sego)));
+		case 4: // SBB AH,r/m8
+			return void(this.ax = this.ax & 0xff | this.sbb8(this.ax >>> 8, this.rop8(op, sego)) << 8);
+		case 5: // SBB CH,r/m8
+			return void(this.cx = this.cx & 0xff | this.sbb8(this.cx >>> 8, this.rop8(op, sego)) << 8);
+		case 6: // SBB DH,r/m8
+			return void(this.dx = this.dx & 0xff | this.sbb8(this.dx >>> 8, this.rop8(op, sego)) << 8);
+		case 7: // SBB BH,r/m8
+			return void(this.bx = this.bx & 0xff | this.sbb8(this.bx >>> 8, this.rop8(op, sego)) << 8);
+		}
+	}
+
+	execute_1b(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // SBB AX,r/m16
+			return void(this.ax = this.sbb16(this.ax, this.rop16(op, sego)));
+		case 1: // SBB CX,r/m16
+			return void(this.cx = this.sbb16(this.cx, this.rop16(op, sego)));
+		case 2: // SBB DX,r/m16
+			return void(this.dx = this.sbb16(this.dx, this.rop16(op, sego)));
+		case 3: // SBB BX,r/m16
+			return void(this.bx = this.sbb16(this.bx, this.rop16(op, sego)));
+		case 4: // SBB SP,r/m16
+			return void(this.sp = this.sbb16(this.sp, this.rop16(op, sego)));
+		case 5: // SBB BP,r/m16
+			return void(this.bp = this.sbb16(this.bp, this.rop16(op, sego)));
+		case 6: // SBB SI,r/m16
+			return void(this.si = this.sbb16(this.si, this.rop16(op, sego)));
+		case 7: // SBB DI,r/m16
+			return void(this.di = this.sbb16(this.di, this.rop16(op, sego)));
+		}
+	}
+
+	execute_20(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // AND r/m8,AL
+			return void this.rwop8(op, sego, this.and8, this.ax);
+		case 1: // AND r/m8,CL
+			return void this.rwop8(op, sego, this.and8, this.cx);
+		case 2: // AND r/m8,DL
+			return void this.rwop8(op, sego, this.and8, this.dx);
+		case 3: // AND r/m8,BL
+			return void this.rwop8(op, sego, this.and8, this.bx);
+		case 4: // AND r/m8,AH
+			return void this.rwop8(op, sego, this.and8, this.ax >>> 8);
+		case 5: // AND r/m8,CH
+			return void this.rwop8(op, sego, this.and8, this.cx >>> 8);
+		case 6: // AND r/m8,DH
+			return void this.rwop8(op, sego, this.and8, this.dx >>> 8);
+		case 7: // AND r/m8,BH
+			return void this.rwop8(op, sego, this.and8, this.bx >>> 8);
+		}
+	}
+
+	execute_21(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // AND r/m16,AX
+			return void this.rwop16(op, sego, this.and16, this.ax);
+		case 1: // AND r/m16,CX
+			return void this.rwop16(op, sego, this.and16, this.cx);
+		case 2: // AND r/m16,DX
+			return void this.rwop16(op, sego, this.and16, this.dx);
+		case 3: // AND r/m16,BX
+			return void this.rwop16(op, sego, this.and16, this.bx);
+		case 4: // AND r/m16,SP
+			return void this.rwop16(op, sego, this.and16, this.sp);
+		case 5: // AND r/m16,BP
+			return void this.rwop16(op, sego, this.and16, this.bp);
+		case 6: // AND r/m16,SI
+			return void this.rwop16(op, sego, this.and16, this.si);
+		case 7: // AND r/m16,DI
+			return void this.rwop16(op, sego, this.and16, this.di);
+		}
+	}
+
+	execute_22(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // AND AL,r/m8
+			return void(this.ax = this.ax & 0xff00 | this.and8(this.ax, this.rop8(op, sego)));
+		case 1: // AND CL,r/m8
+			return void(this.cx = this.cx & 0xff00 | this.and8(this.cx, this.rop8(op, sego)));
+		case 2: // AND DL,r/m8
+			return void(this.dx = this.dx & 0xff00 | this.and8(this.dx, this.rop8(op, sego)));
+		case 3: // AND BL,r/m8
+			return void(this.bx = this.bx & 0xff00 | this.and8(this.bx, this.rop8(op, sego)));
+		case 4: // AND AH,r/m8
+			return void(this.ax = this.ax & 0xff | this.and8(this.ax >>> 8, this.rop8(op, sego)) << 8);
+		case 5: // AND CH,r/m8
+			return void(this.cx = this.cx & 0xff | this.and8(this.cx >>> 8, this.rop8(op, sego)) << 8);
+		case 6: // AND DH,r/m8
+			return void(this.dx = this.dx & 0xff | this.and8(this.dx >>> 8, this.rop8(op, sego)) << 8);
+		case 7: // AND BH,r/m8
+			return void(this.bx = this.bx & 0xff | this.and8(this.bx >>> 8, this.rop8(op, sego)) << 8);
+		}
+	}
+
+	execute_23(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // AND AX,r/m16
+			return void(this.ax = this.and16(this.ax, this.rop16(op, sego)));
+		case 1: // AND CX,r/m16
+			return void(this.cx = this.and16(this.cx, this.rop16(op, sego)));
+		case 2: // AND DX,r/m16
+			return void(this.dx = this.and16(this.dx, this.rop16(op, sego)));
+		case 3: // AND BX,r/m16
+			return void(this.bx = this.and16(this.bx, this.rop16(op, sego)));
+		case 4: // AND SP,r/m16
+			return void(this.sp = this.and16(this.sp, this.rop16(op, sego)));
+		case 5: // AND BP,r/m16
+			return void(this.bp = this.and16(this.bp, this.rop16(op, sego)));
+		case 6: // AND SI,r/m16
+			return void(this.si = this.and16(this.si, this.rop16(op, sego)));
+		case 7: // AND DI,r/m16
+			return void(this.di = this.and16(this.di, this.rop16(op, sego)));
+		}
+	}
+
+	execute_28(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // SUB r/m8,AL
+			return void this.rwop8(op, sego, this.sub8, this.ax);
+		case 1: // SUB r/m8,CL
+			return void this.rwop8(op, sego, this.sub8, this.cx);
+		case 2: // SUB r/m8,DL
+			return void this.rwop8(op, sego, this.sub8, this.dx);
+		case 3: // SUB r/m8,BL
+			return void this.rwop8(op, sego, this.sub8, this.bx);
+		case 4: // SUB r/m8,AH
+			return void this.rwop8(op, sego, this.sub8, this.ax >>> 8);
+		case 5: // SUB r/m8,CH
+			return void this.rwop8(op, sego, this.sub8, this.cx >>> 8);
+		case 6: // SUB r/m8,DH
+			return void this.rwop8(op, sego, this.sub8, this.dx >>> 8);
+		case 7: // SUB r/m8,BH
+			return void this.rwop8(op, sego, this.sub8, this.bx >>> 8);
+		}
+	}
+
+	execute_29(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // SUB r/m16,AX
+			return void this.rwop16(op, sego, this.sub16, this.ax);
+		case 1: // SUB r/m16,CX
+			return void this.rwop16(op, sego, this.sub16, this.cx);
+		case 2: // SUB r/m16,DX
+			return void this.rwop16(op, sego, this.sub16, this.dx);
+		case 3: // SUB r/m16,BX
+			return void this.rwop16(op, sego, this.sub16, this.bx);
+		case 4: // SUB r/m16,SP
+			return void this.rwop16(op, sego, this.sub16, this.sp);
+		case 5: // SUB r/m16,BP
+			return void this.rwop16(op, sego, this.sub16, this.bp);
+		case 6: // SUB r/m16,SI
+			return void this.rwop16(op, sego, this.sub16, this.si);
+		case 7: // SUB r/m16,DI
+			return void this.rwop16(op, sego, this.sub16, this.di);
+		}
+	}
+
+	execute_2a(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // SUB AL,r/m8
+			return void(this.ax = this.ax & 0xff00 | this.sub8(this.ax, this.rop8(op, sego)));
+		case 1: // SUB CL,r/m8
+			return void(this.cx = this.cx & 0xff00 | this.sub8(this.cx, this.rop8(op, sego)));
+		case 2: // SUB DL,r/m8
+			return void(this.dx = this.dx & 0xff00 | this.sub8(this.dx, this.rop8(op, sego)));
+		case 3: // SUB BL,r/m8
+			return void(this.bx = this.bx & 0xff00 | this.sub8(this.bx, this.rop8(op, sego)));
+		case 4: // SUB AH,r/m8
+			return void(this.ax = this.ax & 0xff | this.sub8(this.ax >>> 8, this.rop8(op, sego)) << 8);
+		case 5: // SUB CH,r/m8
+			return void(this.cx = this.cx & 0xff | this.sub8(this.cx >>> 8, this.rop8(op, sego)) << 8);
+		case 6: // SUB DH,r/m8
+			return void(this.dx = this.dx & 0xff | this.sub8(this.dx >>> 8, this.rop8(op, sego)) << 8);
+		case 7: // SUB BH,r/m8
+			return void(this.bx = this.bx & 0xff | this.sub8(this.bx >>> 8, this.rop8(op, sego)) << 8);
+		}
+	}
+
+	execute_2b(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // SUB AX,r/m16
+			return void(this.ax = this.sub16(this.ax, this.rop16(op, sego)));
+		case 1: // SUB CX,r/m16
+			return void(this.cx = this.sub16(this.cx, this.rop16(op, sego)));
+		case 2: // SUB DX,r/m16
+			return void(this.dx = this.sub16(this.dx, this.rop16(op, sego)));
+		case 3: // SUB BX,r/m16
+			return void(this.bx = this.sub16(this.bx, this.rop16(op, sego)));
+		case 4: // SUB SP,r/m16
+			return void(this.sp = this.sub16(this.sp, this.rop16(op, sego)));
+		case 5: // SUB BP,r/m16
+			return void(this.bp = this.sub16(this.bp, this.rop16(op, sego)));
+		case 6: // SUB SI,r/m16
+			return void(this.si = this.sub16(this.si, this.rop16(op, sego)));
+		case 7: // SUB DI,r/m16
+			return void(this.di = this.sub16(this.di, this.rop16(op, sego)));
+		}
+	}
+
+	execute_30(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // XOR r/m8,AL
+			return void this.rwop8(op, sego, this.xor8, this.ax);
+		case 1: // XOR r/m8,CL
+			return void this.rwop8(op, sego, this.xor8, this.cx);
+		case 2: // XOR r/m8,DL
+			return void this.rwop8(op, sego, this.xor8, this.dx);
+		case 3: // XOR r/m8,BL
+			return void this.rwop8(op, sego, this.xor8, this.bx);
+		case 4: // XOR r/m8,AH
+			return void this.rwop8(op, sego, this.xor8, this.ax >>> 8);
+		case 5: // XOR r/m8,CH
+			return void this.rwop8(op, sego, this.xor8, this.cx >>> 8);
+		case 6: // XOR r/m8,DH
+			return void this.rwop8(op, sego, this.xor8, this.dx >>> 8);
+		case 7: // XOR r/m8,BH
+			return void this.rwop8(op, sego, this.xor8, this.bx >>> 8);
+		}
+	}
+
+	execute_31(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // XOR r/m16,AX
+			return void this.rwop16(op, sego, this.xor16, this.ax);
+		case 1: // XOR r/m16,CX
+			return void this.rwop16(op, sego, this.xor16, this.cx);
+		case 2: // XOR r/m16,DX
+			return void this.rwop16(op, sego, this.xor16, this.dx);
+		case 3: // XOR r/m16,BX
+			return void this.rwop16(op, sego, this.xor16, this.bx);
+		case 4: // XOR r/m16,SP
+			return void this.rwop16(op, sego, this.xor16, this.sp);
+		case 5: // XOR r/m16,BP
+			return void this.rwop16(op, sego, this.xor16, this.bp);
+		case 6: // XOR r/m16,SI
+			return void this.rwop16(op, sego, this.xor16, this.si);
+		case 7: // XOR r/m16,DI
+			return void this.rwop16(op, sego, this.xor16, this.di);
+		}
+	}
+
+	execute_32(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // XOR AL,r/m8
+			return void(this.ax = this.ax & 0xff00 | this.xor8(this.ax, this.rop8(op, sego)));
+		case 1: // XOR CL,r/m8
+			return void(this.cx = this.cx & 0xff00 | this.xor8(this.cx, this.rop8(op, sego)));
+		case 2: // XOR DL,r/m8
+			return void(this.dx = this.dx & 0xff00 | this.xor8(this.dx, this.rop8(op, sego)));
+		case 3: // XOR BL,r/m8
+			return void(this.bx = this.bx & 0xff00 | this.xor8(this.bx, this.rop8(op, sego)));
+		case 4: // XOR AH,r/m8
+			return void(this.ax = this.ax & 0xff | this.xor8(this.ax >>> 8, this.rop8(op, sego)) << 8);
+		case 5: // XOR CH,r/m8
+			return void(this.cx = this.cx & 0xff | this.xor8(this.cx >>> 8, this.rop8(op, sego)) << 8);
+		case 6: // XOR DH,r/m8
+			return void(this.dx = this.dx & 0xff | this.xor8(this.dx >>> 8, this.rop8(op, sego)) << 8);
+		case 7: // XOR BH,r/m8
+			return void(this.bx = this.bx & 0xff | this.xor8(this.bx >>> 8, this.rop8(op, sego)) << 8);
+		}
+	}
+
+	execute_33(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // XOR AX,r/m16
+			return void(this.ax = this.xor16(this.ax, this.rop16(op, sego)));
+		case 1: // XOR CX,r/m16
+			return void(this.cx = this.xor16(this.cx, this.rop16(op, sego)));
+		case 2: // XOR DX,r/m16
+			return void(this.dx = this.xor16(this.dx, this.rop16(op, sego)));
+		case 3: // XOR BX,r/m16
+			return void(this.bx = this.xor16(this.bx, this.rop16(op, sego)));
+		case 4: // XOR SP,r/m16
+			return void(this.sp = this.xor16(this.sp, this.rop16(op, sego)));
+		case 5: // XOR BP,r/m16
+			return void(this.bp = this.xor16(this.bp, this.rop16(op, sego)));
+		case 6: // XOR SI,r/m16
+			return void(this.si = this.xor16(this.si, this.rop16(op, sego)));
+		case 7: // XOR DI,r/m16
+			return void(this.di = this.xor16(this.di, this.rop16(op, sego)));
+		}
+	}
+
+	execute_38(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // CMP r/m8,AL
+			return void this.sub8(this.rop8(op, sego), this.ax);
+		case 1: // CMP r/m8,CL
+			return void this.sub8(this.rop8(op, sego), this.cx);
+		case 2: // CMP r/m8,DL
+			return void this.sub8(this.rop8(op, sego), this.dx);
+		case 3: // CMP r/m8,BL
+			return void this.sub8(this.rop8(op, sego), this.bx);
+		case 4: // CMP r/m8,AH
+			return void this.sub8(this.rop8(op, sego), this.ax >>> 8);
+		case 5: // CMP r/m8,CH
+			return void this.sub8(this.rop8(op, sego), this.cx >>> 8);
+		case 6: // CMP r/m8,DH
+			return void this.sub8(this.rop8(op, sego), this.dx >>> 8);
+		case 7: // CMP r/m8,BH
+			return void this.sub8(this.rop8(op, sego), this.bx >>> 8);
+		}
+	}
+
+	execute_39(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // CMP r/m16,AX
+			return void this.sub16(this.rop16(op, sego), this.ax);
+		case 1: // CMP r/m16,CX
+			return void this.sub16(this.rop16(op, sego), this.cx);
+		case 2: // CMP r/m16,DX
+			return void this.sub16(this.rop16(op, sego), this.dx);
+		case 3: // CMP r/m16,BX
+			return void this.sub16(this.rop16(op, sego), this.bx);
+		case 4: // CMP r/m16,SP
+			return void this.sub16(this.rop16(op, sego), this.sp);
+		case 5: // CMP r/m16,BP
+			return void this.sub16(this.rop16(op, sego), this.bp);
+		case 6: // CMP r/m16,SI
+			return void this.sub16(this.rop16(op, sego), this.si);
+		case 7: // CMP r/m16,DI
+			return void this.sub16(this.rop16(op, sego), this.di);
+		}
+	}
+
+	execute_3a(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // CMP AL,r/m8
+			return void this.sub8(this.ax, this.rop8(op, sego));
+		case 1: // CMP CL,r/m8
+			return void this.sub8(this.cx, this.rop8(op, sego));
+		case 2: // CMP DL,r/m8
+			return void this.sub8(this.dx, this.rop8(op, sego));
+		case 3: // CMP BL,r/m8
+			return void this.sub8(this.bx, this.rop8(op, sego));
+		case 4: // CMP AH,r/m8
+			return void this.sub8(this.ax >>> 8, this.rop8(op, sego));
+		case 5: // CMP CH,r/m8
+			return void this.sub8(this.cx >>> 8, this.rop8(op, sego));
+		case 6: // CMP DH,r/m8
+			return void this.sub8(this.dx >>> 8, this.rop8(op, sego));
+		case 7: // CMP BH,r/m8
+			return void this.sub8(this.bx >>> 8, this.rop8(op, sego));
+		}
+	}
+
+	execute_3b(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // CMP AX,r/m16
+			return void this.sub16(this.ax, this.rop16(op, sego));
+		case 1: // CMP CX,r/m16
+			return void this.sub16(this.cx, this.rop16(op, sego));
+		case 2: // CMP DX,r/m16
+			return void this.sub16(this.dx, this.rop16(op, sego));
+		case 3: // CMP BX,r/m16
+			return void this.sub16(this.bx, this.rop16(op, sego));
+		case 4: // CMP SP,r/m16
+			return void this.sub16(this.sp, this.rop16(op, sego));
+		case 5: // CMP BP,r/m16
+			return void this.sub16(this.bp, this.rop16(op, sego));
+		case 6: // CMP SI,r/m16
+			return void this.sub16(this.si, this.rop16(op, sego));
+		case 7: // CMP DI,r/m16
+			return void this.sub16(this.di, this.rop16(op, sego));
+		}
+	}
+
+	execute_62(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // BOUND AX,m16&16
+			return void this.bound(this.ax, ...this.rop32(op, sego));
+		case 1: // BOUND CX,m16&16
+			return void this.bound(this.cx, ...this.rop32(op, sego));
+		case 2: // BOUND DX,m16&16
+			return void this.bound(this.dx, ...this.rop32(op, sego));
+		case 3: // BOUND BX,m16&16
+			return void this.bound(this.bx, ...this.rop32(op, sego));
+		case 4: // BOUND SP,m16&16
+			return void this.bound(this.sp, ...this.rop32(op, sego));
+		case 5: // BOUND BP,m16&16
+			return void this.bound(this.bp, ...this.rop32(op, sego));
+		case 6: // BOUND SI,m16&16
+			return void this.bound(this.si, ...this.rop32(op, sego));
+		case 7: // BOUND DI,m16&16
+			return void this.bound(this.di, ...this.rop32(op, sego));
+		}
+	}
+
+	execute_69(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // IMUL AX,r/m16,imm16
+			return void(this.ax = this.imul16i(this.rop16(op, sego)));
+		case 1: // IMUL CX,r/m16,imm16
+			return void(this.cx = this.imul16i(this.rop16(op, sego)));
+		case 2: // IMUL(DX,r/m16,imm16
+			return void(this.dx = this.imul16i(this.rop16(op, sego)));
+		case 3: // IMUL BX,r/m16,imm16
+			return void(this.bx = this.imul16i(this.rop16(op, sego)));
+		case 4: // IMUL SP,r/m16,imm16
+			return void(this.sp = this.imul16i(this.rop16(op, sego)));
+		case 5: // IMUL BP,r/m16,imm16
+			return void(this.bp = this.imul16i(this.rop16(op, sego)));
+		case 6: // IMUL SI,r/m16,imm16
+			return void(this.si = this.imul16i(this.rop16(op, sego)));
+		case 7: // IMUL DI,r/m16,imm16
+			return void(this.di = this.imul16i(this.rop16(op, sego)));
+		}
+	}
+
+	execute_6b(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // IMUL AX,r/m16,imm8
+			return void(this.ax = this.imul16is(this.rop16(op, sego)));
+		case 1: // IMUL CX,r/m16,imm8
+			return void(this.cx = this.imul16is(this.rop16(op, sego)));
+		case 2: // IMUL(DX,r/m16,imm8
+			return void(this.dx = this.imul16is(this.rop16(op, sego)));
+		case 3: // IMUL BX,r/m16,imm8
+			return void(this.bx = this.imul16is(this.rop16(op, sego)));
+		case 4: // IMUL SP,r/m16,imm8
+			return void(this.sp = this.imul16is(this.rop16(op, sego)));
+		case 5: // IMUL BP,r/m16,imm8
+			return void(this.bp = this.imul16is(this.rop16(op, sego)));
+		case 6: // IMUL SI,r/m16,imm8
+			return void(this.si = this.imul16is(this.rop16(op, sego)));
+		case 7: // IMUL DI,r/m16,imm8
+			return void(this.di = this.imul16is(this.rop16(op, sego)));
+		}
+	}
+
+	execute_80(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ADD r/m8,imm8
+			return void this.rwop8i(op, sego, this.add8);
+		case 1: // OR r/m8,imm8
+			return void this.rwop8i(op, sego, this.or8);
+		case 2: // ADC r/m8,imm8
+			return void this.rwop8i(op, sego, this.adc8);
+		case 3: // SBB r/m8,imm8
+			return void this.rwop8i(op, sego, this.sbb8);
+		case 4: // AND r/m8,imm8
+			return void this.rwop8i(op, sego, this.and8);
+		case 5: // SUB r/m8,imm8
+			return void this.rwop8i(op, sego, this.sub8);
+		case 6: // XOR r/m8,imm8
+			return void this.rwop8i(op, sego, this.xor8);
+		case 7: // CMP r/m8,imm8
+			return void this.rop8i(op, sego, this.sub8);
+		}
+	}
+
+	execute_81(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ADD r/m16,imm16
+			return void this.rwop16i(op, sego, this.add16);
+		case 1: // OR r/m16,imm16
+			return void this.rwop16i(op, sego, this.or16);
+		case 2: // ADC r/m16,imm16
+			return void this.rwop16i(op, sego, this.adc16);
+		case 3: // SBB r/m16,imm16
+			return void this.rwop16i(op, sego, this.sbb16);
+		case 4: // AND r/m16,imm16
+			return void this.rwop16i(op, sego, this.and16);
+		case 5: // SUB r/m16,imm16
+			return void this.rwop16i(op, sego, this.sub16);
+		case 6: // XOR r/m16,imm16
+			return void this.rwop16i(op, sego, this.xor16);
+		case 7: // CMP r/m16,imm16
+			return void this.rop16i(op, sego, this.sub16);
+		}
+	}
+
+	execute_82(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ADD r/m8,imm8
+			return void this.rwop8i(op, sego, this.add8);
+		case 2: // ADC r/m8,imm8
+			return void this.rwop8i(op, sego, this.adc8);
+		case 3: // SBB r/m8,imm8
+			return void this.rwop8i(op, sego, this.sbb8);
+		case 5: // SUB r/m8,imm8
+			return void this.rwop8i(op, sego, this.sub8);
+		case 7: // CMP r/m8,imm8
+			return void this.rop8i(op, sego, this.sub8);
+		default:
+			return void this.exception(6);
+		}
+	}
+
+	execute_83(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ADD r/m16,imm8
+			return void this.rwop16is(op, sego, this.add16);
+		case 2: // ADC r/m16,imm8
+			return void this.rwop16is(op, sego, this.adc16);
+		case 3: // SBB r/m16,imm8
+			return void this.rwop16is(op, sego, this.sbb16);
+		case 5: // SUB r/m16,imm8
+			return void this.rwop16is(op, sego, this.sub16);
+		case 7: // CMP r/m16,imm8
+			return void this.rop16is(op, sego, this.sub16);
+		default:
+			return void this.exception(6);
+		}
+	}
+
+	execute_84(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // TEST AL,r/m8
+			return void this.and8(this.ax, this.rop8(op, sego));
+		case 1: // TEST CL,r/m8
+			return void this.and8(this.cx, this.rop8(op, sego));
+		case 2: // TEST DL,r/m8
+			return void this.and8(this.dx, this.rop8(op, sego));
+		case 3: // TEST BL,r/m8
+			return void this.and8(this.bx, this.rop8(op, sego));
+		case 4: // TEST AH,r/m8
+			return void this.and8(this.ax >>> 8, this.rop8(op, sego));
+		case 5: // TEST CH,r/m8
+			return void this.and8(this.cx >>> 8, this.rop8(op, sego));
+		case 6: // TEST DH,r/m8
+			return void this.and8(this.dx >>> 8, this.rop8(op, sego));
+		case 7: // TEST BH,r/m8
+			return void this.and8(this.bx >>> 8, this.rop8(op, sego));
+		}
+	}
+
+	execute_85(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // TEST AX,r/m16
+			return void this.and16(this.ax, this.rop16(op, sego));
+		case 1: // TEST CX,r/m16
+			return void this.and16(this.cx, this.rop16(op, sego));
+		case 2: // TEST DX,r/m16
+			return void this.and16(this.dx, this.rop16(op, sego));
+		case 3: // TEST BX,r/m16
+			return void this.and16(this.bx, this.rop16(op, sego));
+		case 4: // TEST SP,r/m16
+			return void this.and16(this.sp, this.rop16(op, sego));
+		case 5: // TEST BP,r/m16
+			return void this.and16(this.bp, this.rop16(op, sego));
+		case 6: // TEST SI,r/m16
+			return void this.and16(this.si, this.rop16(op, sego));
+		case 7: // TEST DI,r/m16
+			return void this.and16(this.di, this.rop16(op, sego));
+		}
+	}
+
+	execute_86(sego) {
+		const op = this.fetch8();
+		let v;
+
+		switch (op >>> 3 & 7) {
+		case 0: // XCHG AL,r/m8
+			[this.ax, v] = [this.ax & 0xff00 | this.rop8(op, sego), this.ax & 0xff];
+			return void this.wop8(op, sego, v);
+		case 1: // XCHG CL,r/m8
+			[this.cx, v] = [this.ax & 0xff00 | this.rop8(op, sego), this.cx & 0xff];
+			return void this.wop8(op, sego, v);
+		case 2: // XCHG DL,r/m8
+			[this.dx, v] = [this.ax & 0xff00 | this.rop8(op, sego), this.dx & 0xff];
+			return void this.wop8(op, sego, v);
+		case 3: // XCHG BL,r/m8
+			[this.bx, v] = [this.ax & 0xff00 | this.rop8(op, sego), this.bx & 0xff];
+			return void this.wop8(op, sego, v);
+		case 4: // XCHG AH,r/m8
+			[this.ax, v] = [this.ax & 0xff | this.rop8(op, sego) << 8, this.ax >>> 8];
+			return void this.wop8(op, sego, v);
+		case 5: // XCHG CH,r/m8
+			[this.cx, v] = [this.cx & 0xff | this.rop8(op, sego) << 8, this.cx >>> 8];
+			return void this.wop8(op, sego, v);
+		case 6: // XCHG DH,r/m8
+			[this.dx, v] = [this.dx & 0xff | this.rop8(op, sego) << 8, this.dx >>> 8];
+			return void this.wop8(op, sego, v);
+		case 7: // XCHG BH,r/m8
+			[this.bx, v] = [this.bx & 0xff | this.rop8(op, sego) << 8, this.bx >>> 8];
+			return void this.wop8(op, sego, v);
+		}
+	}
+
+	execute_87(sego) {
+		const op = this.fetch8();
+		let v;
+
+		switch (op >>> 3 & 7) {
+		case 0: // XCHG AX,r/m16
+			[this.ax, v] = [this.rop16(op, sego), this.ax];
+			return void this.wop16(op, sego, v);
+		case 1: // XCHG CX,r/m16
+			[this.cx, v] = [this.rop16(op, sego), this.cx];
+			return void this.wop16(op, sego, v);
+		case 2: // XCHG DX,r/m16
+			[this.dx, v] = [this.rop16(op, sego), this.dx];
+			return void this.wop16(op, sego, v);
+		case 3: // XCHG BX,r/m16
+			[this.bx, v] = [this.rop16(op, sego), this.bx];
+			return void this.wop16(op, sego, v);
+		case 4: // XCHG SP,r/m16
+			[this.sp, v] = [this.rop16(op, sego), this.sp];
+			return void this.wop16(op, sego, v);
+		case 5: // XCHG BP,r/m16
+			[this.bp, v] = [this.rop16(op, sego), this.bp];
+			return void this.wop16(op, sego, v);
+		case 6: // XCHG SI,r/m16
+			[this.si, v] = [this.rop16(op, sego), this.si];
+			return void this.wop16(op, sego, v);
+		case 7: // XCHG DI,r/m16
+			[this.di, v] = [this.rop16(op, sego), this.di];
+			return void this.wop16(op, sego, v);
+		}
+	}
+
+	execute_88(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // MOV r/m8,AL
+			return void this.wop8(op, sego, this.ax & 0xff);
+		case 1: // MOV r/m8,CL
+			return void this.wop8(op, sego, this.cx & 0xff);
+		case 2: // MOV r/m8,DL
+			return void this.wop8(op, sego, this.dx & 0xff);
+		case 3: // MOV r/m8,BL
+			return void this.wop8(op, sego, this.bx & 0xff);
+		case 4: // MOV r/m8,AH
+			return void this.wop8(op, sego, this.ax >>> 8);
+		case 5: // MOV r/m8,CH
+			return void this.wop8(op, sego, this.cx >>> 8);
+		case 6: // MOV r/m8,DH
+			return void this.wop8(op, sego, this.dx >>> 8);
+		case 7: // MOV r/m8,BH
+			return void this.wop8(op, sego, this.bx >>> 8);
+		}
+	}
+
+	execute_89(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // MOV r/m16,AX
+			return void this.wop16(op, sego, this.ax);
+		case 1: // MOV r/m16,CX
+			return void this.wop16(op, sego, this.cx);
+		case 2: // MOV r/m16,DX
+			return void this.wop16(op, sego, this.dx);
+		case 3: // MOV r/m16,BX
+			return void this.wop16(op, sego, this.bx);
+		case 4: // MOV r/m16,SP
+			return void this.wop16(op, sego, this.sp);
+		case 5: // MOV r/m16,BP
+			return void this.wop16(op, sego, this.bp);
+		case 6: // MOV r/m16,SI
+			return void this.wop16(op, sego, this.si);
+		case 7: // MOV r/m16,DI
+			return void this.wop16(op, sego, this.di);
+		}
+	}
+
+	execute_8a(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // MOV AL,r/m8
+			return void(this.ax = this.ax & 0xff00 | this.rop8(op, sego));
+		case 1: // MOV CL,r/m8
+			return void(this.cx = this.cx & 0xff00 | this.rop8(op, sego));
+		case 2: // MOV DL,r/m8
+			return void(this.dx = this.dx & 0xff00 | this.rop8(op, sego));
+		case 3: // MOV BL,r/m8
+			return void(this.bx = this.bx & 0xff00 | this.rop8(op, sego));
+		case 4: // MOV AH,r/m8
+			return void(this.ax = this.ax & 0xff | this.rop8(op, sego) << 8);
+		case 5: // MOV CH,r/m8
+			return void(this.cx = this.cx & 0xff | this.rop8(op, sego) << 8);
+		case 6: // MOV DH,r/m8
+			return void(this.dx = this.dx & 0xff | this.rop8(op, sego) << 8);
+		case 7: // MOV BH,r/m8
+			return void(this.bx = this.bx & 0xff | this.rop8(op, sego) << 8);
+		}
+	}
+
+	execute_8b(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // MOV AX,r/m16
+			return void(this.ax = this.rop16(op, sego));
+		case 1: // MOV CX,r/m16
+			return void(this.cx = this.rop16(op, sego));
+		case 2: // MOV DX,r/m16
+			return void(this.dx = this.rop16(op, sego));
+		case 3: // MOV BX,r/m16
+			return void(this.bx = this.rop16(op, sego));
+		case 4: // MOV SP,r/m16
+			return void(this.sp = this.rop16(op, sego));
+		case 5: // MOV BP,r/m16
+			return void(this.bp = this.rop16(op, sego));
+		case 6: // MOV SI,r/m16
+			return void(this.si = this.rop16(op, sego));
+		case 7: // MOV DI,r/m16
+			return void(this.di = this.rop16(op, sego));
+		}
+	}
+
+	execute_8c(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // MOV r/m16,ES
+			return void this.wop16(op, sego, this.es);
+		case 1: // MOV r/m16,CS
+			return void this.wop16(op, sego, this.cs);
+		case 2: // MOV r/m16,SS
+			return void this.wop16(op, sego, this.ss);
+		case 3: // MOV r/m16,DS
+			return void this.wop16(op, sego, this.ds);
+		default:
+			return void this.exception(6);
+		}
+	}
+
+	execute_8d() {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // LEA AX,m16
+			return void(this.ax = this.lea(op));
+		case 1: // LEA CX,m16
+			return void(this.cx = this.lea(op));
+		case 2: // LEA DX,m16
+			return void(this.dx = this.lea(op));
+		case 3: // LEA BX,m16
+			return void(this.bx = this.lea(op));
+		case 4: // LEA SP,m16
+			return void(this.sp = this.lea(op));
+		case 5: // LEA BP,m16
+			return void(this.bp = this.lea(op));
+		case 6: // LEA SI,m16
+			return void(this.si = this.lea(op));
+		case 7: // LEA DI,m16
+			return void(this.di = this.lea(op));
+		}
+	}
+
+	execute_8e(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // MOV ES,r/m16
+			return void(this.es = this.rop16(op, sego));
+		case 1: // MOV CS,r/m16
+			return void(this.cs = this.rop16(op, sego));
+		case 2: // MOV SS,r/m16
+			this.intmask = true;
+			return void(this.ss = this.rop16(op, sego));
+		case 3: // MOV DS,r/m16
+			return void(this.ds = this.rop16(op, sego));
+		default:
+			return void this.exception(6);
+		}
+	}
+
+	execute_c0(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ROL r/m8,imm8
+			return void this.rwop8(op, sego, this.rol8, this.fetch8());
+		case 1: // ROR r/m8,imm8
+			return void this.rwop8(op, sego, this.ror8, this.fetch8());
+		case 2: // RCL r/m8,imm8
+			return void this.rwop8(op, sego, this.rcl8, this.fetch8());
+		case 3: // RCR r/m8,imm8
+			return void this.rwop8(op, sego, this.rcr8, this.fetch8());
+		case 4: // SAL/SHL r/m8,imm8
+			return void this.rwop8(op, sego, this.shl8, this.fetch8());
+		case 5: // SHR r/m8,imm8
+			return void this.rwop8(op, sego, this.shr8, this.fetch8());
+		case 7: // SAR r/m8,imm8
+			return void this.rwop8(op, sego, this.sar8, this.fetch8());
+		default:
+			return void this.exception(6);
+		}
+	}
+
+	execute_c1(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ROL r/m16,imm8
+			return void this.rwop16(op, sego, this.rol16, this.fetch8());
+		case 1: // ROR r/m16,imm8
+			return void this.rwop16(op, sego, this.ror16, this.fetch8());
+		case 2: // RCL r/m16,imm8
+			return void this.rwop16(op, sego, this.rcl16, this.fetch8());
+		case 3: // RCR r/m16,imm8
+			return void this.rwop16(op, sego, this.rcr16, this.fetch8());
+		case 4: // SAL/SHL r/m16,imm8
+			return void this.rwop16(op, sego, this.shl16, this.fetch8());
+		case 5: // SHR r/m16,imm8
+			return void this.rwop16(op, sego, this.shr16, this.fetch8());
+		case 7: // SAR r/m16,imm8
+			return void this.rwop16(op, sego, this.sar16, this.fetch8());
+		default:
+			return void this.exception(6);
+		}
+	}
+
+	execute_c4(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // LES AX,m16:16
+			return void([this.ax, this.es] = this.rop32(op, sego));
+		case 1: // LES CX,m16:16
+			return void([this.cx, this.es] = this.rop32(op, sego));
+		case 2: // LES DX,m16:16
+			return void([this.dx, this.es] = this.rop32(op, sego));
+		case 3: // LES BX,m16:16
+			return void([this.bx, this.es] = this.rop32(op, sego));
+		case 4: // LES SP,m16:16
+			return void([this.sp, this.es] = this.rop32(op, sego));
+		case 5: // LES BP,m16:16
+			return void([this.bp, this.es] = this.rop32(op, sego));
+		case 6: // LES SI,m16:16
+			return void([this.si, this.es] = this.rop32(op, sego));
+		case 7: // LES DI,m16:16
+			return void([this.di, this.es] = this.rop32(op, sego));
+		}
+	}
+
+	execute_c5(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // LDS AX,m16:16
+			return void([this.ax, this.ds] = this.rop32(op, sego));
+		case 1: // LDS CX,m16:16
+			return void([this.cx, this.ds] = this.rop32(op, sego));
+		case 2: // LDS DX,m16:16
+			return void([this.dx, this.ds] = this.rop32(op, sego));
+		case 3: // LDS BX,m16:16
+			return void([this.bx, this.ds] = this.rop32(op, sego));
+		case 4: // LDS SP,m16:16
+			return void([this.sp, this.ds] = this.rop32(op, sego));
+		case 5: // LDS BP,m16:16
+			return void([this.bp, this.ds] = this.rop32(op, sego));
+		case 6: // LDS SI,m16:16
+			return void([this.si, this.ds] = this.rop32(op, sego));
+		case 7: // LDS DI,m16:16
+			return void([this.di, this.ds] = this.rop32(op, sego));
+		}
+	}
+
+	execute_d0(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ROL r/m8,1
+			return void this.rwop8(op, sego, this.rol8, 1);
+		case 1: // ROR r/m8,1
+			return void this.rwop8(op, sego, this.ror8, 1);
+		case 2: // RCL r/m8,1
+			return void this.rwop8(op, sego, this.rcl8, 1);
+		case 3: // RCR r/m8,1
+			return void this.rwop8(op, sego, this.rcr8, 1);
+		case 4: // SAL/SHL r/m8,1
+			return void this.rwop8(op, sego, this.shl8, 1);
+		case 5: // SHR r/m8,1
+			return void this.rwop8(op, sego, this.shr8, 1);
+		case 7: // SAR r/m8,1
+			return void this.rwop8(op, sego, this.sar8, 1);
+		default:
+			return void this.exception(6);
+		}
+	}
+
+	execute_d1(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ROL r/m16,1
+			return void this.rwop16(op, sego, this.rol16, 1);
+		case 1: // ROR r/m16,1
+			return void this.rwop16(op, sego, this.ror16, 1);
+		case 2: // RCL r/m16,1
+			return void this.rwop16(op, sego, this.rcl16, 1);
+		case 3: // RCR r/m16,1
+			return void this.rwop16(op, sego, this.rcr16, 1);
+		case 4: // SAL/SHL r/m16,1
+			return void this.rwop16(op, sego, this.shl16, 1);
+		case 5: // SHR r/m16,1
+			return void this.rwop16(op, sego, this.shr16, 1);
+		case 7: // SAR r/m16,1
+			return void this.rwop16(op, sego, this.sar16, 1);
+		default:
+			return void this.exception(6);
+		}
+	}
+
+	execute_d2(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ROL r/m8,CL
+			return void this.rwop8(op, sego, this.rol8, this.cx & 0xff);
+		case 1: // ROR r/m8,CL
+			return void this.rwop8(op, sego, this.ror8, this.cx & 0xff);
+		case 2: // RCL r/m8,CL
+			return void this.rwop8(op, sego, this.rcl8, this.cx & 0xff);
+		case 3: // RCR r/m8,CL
+			return void this.rwop8(op, sego, this.rcr8, this.cx & 0xff);
+		case 4: // SAL/SHL r/m8,CL
+			return void this.rwop8(op, sego, this.shl8, this.cx & 0xff);
+		case 5: // SHR r/m8,CL
+			return void this.rwop8(op, sego, this.shr8, this.cx & 0xff);
+		case 7: // SAR r/m8,CL
+			return void this.rwop8(op, sego, this.sar8, this.cx & 0xff);
+		default:
+			return void this.exception(6);
+		}
+	}
+
+	execute_d3(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // ROL r/m16,CL
+			return void this.rwop16(op, sego, this.rol16, this.cx & 0xff);
+		case 1: // ROR r/m16,CL
+			return void this.rwop16(op, sego, this.ror16, this.cx & 0xff);
+		case 2: // RCL r/m16,CL
+			return void this.rwop16(op, sego, this.rcl16, this.cx & 0xff);
+		case 3: // RCR r/m16,CL
+			return void this.rwop16(op, sego, this.rcr16, this.cx & 0xff);
+		case 4: // SAL/SHL r/m16,CL
+			return void this.rwop16(op, sego, this.shl16, this.cx & 0xff);
+		case 5: // SHR r/m16,CL
+			return void this.rwop16(op, sego, this.shr16, this.cx & 0xff);
+		case 7: // SAR r/m16,CL
+			return void this.rwop16(op, sego, this.sar16, this.cx & 0xff);
+		default:
+			return void this.exception(6);
+		}
+	}
+
+	execute_f6(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // TEST r/m8,imm8
+			return void this.rop8i(op, sego, this.and8);
+		case 2: // NOT r/m8
+			return void this.rwop8(op, sego, dst => ~dst & 0xff);
+		case 3: // NEG r/m8
+			return void this.rwop8(op, sego, this.neg8);
+		case 4: // MUL r/m8
+			return void this.mul8(this.rop8(op, sego));
+		case 5: // IMUL r/m8
+			return void this.imul8(this.rop8(op, sego));
+		case 6: // DIV r/m8
+			return void this.div8(this.rop8(op, sego));
+		case 7: // IDIV r/m8
+			return void this.idiv8(this.rop8(op, sego));
+		default:
+			return void this.exception(6);
+		}
+	}
+
+	execute_f7(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // TEST r/m16,imm16
+			return void this.rop16i(op, sego, this.and16);
+		case 2: // NOT r/m16
+			return void this.rwop16(op, sego, dst => ~dst & 0xffff);
+		case 3: // NEG r/m16
+			return void this.rwop16(op, sego, this.neg16);
+		case 4: // MUL r/m16
+			return void this.mul16(this.rop16(op, sego));
+		case 5: // IMUL r/m16
+			return void this.imul16(this.rop16(op, sego));
+		case 6: // DIV r/m16
+			return void this.div16(this.rop16(op, sego));
+		case 7: // IDIV r/m16
+			return void this.idiv16(this.rop16(op, sego));
+		default:
+			return void this.exception(6);
+		}
+	}
+
+	execute_fe(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // INC r/m8
+			return void this.rwop8(op, sego, this.inc8);
+		case 1: // DEC r/m8
+			return void this.rwop8(op, sego, this.dec8);
+		default:
+			return void this.exception(6);
+		}
+	}
+
+	execute_ff(sego) {
+		const op = this.fetch8();
+
+		switch (op >>> 3 & 7) {
+		case 0: // INC r/m16
+			return void this.rwop16(op, sego, this.inc16);
+		case 1: // DEC r/m16
+			return void this.rwop16(op, sego, this.dec16);
+		case 2: // CALL r/m16
+			return void this.call16a(this.rop16(op, sego));
+		case 3: // CALL m16:16
+			return void this.call32(...this.rop32(op, sego));
+		case 4: // JMP r/m16
+			return void(this.ip = this.rop16(op, sego));
+		case 5: // JMP m16:16
+			return void([this.ip, this.cs] = this.rop32(op, sego));
+		case 6: // PUSH r/m16
+			return void this.push(this.rop16(op, sego));
+		default:
+			return void this.exception(6);
+		}
 	}
 
 	lea(op) {
