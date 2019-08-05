@@ -78,7 +78,7 @@ export default class I80186 extends Cpu {
 	}
 
 	_execute() {
-		let prefix = 0, sego = -1, rep = -1, op;
+		let prefix = 0, sego = -1, rep = -1, op, v;
 
 		this.intmask = false;
 		for (;;)
@@ -299,19 +299,19 @@ export default class I80186 extends Cpu {
 			case 0x6c: // INSB
 				this.write8(this.es, this.di, this.ioread8(this.dx));
 				this.di = this.di - (this.flags >>> 9 & 2) + 1 & 0xffff;
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip -= prefix + 1));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0x6d: // INSW
 				this.write16(this.es, this.di, this.ioread16(this.dx));
 				this.di = this.di - (this.flags >>> 8 & 4) + 2 & 0xffff;
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip -= prefix + 1));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0x6e: // OUTSB
 				this.iowrite8(this.dx, this.read8(sego >= 0 ? sego : this.ds, this.si));
 				this.si = this.si - (this.flags >>> 9 & 2) + 1 & 0xffff;
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip -= prefix + 1));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0x6f: // OUTSW
 				this.iowrite16(this.dx, this.read16(sego >= 0 ? sego : this.ds, this.si));
 				this.si = this.si - (this.flags >>> 8 & 4) + 2 & 0xffff;
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip -= prefix + 1));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0x70: // JO rel8
 				return void this.jcc((this.flags & 0x800) !== 0);
 			case 0x71: // JNO rel8
@@ -421,19 +421,19 @@ export default class I80186 extends Cpu {
 			case 0xa4: // MOVSB
 				this.write8(this.es, this.di, this.read8(sego >= 0 ? sego : this.ds, this.si));
 				[this.si, this.di] = [this.si - (this.flags >>> 9 & 2) + 1 & 0xffff, this.di - (this.flags >>> 9 & 2) + 1 & 0xffff];
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip -= prefix + 1));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0xa5: // MOVSW
 				this.write16(this.es, this.di, this.read16(sego >= 0 ? sego : this.ds, this.si));
 				[this.si, this.di] = [this.si - (this.flags >>> 8 & 4) + 2 & 0xffff, this.di - (this.flags >>> 8 & 4) + 2 & 0xffff];
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip -= prefix + 1));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0xa6: // CMPSB
 				this.sub8(this.read8(sego >= 0 ? sego : this.ds, this.si), this.read8(this.es, this.di));
 				[this.si, this.di] = [this.si - (this.flags >>> 9 & 2) + 1 & 0xffff, this.di - (this.flags >>> 9 & 2) + 1 & 0xffff];
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && ((rep ^ this.flags >>> 6) & 1) === 0 && (this.ip -= prefix + 1));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && ((rep ^ this.flags >>> 6) & 1) === 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0xa7: // CMPSW
 				this.sub16(this.read16(sego >= 0 ? sego : this.ds, this.si), this.read16(this.es, this.di));
 				[this.si, this.di] = [this.si - (this.flags >>> 8 & 4) + 2 & 0xffff, this.di - (this.flags >>> 8 & 4) + 2 & 0xffff];
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && ((rep ^ this.flags >>> 6) & 1) === 0 && (this.ip -= prefix + 1));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && ((rep ^ this.flags >>> 6) & 1) === 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0xa8: // TEST AL,imm8
 				return void this.and8(this.ax, this.fetch8());
 			case 0xa9: // TEST AX,imm16
@@ -441,25 +441,25 @@ export default class I80186 extends Cpu {
 			case 0xaa: // STOSB
 				this.write8(this.es, this.di, this.ax);
 				this.di = this.di - (this.flags >>> 9 & 2) + 1 & 0xffff;
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip -= prefix + 1));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0xab: // STOSW
 				this.write16(this.es, this.di, this.ax);
 				this.di = this.di - (this.flags >>> 8 & 4) + 2 & 0xffff;
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip -= prefix + 1));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0xac: // LODSB
 				[this.ax, this.si] = [this.ax & 0xff00 | this.read8(sego >= 0 ? sego : this.ds, this.si), this.si - (this.flags >>> 9 & 2) + 1 & 0xffff];
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip -= prefix + 1));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0xad: // LODSW
 				[this.ax, this.si] = [this.read16(sego >= 0 ? sego : this.ds, this.si), this.si - (this.flags >>> 8 & 4) + 2 & 0xffff];
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip -= prefix + 1));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0xae: // SCASB
 				this.sub8(this.ax, this.read8(this.es, this.di));
 				this.di = this.di - (this.flags >>> 9 & 2) + 1 & 0xffff;
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && ((rep ^ this.flags >>> 6) & 1) === 0 && (this.ip -= prefix + 1));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && ((rep ^ this.flags >>> 6) & 1) === 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0xaf: // SCASW
 				this.sub16(this.ax, this.read16(this.es, this.di));
 				this.di = this.di - (this.flags >>> 8 & 4) + 2 & 0xffff;
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && ((rep ^ this.flags >>> 6) & 1) === 0 && (this.ip -= prefix + 1));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && ((rep ^ this.flags >>> 6) & 1) === 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0xb0: // MOV AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.fetch8());
 			case 0xb1: // MOV CL,imm8
@@ -497,8 +497,8 @@ export default class I80186 extends Cpu {
 			case 0xc1:
 				return void this.execute_c1(sego);
 			case 0xc2: // RET imm16
-				this.sp = this.sp + this.fetch16() & 0xffff;
-				return void(this.ip = this.pop());
+				[this.ip, v] = [this.pop(), this.fetch16()];
+				return void(this.sp = this.sp + v & 0xffff);
 			case 0xc3: // RET
 				return void(this.ip = this.pop());
 			case 0xc4: // LES r16,m16:16
@@ -519,8 +519,8 @@ export default class I80186 extends Cpu {
 				this.sp = this.bp;
 				return void(this.bp = this.pop());
 			case 0xca: // RETF imm16
-				this.sp = this.sp + this.fetch16() & 0xffff;
-				return void([this.ip, this.cs] = this.pop(2));
+				[this.ip, this.cs, v] = [...this.pop(2), this.fetch16()];
+				return void(this.sp = this.sp + v & 0xffff);
 			case 0xcb: // RETF
 				return void([this.ip, this.cs] = this.pop(2));
 			case 0xcc: // INT 3
