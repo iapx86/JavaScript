@@ -79,11 +79,7 @@ class DragonBuster {
 		};
 
 		this.mcu = new MC6801(this);
-		this.mcu.memorymap[0].read = addr => {
-			if (addr === 2)
-				return this.in[this.select];
-			return this.ram2[addr];
-		};
+		this.mcu.memorymap[0].read = addr => addr === 2 ? this.in[this.select] : this.ram2[addr];
 		this.mcu.memorymap[0].write = (addr, data) => {
 			if (addr === 2 && (data & 0xe0) === 0x60)
 				this.select = data & 7;

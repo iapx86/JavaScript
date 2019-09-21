@@ -92,10 +92,26 @@ export function init({keydown, keyup, ...args} = {}) {
 	({game, sound, rotate} = args);
 	pixel = new Uint8Array(game.width * game.height * 4);
 	data = new Uint32Array(pixel.buffer);
+	const positions = new Float32Array(rotate ? [-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0] : [-1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, -1.0]);
+	const textureCoordinates = new Float32Array([
+		game.xOffset / game.width, game.yOffset / game.height,
+		game.xOffset / game.width, (game.yOffset + game.cyScreen) / game.height,
+		(game.xOffset + game.cxScreen) / game.width, game.yOffset / game.height,
+		(game.xOffset + game.cxScreen) / game.width, (game.yOffset + game.cyScreen) / game.height
+	]);
 	gl.bindTexture(gl.TEXTURE_2D, texture);
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, game.width, game.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+	gl.useProgram(program);
+	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+	gl.vertexAttribPointer(aVertexPositionHandle, 2, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray(aVertexPositionHandle);
+	gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, textureCoordinates, gl.STATIC_DRAW);
+	gl.vertexAttribPointer(aTextureCoordHandle, 2, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray(aTextureCoordHandle);
 	document.addEventListener('keydown', keydown ? keydown : e => {
 		switch (e.keyCode) {
 		case 37: // left
@@ -190,35 +206,11 @@ export function init({keydown, keyup, ...args} = {}) {
 	});
 }
 
-function draw() {
-	const positions = new Float32Array(rotate ? [-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0] : [-1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, -1.0]);
-	const textureCoordinates = new Float32Array([
-		game.xOffset / game.width, game.yOffset / game.height,
-		game.xOffset / game.width, (game.yOffset + game.cyScreen) / game.height,
-		(game.xOffset + game.cxScreen) / game.width, game.yOffset / game.height,
-		(game.xOffset + game.cxScreen) / game.width, (game.yOffset + game.cyScreen) / game.height
-	]);
-
-	gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, game.yOffset, game.width, game.cyScreen, gl.RGBA, gl.UNSIGNED_BYTE, pixel.subarray(game.yOffset * game.width * 4));
-
-	gl.useProgram(program);
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
-	gl.vertexAttribPointer(aVertexPositionHandle, 2, gl.FLOAT, false, 0, 0);
-	gl.enableVertexAttribArray(aVertexPositionHandle);
-	gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, textureCoordinates, gl.STATIC_DRAW);
-	gl.vertexAttribPointer(aTextureCoordHandle, 2, gl.FLOAT, false, 0, 0);
-	gl.enableVertexAttribArray(aTextureCoordHandle);
-
-	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-}
-
 export function loop() {
 	if (sound)
 		Array.isArray(sound) ? sound.forEach(s => s.update(game)) : sound.update(game);
-	draw();
+	gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, game.yOffset, game.width, game.cyScreen, gl.RGBA, gl.UNSIGNED_BYTE, pixel.subarray(game.yOffset * game.width * 4));
+	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 	updateGamepad(game);
 	game.updateStatus().updateInput().execute().makeBitmap(data);
 	requestAnimationFrame(loop);

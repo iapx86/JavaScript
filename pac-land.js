@@ -73,11 +73,7 @@ class PacLand {
 
 		this.mcu = new MC6801(this);
 		this.mcu.memorymap[0].base = this.ram2.base[0];
-		this.mcu.memorymap[0].read = addr => {
-			if (addr === 2)
-				return this.in[4];
-			return this.ram2[addr];
-		};
+		this.mcu.memorymap[0].read = addr => addr === 2 ? this.in[4] : this.ram2[addr];
 		this.mcu.memorymap[0].write = null;
 		for (let i = 0; i < 4; i++) {
 			this.mcu.memorymap[0x10 + i].read = addr => sound.read(addr);
