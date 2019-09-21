@@ -23,6 +23,7 @@ class _1942 {
 		this.fCoin = 0;
 		this.fStart1P = 0;
 		this.fStart2P = 0;
+		this.fTurbo = 0;
 		this.nBonus = '1st 20000 2nd 80000 every 80000';
 		this.nLife = 3;
 		this.nRank = 'Normal';
@@ -118,6 +119,7 @@ class _1942 {
 		this.rgb = new Uint32Array(0x100);
 		this.dwScroll = 0;
 		this.palette = 0;
+		this.frame = 0;
 		this.convertRGB();
 		this.convertFG();
 		this.convertBG();
@@ -222,6 +224,10 @@ class _1942 {
 		}
 		else
 			this.in[0] |= 1 << 1;
+
+		// 連射処理
+		if (this.fTurbo && (this.frame & 1) === 0)
+			this.in[1] ^= 1 << 4;
 		return this;
 	}
 
@@ -279,6 +285,11 @@ class _1942 {
 			this.in[1] |= 1 << 5;
 	}
 
+	triggerY(fDown) {
+		if ((this.fTurbo = fDown) === false)
+			this.in[1] |= 1 << 4;
+	}
+
 	convertRGB() {
 		for (let i = 0; i < 0x100; i++)
 			this.rgb[i] = (RED[i] & 0x0f) * 255 / 15	// Red
@@ -327,6 +338,8 @@ class _1942 {
 	}
 
 	makeBitmap(data) {
+		this.frame++;
+
 		// bg描画
 		let p = 256 * 256 + 16 + (this.dwScroll & 0x0f) * 256;
 		let k = this.dwScroll << 1 & 0x3e0 | 1;
