@@ -47,7 +47,7 @@ registerProcessor('AY_3_8910', class extends AudioWorkletProcessor {
 			this.channel.forEach((ch, j) => {
 				ch.freq = reg[j * 2] | reg[1 + j * 2] << 8 & 0xf00;
 				const vol = (reg[8 + j] >> 4 & 1) !== 0 ? evol : reg[8 + j] & 0x0f;
-				data[i] += (((reg[7] >> j | ch.output) & (reg[7] >> j + 3 | this.rng) & 1) * 2 - 1) * (vol ? Math.pow(2, (vol - 15) / 3) : 0);
+				data[i] += (((ch.freq === 0 | reg[7] >> j | ch.output) & (reg[7] >> j + 3 | this.rng) & 1) * 2 - 1) * (vol ? Math.pow(2, (vol - 15) / 3) : 0);
 			});
 			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {
 				this.channel.forEach(ch => {
@@ -121,7 +121,7 @@ export default class AY_3_8910 {
 					this.channel.forEach((ch, j) => {
 						ch.freq = reg[j * 2] | reg[1 + j * 2] << 8 & 0xf00;
 						const vol = (reg[8 + j] >> 4 & 1) !== 0 ? evol : reg[8 + j] & 0x0f;
-						data[i] += (((reg[7] >> j | ch.output) & (reg[7] >> j + 3 | this.rng) & 1) * 2 - 1) * (vol ? Math.pow(2, (vol - 15) / 3) : 0);
+						data[i] += (((ch.freq === 0 | reg[7] >> j | ch.output) & (reg[7] >> j + 3 | this.rng) & 1) * 2 - 1) * (vol ? Math.pow(2, (vol - 15) / 3) : 0);
 					});
 					for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {
 						this.channel.forEach(ch => {
