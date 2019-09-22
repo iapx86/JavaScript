@@ -132,9 +132,9 @@ export function init({keydown, keyup, ...args} = {}) {
 export function loop() {
 	if (sound)
 		Array.isArray(sound) ? sound.forEach(s => s.update(game)) : sound.update(game);
-	ctx.putImageData(imageData, -game.xOffset, -game.yOffset);
 	updateGamepad(game);
 	game.updateStatus().updateInput().execute().makeBitmap(data);
+	ctx.putImageData(imageData, -game.xOffset, -game.yOffset);
 	requestAnimationFrame(loop);
 }
 

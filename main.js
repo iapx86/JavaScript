@@ -209,10 +209,10 @@ export function init({keydown, keyup, ...args} = {}) {
 export function loop() {
 	if (sound)
 		Array.isArray(sound) ? sound.forEach(s => s.update(game)) : sound.update(game);
-	gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, game.yOffset, game.width, game.cyScreen, gl.RGBA, gl.UNSIGNED_BYTE, pixel.subarray(game.yOffset * game.width * 4));
-	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 	updateGamepad(game);
 	game.updateStatus().updateInput().execute().makeBitmap(data);
+	gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, game.yOffset, game.width, game.cyScreen, gl.RGBA, gl.UNSIGNED_BYTE, pixel.subarray(game.yOffset * game.width * 4));
+	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 	requestAnimationFrame(loop);
 }
 
