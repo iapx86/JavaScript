@@ -648,7 +648,7 @@ export default class MC6809 extends Cpu {
 		case 0x6d: // TST ,r
 			return void this.tst(this.index());
 		case 0x6e: // JMP ,r
-			return void(this.index());
+			return void(this.pc = this.index());
 		case 0x6f: // CLR ,r
 			return void this.clr(this.index());
 		case 0x70: // NEG >nn
