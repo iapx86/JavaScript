@@ -4,83 +4,6 @@
  *
  */
 
-const k007232 = `
-registerProcessor('K007232', class extends AudioWorkletProcessor {
-	constructor (options) {
-		super(options);
-		const {processorOptions: {SND, clock, resolution}} = options;
-		this.sampleRate = Math.floor(sampleRate);
-		this.reg = new Uint8Array(14);
-		this.snd = Float32Array.from(SND, e => (e & 0x7f) * 2 / 127 - 1);
-		this.SND = SND;
-		this.rate = Math.floor(clock / 128);
-		this.resolution = resolution;
-		this.count = this.sampleRate - 1;
-		this.wheel = [];
-		this.cycles = 0;
-		this.channel = [];
-		for (let i = 0; i < 2; i++)
-			this.channel.push({play: false, addr: 0});
-		this.vol = 0;
-		this.port.onmessage = ({data: {wheel}}) => {
-			if (!wheel)
-				return;
-			if (this.wheel.length >= resolution) {
-				this.wheel.forEach(q => q.forEach(e => this.regwrite(e)));
-				this.count = this.sampleRate - 1;
-				this.wheel.splice(0);
-			}
-			this.wheel = this.wheel.concat(wheel);
-		};
-		this.port.start();
-	}
-	process (inputs, outputs) {
-		const reg = this.reg;
-		outputs[0][0].fill(0).forEach((e, i, data) => {
-			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate) {
-				const q = this.wheel.shift();
-				q && q.forEach(e => this.regwrite(e));
-			}
-			this.channel.forEach(ch => ch.play && (data[i] += this.snd[ch.addr >>> 12] * this.vol));
-			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate)
-				this.channel.forEach((ch, j) => {
-					if (!ch.play)
-						return;
-					const rate = Math.floor(0x20000 / (0x200 - (reg[j * 6] | reg[1 + j * 6] << 8 & 0x100)));
-					for (let addr = (ch.addr >>> 12) + 1, addr1 = (ch.addr += rate) >>> 12; addr <= addr1; addr++)
-						if (addr >= this.SND.length || (this.SND[addr] & 0x80) !== 0) {
-							if ((reg[13] & 1 << j) !== 0)
-								ch.addr = (reg[2 + j * 6] | reg[3 + j * 6] << 8 | reg[4 + j * 6] << 16 & 0x10000) << 12;
-							else
-								ch.play = false;
-							break;
-						}
-				});
-		});
-		return true;
-	}
-	regwrite({addr, data}) {
-		const reg = this.reg;
-		switch (addr) {
-		case 5:
-			this.channel[0].addr = (reg[2] | reg[3] << 8 | reg[4] << 16 & 0x10000) << 12;
-			this.channel[0].play = this.channel[0].addr >> 12 < this.snd.length;
-			break;
-		case 11:
-			this.channel[1].addr = (reg[8] | reg[9] << 8 | reg[10] << 16 & 0x10000) << 12;
-			this.channel[1].play = this.channel[1].addr >> 12 < this.snd.length;
-			break;
-		case 12:
-			this.vol = ((data & 0xf) + (data >>> 4)) / 30;
-			break;
-		}
-		reg[addr] = data;
-	}
-});
-`;
-
-const addK007232 = !audioCtx ? 0 : audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + k007232) : new Promise((resolve, reject) => reject());
-
 export default class K007232 {
 	constructor({SND, clock, resolution = 1, gain = 0.1}) {
 		this.resolution = resolution;
@@ -91,53 +14,46 @@ export default class K007232 {
 		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
-		addK007232.then(() => {
-			this.worklet = new AudioWorkletNode(audioCtx, 'K007232', {processorOptions: {SND, clock, resolution}});
-			this.worklet.port.start();
-			this.source.connect(this.worklet).connect(this.gainNode).connect(audioCtx.destination);
-			this.source.start();
-		}).catch(() => {
-			this.sampleRate = Math.floor(audioCtx.sampleRate);
-			this.reg = new Uint8Array(14);
-			this.snd = Float32Array.from(SND, e => (e & 0x7f) * 2 / 127 - 1);
-			this.rate = Math.floor(clock / 128);
-			this.count = this.sampleRate - 1;
-			this.wheel = [];
-			this.cycles = 0;
-			this.channel = [];
-			for (let i = 0; i < 2; i++)
-				this.channel.push({play: false, addr: 0});
-			this.vol = 0;
-			this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
-			this.scriptNode.onaudioprocess = ({outputBuffer}) => {
-				const reg = this.reg;
-				outputBuffer.getChannelData(0).fill(0).forEach((e, i, data) => {
-					for (this.count += 60 * resolution; this.count >= this.sampleRate; this.count -= this.sampleRate) {
-						const q = this.wheel.shift();
-						q && q.forEach(e => this.regwrite(e));
-					}
-					this.channel.forEach(ch => ch.play && (data[i] += this.snd[ch.addr >>> 12] * this.vol));
-					for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate)
-						this.channel.forEach((ch, j) => {
-							if (!ch.play)
-								return;
-							const rate = Math.floor(0x20000 / (0x200 - (reg[j * 6] | reg[1 + j * 6] << 8 & 0x100)));
-							for (let addr = (ch.addr >>> 12) + 1, addr1 = (ch.addr += rate) >>> 12; addr <= addr1; addr++)
-								if (addr >= SND.length || (SND[addr] & 0x80) !== 0) {
-									if ((reg[13] & 1 << j) !== 0)
-										ch.addr = (reg[2 + j * 6] | reg[3 + j * 6] << 8 | reg[4 + j * 6] << 16 & 0x10000) << 12;
-									else
-										ch.play = false;
-									break;
-								}
-						});
-				});
-			};
-			this.source.connect(this.scriptNode);
-			this.scriptNode.connect(this.gainNode);
-			this.gainNode.connect(audioCtx.destination);
-			this.source.start();
-		});
+		this.sampleRate = Math.floor(audioCtx.sampleRate);
+		this.reg = new Uint8Array(14);
+		this.snd = Float32Array.from(SND, e => (e & 0x7f) * 2 / 127 - 1);
+		this.rate = Math.floor(clock / 128);
+		this.count = this.sampleRate - 1;
+		this.wheel = [];
+		this.cycles = 0;
+		this.channel = [];
+		for (let i = 0; i < 2; i++)
+			this.channel.push({play: false, addr: 0});
+		this.vol = 0;
+		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
+		this.scriptNode.onaudioprocess = ({outputBuffer}) => {
+			const reg = this.reg;
+			outputBuffer.getChannelData(0).fill(0).forEach((e, i, data) => {
+				for (this.count += 60 * resolution; this.count >= this.sampleRate; this.count -= this.sampleRate) {
+					const q = this.wheel.shift();
+					q && q.forEach(e => this.regwrite(e));
+				}
+				this.channel.forEach(ch => ch.play && (data[i] += this.snd[ch.addr >>> 12] * this.vol));
+				for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate)
+					this.channel.forEach((ch, j) => {
+						if (!ch.play)
+							return;
+						const rate = Math.floor(0x20000 / (0x200 - (reg[j * 6] | reg[1 + j * 6] << 8 & 0x100)));
+						for (let addr = (ch.addr >>> 12) + 1, addr1 = (ch.addr += rate) >>> 12; addr <= addr1; addr++)
+							if (addr >= SND.length || (SND[addr] & 0x80) !== 0) {
+								if ((reg[13] & 1 << j) !== 0)
+									ch.addr = (reg[2 + j * 6] | reg[3 + j * 6] << 8 | reg[4 + j * 6] << 16 & 0x10000) << 12;
+								else
+									ch.play = false;
+								break;
+							}
+					});
+			});
+		};
+		this.source.connect(this.scriptNode);
+		this.scriptNode.connect(this.gainNode);
+		this.gainNode.connect(audioCtx.destination);
+		this.source.start();
 	}
 
 	mute(flag) {
@@ -168,9 +84,7 @@ export default class K007232 {
 	}
 
 	update() {
-		if (this.worklet)
-			this.worklet.port.postMessage({wheel: this.tmpwheel});
-		else if (this.wheel) {
+		if (this.wheel) {
 			if (this.wheel.length >= this.resolution) {
 				this.wheel.forEach(q => q.forEach(e => this.regwrite(e)));
 				this.count = this.sampleRate - 1;
