@@ -81,7 +81,7 @@ export default class VLM5030 {
 							else
 								[this.pitch1, this.energy1, this.k1] = [this.pitch0, this.energy0, this.k0];
 						}
-						const ieffect = ~(this.icount -= [1, 2, 4, 4][this.param & 3]) & 3 + 1;
+						const ieffect = (~(this.icount -= [1, 2, 4, 4][this.param & 3]) & 3) + 1;
 						this.pitch = this.pitch0 > 1 ? this.pitch0 + ((this.pitch1 - this.pitch0) * ieffect >> 2) : 0;
 						this.energy = this.energy0 + ((this.energy1 - this.energy0) * ieffect >> 2);
 						for (let i = 0; i < 10; i++)
