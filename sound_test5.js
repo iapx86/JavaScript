@@ -116,7 +116,7 @@ class SoundTest {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.nSound = 1;
+			this.nSound = 0x80;
 			this.command.splice(0);
 			this.cpu2.reset();
 			this.timer = 0;

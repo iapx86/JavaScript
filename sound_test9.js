@@ -99,7 +99,7 @@ class SoundTest {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.nSound = 0x80;
+			this.nSound = 0x81;
 			this.command.splice(0);
 			this.cpu.reset();
 		}
@@ -152,7 +152,7 @@ class SoundTest {
 		if (fDown)
 			return this;
 		console.log(`command=$${this.nSound.toString(16)}`);
-		this.command.push(...new Array(8).fill(0), ...new Array(8).fill(this.nSound));
+		this.command.push(this.nSound, 0, 0, 0, 0, 0, 0, 0);
 		return this;
 	}
 
@@ -160,7 +160,7 @@ class SoundTest {
 		if (fDown)
 			return this;
 		console.log(`command=0`);
-		this.command.push(...new Array(8).fill(0));
+		this.command.push(0, 0, 0, 0, 0, 0, 0, 0);
 		return this;
 	}
 

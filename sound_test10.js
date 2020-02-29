@@ -18,14 +18,13 @@ class SoundTest {
 		this.xOffset = 0;
 		this.yOffset = 0;
 		this.fReset = true;
-		this.nSound = 1;
+		this.nSound = 0;
 
 		// CPU周りの初期化
 		this.ram2 = new Uint8Array(0x10000).addBase();
 		this.fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Array(8).fill(false), status: 0, timera: 0, timerb: 0};
 		this.count = 0;
 		this.command = [];
-		this.addr = 0;
 
 		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x100; i++) {
@@ -94,12 +93,11 @@ class SoundTest {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.nSound = 0;
+			this.nSound = 1;
 			this.ram2.fill(0);
 			this.ram2.set(PRG.subarray(0, 0x8000));
 			this.command.splice(0);
 			this.cpu2.reset();
-			this.timer = 0;
 		}
 		return this;
 	}
@@ -129,7 +127,7 @@ class SoundTest {
 			return this;
 		this.nSound = this.nSound + 1;
 		if (this.nSound >= 0x100)
-			this.nSound = 0;
+			this.nSound = 1;
 		return this;
 	}
 
@@ -141,7 +139,7 @@ class SoundTest {
 		if (fDown)
 			return this;
 		this.nSound = this.nSound - 1;
-		if (this.nSound < 0)
+		if (this.nSound < 1)
 			this.nSound = 0xff;
 		return this;
 	}
@@ -150,7 +148,7 @@ class SoundTest {
 		if (fDown)
 			return this;
 		console.log(`command=$${this.nSound.toString(16)}`);
-		this.command.push(this.nSound);
+		this.command.push(0, this.nSound);
 		return this;
 	}
 

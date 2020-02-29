@@ -156,7 +156,7 @@ class SoundTest {
 		if (fDown)
 			return this;
 		console.log(`command=0`);
-		this.command.push(0);
+		this.command.push(0, 0);
 		return this;
 	}
 
