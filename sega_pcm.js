@@ -31,13 +31,13 @@ export default class SegaPCM {
 					const q = this.wheel.shift();
 					q && q.forEach(({addr, data}) => this.reg[addr] = data);
 				}
-				for (let j = 0; j < 0x60; j += 8)
+				for (let j = 0; j < 0x80; j += 8)
 					if ((reg[0x86 | j] & 1) === 0) {
 						const vol = ((reg[2 | j] & 0x7f) + (reg[3 | j] & 0x7f)) / 0xfe;
 						data[i] += this.pcm[reg[0x86 | j] << 12 & 0x70000 | reg[0x85 | j] << 8 | reg[0x84 | j]] * vol;
 					}
 				for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate)
-					for (let j = 0; j < 0x60; j += 8)
+					for (let j = 0; j < 0x80; j += 8)
 						if ((reg[0x86 | j] & 1) === 0) {
 							const addr = (reg[0x85 | j] << 16 | reg[0x84 | j] << 8 | this.low[j >>> 3]) + reg[7 | j];
 							reg[0x85 | j] = addr >>> 16;
