@@ -84,76 +84,76 @@ export default class I80186 extends Cpu {
 		for (;;)
 			switch (this.fetch8()) {
 			case 0x00: // ADD r/m8,r8
-				return void this.execute_00(sego);
+				return this.execute_00(sego);
 			case 0x01: // ADD r/m16,r16
-				return void this.execute_01(sego);
+				return this.execute_01(sego);
 			case 0x02: // ADD r8,r/m8
-				return void this.execute_02(sego);
+				return this.execute_02(sego);
 			case 0x03: // ADD r16,r/m16
-				return void this.execute_03(sego);
+				return this.execute_03(sego);
 			case 0x04: // ADD AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.add8(this.ax, this.fetch8()));
 			case 0x05: // ADD AX,imm16
 				return void(this.ax = this.add16(this.ax, this.fetch16()));
 			case 0x06: // PUSH ES
-				return void this.push(this.es);
+				return this.push(this.es);
 			case 0x07: // POP ES
 				return void(this.es = this.pop());
 			case 0x08: // OR r/m8,r8
-				return void this.execute_08(sego);
+				return this.execute_08(sego);
 			case 0x09: // OR r/m16,r16
-				return void this.execute_09(sego);
+				return this.execute_09(sego);
 			case 0x0a: // OR r8,r/m8
-				return void this.execute_0a(sego);
+				return this.execute_0a(sego);
 			case 0x0b: // OR r16,r/m16
-				return void this.execute_0b(sego);
+				return this.execute_0b(sego);
 			case 0x0c: // OR AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.or8(this.ax, this.fetch8()));
 			case 0x0d: // OR AX,imm16
 				return void(this.ax = this.or16(this.ax, this.fetch16()));
 			case 0x0e: // PUSH CS
-				return void this.push(this.cs);
+				return this.push(this.cs);
 			case 0x10: // ADC r/m8,r8
-				return void this.execute_10(sego);
+				return this.execute_10(sego);
 			case 0x11: // ADC r/m16,r16
-				return void this.execute_11(sego);
+				return this.execute_11(sego);
 			case 0x12: // ADC r8,r/m8
-				return void this.execute_12(sego);
+				return this.execute_12(sego);
 			case 0x13: // ADC r16,r/m16
-				return void this.execute_13(sego);
+				return this.execute_13(sego);
 			case 0x14: // ADC AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.adc8(this.ax, this.fetch8()));
 			case 0x15: // ADC AX,imm16
 				return void(this.ax = this.adc16(this.ax, this.fetch16()));
 			case 0x16: // PUSH SS
-				return void this.push(this.ss);
+				return this.push(this.ss);
 			case 0x17: // POP SS
 				this.intmask = true;
 				return void(this.ss = this.pop());
 			case 0x18: // SBB r/m8,r8
-				return void this.execute_18(sego);
+				return this.execute_18(sego);
 			case 0x19: // SBB r/m16,r16
-				return void this.execute_19(sego);
+				return this.execute_19(sego);
 			case 0x1a: // SBB r8,r/m8
-				return void this.execute_1a(sego);
+				return this.execute_1a(sego);
 			case 0x1b: // SBB r16,r/m16
-				return void this.execute_1b(sego);
+				return this.execute_1b(sego);
 			case 0x1c: // SBB AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.sbb8(this.ax, this.fetch8()));
 			case 0x1d: // SBB AX,imm16
 				return void(this.ax = this.sbb16(this.ax, this.fetch16()));
 			case 0x1e: // PUSH DS
-				return void this.push(this.ds);
+				return this.push(this.ds);
 			case 0x1f: // POP DS
 				return void(this.ds = this.pop());
 			case 0x20: // AND r/m8,r8
-				return void this.execute_20(sego);
+				return this.execute_20(sego);
 			case 0x21: // AND r/m16,r16
-				return void this.execute_21(sego);
+				return this.execute_21(sego);
 			case 0x22: // AND r8,r/m8
-				return void this.execute_22(sego);
+				return this.execute_22(sego);
 			case 0x23: // AND r16,r/m16
-				return void this.execute_23(sego);
+				return this.execute_23(sego);
 			case 0x24: // AND AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.and8(this.ax, this.fetch8()));
 			case 0x25: // AND AX,imm16
@@ -163,15 +163,15 @@ export default class I80186 extends Cpu {
 				prefix++;
 				break;
 			case 0x27: // DAA
-				return void this.daa();
+				return this.daa();
 			case 0x28: // SUB r/m8,r8
-				return void this.execute_28(sego);
+				return this.execute_28(sego);
 			case 0x29: // SUB r/m16,r16
-				return void this.execute_29(sego);
+				return this.execute_29(sego);
 			case 0x2a: // SUB r8,r/m8
-				return void this.execute_2a(sego);
+				return this.execute_2a(sego);
 			case 0x2b: // SUB r16,r/m16
-				return void this.execute_2b(sego);
+				return this.execute_2b(sego);
 			case 0x2c: // SUB AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.sub8(this.ax, this.fetch8()));
 			case 0x2d: // SUB AX,imm16
@@ -181,15 +181,15 @@ export default class I80186 extends Cpu {
 				prefix++;
 				break;
 			case 0x2f: // DAS
-				return void this.das();
+				return this.das();
 			case 0x30: // XOR r/m8,r8
-				return void this.execute_30(sego);
+				return this.execute_30(sego);
 			case 0x31: // XOR r/m16,r16
-				return void this.execute_31(sego);
+				return this.execute_31(sego);
 			case 0x32: // XOR r8,r/m8
-				return void this.execute_32(sego);
+				return this.execute_32(sego);
 			case 0x33: // XOR r16,r/m16
-				return void this.execute_33(sego);
+				return this.execute_33(sego);
 			case 0x34: // XOR AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.xor8(this.ax, this.fetch8()));
 			case 0x35: // XOR AX,imm16
@@ -199,25 +199,25 @@ export default class I80186 extends Cpu {
 				prefix++;
 				break;
 			case 0x37: // AAA
-				return void this.aaa();
+				return this.aaa();
 			case 0x38: // CMP r/m8,r8
-				return void this.execute_38(sego);
+				return this.execute_38(sego);
 			case 0x39: // CMP r/m16,r16
-				return void this.execute_39(sego);
+				return this.execute_39(sego);
 			case 0x3a: // CMP r8,r/m8
-				return void this.execute_3a(sego);
+				return this.execute_3a(sego);
 			case 0x3b: // CMP r16,r/m16
-				return void this.execute_3b(sego);
+				return this.execute_3b(sego);
 			case 0x3c: // CMP AL,imm8
-				return void this.sub8(this.ax, this.fetch8());
+				return this.sub8(this.ax, this.fetch8());
 			case 0x3d: // CMP AX,imm16
-				return void this.sub16(this.ax, this.fetch16());
+				return this.sub16(this.ax, this.fetch16());
 			case 0x3e: // DS:
 				sego = this.ds;
 				prefix++;
 				break;
 			case 0x3f: // AAS
-				return void this.aas();
+				return this.aas();
 			case 0x40: // INC AX
 				return void(this.ax = this.inc16(this.ax));
 			case 0x41: // INC CX
@@ -251,21 +251,21 @@ export default class I80186 extends Cpu {
 			case 0x4f: // DEC DI
 				return void(this.di = this.dec16(this.di));
 			case 0x50: // PUSH AX
-				return void this.push(this.ax);
+				return this.push(this.ax);
 			case 0x51: // PUSH CX
-				return void this.push(this.cx);
+				return this.push(this.cx);
 			case 0x52: // PUSH DX
-				return void this.push(this.dx);
+				return this.push(this.dx);
 			case 0x53: // PUSH BX
-				return void this.push(this.bx);
+				return this.push(this.bx);
 			case 0x54: // PUSH SP
-				return void this.push(this.sp);
+				return this.push(this.sp);
 			case 0x55: // PUSH BP
-				return void this.push(this.bp);
+				return this.push(this.bp);
 			case 0x56: // PUSH SI
-				return void this.push(this.si);
+				return this.push(this.si);
 			case 0x57: // PUSH DI
-				return void this.push(this.di);
+				return this.push(this.di);
 			case 0x58: // POP AX
 				return void(this.ax = this.pop());
 			case 0x59: // POP CX
@@ -283,19 +283,19 @@ export default class I80186 extends Cpu {
 			case 0x5f: // POP DI
 				return void(this.di = this.pop());
 			case 0x60: // PUSHA
-				return void this.push(this.ax, this.cx, this.dx, this.bx, this.sp, this.bp, this.si, this.di);
+				return this.push(this.ax, this.cx, this.dx, this.bx, this.sp, this.bp, this.si, this.di);
 			case 0x61: // POPA
 				return void([this.di, this.si, this.bp,, this.bx, this.dx, this.cx, this.ax] = this.pop(8));
 			case 0x62: // BOUND r16,m16&16
-				return void this.execute_62(sego);
+				return this.execute_62(sego);
 			case 0x68: // PUSH imm16
-				return void this.push(this.fetch16());
+				return this.push(this.fetch16());
 			case 0x69: // IMUL r16,r/m16,imm16
-				return void this.execute_69(sego);
+				return this.execute_69(sego);
 			case 0x6a: // PUSH imm8
-				return void this.push(this.fetch8s());
+				return this.push(this.fetch8s());
 			case 0x6b: // IMUL r16,r/m16,imm8
-				return void this.execute_6b(sego);
+				return this.execute_6b(sego);
 			case 0x6c: // INSB
 				this.write8(this.es, this.di, this.ioread8(this.dx));
 				this.di = this.di - (this.flags >>> 9 & 2) + 1 & 0xffff;
@@ -313,71 +313,71 @@ export default class I80186 extends Cpu {
 				this.si = this.si - (this.flags >>> 8 & 4) + 2 & 0xffff;
 				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0x70: // JO rel8
-				return void this.jcc((this.flags & 0x800) !== 0);
+				return this.jcc((this.flags & 0x800) !== 0);
 			case 0x71: // JNO rel8
-				return void this.jcc((this.flags & 0x800) === 0);
+				return this.jcc((this.flags & 0x800) === 0);
 			case 0x72: // JB/JNAE/JC rel8
-				return void this.jcc((this.flags & 1) !== 0);
+				return this.jcc((this.flags & 1) !== 0);
 			case 0x73: // JNB/JAE/JNC rel8
-				return void this.jcc((this.flags & 1) === 0);
+				return this.jcc((this.flags & 1) === 0);
 			case 0x74: // JE/JZ rel8
-				return void this.jcc((this.flags & 0x40) !== 0);
+				return this.jcc((this.flags & 0x40) !== 0);
 			case 0x75: // JNE/JNZ rel8
-				return void this.jcc((this.flags & 0x40) === 0);
+				return this.jcc((this.flags & 0x40) === 0);
 			case 0x76: // JBE/JNA rel8
-				return void this.jcc(((this.flags >>> 6 | this.flags) & 1) !== 0);
+				return this.jcc(((this.flags >>> 6 | this.flags) & 1) !== 0);
 			case 0x77: // JNBE/JA rel8
-				return void this.jcc(((this.flags >>> 6 | this.flags) & 1) === 0);
+				return this.jcc(((this.flags >>> 6 | this.flags) & 1) === 0);
 			case 0x78: // JS rel8
-				return void this.jcc((this.flags & 0x80) !== 0);
+				return this.jcc((this.flags & 0x80) !== 0);
 			case 0x79: // JNS rel8
-				return void this.jcc((this.flags & 0x80) === 0);
+				return this.jcc((this.flags & 0x80) === 0);
 			case 0x7a: // JP/JPE rel8
-				return void this.jcc((this.flags & 4) !== 0);
+				return this.jcc((this.flags & 4) !== 0);
 			case 0x7b: // JNP/JPO rel8
-				return void this.jcc((this.flags & 4) === 0);
+				return this.jcc((this.flags & 4) === 0);
 			case 0x7c: // JL/JNGE rel8
-				return void this.jcc(((this.flags ^ this.flags << 4) & 0x800) !== 0);
+				return this.jcc(((this.flags ^ this.flags << 4) & 0x800) !== 0);
 			case 0x7d: // JNL/JGE rel8
-				return void this.jcc(((this.flags ^ this.flags << 4) & 0x800) === 0);
+				return this.jcc(((this.flags ^ this.flags << 4) & 0x800) === 0);
 			case 0x7e: // JLE/JNG rel8
-				return void this.jcc(((this.flags ^ this.flags << 4 | this.flags << 5) & 0x800) !== 0);
+				return this.jcc(((this.flags ^ this.flags << 4 | this.flags << 5) & 0x800) !== 0);
 			case 0x7f: // JNLE/JG rel8
-				return void this.jcc(((this.flags ^ this.flags << 4 | this.flags << 5) & 0x800) === 0);
+				return this.jcc(((this.flags ^ this.flags << 4 | this.flags << 5) & 0x800) === 0);
 			case 0x80:
-				return void this.execute_80(sego);
+				return this.execute_80(sego);
 			case 0x81:
-				return void this.execute_81(sego);
+				return this.execute_81(sego);
 			case 0x82:
-				return void this.execute_82(sego);
+				return this.execute_82(sego);
 			case 0x83:
-				return void this.execute_83(sego);
+				return this.execute_83(sego);
 			case 0x84: // TEST r8,r/m8
-				return void this.execute_84(sego);
+				return this.execute_84(sego);
 			case 0x85: // TEST r16,r/m16
-				return void this.execute_85(sego);
+				return this.execute_85(sego);
 			case 0x86: // XCHG r8,r/m8
-				return void this.execute_86(sego);
+				return this.execute_86(sego);
 			case 0x87: // XCHG r16,r/m16
-				return void this.execute_87(sego);
+				return this.execute_87(sego);
 			case 0x88: // MOV r/m8,r8
-				return void this.execute_88(sego);
+				return this.execute_88(sego);
 			case 0x89: // MOV r/m16,r16
-				return void this.execute_89(sego);
+				return this.execute_89(sego);
 			case 0x8a: // MOV r8,r/m8
-				return void this.execute_8a(sego);
+				return this.execute_8a(sego);
 			case 0x8b: // MOV r16,r/m16
-				return void this.execute_8b(sego);
+				return this.execute_8b(sego);
 			case 0x8c: // MOV r/m16,sreg
-				return void this.execute_8c(sego);
+				return this.execute_8c(sego);
 			case 0x8d: // LEA r16,m16
-				return void this.execute_8d();
+				return this.execute_8d();
 			case 0x8e: // MOV sreg,r/m16
-				return void this.execute_8e(sego);
+				return this.execute_8e(sego);
 			case 0x8f: // POP r/m16
 				if (((op = this.fetch8()) >>> 3 & 7) === 0)
-					return void this.wop8(op, sego, this.pop());
-				return void this.exception(6);
+					return this.wop8(op, sego, this.pop());
+				return this.exception(6);
 			case 0x90: // XCHG AX,AX/NOP
 				return;
 			case 0x91: // XCHG AX,CX
@@ -399,11 +399,11 @@ export default class I80186 extends Cpu {
 			case 0x99: // CWD
 				return void(this.dx = this.sub16(0, this.ax >>> 15));
 			case 0x9a: // CALL ptr16:16
-				return void this.call32(this.fetch16(), this.fetch16());
+				return this.call32(this.fetch16(), this.fetch16());
 			case 0x9b: // WAIT
-				return void this.exception(7);
+				return this.exception(7);
 			case 0x9c: // PUSHF
-				return void this.write16(this.ss, this.sp = this.sp - 2 & 0xffff, this.flags);
+				return this.write16(this.ss, this.sp = this.sp - 2 & 0xffff, this.flags);
 			case 0x9d: // POPF
 				return void(this.flags = this.pop());
 			case 0x9e: // SAHF
@@ -415,9 +415,9 @@ export default class I80186 extends Cpu {
 			case 0xa1: // MOV AX,m16
 				return void(this.ax = this.read16(sego >= 0 ? sego : this.ds, this.fetch16()));
 			case 0xa2: // MOV m8,AL
-				return void this.write8(sego >= 0 ? sego : this.ds, this.fetch16(), this.ax);
+				return this.write8(sego >= 0 ? sego : this.ds, this.fetch16(), this.ax);
 			case 0xa3: // MOV m16,AX
-				return void this.write16(sego >= 0 ? sego : this.ds, this.fetch16(), this.ax);
+				return this.write16(sego >= 0 ? sego : this.ds, this.fetch16(), this.ax);
 			case 0xa4: // MOVSB
 				this.write8(this.es, this.di, this.read8(sego >= 0 ? sego : this.ds, this.si));
 				[this.si, this.di] = [this.si - (this.flags >>> 9 & 2) + 1 & 0xffff, this.di - (this.flags >>> 9 & 2) + 1 & 0xffff];
@@ -435,9 +435,9 @@ export default class I80186 extends Cpu {
 				[this.si, this.di] = [this.si - (this.flags >>> 8 & 4) + 2 & 0xffff, this.di - (this.flags >>> 8 & 4) + 2 & 0xffff];
 				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) !== 0 && ((rep ^ this.flags >>> 6) & 1) === 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0xa8: // TEST AL,imm8
-				return void this.and8(this.ax, this.fetch8());
+				return this.and8(this.ax, this.fetch8());
 			case 0xa9: // TEST AX,imm16
-				return void this.and16(this.ax, this.fetch16());
+				return this.and16(this.ax, this.fetch16());
 			case 0xaa: // STOSB
 				this.write8(this.es, this.di, this.ax);
 				this.di = this.di - (this.flags >>> 9 & 2) + 1 & 0xffff;
@@ -493,28 +493,28 @@ export default class I80186 extends Cpu {
 			case 0xbf: // MOV DI,imm16
 				return void(this.di = this.fetch16());
 			case 0xc0:
-				return void this.execute_c0(sego);
+				return this.execute_c0(sego);
 			case 0xc1:
-				return void this.execute_c1(sego);
+				return this.execute_c1(sego);
 			case 0xc2: // RET imm16
 				[this.ip, v] = [this.pop(), this.fetch16()];
 				return void(this.sp = this.sp + v & 0xffff);
 			case 0xc3: // RET
 				return void(this.ip = this.pop());
 			case 0xc4: // LES r16,m16:16
-				return void this.execute_c4(sego);
+				return this.execute_c4(sego);
 			case 0xc5: // LDS r16,m16:16
-				return void this.execute_c5(sego);
+				return this.execute_c5(sego);
 			case 0xc6: // MOV r/m8,imm8
 				if (((op = this.fetch8()) >>> 3 & 7) === 0)
-					return void this.wop8i(op, sego);
-				return void this.exception(6);
+					return this.wop8i(op, sego);
+				return this.exception(6);
 			case 0xc7: // MOV r/m16,imm16
 				if (((op = this.fetch8()) >>> 3 & 7) === 0)
-					return void this.wop16i(op, sego);
-				return void this.exception(6);
+					return this.wop16i(op, sego);
+				return this.exception(6);
 			case 0xc8: // ENTER
-				return void this.enter();
+				return this.enter();
 			case 0xc9: // LEAVE
 				this.sp = this.bp;
 				return void(this.bp = this.pop());
@@ -524,25 +524,25 @@ export default class I80186 extends Cpu {
 			case 0xcb: // RETF
 				return void([this.ip, this.cs] = this.pop(2));
 			case 0xcc: // INT 3
-				return void this.exception(3);
+				return this.exception(3);
 			case 0xcd: // INT imm8
-				return void this.exception(this.fetch8());
+				return this.exception(this.fetch8());
 			case 0xce: // INTO
 				return void((this.flags & 0x800) !== 0 && this.exception(4));
 			case 0xcf: // IRET
 				return void([this.ip, this.cs, this.flags] = this.pop(3));
 			case 0xd0:
-				return void this.execute_d0(sego);
+				return this.execute_d0(sego);
 			case 0xd1:
-				return void this.execute_d1(sego);
+				return this.execute_d1(sego);
 			case 0xd2:
-				return void this.execute_d2(sego);
+				return this.execute_d2(sego);
 			case 0xd3:
-				return void this.execute_d3(sego);
+				return this.execute_d3(sego);
 			case 0xd4: // AAM
-				return void this.aam(this.fetch8());
+				return this.aam(this.fetch8());
 			case 0xd5: // AAD
-				return void this.aad(this.fetch8());
+				return this.aad(this.fetch8());
 			case 0xd7: // XLAT
 				return void(this.ax = this.ax & 0xff00 | this.read8(sego >= 0 ? sego : this.ds, this.bx + (this.ax & 0xff)));
 			case 0xd8: // ESC 0
@@ -553,39 +553,39 @@ export default class I80186 extends Cpu {
 			case 0xdd: // ESC 5
 			case 0xde: // ESC 6
 			case 0xdf: // ESC 7
-				return void this.exception(7);
+				return this.exception(7);
 			case 0xe0: // LOOPNE/LOOPNZ rel8
-				return void this.jcc((this.cx = this.cx - 1 & 0xffff) !== 0 && (this.flags & 0x40) === 0);
+				return this.jcc((this.cx = this.cx - 1 & 0xffff) !== 0 && (this.flags & 0x40) === 0);
 			case 0xe1: // LOOPE/LOOPZ rel8
-				return void this.jcc((this.cx = this.cx - 1 & 0xffff) !== 0 && (this.flags & 0x40) !== 0);
+				return this.jcc((this.cx = this.cx - 1 & 0xffff) !== 0 && (this.flags & 0x40) !== 0);
 			case 0xe2: // LOOP rel8
-				return void this.jcc((this.cx = this.cx - 1 & 0xffff) !== 0);
+				return this.jcc((this.cx = this.cx - 1 & 0xffff) !== 0);
 			case 0xe3: // JCXZ rel8
-				return void this.jcc(this.cx === 0);
+				return this.jcc(this.cx === 0);
 			case 0xe4: // IN AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.ioread8(this.fetch8()));
 			case 0xe5: // IN AX,imm8
 				return void(this.ax = this.ioread16(this.fetch8()));
 			case 0xe6: // OUT AL,imm8
-				return void this.iowrite8(this.fetch8(), this.ax & 0xff);
+				return this.iowrite8(this.fetch8(), this.ax & 0xff);
 			case 0xe7: // OUT AX,imm8
-				return void this.iowrite16(this.fetch8(), this.ax);
+				return this.iowrite16(this.fetch8(), this.ax);
 			case 0xe8: // CALL rel16
-				return void this.call16();
+				return this.call16();
 			case 0xe9: // JMP rel16
-				return void this.jmp16();
+				return this.jmp16();
 			case 0xea: // JMP ptr16:16
 				return void([this.ip, this.cs] = [this.fetch16(), this.fetch16()]);
 			case 0xeb: // JMP rel8
-				return void this.jcc(true);
+				return this.jcc(true);
 			case 0xec: // IN AL,DX
 				return void(this.ax = this.ax & 0xff00 | this.ioread8(this.dx));
 			case 0xed: // IN AX,DX
 				return void(this.ax = this.ioread16(this.dx));
 			case 0xee: // OUT AL,DX
-				return void this.iowrite8(this.dx, this.ax & 0xff);
+				return this.iowrite8(this.dx, this.ax & 0xff);
 			case 0xef: // OUT AX,DX
-				return void this.iowrite16(this.dx, this.ax);
+				return this.iowrite16(this.dx, this.ax);
 			case 0xf0: // LOCK
 				prefix++;
 				break;
@@ -598,13 +598,13 @@ export default class I80186 extends Cpu {
 				prefix++;
 				break;
 			case 0xf4: // HLT
-				return void this.suspend();
+				return this.suspend();
 			case 0xf5: // CMC
 				return void(this.flags ^= 1);
 			case 0xf6:
-				return void this.execute_f6(sego);
+				return this.execute_f6(sego);
 			case 0xf7:
-				return void this.execute_f7(sego);
+				return this.execute_f7(sego);
 			case 0xf8: // CLC
 				return void(this.flags &= ~1);
 			case 0xf9: // STC
@@ -618,11 +618,11 @@ export default class I80186 extends Cpu {
 			case 0xfd: // STD
 				return void(this.flags |= 0x400);
 			case 0xfe:
-				return void this.execute_fe(sego);
+				return this.execute_fe(sego);
 			case 0xff:
-				return void this.execute_ff(sego);
+				return this.execute_ff(sego);
 			default:
-				return void this.exception(6);
+				return this.exception(6);
 			}
 	}
 
@@ -631,21 +631,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // ADD r/m8,AL
-			return void this.rwop8(op, sego, this.add8, this.ax);
+			return this.rwop8(op, sego, this.add8, this.ax);
 		case 1: // ADD r/m8,CL
-			return void this.rwop8(op, sego, this.add8, this.cx);
+			return this.rwop8(op, sego, this.add8, this.cx);
 		case 2: // ADD r/m8,DL
-			return void this.rwop8(op, sego, this.add8, this.dx);
+			return this.rwop8(op, sego, this.add8, this.dx);
 		case 3: // ADD r/m8,BL
-			return void this.rwop8(op, sego, this.add8, this.bx);
+			return this.rwop8(op, sego, this.add8, this.bx);
 		case 4: // ADD r/m8,AH
-			return void this.rwop8(op, sego, this.add8, this.ax >>> 8);
+			return this.rwop8(op, sego, this.add8, this.ax >>> 8);
 		case 5: // ADD r/m8,CH
-			return void this.rwop8(op, sego, this.add8, this.cx >>> 8);
+			return this.rwop8(op, sego, this.add8, this.cx >>> 8);
 		case 6: // ADD r/m8,DH
-			return void this.rwop8(op, sego, this.add8, this.dx >>> 8);
+			return this.rwop8(op, sego, this.add8, this.dx >>> 8);
 		case 7: // ADD r/m8,BH
-			return void this.rwop8(op, sego, this.add8, this.bx >>> 8);
+			return this.rwop8(op, sego, this.add8, this.bx >>> 8);
 		}
 	}
 
@@ -654,21 +654,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // ADD r/m16,AX
-			return void this.rwop16(op, sego, this.add16, this.ax);
+			return this.rwop16(op, sego, this.add16, this.ax);
 		case 1: // ADD r/m16,CX
-			return void this.rwop16(op, sego, this.add16, this.cx);
+			return this.rwop16(op, sego, this.add16, this.cx);
 		case 2: // ADD r/m16,DX
-			return void this.rwop16(op, sego, this.add16, this.dx);
+			return this.rwop16(op, sego, this.add16, this.dx);
 		case 3: // ADD r/m16,BX
-			return void this.rwop16(op, sego, this.add16, this.bx);
+			return this.rwop16(op, sego, this.add16, this.bx);
 		case 4: // ADD r/m16,SP
-			return void this.rwop16(op, sego, this.add16, this.sp);
+			return this.rwop16(op, sego, this.add16, this.sp);
 		case 5: // ADD r/m16,BP
-			return void this.rwop16(op, sego, this.add16, this.bp);
+			return this.rwop16(op, sego, this.add16, this.bp);
 		case 6: // ADD r/m16,SI
-			return void this.rwop16(op, sego, this.add16, this.si);
+			return this.rwop16(op, sego, this.add16, this.si);
 		case 7: // ADD r/m16,DI
-			return void this.rwop16(op, sego, this.add16, this.di);
+			return this.rwop16(op, sego, this.add16, this.di);
 		}
 	}
 
@@ -723,21 +723,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // OR r/m8,AL
-			return void this.rwop8(op, sego, this.or8, this.ax);
+			return this.rwop8(op, sego, this.or8, this.ax);
 		case 1: // OR r/m8,CL
-			return void this.rwop8(op, sego, this.or8, this.cx);
+			return this.rwop8(op, sego, this.or8, this.cx);
 		case 2: // OR r/m8,DL
-			return void this.rwop8(op, sego, this.or8, this.dx);
+			return this.rwop8(op, sego, this.or8, this.dx);
 		case 3: // OR r/m8,BL
-			return void this.rwop8(op, sego, this.or8, this.bx);
+			return this.rwop8(op, sego, this.or8, this.bx);
 		case 4: // OR r/m8,AH
-			return void this.rwop8(op, sego, this.or8, this.ax >>> 8);
+			return this.rwop8(op, sego, this.or8, this.ax >>> 8);
 		case 5: // OR r/m8,CH
-			return void this.rwop8(op, sego, this.or8, this.cx >>> 8);
+			return this.rwop8(op, sego, this.or8, this.cx >>> 8);
 		case 6: // OR r/m8,DH
-			return void this.rwop8(op, sego, this.or8, this.dx >>> 8);
+			return this.rwop8(op, sego, this.or8, this.dx >>> 8);
 		case 7: // OR r/m8,BH
-			return void this.rwop8(op, sego, this.or8, this.bx >>> 8);
+			return this.rwop8(op, sego, this.or8, this.bx >>> 8);
 		}
 	}
 
@@ -746,21 +746,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // OR r/m16,AX
-			return void this.rwop16(op, sego, this.or16, this.ax);
+			return this.rwop16(op, sego, this.or16, this.ax);
 		case 1: // OR r/m16,CX
-			return void this.rwop16(op, sego, this.or16, this.cx);
+			return this.rwop16(op, sego, this.or16, this.cx);
 		case 2: // OR r/m16,DX
-			return void this.rwop16(op, sego, this.or16, this.dx);
+			return this.rwop16(op, sego, this.or16, this.dx);
 		case 3: // OR r/m16,BX
-			return void this.rwop16(op, sego, this.or16, this.bx);
+			return this.rwop16(op, sego, this.or16, this.bx);
 		case 4: // OR r/m16,SP
-			return void this.rwop16(op, sego, this.or16, this.sp);
+			return this.rwop16(op, sego, this.or16, this.sp);
 		case 5: // OR r/m16,BP
-			return void this.rwop16(op, sego, this.or16, this.bp);
+			return this.rwop16(op, sego, this.or16, this.bp);
 		case 6: // OR r/m16,SI
-			return void this.rwop16(op, sego, this.or16, this.si);
+			return this.rwop16(op, sego, this.or16, this.si);
 		case 7: // OR r/m16,DI
-			return void this.rwop16(op, sego, this.or16, this.di);
+			return this.rwop16(op, sego, this.or16, this.di);
 		}
 	}
 
@@ -815,21 +815,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // ADC r/m8,AL
-			return void this.rwop8(op, sego, this.adc8, this.ax);
+			return this.rwop8(op, sego, this.adc8, this.ax);
 		case 1: // ADC r/m8,CL
-			return void this.rwop8(op, sego, this.adc8, this.cx);
+			return this.rwop8(op, sego, this.adc8, this.cx);
 		case 2: // ADC r/m8,DL
-			return void this.rwop8(op, sego, this.adc8, this.dx);
+			return this.rwop8(op, sego, this.adc8, this.dx);
 		case 3: // ADC r/m8,BL
-			return void this.rwop8(op, sego, this.adc8, this.bx);
+			return this.rwop8(op, sego, this.adc8, this.bx);
 		case 4: // ADC r/m8,AH
-			return void this.rwop8(op, sego, this.adc8, this.ax >>> 8);
+			return this.rwop8(op, sego, this.adc8, this.ax >>> 8);
 		case 5: // ADC r/m8,CH
-			return void this.rwop8(op, sego, this.adc8, this.cx >>> 8);
+			return this.rwop8(op, sego, this.adc8, this.cx >>> 8);
 		case 6: // ADC r/m8,DH
-			return void this.rwop8(op, sego, this.adc8, this.dx >>> 8);
+			return this.rwop8(op, sego, this.adc8, this.dx >>> 8);
 		case 7: // ADC r/m8,BH
-			return void this.rwop8(op, sego, this.adc8, this.bx >>> 8);
+			return this.rwop8(op, sego, this.adc8, this.bx >>> 8);
 		}
 	}
 
@@ -838,21 +838,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // ADC r/m16,AX
-			return void this.rwop16(op, sego, this.adc16, this.ax);
+			return this.rwop16(op, sego, this.adc16, this.ax);
 		case 1: // ADC r/m16,CX
-			return void this.rwop16(op, sego, this.adc16, this.cx);
+			return this.rwop16(op, sego, this.adc16, this.cx);
 		case 2: // ADC r/m16,DX
-			return void this.rwop16(op, sego, this.adc16, this.dx);
+			return this.rwop16(op, sego, this.adc16, this.dx);
 		case 3: // ADC r/m16,BX
-			return void this.rwop16(op, sego, this.adc16, this.bx);
+			return this.rwop16(op, sego, this.adc16, this.bx);
 		case 4: // ADC r/m16,SP
-			return void this.rwop16(op, sego, this.adc16, this.sp);
+			return this.rwop16(op, sego, this.adc16, this.sp);
 		case 5: // ADC r/m16,BP
-			return void this.rwop16(op, sego, this.adc16, this.bp);
+			return this.rwop16(op, sego, this.adc16, this.bp);
 		case 6: // ADC r/m16,SI
-			return void this.rwop16(op, sego, this.adc16, this.si);
+			return this.rwop16(op, sego, this.adc16, this.si);
 		case 7: // ADC r/m16,DI
-			return void this.rwop16(op, sego, this.adc16, this.di);
+			return this.rwop16(op, sego, this.adc16, this.di);
 		}
 	}
 
@@ -907,21 +907,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // SBB r/m8,AL
-			return void this.rwop8(op, sego, this.sbb8, this.ax);
+			return this.rwop8(op, sego, this.sbb8, this.ax);
 		case 1: // SBB r/m8,CL
-			return void this.rwop8(op, sego, this.sbb8, this.cx);
+			return this.rwop8(op, sego, this.sbb8, this.cx);
 		case 2: // SBB r/m8,DL
-			return void this.rwop8(op, sego, this.sbb8, this.dx);
+			return this.rwop8(op, sego, this.sbb8, this.dx);
 		case 3: // SBB r/m8,BL
-			return void this.rwop8(op, sego, this.sbb8, this.bx);
+			return this.rwop8(op, sego, this.sbb8, this.bx);
 		case 4: // SBB r/m8,AH
-			return void this.rwop8(op, sego, this.sbb8, this.ax >>> 8);
+			return this.rwop8(op, sego, this.sbb8, this.ax >>> 8);
 		case 5: // SBB r/m8,CH
-			return void this.rwop8(op, sego, this.sbb8, this.cx >>> 8);
+			return this.rwop8(op, sego, this.sbb8, this.cx >>> 8);
 		case 6: // SBB r/m8,DH
-			return void this.rwop8(op, sego, this.sbb8, this.dx >>> 8);
+			return this.rwop8(op, sego, this.sbb8, this.dx >>> 8);
 		case 7: // SBB r/m8,BH
-			return void this.rwop8(op, sego, this.sbb8, this.bx >>> 8);
+			return this.rwop8(op, sego, this.sbb8, this.bx >>> 8);
 		}
 	}
 
@@ -930,21 +930,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // SBB r/m16,AX
-			return void this.rwop16(op, sego, this.sbb16, this.ax);
+			return this.rwop16(op, sego, this.sbb16, this.ax);
 		case 1: // SBB r/m16,CX
-			return void this.rwop16(op, sego, this.sbb16, this.cx);
+			return this.rwop16(op, sego, this.sbb16, this.cx);
 		case 2: // SBB r/m16,DX
-			return void this.rwop16(op, sego, this.sbb16, this.dx);
+			return this.rwop16(op, sego, this.sbb16, this.dx);
 		case 3: // SBB r/m16,BX
-			return void this.rwop16(op, sego, this.sbb16, this.bx);
+			return this.rwop16(op, sego, this.sbb16, this.bx);
 		case 4: // SBB r/m16,SP
-			return void this.rwop16(op, sego, this.sbb16, this.sp);
+			return this.rwop16(op, sego, this.sbb16, this.sp);
 		case 5: // SBB r/m16,BP
-			return void this.rwop16(op, sego, this.sbb16, this.bp);
+			return this.rwop16(op, sego, this.sbb16, this.bp);
 		case 6: // SBB r/m16,SI
-			return void this.rwop16(op, sego, this.sbb16, this.si);
+			return this.rwop16(op, sego, this.sbb16, this.si);
 		case 7: // SBB r/m16,DI
-			return void this.rwop16(op, sego, this.sbb16, this.di);
+			return this.rwop16(op, sego, this.sbb16, this.di);
 		}
 	}
 
@@ -999,21 +999,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // AND r/m8,AL
-			return void this.rwop8(op, sego, this.and8, this.ax);
+			return this.rwop8(op, sego, this.and8, this.ax);
 		case 1: // AND r/m8,CL
-			return void this.rwop8(op, sego, this.and8, this.cx);
+			return this.rwop8(op, sego, this.and8, this.cx);
 		case 2: // AND r/m8,DL
-			return void this.rwop8(op, sego, this.and8, this.dx);
+			return this.rwop8(op, sego, this.and8, this.dx);
 		case 3: // AND r/m8,BL
-			return void this.rwop8(op, sego, this.and8, this.bx);
+			return this.rwop8(op, sego, this.and8, this.bx);
 		case 4: // AND r/m8,AH
-			return void this.rwop8(op, sego, this.and8, this.ax >>> 8);
+			return this.rwop8(op, sego, this.and8, this.ax >>> 8);
 		case 5: // AND r/m8,CH
-			return void this.rwop8(op, sego, this.and8, this.cx >>> 8);
+			return this.rwop8(op, sego, this.and8, this.cx >>> 8);
 		case 6: // AND r/m8,DH
-			return void this.rwop8(op, sego, this.and8, this.dx >>> 8);
+			return this.rwop8(op, sego, this.and8, this.dx >>> 8);
 		case 7: // AND r/m8,BH
-			return void this.rwop8(op, sego, this.and8, this.bx >>> 8);
+			return this.rwop8(op, sego, this.and8, this.bx >>> 8);
 		}
 	}
 
@@ -1022,21 +1022,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // AND r/m16,AX
-			return void this.rwop16(op, sego, this.and16, this.ax);
+			return this.rwop16(op, sego, this.and16, this.ax);
 		case 1: // AND r/m16,CX
-			return void this.rwop16(op, sego, this.and16, this.cx);
+			return this.rwop16(op, sego, this.and16, this.cx);
 		case 2: // AND r/m16,DX
-			return void this.rwop16(op, sego, this.and16, this.dx);
+			return this.rwop16(op, sego, this.and16, this.dx);
 		case 3: // AND r/m16,BX
-			return void this.rwop16(op, sego, this.and16, this.bx);
+			return this.rwop16(op, sego, this.and16, this.bx);
 		case 4: // AND r/m16,SP
-			return void this.rwop16(op, sego, this.and16, this.sp);
+			return this.rwop16(op, sego, this.and16, this.sp);
 		case 5: // AND r/m16,BP
-			return void this.rwop16(op, sego, this.and16, this.bp);
+			return this.rwop16(op, sego, this.and16, this.bp);
 		case 6: // AND r/m16,SI
-			return void this.rwop16(op, sego, this.and16, this.si);
+			return this.rwop16(op, sego, this.and16, this.si);
 		case 7: // AND r/m16,DI
-			return void this.rwop16(op, sego, this.and16, this.di);
+			return this.rwop16(op, sego, this.and16, this.di);
 		}
 	}
 
@@ -1091,21 +1091,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // SUB r/m8,AL
-			return void this.rwop8(op, sego, this.sub8, this.ax);
+			return this.rwop8(op, sego, this.sub8, this.ax);
 		case 1: // SUB r/m8,CL
-			return void this.rwop8(op, sego, this.sub8, this.cx);
+			return this.rwop8(op, sego, this.sub8, this.cx);
 		case 2: // SUB r/m8,DL
-			return void this.rwop8(op, sego, this.sub8, this.dx);
+			return this.rwop8(op, sego, this.sub8, this.dx);
 		case 3: // SUB r/m8,BL
-			return void this.rwop8(op, sego, this.sub8, this.bx);
+			return this.rwop8(op, sego, this.sub8, this.bx);
 		case 4: // SUB r/m8,AH
-			return void this.rwop8(op, sego, this.sub8, this.ax >>> 8);
+			return this.rwop8(op, sego, this.sub8, this.ax >>> 8);
 		case 5: // SUB r/m8,CH
-			return void this.rwop8(op, sego, this.sub8, this.cx >>> 8);
+			return this.rwop8(op, sego, this.sub8, this.cx >>> 8);
 		case 6: // SUB r/m8,DH
-			return void this.rwop8(op, sego, this.sub8, this.dx >>> 8);
+			return this.rwop8(op, sego, this.sub8, this.dx >>> 8);
 		case 7: // SUB r/m8,BH
-			return void this.rwop8(op, sego, this.sub8, this.bx >>> 8);
+			return this.rwop8(op, sego, this.sub8, this.bx >>> 8);
 		}
 	}
 
@@ -1114,21 +1114,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // SUB r/m16,AX
-			return void this.rwop16(op, sego, this.sub16, this.ax);
+			return this.rwop16(op, sego, this.sub16, this.ax);
 		case 1: // SUB r/m16,CX
-			return void this.rwop16(op, sego, this.sub16, this.cx);
+			return this.rwop16(op, sego, this.sub16, this.cx);
 		case 2: // SUB r/m16,DX
-			return void this.rwop16(op, sego, this.sub16, this.dx);
+			return this.rwop16(op, sego, this.sub16, this.dx);
 		case 3: // SUB r/m16,BX
-			return void this.rwop16(op, sego, this.sub16, this.bx);
+			return this.rwop16(op, sego, this.sub16, this.bx);
 		case 4: // SUB r/m16,SP
-			return void this.rwop16(op, sego, this.sub16, this.sp);
+			return this.rwop16(op, sego, this.sub16, this.sp);
 		case 5: // SUB r/m16,BP
-			return void this.rwop16(op, sego, this.sub16, this.bp);
+			return this.rwop16(op, sego, this.sub16, this.bp);
 		case 6: // SUB r/m16,SI
-			return void this.rwop16(op, sego, this.sub16, this.si);
+			return this.rwop16(op, sego, this.sub16, this.si);
 		case 7: // SUB r/m16,DI
-			return void this.rwop16(op, sego, this.sub16, this.di);
+			return this.rwop16(op, sego, this.sub16, this.di);
 		}
 	}
 
@@ -1183,21 +1183,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // XOR r/m8,AL
-			return void this.rwop8(op, sego, this.xor8, this.ax);
+			return this.rwop8(op, sego, this.xor8, this.ax);
 		case 1: // XOR r/m8,CL
-			return void this.rwop8(op, sego, this.xor8, this.cx);
+			return this.rwop8(op, sego, this.xor8, this.cx);
 		case 2: // XOR r/m8,DL
-			return void this.rwop8(op, sego, this.xor8, this.dx);
+			return this.rwop8(op, sego, this.xor8, this.dx);
 		case 3: // XOR r/m8,BL
-			return void this.rwop8(op, sego, this.xor8, this.bx);
+			return this.rwop8(op, sego, this.xor8, this.bx);
 		case 4: // XOR r/m8,AH
-			return void this.rwop8(op, sego, this.xor8, this.ax >>> 8);
+			return this.rwop8(op, sego, this.xor8, this.ax >>> 8);
 		case 5: // XOR r/m8,CH
-			return void this.rwop8(op, sego, this.xor8, this.cx >>> 8);
+			return this.rwop8(op, sego, this.xor8, this.cx >>> 8);
 		case 6: // XOR r/m8,DH
-			return void this.rwop8(op, sego, this.xor8, this.dx >>> 8);
+			return this.rwop8(op, sego, this.xor8, this.dx >>> 8);
 		case 7: // XOR r/m8,BH
-			return void this.rwop8(op, sego, this.xor8, this.bx >>> 8);
+			return this.rwop8(op, sego, this.xor8, this.bx >>> 8);
 		}
 	}
 
@@ -1206,21 +1206,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // XOR r/m16,AX
-			return void this.rwop16(op, sego, this.xor16, this.ax);
+			return this.rwop16(op, sego, this.xor16, this.ax);
 		case 1: // XOR r/m16,CX
-			return void this.rwop16(op, sego, this.xor16, this.cx);
+			return this.rwop16(op, sego, this.xor16, this.cx);
 		case 2: // XOR r/m16,DX
-			return void this.rwop16(op, sego, this.xor16, this.dx);
+			return this.rwop16(op, sego, this.xor16, this.dx);
 		case 3: // XOR r/m16,BX
-			return void this.rwop16(op, sego, this.xor16, this.bx);
+			return this.rwop16(op, sego, this.xor16, this.bx);
 		case 4: // XOR r/m16,SP
-			return void this.rwop16(op, sego, this.xor16, this.sp);
+			return this.rwop16(op, sego, this.xor16, this.sp);
 		case 5: // XOR r/m16,BP
-			return void this.rwop16(op, sego, this.xor16, this.bp);
+			return this.rwop16(op, sego, this.xor16, this.bp);
 		case 6: // XOR r/m16,SI
-			return void this.rwop16(op, sego, this.xor16, this.si);
+			return this.rwop16(op, sego, this.xor16, this.si);
 		case 7: // XOR r/m16,DI
-			return void this.rwop16(op, sego, this.xor16, this.di);
+			return this.rwop16(op, sego, this.xor16, this.di);
 		}
 	}
 
@@ -1275,21 +1275,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // CMP r/m8,AL
-			return void this.sub8(this.rop8(op, sego), this.ax);
+			return this.sub8(this.rop8(op, sego), this.ax);
 		case 1: // CMP r/m8,CL
-			return void this.sub8(this.rop8(op, sego), this.cx);
+			return this.sub8(this.rop8(op, sego), this.cx);
 		case 2: // CMP r/m8,DL
-			return void this.sub8(this.rop8(op, sego), this.dx);
+			return this.sub8(this.rop8(op, sego), this.dx);
 		case 3: // CMP r/m8,BL
-			return void this.sub8(this.rop8(op, sego), this.bx);
+			return this.sub8(this.rop8(op, sego), this.bx);
 		case 4: // CMP r/m8,AH
-			return void this.sub8(this.rop8(op, sego), this.ax >>> 8);
+			return this.sub8(this.rop8(op, sego), this.ax >>> 8);
 		case 5: // CMP r/m8,CH
-			return void this.sub8(this.rop8(op, sego), this.cx >>> 8);
+			return this.sub8(this.rop8(op, sego), this.cx >>> 8);
 		case 6: // CMP r/m8,DH
-			return void this.sub8(this.rop8(op, sego), this.dx >>> 8);
+			return this.sub8(this.rop8(op, sego), this.dx >>> 8);
 		case 7: // CMP r/m8,BH
-			return void this.sub8(this.rop8(op, sego), this.bx >>> 8);
+			return this.sub8(this.rop8(op, sego), this.bx >>> 8);
 		}
 	}
 
@@ -1298,21 +1298,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // CMP r/m16,AX
-			return void this.sub16(this.rop16(op, sego), this.ax);
+			return this.sub16(this.rop16(op, sego), this.ax);
 		case 1: // CMP r/m16,CX
-			return void this.sub16(this.rop16(op, sego), this.cx);
+			return this.sub16(this.rop16(op, sego), this.cx);
 		case 2: // CMP r/m16,DX
-			return void this.sub16(this.rop16(op, sego), this.dx);
+			return this.sub16(this.rop16(op, sego), this.dx);
 		case 3: // CMP r/m16,BX
-			return void this.sub16(this.rop16(op, sego), this.bx);
+			return this.sub16(this.rop16(op, sego), this.bx);
 		case 4: // CMP r/m16,SP
-			return void this.sub16(this.rop16(op, sego), this.sp);
+			return this.sub16(this.rop16(op, sego), this.sp);
 		case 5: // CMP r/m16,BP
-			return void this.sub16(this.rop16(op, sego), this.bp);
+			return this.sub16(this.rop16(op, sego), this.bp);
 		case 6: // CMP r/m16,SI
-			return void this.sub16(this.rop16(op, sego), this.si);
+			return this.sub16(this.rop16(op, sego), this.si);
 		case 7: // CMP r/m16,DI
-			return void this.sub16(this.rop16(op, sego), this.di);
+			return this.sub16(this.rop16(op, sego), this.di);
 		}
 	}
 
@@ -1321,21 +1321,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // CMP AL,r/m8
-			return void this.sub8(this.ax, this.rop8(op, sego));
+			return this.sub8(this.ax, this.rop8(op, sego));
 		case 1: // CMP CL,r/m8
-			return void this.sub8(this.cx, this.rop8(op, sego));
+			return this.sub8(this.cx, this.rop8(op, sego));
 		case 2: // CMP DL,r/m8
-			return void this.sub8(this.dx, this.rop8(op, sego));
+			return this.sub8(this.dx, this.rop8(op, sego));
 		case 3: // CMP BL,r/m8
-			return void this.sub8(this.bx, this.rop8(op, sego));
+			return this.sub8(this.bx, this.rop8(op, sego));
 		case 4: // CMP AH,r/m8
-			return void this.sub8(this.ax >>> 8, this.rop8(op, sego));
+			return this.sub8(this.ax >>> 8, this.rop8(op, sego));
 		case 5: // CMP CH,r/m8
-			return void this.sub8(this.cx >>> 8, this.rop8(op, sego));
+			return this.sub8(this.cx >>> 8, this.rop8(op, sego));
 		case 6: // CMP DH,r/m8
-			return void this.sub8(this.dx >>> 8, this.rop8(op, sego));
+			return this.sub8(this.dx >>> 8, this.rop8(op, sego));
 		case 7: // CMP BH,r/m8
-			return void this.sub8(this.bx >>> 8, this.rop8(op, sego));
+			return this.sub8(this.bx >>> 8, this.rop8(op, sego));
 		}
 	}
 
@@ -1344,21 +1344,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // CMP AX,r/m16
-			return void this.sub16(this.ax, this.rop16(op, sego));
+			return this.sub16(this.ax, this.rop16(op, sego));
 		case 1: // CMP CX,r/m16
-			return void this.sub16(this.cx, this.rop16(op, sego));
+			return this.sub16(this.cx, this.rop16(op, sego));
 		case 2: // CMP DX,r/m16
-			return void this.sub16(this.dx, this.rop16(op, sego));
+			return this.sub16(this.dx, this.rop16(op, sego));
 		case 3: // CMP BX,r/m16
-			return void this.sub16(this.bx, this.rop16(op, sego));
+			return this.sub16(this.bx, this.rop16(op, sego));
 		case 4: // CMP SP,r/m16
-			return void this.sub16(this.sp, this.rop16(op, sego));
+			return this.sub16(this.sp, this.rop16(op, sego));
 		case 5: // CMP BP,r/m16
-			return void this.sub16(this.bp, this.rop16(op, sego));
+			return this.sub16(this.bp, this.rop16(op, sego));
 		case 6: // CMP SI,r/m16
-			return void this.sub16(this.si, this.rop16(op, sego));
+			return this.sub16(this.si, this.rop16(op, sego));
 		case 7: // CMP DI,r/m16
-			return void this.sub16(this.di, this.rop16(op, sego));
+			return this.sub16(this.di, this.rop16(op, sego));
 		}
 	}
 
@@ -1367,21 +1367,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // BOUND AX,m16&16
-			return void this.bound(this.ax, ...this.rop32(op, sego));
+			return this.bound(this.ax, ...this.rop32(op, sego));
 		case 1: // BOUND CX,m16&16
-			return void this.bound(this.cx, ...this.rop32(op, sego));
+			return this.bound(this.cx, ...this.rop32(op, sego));
 		case 2: // BOUND DX,m16&16
-			return void this.bound(this.dx, ...this.rop32(op, sego));
+			return this.bound(this.dx, ...this.rop32(op, sego));
 		case 3: // BOUND BX,m16&16
-			return void this.bound(this.bx, ...this.rop32(op, sego));
+			return this.bound(this.bx, ...this.rop32(op, sego));
 		case 4: // BOUND SP,m16&16
-			return void this.bound(this.sp, ...this.rop32(op, sego));
+			return this.bound(this.sp, ...this.rop32(op, sego));
 		case 5: // BOUND BP,m16&16
-			return void this.bound(this.bp, ...this.rop32(op, sego));
+			return this.bound(this.bp, ...this.rop32(op, sego));
 		case 6: // BOUND SI,m16&16
-			return void this.bound(this.si, ...this.rop32(op, sego));
+			return this.bound(this.si, ...this.rop32(op, sego));
 		case 7: // BOUND DI,m16&16
-			return void this.bound(this.di, ...this.rop32(op, sego));
+			return this.bound(this.di, ...this.rop32(op, sego));
 		}
 	}
 
@@ -1436,21 +1436,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // ADD r/m8,imm8
-			return void this.rwop8i(op, sego, this.add8);
+			return this.rwop8i(op, sego, this.add8);
 		case 1: // OR r/m8,imm8
-			return void this.rwop8i(op, sego, this.or8);
+			return this.rwop8i(op, sego, this.or8);
 		case 2: // ADC r/m8,imm8
-			return void this.rwop8i(op, sego, this.adc8);
+			return this.rwop8i(op, sego, this.adc8);
 		case 3: // SBB r/m8,imm8
-			return void this.rwop8i(op, sego, this.sbb8);
+			return this.rwop8i(op, sego, this.sbb8);
 		case 4: // AND r/m8,imm8
-			return void this.rwop8i(op, sego, this.and8);
+			return this.rwop8i(op, sego, this.and8);
 		case 5: // SUB r/m8,imm8
-			return void this.rwop8i(op, sego, this.sub8);
+			return this.rwop8i(op, sego, this.sub8);
 		case 6: // XOR r/m8,imm8
-			return void this.rwop8i(op, sego, this.xor8);
+			return this.rwop8i(op, sego, this.xor8);
 		case 7: // CMP r/m8,imm8
-			return void this.rop8i(op, sego, this.sub8);
+			return this.rop8i(op, sego, this.sub8);
 		}
 	}
 
@@ -1459,21 +1459,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // ADD r/m16,imm16
-			return void this.rwop16i(op, sego, this.add16);
+			return this.rwop16i(op, sego, this.add16);
 		case 1: // OR r/m16,imm16
-			return void this.rwop16i(op, sego, this.or16);
+			return this.rwop16i(op, sego, this.or16);
 		case 2: // ADC r/m16,imm16
-			return void this.rwop16i(op, sego, this.adc16);
+			return this.rwop16i(op, sego, this.adc16);
 		case 3: // SBB r/m16,imm16
-			return void this.rwop16i(op, sego, this.sbb16);
+			return this.rwop16i(op, sego, this.sbb16);
 		case 4: // AND r/m16,imm16
-			return void this.rwop16i(op, sego, this.and16);
+			return this.rwop16i(op, sego, this.and16);
 		case 5: // SUB r/m16,imm16
-			return void this.rwop16i(op, sego, this.sub16);
+			return this.rwop16i(op, sego, this.sub16);
 		case 6: // XOR r/m16,imm16
-			return void this.rwop16i(op, sego, this.xor16);
+			return this.rwop16i(op, sego, this.xor16);
 		case 7: // CMP r/m16,imm16
-			return void this.rop16i(op, sego, this.sub16);
+			return this.rop16i(op, sego, this.sub16);
 		}
 	}
 
@@ -1482,17 +1482,17 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // ADD r/m8,imm8
-			return void this.rwop8i(op, sego, this.add8);
+			return this.rwop8i(op, sego, this.add8);
 		case 2: // ADC r/m8,imm8
-			return void this.rwop8i(op, sego, this.adc8);
+			return this.rwop8i(op, sego, this.adc8);
 		case 3: // SBB r/m8,imm8
-			return void this.rwop8i(op, sego, this.sbb8);
+			return this.rwop8i(op, sego, this.sbb8);
 		case 5: // SUB r/m8,imm8
-			return void this.rwop8i(op, sego, this.sub8);
+			return this.rwop8i(op, sego, this.sub8);
 		case 7: // CMP r/m8,imm8
-			return void this.rop8i(op, sego, this.sub8);
+			return this.rop8i(op, sego, this.sub8);
 		default:
-			return void this.exception(6);
+			return this.exception(6);
 		}
 	}
 
@@ -1501,17 +1501,17 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // ADD r/m16,imm8
-			return void this.rwop16is(op, sego, this.add16);
+			return this.rwop16is(op, sego, this.add16);
 		case 2: // ADC r/m16,imm8
-			return void this.rwop16is(op, sego, this.adc16);
+			return this.rwop16is(op, sego, this.adc16);
 		case 3: // SBB r/m16,imm8
-			return void this.rwop16is(op, sego, this.sbb16);
+			return this.rwop16is(op, sego, this.sbb16);
 		case 5: // SUB r/m16,imm8
-			return void this.rwop16is(op, sego, this.sub16);
+			return this.rwop16is(op, sego, this.sub16);
 		case 7: // CMP r/m16,imm8
-			return void this.rop16is(op, sego, this.sub16);
+			return this.rop16is(op, sego, this.sub16);
 		default:
-			return void this.exception(6);
+			return this.exception(6);
 		}
 	}
 
@@ -1520,21 +1520,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // TEST AL,r/m8
-			return void this.and8(this.ax, this.rop8(op, sego));
+			return this.and8(this.ax, this.rop8(op, sego));
 		case 1: // TEST CL,r/m8
-			return void this.and8(this.cx, this.rop8(op, sego));
+			return this.and8(this.cx, this.rop8(op, sego));
 		case 2: // TEST DL,r/m8
-			return void this.and8(this.dx, this.rop8(op, sego));
+			return this.and8(this.dx, this.rop8(op, sego));
 		case 3: // TEST BL,r/m8
-			return void this.and8(this.bx, this.rop8(op, sego));
+			return this.and8(this.bx, this.rop8(op, sego));
 		case 4: // TEST AH,r/m8
-			return void this.and8(this.ax >>> 8, this.rop8(op, sego));
+			return this.and8(this.ax >>> 8, this.rop8(op, sego));
 		case 5: // TEST CH,r/m8
-			return void this.and8(this.cx >>> 8, this.rop8(op, sego));
+			return this.and8(this.cx >>> 8, this.rop8(op, sego));
 		case 6: // TEST DH,r/m8
-			return void this.and8(this.dx >>> 8, this.rop8(op, sego));
+			return this.and8(this.dx >>> 8, this.rop8(op, sego));
 		case 7: // TEST BH,r/m8
-			return void this.and8(this.bx >>> 8, this.rop8(op, sego));
+			return this.and8(this.bx >>> 8, this.rop8(op, sego));
 		}
 	}
 
@@ -1543,21 +1543,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // TEST AX,r/m16
-			return void this.and16(this.ax, this.rop16(op, sego));
+			return this.and16(this.ax, this.rop16(op, sego));
 		case 1: // TEST CX,r/m16
-			return void this.and16(this.cx, this.rop16(op, sego));
+			return this.and16(this.cx, this.rop16(op, sego));
 		case 2: // TEST DX,r/m16
-			return void this.and16(this.dx, this.rop16(op, sego));
+			return this.and16(this.dx, this.rop16(op, sego));
 		case 3: // TEST BX,r/m16
-			return void this.and16(this.bx, this.rop16(op, sego));
+			return this.and16(this.bx, this.rop16(op, sego));
 		case 4: // TEST SP,r/m16
-			return void this.and16(this.sp, this.rop16(op, sego));
+			return this.and16(this.sp, this.rop16(op, sego));
 		case 5: // TEST BP,r/m16
-			return void this.and16(this.bp, this.rop16(op, sego));
+			return this.and16(this.bp, this.rop16(op, sego));
 		case 6: // TEST SI,r/m16
-			return void this.and16(this.si, this.rop16(op, sego));
+			return this.and16(this.si, this.rop16(op, sego));
 		case 7: // TEST DI,r/m16
-			return void this.and16(this.di, this.rop16(op, sego));
+			return this.and16(this.di, this.rop16(op, sego));
 		}
 	}
 
@@ -1568,28 +1568,28 @@ export default class I80186 extends Cpu {
 		switch (op >>> 3 & 7) {
 		case 0: // XCHG AL,r/m8
 			[this.ax, v] = [this.ax & 0xff00 | this.rop8(op, sego), this.ax & 0xff];
-			return void this.wop8(op, sego, v);
+			return this.wop8(op, sego, v);
 		case 1: // XCHG CL,r/m8
 			[this.cx, v] = [this.ax & 0xff00 | this.rop8(op, sego), this.cx & 0xff];
-			return void this.wop8(op, sego, v);
+			return this.wop8(op, sego, v);
 		case 2: // XCHG DL,r/m8
 			[this.dx, v] = [this.ax & 0xff00 | this.rop8(op, sego), this.dx & 0xff];
-			return void this.wop8(op, sego, v);
+			return this.wop8(op, sego, v);
 		case 3: // XCHG BL,r/m8
 			[this.bx, v] = [this.ax & 0xff00 | this.rop8(op, sego), this.bx & 0xff];
-			return void this.wop8(op, sego, v);
+			return this.wop8(op, sego, v);
 		case 4: // XCHG AH,r/m8
 			[this.ax, v] = [this.ax & 0xff | this.rop8(op, sego) << 8, this.ax >>> 8];
-			return void this.wop8(op, sego, v);
+			return this.wop8(op, sego, v);
 		case 5: // XCHG CH,r/m8
 			[this.cx, v] = [this.cx & 0xff | this.rop8(op, sego) << 8, this.cx >>> 8];
-			return void this.wop8(op, sego, v);
+			return this.wop8(op, sego, v);
 		case 6: // XCHG DH,r/m8
 			[this.dx, v] = [this.dx & 0xff | this.rop8(op, sego) << 8, this.dx >>> 8];
-			return void this.wop8(op, sego, v);
+			return this.wop8(op, sego, v);
 		case 7: // XCHG BH,r/m8
 			[this.bx, v] = [this.bx & 0xff | this.rop8(op, sego) << 8, this.bx >>> 8];
-			return void this.wop8(op, sego, v);
+			return this.wop8(op, sego, v);
 		}
 	}
 
@@ -1600,28 +1600,28 @@ export default class I80186 extends Cpu {
 		switch (op >>> 3 & 7) {
 		case 0: // XCHG AX,r/m16
 			[this.ax, v] = [this.rop16(op, sego), this.ax];
-			return void this.wop16(op, sego, v);
+			return this.wop16(op, sego, v);
 		case 1: // XCHG CX,r/m16
 			[this.cx, v] = [this.rop16(op, sego), this.cx];
-			return void this.wop16(op, sego, v);
+			return this.wop16(op, sego, v);
 		case 2: // XCHG DX,r/m16
 			[this.dx, v] = [this.rop16(op, sego), this.dx];
-			return void this.wop16(op, sego, v);
+			return this.wop16(op, sego, v);
 		case 3: // XCHG BX,r/m16
 			[this.bx, v] = [this.rop16(op, sego), this.bx];
-			return void this.wop16(op, sego, v);
+			return this.wop16(op, sego, v);
 		case 4: // XCHG SP,r/m16
 			[this.sp, v] = [this.rop16(op, sego), this.sp];
-			return void this.wop16(op, sego, v);
+			return this.wop16(op, sego, v);
 		case 5: // XCHG BP,r/m16
 			[this.bp, v] = [this.rop16(op, sego), this.bp];
-			return void this.wop16(op, sego, v);
+			return this.wop16(op, sego, v);
 		case 6: // XCHG SI,r/m16
 			[this.si, v] = [this.rop16(op, sego), this.si];
-			return void this.wop16(op, sego, v);
+			return this.wop16(op, sego, v);
 		case 7: // XCHG DI,r/m16
 			[this.di, v] = [this.rop16(op, sego), this.di];
-			return void this.wop16(op, sego, v);
+			return this.wop16(op, sego, v);
 		}
 	}
 
@@ -1630,21 +1630,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // MOV r/m8,AL
-			return void this.wop8(op, sego, this.ax & 0xff);
+			return this.wop8(op, sego, this.ax & 0xff);
 		case 1: // MOV r/m8,CL
-			return void this.wop8(op, sego, this.cx & 0xff);
+			return this.wop8(op, sego, this.cx & 0xff);
 		case 2: // MOV r/m8,DL
-			return void this.wop8(op, sego, this.dx & 0xff);
+			return this.wop8(op, sego, this.dx & 0xff);
 		case 3: // MOV r/m8,BL
-			return void this.wop8(op, sego, this.bx & 0xff);
+			return this.wop8(op, sego, this.bx & 0xff);
 		case 4: // MOV r/m8,AH
-			return void this.wop8(op, sego, this.ax >>> 8);
+			return this.wop8(op, sego, this.ax >>> 8);
 		case 5: // MOV r/m8,CH
-			return void this.wop8(op, sego, this.cx >>> 8);
+			return this.wop8(op, sego, this.cx >>> 8);
 		case 6: // MOV r/m8,DH
-			return void this.wop8(op, sego, this.dx >>> 8);
+			return this.wop8(op, sego, this.dx >>> 8);
 		case 7: // MOV r/m8,BH
-			return void this.wop8(op, sego, this.bx >>> 8);
+			return this.wop8(op, sego, this.bx >>> 8);
 		}
 	}
 
@@ -1653,21 +1653,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // MOV r/m16,AX
-			return void this.wop16(op, sego, this.ax);
+			return this.wop16(op, sego, this.ax);
 		case 1: // MOV r/m16,CX
-			return void this.wop16(op, sego, this.cx);
+			return this.wop16(op, sego, this.cx);
 		case 2: // MOV r/m16,DX
-			return void this.wop16(op, sego, this.dx);
+			return this.wop16(op, sego, this.dx);
 		case 3: // MOV r/m16,BX
-			return void this.wop16(op, sego, this.bx);
+			return this.wop16(op, sego, this.bx);
 		case 4: // MOV r/m16,SP
-			return void this.wop16(op, sego, this.sp);
+			return this.wop16(op, sego, this.sp);
 		case 5: // MOV r/m16,BP
-			return void this.wop16(op, sego, this.bp);
+			return this.wop16(op, sego, this.bp);
 		case 6: // MOV r/m16,SI
-			return void this.wop16(op, sego, this.si);
+			return this.wop16(op, sego, this.si);
 		case 7: // MOV r/m16,DI
-			return void this.wop16(op, sego, this.di);
+			return this.wop16(op, sego, this.di);
 		}
 	}
 
@@ -1722,15 +1722,15 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // MOV r/m16,ES
-			return void this.wop16(op, sego, this.es);
+			return this.wop16(op, sego, this.es);
 		case 1: // MOV r/m16,CS
-			return void this.wop16(op, sego, this.cs);
+			return this.wop16(op, sego, this.cs);
 		case 2: // MOV r/m16,SS
-			return void this.wop16(op, sego, this.ss);
+			return this.wop16(op, sego, this.ss);
 		case 3: // MOV r/m16,DS
-			return void this.wop16(op, sego, this.ds);
+			return this.wop16(op, sego, this.ds);
 		default:
-			return void this.exception(6);
+			return this.exception(6);
 		}
 	}
 
@@ -1771,7 +1771,7 @@ export default class I80186 extends Cpu {
 		case 3: // MOV DS,r/m16
 			return void(this.ds = this.rop16(op, sego));
 		default:
-			return void this.exception(6);
+			return this.exception(6);
 		}
 	}
 
@@ -1780,21 +1780,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // ROL r/m8,imm8
-			return void this.rwop8(op, sego, this.rol8, this.fetch8());
+			return this.rwop8(op, sego, this.rol8, this.fetch8());
 		case 1: // ROR r/m8,imm8
-			return void this.rwop8(op, sego, this.ror8, this.fetch8());
+			return this.rwop8(op, sego, this.ror8, this.fetch8());
 		case 2: // RCL r/m8,imm8
-			return void this.rwop8(op, sego, this.rcl8, this.fetch8());
+			return this.rwop8(op, sego, this.rcl8, this.fetch8());
 		case 3: // RCR r/m8,imm8
-			return void this.rwop8(op, sego, this.rcr8, this.fetch8());
+			return this.rwop8(op, sego, this.rcr8, this.fetch8());
 		case 4: // SAL/SHL r/m8,imm8
-			return void this.rwop8(op, sego, this.shl8, this.fetch8());
+			return this.rwop8(op, sego, this.shl8, this.fetch8());
 		case 5: // SHR r/m8,imm8
-			return void this.rwop8(op, sego, this.shr8, this.fetch8());
+			return this.rwop8(op, sego, this.shr8, this.fetch8());
 		case 7: // SAR r/m8,imm8
-			return void this.rwop8(op, sego, this.sar8, this.fetch8());
+			return this.rwop8(op, sego, this.sar8, this.fetch8());
 		default:
-			return void this.exception(6);
+			return this.exception(6);
 		}
 	}
 
@@ -1803,21 +1803,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // ROL r/m16,imm8
-			return void this.rwop16(op, sego, this.rol16, this.fetch8());
+			return this.rwop16(op, sego, this.rol16, this.fetch8());
 		case 1: // ROR r/m16,imm8
-			return void this.rwop16(op, sego, this.ror16, this.fetch8());
+			return this.rwop16(op, sego, this.ror16, this.fetch8());
 		case 2: // RCL r/m16,imm8
-			return void this.rwop16(op, sego, this.rcl16, this.fetch8());
+			return this.rwop16(op, sego, this.rcl16, this.fetch8());
 		case 3: // RCR r/m16,imm8
-			return void this.rwop16(op, sego, this.rcr16, this.fetch8());
+			return this.rwop16(op, sego, this.rcr16, this.fetch8());
 		case 4: // SAL/SHL r/m16,imm8
-			return void this.rwop16(op, sego, this.shl16, this.fetch8());
+			return this.rwop16(op, sego, this.shl16, this.fetch8());
 		case 5: // SHR r/m16,imm8
-			return void this.rwop16(op, sego, this.shr16, this.fetch8());
+			return this.rwop16(op, sego, this.shr16, this.fetch8());
 		case 7: // SAR r/m16,imm8
-			return void this.rwop16(op, sego, this.sar16, this.fetch8());
+			return this.rwop16(op, sego, this.sar16, this.fetch8());
 		default:
-			return void this.exception(6);
+			return this.exception(6);
 		}
 	}
 
@@ -1872,21 +1872,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // ROL r/m8,1
-			return void this.rwop8(op, sego, this.rol8, 1);
+			return this.rwop8(op, sego, this.rol8, 1);
 		case 1: // ROR r/m8,1
-			return void this.rwop8(op, sego, this.ror8, 1);
+			return this.rwop8(op, sego, this.ror8, 1);
 		case 2: // RCL r/m8,1
-			return void this.rwop8(op, sego, this.rcl8, 1);
+			return this.rwop8(op, sego, this.rcl8, 1);
 		case 3: // RCR r/m8,1
-			return void this.rwop8(op, sego, this.rcr8, 1);
+			return this.rwop8(op, sego, this.rcr8, 1);
 		case 4: // SAL/SHL r/m8,1
-			return void this.rwop8(op, sego, this.shl8, 1);
+			return this.rwop8(op, sego, this.shl8, 1);
 		case 5: // SHR r/m8,1
-			return void this.rwop8(op, sego, this.shr8, 1);
+			return this.rwop8(op, sego, this.shr8, 1);
 		case 7: // SAR r/m8,1
-			return void this.rwop8(op, sego, this.sar8, 1);
+			return this.rwop8(op, sego, this.sar8, 1);
 		default:
-			return void this.exception(6);
+			return this.exception(6);
 		}
 	}
 
@@ -1895,21 +1895,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // ROL r/m16,1
-			return void this.rwop16(op, sego, this.rol16, 1);
+			return this.rwop16(op, sego, this.rol16, 1);
 		case 1: // ROR r/m16,1
-			return void this.rwop16(op, sego, this.ror16, 1);
+			return this.rwop16(op, sego, this.ror16, 1);
 		case 2: // RCL r/m16,1
-			return void this.rwop16(op, sego, this.rcl16, 1);
+			return this.rwop16(op, sego, this.rcl16, 1);
 		case 3: // RCR r/m16,1
-			return void this.rwop16(op, sego, this.rcr16, 1);
+			return this.rwop16(op, sego, this.rcr16, 1);
 		case 4: // SAL/SHL r/m16,1
-			return void this.rwop16(op, sego, this.shl16, 1);
+			return this.rwop16(op, sego, this.shl16, 1);
 		case 5: // SHR r/m16,1
-			return void this.rwop16(op, sego, this.shr16, 1);
+			return this.rwop16(op, sego, this.shr16, 1);
 		case 7: // SAR r/m16,1
-			return void this.rwop16(op, sego, this.sar16, 1);
+			return this.rwop16(op, sego, this.sar16, 1);
 		default:
-			return void this.exception(6);
+			return this.exception(6);
 		}
 	}
 
@@ -1918,21 +1918,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // ROL r/m8,CL
-			return void this.rwop8(op, sego, this.rol8, this.cx & 0xff);
+			return this.rwop8(op, sego, this.rol8, this.cx & 0xff);
 		case 1: // ROR r/m8,CL
-			return void this.rwop8(op, sego, this.ror8, this.cx & 0xff);
+			return this.rwop8(op, sego, this.ror8, this.cx & 0xff);
 		case 2: // RCL r/m8,CL
-			return void this.rwop8(op, sego, this.rcl8, this.cx & 0xff);
+			return this.rwop8(op, sego, this.rcl8, this.cx & 0xff);
 		case 3: // RCR r/m8,CL
-			return void this.rwop8(op, sego, this.rcr8, this.cx & 0xff);
+			return this.rwop8(op, sego, this.rcr8, this.cx & 0xff);
 		case 4: // SAL/SHL r/m8,CL
-			return void this.rwop8(op, sego, this.shl8, this.cx & 0xff);
+			return this.rwop8(op, sego, this.shl8, this.cx & 0xff);
 		case 5: // SHR r/m8,CL
-			return void this.rwop8(op, sego, this.shr8, this.cx & 0xff);
+			return this.rwop8(op, sego, this.shr8, this.cx & 0xff);
 		case 7: // SAR r/m8,CL
-			return void this.rwop8(op, sego, this.sar8, this.cx & 0xff);
+			return this.rwop8(op, sego, this.sar8, this.cx & 0xff);
 		default:
-			return void this.exception(6);
+			return this.exception(6);
 		}
 	}
 
@@ -1941,21 +1941,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // ROL r/m16,CL
-			return void this.rwop16(op, sego, this.rol16, this.cx & 0xff);
+			return this.rwop16(op, sego, this.rol16, this.cx & 0xff);
 		case 1: // ROR r/m16,CL
-			return void this.rwop16(op, sego, this.ror16, this.cx & 0xff);
+			return this.rwop16(op, sego, this.ror16, this.cx & 0xff);
 		case 2: // RCL r/m16,CL
-			return void this.rwop16(op, sego, this.rcl16, this.cx & 0xff);
+			return this.rwop16(op, sego, this.rcl16, this.cx & 0xff);
 		case 3: // RCR r/m16,CL
-			return void this.rwop16(op, sego, this.rcr16, this.cx & 0xff);
+			return this.rwop16(op, sego, this.rcr16, this.cx & 0xff);
 		case 4: // SAL/SHL r/m16,CL
-			return void this.rwop16(op, sego, this.shl16, this.cx & 0xff);
+			return this.rwop16(op, sego, this.shl16, this.cx & 0xff);
 		case 5: // SHR r/m16,CL
-			return void this.rwop16(op, sego, this.shr16, this.cx & 0xff);
+			return this.rwop16(op, sego, this.shr16, this.cx & 0xff);
 		case 7: // SAR r/m16,CL
-			return void this.rwop16(op, sego, this.sar16, this.cx & 0xff);
+			return this.rwop16(op, sego, this.sar16, this.cx & 0xff);
 		default:
-			return void this.exception(6);
+			return this.exception(6);
 		}
 	}
 
@@ -1964,21 +1964,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // TEST r/m8,imm8
-			return void this.rop8i(op, sego, this.and8);
+			return this.rop8i(op, sego, this.and8);
 		case 2: // NOT r/m8
-			return void this.rwop8(op, sego, dst => ~dst & 0xff);
+			return this.rwop8(op, sego, dst => ~dst & 0xff);
 		case 3: // NEG r/m8
-			return void this.rwop8(op, sego, this.neg8);
+			return this.rwop8(op, sego, this.neg8);
 		case 4: // MUL r/m8
-			return void this.mul8(this.rop8(op, sego));
+			return this.mul8(this.rop8(op, sego));
 		case 5: // IMUL r/m8
-			return void this.imul8(this.rop8(op, sego));
+			return this.imul8(this.rop8(op, sego));
 		case 6: // DIV r/m8
-			return void this.div8(this.rop8(op, sego));
+			return this.div8(this.rop8(op, sego));
 		case 7: // IDIV r/m8
-			return void this.idiv8(this.rop8(op, sego));
+			return this.idiv8(this.rop8(op, sego));
 		default:
-			return void this.exception(6);
+			return this.exception(6);
 		}
 	}
 
@@ -1987,21 +1987,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // TEST r/m16,imm16
-			return void this.rop16i(op, sego, this.and16);
+			return this.rop16i(op, sego, this.and16);
 		case 2: // NOT r/m16
-			return void this.rwop16(op, sego, dst => ~dst & 0xffff);
+			return this.rwop16(op, sego, dst => ~dst & 0xffff);
 		case 3: // NEG r/m16
-			return void this.rwop16(op, sego, this.neg16);
+			return this.rwop16(op, sego, this.neg16);
 		case 4: // MUL r/m16
-			return void this.mul16(this.rop16(op, sego));
+			return this.mul16(this.rop16(op, sego));
 		case 5: // IMUL r/m16
-			return void this.imul16(this.rop16(op, sego));
+			return this.imul16(this.rop16(op, sego));
 		case 6: // DIV r/m16
-			return void this.div16(this.rop16(op, sego));
+			return this.div16(this.rop16(op, sego));
 		case 7: // IDIV r/m16
-			return void this.idiv16(this.rop16(op, sego));
+			return this.idiv16(this.rop16(op, sego));
 		default:
-			return void this.exception(6);
+			return this.exception(6);
 		}
 	}
 
@@ -2010,11 +2010,11 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // INC r/m8
-			return void this.rwop8(op, sego, this.inc8);
+			return this.rwop8(op, sego, this.inc8);
 		case 1: // DEC r/m8
-			return void this.rwop8(op, sego, this.dec8);
+			return this.rwop8(op, sego, this.dec8);
 		default:
-			return void this.exception(6);
+			return this.exception(6);
 		}
 	}
 
@@ -2023,21 +2023,21 @@ export default class I80186 extends Cpu {
 
 		switch (op >>> 3 & 7) {
 		case 0: // INC r/m16
-			return void this.rwop16(op, sego, this.inc16);
+			return this.rwop16(op, sego, this.inc16);
 		case 1: // DEC r/m16
-			return void this.rwop16(op, sego, this.dec16);
+			return this.rwop16(op, sego, this.dec16);
 		case 2: // CALL r/m16
-			return void this.call16a(this.rop16(op, sego));
+			return this.call16a(this.rop16(op, sego));
 		case 3: // CALL m16:16
-			return void this.call32(...this.rop32(op, sego));
+			return this.call32(...this.rop32(op, sego));
 		case 4: // JMP r/m16
 			return void(this.ip = this.rop16(op, sego));
 		case 5: // JMP m16:16
 			return void([this.ip, this.cs] = this.rop32(op, sego));
 		case 6: // PUSH r/m16
-			return void this.push(this.rop16(op, sego));
+			return this.push(this.rop16(op, sego));
 		default:
-			return void this.exception(6);
+			return this.exception(6);
 		}
 	}
 
@@ -2099,53 +2099,53 @@ export default class I80186 extends Cpu {
 
 		switch (op & 0o307) {
 		case 0o000: // [BX+SI]
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o001: // [BX+DI]
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o002: // [BP+SI]
-			return void this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o003: // [BP+DI]
-			return void this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o004: // [SI]
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, this.si, fn.call(this, this.read8(seg, this.si), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, this.si, fn.call(this, this.read8(seg, this.si), src));
 		case 0o005: // [DI]
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, this.di, fn.call(this, this.read8(seg, this.di), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, this.di, fn.call(this, this.read8(seg, this.di), src));
 		case 0o006: // disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.fetch16(), fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.fetch16(), fn.call(this, this.read8(seg, ea), src));
 		case 0o007: // [BX]
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, this.bx, fn.call(this, this.read8(seg, this.bx), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, this.bx, fn.call(this, this.read8(seg, this.bx), src));
 		case 0o100: // [BX+SI]+disp8
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o101: // [BX+DI]+disp8
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o102: // [BP+SI]+disp8
-			return void this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o103: // [BP+DI]+disp8
-			return void this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o104: // [SI]+disp8
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o105: // [DI]+disp8
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o106: // [BP]+disp8
-			return void this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o107: // [BX]+disp8
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o200: // [BX+SI]+disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o201: // [BX+DI]+disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o202: // [BP+SI]+disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o203: // [BP+DI]+disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o204: // [SI]+disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o205: // [DI]+disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o206: // [BP]+disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o207: // [BX]+disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), src));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), src));
 		case 0o300: // AL
 			return void(this.ax = this.ax & 0xff00 | fn.call(this, this.ax & 0xff, src));
 		case 0o301: // CL
@@ -2170,53 +2170,53 @@ export default class I80186 extends Cpu {
 
 		switch (op & 0o307) {
 		case 0o000: // [BX+SI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o001: // [BX+DI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o002: // [BP+SI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o003: // [BP+DI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o004: // [SI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, this.si, fn.call(this, this.read16(seg, this.si), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, this.si, fn.call(this, this.read16(seg, this.si), src));
 		case 0o005: // [DI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, this.di, fn.call(this, this.read16(seg, this.di), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, this.di, fn.call(this, this.read16(seg, this.di), src));
 		case 0o006: // disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.fetch16(), fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.fetch16(), fn.call(this, this.read16(seg, ea), src));
 		case 0o007: // [BX]
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, this.bx, fn.call(this, this.read16(seg, this.bx), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, this.bx, fn.call(this, this.read16(seg, this.bx), src));
 		case 0o100: // [BX+SI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o101: // [BX+DI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o102: // [BP+SI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o103: // [BP+DI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o104: // [SI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o105: // [DI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o106: // [BP]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o107: // [BX]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o200: // [BX+SI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o201: // [BX+DI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o202: // [BP+SI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o203: // [BP+DI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o204: // [SI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o205: // [DI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o206: // [BP]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o207: // [BX]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), src));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), src));
 		case 0o300: // AX
 			return void(this.ax = fn.call(this, this.ax, src));
 		case 0o301: // CX
@@ -2241,53 +2241,53 @@ export default class I80186 extends Cpu {
 
 		switch (op & 0o307) {
 		case 0o000: // [BX+SI]
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o001: // [BX+DI]
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o002: // [BP+SI]
-			return void this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o003: // [BP+DI]
-			return void this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o004: // [SI]
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, this.si, fn.call(this, this.read8(seg, this.si), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, this.si, fn.call(this, this.read8(seg, this.si), this.fetch8()));
 		case 0o005: // [DI]
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, this.di, fn.call(this, this.read8(seg, this.di), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, this.di, fn.call(this, this.read8(seg, this.di), this.fetch8()));
 		case 0o006: // disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.fetch16(), fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.fetch16(), fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o007: // [BX]
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, this.bx, fn.call(this, this.read8(seg, this.bx), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, this.bx, fn.call(this, this.read8(seg, this.bx), this.fetch8()));
 		case 0o100: // [BX+SI]+disp8
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o101: // [BX+DI]+disp8
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o102: // [BP+SI]+disp8
-			return void this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o103: // [BP+DI]+disp8
-			return void this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o104: // [SI]+disp8
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o105: // [DI]+disp8
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o106: // [BP]+disp8
-			return void this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o107: // [BX]+disp8
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch8s() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o200: // [BX+SI]+disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o201: // [BX+DI]+disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o202: // [BP+SI]+disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o203: // [BP+DI]+disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o204: // [SI]+disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o205: // [DI]+disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o206: // [BP]+disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o207: // [BX]+disp16
-			return void this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
+			return this.write8(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch16() & 0xffff, fn.call(this, this.read8(seg, ea), this.fetch8()));
 		case 0o300: // AL
 			return void(this.ax = this.ax & 0xff00 | fn.call(this, this.ax & 0xff, this.fetch8()));
 		case 0o301: // CL
@@ -2312,53 +2312,53 @@ export default class I80186 extends Cpu {
 
 		switch (op & 0o307) {
 		case 0o000: // [BX+SI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o001: // [BX+DI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o002: // [BP+SI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o003: // [BP+DI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o004: // [SI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, this.si, fn.call(this, this.read16(seg, this.si), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, this.si, fn.call(this, this.read16(seg, this.si), this.fetch16()));
 		case 0o005: // [DI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, this.di, fn.call(this, this.read16(seg, this.di), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, this.di, fn.call(this, this.read16(seg, this.di), this.fetch16()));
 		case 0o006: // disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.fetch16(), fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.fetch16(), fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o007: // [BX]
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, this.bx, fn.call(this, this.read16(seg, this.bx), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, this.bx, fn.call(this, this.read16(seg, this.bx), this.fetch16()));
 		case 0o100: // [BX+SI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o101: // [BX+DI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o102: // [BP+SI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o103: // [BP+DI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o104: // [SI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o105: // [DI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o106: // [BP]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o107: // [BX]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o200: // [BX+SI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o201: // [BX+DI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o202: // [BP+SI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o203: // [BP+DI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o204: // [SI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o205: // [DI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o206: // [BP]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o207: // [BX]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch16()));
 		case 0o300: // AX
 			return void(this.ax = fn.call(this, this.ax, this.fetch16()));
 		case 0o301: // CX
@@ -2383,53 +2383,53 @@ export default class I80186 extends Cpu {
 
 		switch (op & 0o307) {
 		case 0o000: // [BX+SI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o001: // [BX+DI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o002: // [BP+SI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o003: // [BP+DI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o004: // [SI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, this.si, fn.call(this, this.read16(seg, this.si), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, this.si, fn.call(this, this.read16(seg, this.si), this.fetch8s()));
 		case 0o005: // [DI]
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, this.di, fn.call(this, this.read16(seg, this.di), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, this.di, fn.call(this, this.read16(seg, this.di), this.fetch8s()));
 		case 0o006: // disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.fetch16(), fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.fetch16(), fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o007: // [BX]
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, this.bx, fn.call(this, this.read16(seg, this.bx), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, this.bx, fn.call(this, this.read16(seg, this.bx), this.fetch8s()));
 		case 0o100: // [BX+SI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o101: // [BX+DI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o102: // [BP+SI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o103: // [BP+DI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o104: // [SI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o105: // [DI]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o106: // [BP]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o107: // [BX]+disp8
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch8s() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o200: // [BX+SI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o201: // [BX+DI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o202: // [BP+SI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o203: // [BP+DI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o204: // [SI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.si + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o205: // [DI]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.di + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o206: // [BP]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ss, ea = this.bp + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o207: // [BX]+disp16
-			return void this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
+			return this.write16(seg = sego >= 0 ? sego : this.ds, ea = this.bx + this.fetch16() & 0xffff, fn.call(this, this.read16(seg, ea), this.fetch8s()));
 		case 0o300: // AX
 			return void(this.ax = fn.call(this, this.ax, this.fetch8s()));
 		case 0o301: // CX
@@ -2645,260 +2645,260 @@ export default class I80186 extends Cpu {
 	rop8i(op, sego, fn) {
 		switch (op & 0o307) {
 		case 0o000: // [BX+SI]
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx + this.si & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx + this.si & 0xffff), this.fetch8());
 		case 0o001: // [BX+DI]
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx + this.di & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx + this.di & 0xffff), this.fetch8());
 		case 0o002: // [BP+SI]
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ss, this.bp + this.si & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ss, this.bp + this.si & 0xffff), this.fetch8());
 		case 0o003: // [BP+DI]
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ss, this.bp + this.di & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ss, this.bp + this.di & 0xffff), this.fetch8());
 		case 0o004: // [SI]
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.si), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.si), this.fetch8());
 		case 0o005: // [DI]
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.di), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.di), this.fetch8());
 		case 0o006: // disp16
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.fetch16()), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.fetch16()), this.fetch8());
 		case 0o007: // [BX]
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx), this.fetch8());
 		case 0o100: // [BX+SI]+disp8
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch8s() & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch8s() & 0xffff), this.fetch8());
 		case 0o101: // [BX+DI]+disp8
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch8s() & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch8s() & 0xffff), this.fetch8());
 		case 0o102: // [BP+SI]+disp8
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch8s() & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch8s() & 0xffff), this.fetch8());
 		case 0o103: // [BP+DI]+disp8
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch8s() & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch8s() & 0xffff), this.fetch8());
 		case 0o104: // [SI]+disp8
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.si + this.fetch8s() & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.si + this.fetch8s() & 0xffff), this.fetch8());
 		case 0o105: // [DI]+disp8
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.di + this.fetch8s() & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.di + this.fetch8s() & 0xffff), this.fetch8());
 		case 0o106: // [BP]+disp8
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ss, this.bp + this.fetch8s() & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ss, this.bp + this.fetch8s() & 0xffff), this.fetch8());
 		case 0o107: // [BX]+disp8
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx + this.fetch8s() & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx + this.fetch8s() & 0xffff), this.fetch8());
 		case 0o200: // [BX+SI]+disp16
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch16() & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch16() & 0xffff), this.fetch8());
 		case 0o201: // [BX+DI]+disp16
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch16() & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch16() & 0xffff), this.fetch8());
 		case 0o202: // [BP+SI]+disp16
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch16() & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch16() & 0xffff), this.fetch8());
 		case 0o203: // [BP+DI]+disp16
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch16() & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch16() & 0xffff), this.fetch8());
 		case 0o204: // [SI]+disp16
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.si + this.fetch16() & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.si + this.fetch16() & 0xffff), this.fetch8());
 		case 0o205: // [DI]+disp16
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.di + this.fetch16() & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.di + this.fetch16() & 0xffff), this.fetch8());
 		case 0o206: // [BP]+disp16
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ss, this.bp + this.fetch16() & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ss, this.bp + this.fetch16() & 0xffff), this.fetch8());
 		case 0o207: // [BX]+disp16
-			return void fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx + this.fetch16() & 0xffff), this.fetch8());
+			return fn.call(this, this.read8(sego >= 0 ? sego : this.ds, this.bx + this.fetch16() & 0xffff), this.fetch8());
 		case 0o300: // AL
-			return void fn.call(this, this.ax & 0xff, this.fetch8());
+			return fn.call(this, this.ax & 0xff, this.fetch8());
 		case 0o301: // CL
-			return void fn.call(this, this.cx & 0xff, this.fetch8());
+			return fn.call(this, this.cx & 0xff, this.fetch8());
 		case 0o302: // DL
-			return void fn.call(this, this.dx & 0xff, this.fetch8());
+			return fn.call(this, this.dx & 0xff, this.fetch8());
 		case 0o303: // BL
-			return void fn.call(this, this.bx & 0xff, this.fetch8());
+			return fn.call(this, this.bx & 0xff, this.fetch8());
 		case 0o304: // AH
-			return void fn.call(this, this.ax >>> 8, this.fetch8());
+			return fn.call(this, this.ax >>> 8, this.fetch8());
 		case 0o305: // CH
-			return void fn.call(this, this.cx >>> 8, this.fetch8());
+			return fn.call(this, this.cx >>> 8, this.fetch8());
 		case 0o306: // DH
-			return void fn.call(this, this.dx >>> 8, this.fetch8());
+			return fn.call(this, this.dx >>> 8, this.fetch8());
 		case 0o307: // BH
-			return void fn.call(this, this.bx >>> 8, this.fetch8());
+			return fn.call(this, this.bx >>> 8, this.fetch8());
 		}
 	}
 
 	rop16i(op, sego, fn) {
 		switch (op & 0o307) {
 		case 0o000: // [BX+SI]
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.si & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.si & 0xffff), this.fetch16());
 		case 0o001: // [BX+DI]
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.di & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.di & 0xffff), this.fetch16());
 		case 0o002: // [BP+SI]
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.si & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.si & 0xffff), this.fetch16());
 		case 0o003: // [BP+DI]
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.di & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.di & 0xffff), this.fetch16());
 		case 0o004: // [SI]
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.si), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.si), this.fetch16());
 		case 0o005: // [DI]
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.di), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.di), this.fetch16());
 		case 0o006: // disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.fetch16()), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.fetch16()), this.fetch16());
 		case 0o007: // [BX]
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx), this.fetch16());
 		case 0o100: // [BX+SI]+disp8
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch8s() & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch8s() & 0xffff), this.fetch16());
 		case 0o101: // [BX+DI]+disp8
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch8s() & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch8s() & 0xffff), this.fetch16());
 		case 0o102: // [BP+SI]+disp8
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch8s() & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch8s() & 0xffff), this.fetch16());
 		case 0o103: // [BP+DI]+disp8
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch8s() & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch8s() & 0xffff), this.fetch16());
 		case 0o104: // [SI]+disp8
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.si + this.fetch8s() & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.si + this.fetch8s() & 0xffff), this.fetch16());
 		case 0o105: // [DI]+disp8
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.di + this.fetch8s() & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.di + this.fetch8s() & 0xffff), this.fetch16());
 		case 0o106: // [BP]+disp8
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.fetch8s() & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.fetch8s() & 0xffff), this.fetch16());
 		case 0o107: // [BX]+disp8
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.fetch8s() & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.fetch8s() & 0xffff), this.fetch16());
 		case 0o200: // [BX+SI]+disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch16() & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch16() & 0xffff), this.fetch16());
 		case 0o201: // [BX+DI]+disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch16() & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch16() & 0xffff), this.fetch16());
 		case 0o202: // [BP+SI]+disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch16() & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch16() & 0xffff), this.fetch16());
 		case 0o203: // [BP+DI]+disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch16() & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch16() & 0xffff), this.fetch16());
 		case 0o204: // [SI]+disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.si + this.fetch16() & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.si + this.fetch16() & 0xffff), this.fetch16());
 		case 0o205: // [DI]+disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.di + this.fetch16() & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.di + this.fetch16() & 0xffff), this.fetch16());
 		case 0o206: // [BP]+disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.fetch16() & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.fetch16() & 0xffff), this.fetch16());
 		case 0o207: // [BX]+disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.fetch16() & 0xffff), this.fetch16());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.fetch16() & 0xffff), this.fetch16());
 		case 0o300: // AX
-			return void fn.call(this, this.ax, this.fetch16());
+			return fn.call(this, this.ax, this.fetch16());
 		case 0o301: // CX
-			return void fn.call(this, this.cx, this.fetch16());
+			return fn.call(this, this.cx, this.fetch16());
 		case 0o302: // DX
-			return void fn.call(this, this.dx, this.fetch16());
+			return fn.call(this, this.dx, this.fetch16());
 		case 0o303: // BX
-			return void fn.call(this, this.bx, this.fetch16());
+			return fn.call(this, this.bx, this.fetch16());
 		case 0o304: // SP
-			return void fn.call(this, this.sp, this.fetch16());
+			return fn.call(this, this.sp, this.fetch16());
 		case 0o305: // BP
-			return void fn.call(this, this.bp, this.fetch16());
+			return fn.call(this, this.bp, this.fetch16());
 		case 0o306: // SI
-			return void fn.call(this, this.si, this.fetch16());
+			return fn.call(this, this.si, this.fetch16());
 		case 0o307: // DI
-			return void fn.call(this, this.di, this.fetch16());
+			return fn.call(this, this.di, this.fetch16());
 		}
 	}
 
 	rop16is(op, sego, fn) {
 		switch (op & 0o307) {
 		case 0o000: // [BX+SI]
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.si & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.si & 0xffff), this.fetch8s());
 		case 0o001: // [BX+DI]
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.di & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.di & 0xffff), this.fetch8s());
 		case 0o002: // [BP+SI]
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.si & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.si & 0xffff), this.fetch8s());
 		case 0o003: // [BP+DI]
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.di & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.di & 0xffff), this.fetch8s());
 		case 0o004: // [SI]
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.si), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.si), this.fetch8s());
 		case 0o005: // [DI]
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.di), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.di), this.fetch8s());
 		case 0o006: // disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.fetch16()), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.fetch16()), this.fetch8s());
 		case 0o007: // [BX]
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx), this.fetch8s());
 		case 0o100: // [BX+SI]+disp8
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch8s() & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch8s() & 0xffff), this.fetch8s());
 		case 0o101: // [BX+DI]+disp8
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch8s() & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch8s() & 0xffff), this.fetch8s());
 		case 0o102: // [BP+SI]+disp8
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch8s() & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch8s() & 0xffff), this.fetch8s());
 		case 0o103: // [BP+DI]+disp8
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch8s() & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch8s() & 0xffff), this.fetch8s());
 		case 0o104: // [SI]+disp8
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.si + this.fetch8s() & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.si + this.fetch8s() & 0xffff), this.fetch8s());
 		case 0o105: // [DI]+disp8
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.di + this.fetch8s() & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.di + this.fetch8s() & 0xffff), this.fetch8s());
 		case 0o106: // [BP]+disp8
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.fetch8s() & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.fetch8s() & 0xffff), this.fetch8s());
 		case 0o107: // [BX]+disp8
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.fetch8s() & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.fetch8s() & 0xffff), this.fetch8s());
 		case 0o200: // [BX+SI]+disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch16() & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch16() & 0xffff), this.fetch8s());
 		case 0o201: // [BX+DI]+disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch16() & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch16() & 0xffff), this.fetch8s());
 		case 0o202: // [BP+SI]+disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch16() & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch16() & 0xffff), this.fetch8s());
 		case 0o203: // [BP+DI]+disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch16() & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch16() & 0xffff), this.fetch8s());
 		case 0o204: // [SI]+disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.si + this.fetch16() & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.si + this.fetch16() & 0xffff), this.fetch8s());
 		case 0o205: // [DI]+disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.di + this.fetch16() & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.di + this.fetch16() & 0xffff), this.fetch8s());
 		case 0o206: // [BP]+disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.fetch16() & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ss, this.bp + this.fetch16() & 0xffff), this.fetch8s());
 		case 0o207: // [BX]+disp16
-			return void fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.fetch16() & 0xffff), this.fetch8s());
+			return fn.call(this, this.read16(sego >= 0 ? sego : this.ds, this.bx + this.fetch16() & 0xffff), this.fetch8s());
 		case 0o300: // AX
-			return void fn.call(this, this.ax, this.fetch8s());
+			return fn.call(this, this.ax, this.fetch8s());
 		case 0o301: // CX
-			return void fn.call(this, this.cx, this.fetch8s());
+			return fn.call(this, this.cx, this.fetch8s());
 		case 0o302: // DX
-			return void fn.call(this, this.dx, this.fetch8s());
+			return fn.call(this, this.dx, this.fetch8s());
 		case 0o303: // BX
-			return void fn.call(this, this.bx, this.fetch8s());
+			return fn.call(this, this.bx, this.fetch8s());
 		case 0o304: // SP
-			return void fn.call(this, this.sp, this.fetch8s());
+			return fn.call(this, this.sp, this.fetch8s());
 		case 0o305: // BP
-			return void fn.call(this, this.bp, this.fetch8s());
+			return fn.call(this, this.bp, this.fetch8s());
 		case 0o306: // SI
-			return void fn.call(this, this.si, this.fetch8s());
+			return fn.call(this, this.si, this.fetch8s());
 		case 0o307: // DI
-			return void fn.call(this, this.di, this.fetch8s());
+			return fn.call(this, this.di, this.fetch8s());
 		}
 	}
 
 	wop8(op, sego, src) {
 		switch (op & 0o307) {
 		case 0o000: // [BX+SI]
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx + this.si & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx + this.si & 0xffff, src);
 		case 0o001: // [BX+DI]
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx + this.di & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx + this.di & 0xffff, src);
 		case 0o002: // [BP+SI]
-			return void this.write8(sego >= 0 ? sego : this.ss, this.bp + this.si & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ss, this.bp + this.si & 0xffff, src);
 		case 0o003: // [BP+DI]
-			return void this.write8(sego >= 0 ? sego : this.ss, this.bp + this.di & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ss, this.bp + this.di & 0xffff, src);
 		case 0o004: // [SI]
-			return void this.write8(sego >= 0 ? sego : this.ds, this.si, src);
+			return this.write8(sego >= 0 ? sego : this.ds, this.si, src);
 		case 0o005: // [DI]
-			return void this.write8(sego >= 0 ? sego : this.ds, this.di, src);
+			return this.write8(sego >= 0 ? sego : this.ds, this.di, src);
 		case 0o006: // disp16
-			return void this.write8(sego >= 0 ? sego : this.ds, this.fetch16(), src);
+			return this.write8(sego >= 0 ? sego : this.ds, this.fetch16(), src);
 		case 0o007: // [BX]
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx, src);
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx, src);
 		case 0o100: // [BX+SI]+disp8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch8s() & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch8s() & 0xffff, src);
 		case 0o101: // [BX+DI]+disp8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch8s() & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch8s() & 0xffff, src);
 		case 0o102: // [BP+SI]+disp8
-			return void this.write8(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch8s() & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch8s() & 0xffff, src);
 		case 0o103: // [BP+DI]+disp8
-			return void this.write8(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch8s() & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch8s() & 0xffff, src);
 		case 0o104: // [SI]+disp8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.si + this.fetch8s() & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ds, this.si + this.fetch8s() & 0xffff, src);
 		case 0o105: // [DI]+disp8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.di + this.fetch8s() & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ds, this.di + this.fetch8s() & 0xffff, src);
 		case 0o106: // [BP]+disp8
-			return void this.write8(sego >= 0 ? sego : this.ss, this.bp + this.fetch8s() & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ss, this.bp + this.fetch8s() & 0xffff, src);
 		case 0o107: // [BX]+disp8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx + this.fetch8s() & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx + this.fetch8s() & 0xffff, src);
 		case 0o200: // [BX+SI]+disp16
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch16() & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch16() & 0xffff, src);
 		case 0o201: // [BX+DI]+disp16
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch16() & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch16() & 0xffff, src);
 		case 0o202: // [BP+SI]+disp16
-			return void this.write8(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch16() & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch16() & 0xffff, src);
 		case 0o203: // [BP+DI]+disp16
-			return void this.write8(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch16() & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch16() & 0xffff, src);
 		case 0o204: // [SI]+disp16
-			return void this.write8(sego >= 0 ? sego : this.ds, this.si + this.fetch16() & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ds, this.si + this.fetch16() & 0xffff, src);
 		case 0o205: // [DI]+disp16
-			return void this.write8(sego >= 0 ? sego : this.ds, this.di + this.fetch16() & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ds, this.di + this.fetch16() & 0xffff, src);
 		case 0o206: // [BP]+disp16
-			return void this.write8(sego >= 0 ? sego : this.ss, this.bp + this.fetch16() & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ss, this.bp + this.fetch16() & 0xffff, src);
 		case 0o207: // [BX]+disp16
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx + this.fetch16() & 0xffff, src);
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx + this.fetch16() & 0xffff, src);
 		case 0o300: // AL
 			return void(this.ax = this.ax & 0xff00 | src);
 		case 0o301: // CL
@@ -2921,53 +2921,53 @@ export default class I80186 extends Cpu {
 	wop16(op, sego, src) {
 		switch (op & 0o307) {
 		case 0o000: // [BX+SI]
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx + this.si & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx + this.si & 0xffff, src);
 		case 0o001: // [BX+DI]
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx + this.di & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx + this.di & 0xffff, src);
 		case 0o002: // [BP+SI]
-			return void this.write16(sego >= 0 ? sego : this.ss, this.bp + this.si & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ss, this.bp + this.si & 0xffff, src);
 		case 0o003: // [BP+DI]
-			return void this.write16(sego >= 0 ? sego : this.ss, this.bp + this.di & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ss, this.bp + this.di & 0xffff, src);
 		case 0o004: // [SI]
-			return void this.write16(sego >= 0 ? sego : this.ds, this.si, src);
+			return this.write16(sego >= 0 ? sego : this.ds, this.si, src);
 		case 0o005: // [DI]
-			return void this.write16(sego >= 0 ? sego : this.ds, this.di, src);
+			return this.write16(sego >= 0 ? sego : this.ds, this.di, src);
 		case 0o006: // disp16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.fetch16(), src);
+			return this.write16(sego >= 0 ? sego : this.ds, this.fetch16(), src);
 		case 0o007: // [BX]
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx, src);
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx, src);
 		case 0o100: // [BX+SI]+disp8
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch8s() & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch8s() & 0xffff, src);
 		case 0o101: // [BX+DI]+disp8
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch8s() & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch8s() & 0xffff, src);
 		case 0o102: // [BP+SI]+disp8
-			return void this.write16(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch8s() & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch8s() & 0xffff, src);
 		case 0o103: // [BP+DI]+disp8
-			return void this.write16(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch8s() & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch8s() & 0xffff, src);
 		case 0o104: // [SI]+disp8
-			return void this.write16(sego >= 0 ? sego : this.ds, this.si + this.fetch8s() & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ds, this.si + this.fetch8s() & 0xffff, src);
 		case 0o105: // [DI]+disp8
-			return void this.write16(sego >= 0 ? sego : this.ds, this.di + this.fetch8s() & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ds, this.di + this.fetch8s() & 0xffff, src);
 		case 0o106: // [BP]+disp8
-			return void this.write16(sego >= 0 ? sego : this.ss, this.bp + this.fetch8s() & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ss, this.bp + this.fetch8s() & 0xffff, src);
 		case 0o107: // [BX]+disp8
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx + this.fetch8s() & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx + this.fetch8s() & 0xffff, src);
 		case 0o200: // [BX+SI]+disp16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch16() & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch16() & 0xffff, src);
 		case 0o201: // [BX+DI]+disp16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch16() & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch16() & 0xffff, src);
 		case 0o202: // [BP+SI]+disp16
-			return void this.write16(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch16() & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch16() & 0xffff, src);
 		case 0o203: // [BP+DI]+disp16
-			return void this.write16(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch16() & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch16() & 0xffff, src);
 		case 0o204: // [SI]+disp16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.si + this.fetch16() & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ds, this.si + this.fetch16() & 0xffff, src);
 		case 0o205: // [DI]+disp16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.di + this.fetch16() & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ds, this.di + this.fetch16() & 0xffff, src);
 		case 0o206: // [BP]+disp16
-			return void this.write16(sego >= 0 ? sego : this.ss, this.bp + this.fetch16() & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ss, this.bp + this.fetch16() & 0xffff, src);
 		case 0o207: // [BX]+disp16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx + this.fetch16() & 0xffff, src);
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx + this.fetch16() & 0xffff, src);
 		case 0o300: // AX
 			return void(this.ax = src);
 		case 0o301: // CX
@@ -2990,53 +2990,53 @@ export default class I80186 extends Cpu {
 	wop8i(op, sego) {
 		switch (op & 0o307) {
 		case 0o000: // MOV [BX+SI],imm8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx + this.si & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx + this.si & 0xffff, this.fetch8());
 		case 0o001: // MOV [BX+DI],imm8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx + this.di & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx + this.di & 0xffff, this.fetch8());
 		case 0o002: // MOV [BP+SI],imm8
-			return void this.write8(sego >= 0 ? sego : this.ss, this.bp + this.si & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ss, this.bp + this.si & 0xffff, this.fetch8());
 		case 0o003: // MOV [BP+DI],imm8
-			return void this.write8(sego >= 0 ? sego : this.ss, this.bp + this.di & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ss, this.bp + this.di & 0xffff, this.fetch8());
 		case 0o004: // MOV [SI],imm8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.si, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ds, this.si, this.fetch8());
 		case 0o005: // MOV [DI],imm8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.di, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ds, this.di, this.fetch8());
 		case 0o006: // MOV disp16,imm8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.fetch16(), this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ds, this.fetch16(), this.fetch8());
 		case 0o007: // MOV [BX],imm8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx, this.fetch8());
 		case 0o100: // MOV [BX+SI]+disp8,imm8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch8s() & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch8s() & 0xffff, this.fetch8());
 		case 0o101: // MOV [BX+DI]+disp8,imm8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch8s() & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch8s() & 0xffff, this.fetch8());
 		case 0o102: // MOV [BP+SI]+disp8,imm8
-			return void this.write8(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch8s() & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch8s() & 0xffff, this.fetch8());
 		case 0o103: // MOV [BP+DI]+disp8,imm8
-			return void this.write8(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch8s() & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch8s() & 0xffff, this.fetch8());
 		case 0o104: // MOV [SI]+disp8,imm8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.si + this.fetch8s() & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ds, this.si + this.fetch8s() & 0xffff, this.fetch8());
 		case 0o105: // MOV [DI]+disp8,imm8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.di + this.fetch8s() & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ds, this.di + this.fetch8s() & 0xffff, this.fetch8());
 		case 0o106: // MOV [BP]+disp8,imm8
-			return void this.write8(sego >= 0 ? sego : this.ss, this.bp + this.fetch8s() & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ss, this.bp + this.fetch8s() & 0xffff, this.fetch8());
 		case 0o107: // MOV [BX]+disp8,imm8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx + this.fetch8s() & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx + this.fetch8s() & 0xffff, this.fetch8());
 		case 0o200: // MOV [BX+SI]+disp16,imm8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch16() & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch16() & 0xffff, this.fetch8());
 		case 0o201: // MOV [BX+DI]+disp16,imm8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch16() & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch16() & 0xffff, this.fetch8());
 		case 0o202: // MOV [BP+SI]+disp16,imm8
-			return void this.write8(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch16() & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch16() & 0xffff, this.fetch8());
 		case 0o203: // MOV [BP+DI]+disp16,imm8
-			return void this.write8(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch16() & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch16() & 0xffff, this.fetch8());
 		case 0o204: // MOV [SI]+disp16,imm8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.si + this.fetch16() & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ds, this.si + this.fetch16() & 0xffff, this.fetch8());
 		case 0o205: // MOV [DI]+disp16,imm8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.di + this.fetch16() & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ds, this.di + this.fetch16() & 0xffff, this.fetch8());
 		case 0o206: // MOV [BP]+disp16,imm8
-			return void this.write8(sego >= 0 ? sego : this.ss, this.bp + this.fetch16() & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ss, this.bp + this.fetch16() & 0xffff, this.fetch8());
 		case 0o207: // MOV [BX]+disp16,imm8
-			return void this.write8(sego >= 0 ? sego : this.ds, this.bx + this.fetch16() & 0xffff, this.fetch8());
+			return this.write8(sego >= 0 ? sego : this.ds, this.bx + this.fetch16() & 0xffff, this.fetch8());
 		case 0o300: // MOV AL,imm8
 			return void(this.ax = this.ax & 0xff00 | this.fetch8());
 		case 0o301: // MOV CL,imm8
@@ -3059,53 +3059,53 @@ export default class I80186 extends Cpu {
 	wop16i(op, sego) {
 		switch (op & 0o307) {
 		case 0o000: // MOV [BX+SI],imm16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx + this.si & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx + this.si & 0xffff, this.fetch16());
 		case 0o001: // MOV [BX+DI],imm16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx + this.di & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx + this.di & 0xffff, this.fetch16());
 		case 0o002: // MOV [BP+SI],imm16
-			return void this.write16(sego >= 0 ? sego : this.ss, this.bp + this.si & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ss, this.bp + this.si & 0xffff, this.fetch16());
 		case 0o003: // MOV [BP+DI],imm16
-			return void this.write16(sego >= 0 ? sego : this.ss, this.bp + this.di & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ss, this.bp + this.di & 0xffff, this.fetch16());
 		case 0o004: // MOV [SI],imm16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.si, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ds, this.si, this.fetch16());
 		case 0o005: // MOV [DI],imm16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.di, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ds, this.di, this.fetch16());
 		case 0o006: // MOV disp16,imm16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.fetch16(), this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ds, this.fetch16(), this.fetch16());
 		case 0o007: // MOV [BX],imm16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx, this.fetch16());
 		case 0o100: // MOV [BX+SI]+disp8,imm16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch8s() & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch8s() & 0xffff, this.fetch16());
 		case 0o101: // MOV [BX+DI]+disp8,imm16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch8s() & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch8s() & 0xffff, this.fetch16());
 		case 0o102: // MOV [BP+SI]+disp8,imm16
-			return void this.write16(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch8s() & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch8s() & 0xffff, this.fetch16());
 		case 0o103: // MOV [BP+DI]+disp8,imm16
-			return void this.write16(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch8s() & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch8s() & 0xffff, this.fetch16());
 		case 0o104: // MOV [SI]+disp8,imm16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.si + this.fetch8s() & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ds, this.si + this.fetch8s() & 0xffff, this.fetch16());
 		case 0o105: // MOV [DI]+disp8,imm16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.di + this.fetch8s() & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ds, this.di + this.fetch8s() & 0xffff, this.fetch16());
 		case 0o106: // MOV [BP]+disp8,imm16
-			return void this.write16(sego >= 0 ? sego : this.ss, this.bp + this.fetch8s() & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ss, this.bp + this.fetch8s() & 0xffff, this.fetch16());
 		case 0o107: // MOV [BX]+disp8,imm16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx + this.fetch8s() & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx + this.fetch8s() & 0xffff, this.fetch16());
 		case 0o200: // MOV [BX+SI]+disp16,imm16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch16() & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx + this.si + this.fetch16() & 0xffff, this.fetch16());
 		case 0o201: // MOV [BX+DI]+disp16,imm16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch16() & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx + this.di + this.fetch16() & 0xffff, this.fetch16());
 		case 0o202: // MOV [BP+SI]+disp16,imm16
-			return void this.write16(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch16() & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ss, this.bp + this.si + this.fetch16() & 0xffff, this.fetch16());
 		case 0o203: // MOV [BP+DI]+disp16,imm16
-			return void this.write16(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch16() & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ss, this.bp + this.di + this.fetch16() & 0xffff, this.fetch16());
 		case 0o204: // MOV [SI]+disp16,imm16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.si + this.fetch16() & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ds, this.si + this.fetch16() & 0xffff, this.fetch16());
 		case 0o205: // MOV [DI]+disp16,imm16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.di + this.fetch16() & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ds, this.di + this.fetch16() & 0xffff, this.fetch16());
 		case 0o206: // MOV [BP]+disp16,imm16
-			return void this.write16(sego >= 0 ? sego : this.ss, this.bp + this.fetch16() & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ss, this.bp + this.fetch16() & 0xffff, this.fetch16());
 		case 0o207: // MOV [BX]+disp16,imm16
-			return void this.write16(sego >= 0 ? sego : this.ds, this.bx + this.fetch16() & 0xffff, this.fetch16());
+			return this.write16(sego >= 0 ? sego : this.ds, this.bx + this.fetch16() & 0xffff, this.fetch16());
 		case 0o300: // MOV AX,imm16
 			return void(this.ax = this.fetch16());
 		case 0o301: // MOV CX,imm16
@@ -3437,20 +3437,20 @@ export default class I80186 extends Cpu {
 
 	div8(src) {
 		if (!src)
-			return void this.exception(0);
+			return this.exception(0);
 		this.ax = this.ax / src & 0xff | this.ax % src << 8 & 0xff00;
 	}
 
 	div16(src) {
 		if (!src)
-			return void this.exception(0);
+			return this.exception(0);
 		const dst = (this.ax | this.dx << 16) >>> 0;
 		[this.ax, this.dx] = [dst / src & 0xffff, dst % src & 0xffff];
 	}
 
 	idiv8(src) {
 		if (!src)
-			return void this.exception(0);
+			return this.exception(0);
 		src -= src << 1 & 0x100;
 		const dst = this.ax - (this.ax << 1 & 0x10000);
 		return dst / src & 0xff | dst % src << 8 & 0xff00;
@@ -3458,7 +3458,7 @@ export default class I80186 extends Cpu {
 
 	idiv16(src) {
 		if (!src)
-			return void this.exception(0);
+			return this.exception(0);
 		src -= src << 1 & 0x10000;
 		const dst = this.ax | this.dx << 16;
 		[this.ax, this.dx] = [dst / src & 0xffff, dst % src & 0xffff];

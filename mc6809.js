@@ -73,61 +73,61 @@ export default class MC6809 extends Cpu {
 
 		switch (this.fetch()) {
 		case 0x00: // NEG <n
-			return void this.neg(this.direct());
+			return this.neg(this.direct());
 		case 0x03: // COM <n
-			return void this.com(this.direct());
+			return this.com(this.direct());
 		case 0x04: // LSR <n
-			return void this.lsr(this.direct());
+			return this.lsr(this.direct());
 		case 0x06: // ROR <n
-			return void this.ror(this.direct());
+			return this.ror(this.direct());
 		case 0x07: // ASR <n
-			return void this.asr(this.direct());
+			return this.asr(this.direct());
 		case 0x08: // LSL <n
-			return void this.lsl(this.direct());
+			return this.lsl(this.direct());
 		case 0x09: // ROL <n
-			return void this.rol(this.direct());
+			return this.rol(this.direct());
 		case 0x0a: // DEC <n
-			return void this.dec(this.direct());
+			return this.dec(this.direct());
 		case 0x0c: // INC <n
-			return void this.inc(this.direct());
+			return this.inc(this.direct());
 		case 0x0d: // TST <n
-			return void this.tst(this.direct());
+			return this.tst(this.direct());
 		case 0x0e: // JMP <n
 			return void(this.pc = this.direct());
 		case 0x0f: // CLR <n
-			return void this.clr(this.direct());
+			return this.clr(this.direct());
 		case 0x10:
 			switch (this.fetch()) {
 			case 0x21: // LBRN
-				return void this.lbcc(false);
+				return this.lbcc(false);
 			case 0x22: // LBHI
-				return void this.lbcc(((this.ccr >>> 2 | this.ccr) & 1) === 0);
+				return this.lbcc(((this.ccr >>> 2 | this.ccr) & 1) === 0);
 			case 0x23: // LBLS
-				return void this.lbcc(((this.ccr >>> 2 | this.ccr) & 1) !== 0);
+				return this.lbcc(((this.ccr >>> 2 | this.ccr) & 1) !== 0);
 			case 0x24: // LBHS(LBCC)
-				return void this.lbcc((this.ccr & 1) === 0);
+				return this.lbcc((this.ccr & 1) === 0);
 			case 0x25: // LBLO(LBCS)
-				return void this.lbcc((this.ccr & 1) !== 0);
+				return this.lbcc((this.ccr & 1) !== 0);
 			case 0x26: // LBNE
-				return void this.lbcc((this.ccr & 4) === 0);
+				return this.lbcc((this.ccr & 4) === 0);
 			case 0x27: // LBEQ
-				return void this.lbcc((this.ccr & 4) !== 0);
+				return this.lbcc((this.ccr & 4) !== 0);
 			case 0x28: // LBVC
-				return void this.lbcc((this.ccr & 2) === 0);
+				return this.lbcc((this.ccr & 2) === 0);
 			case 0x29: // LBVS
-				return void this.lbcc((this.ccr & 2) !== 0);
+				return this.lbcc((this.ccr & 2) !== 0);
 			case 0x2a: // LBPL
-				return void this.lbcc((this.ccr & 8) === 0);
+				return this.lbcc((this.ccr & 8) === 0);
 			case 0x2b: // LBMI
-				return void this.lbcc((this.ccr & 8) !== 0);
+				return this.lbcc((this.ccr & 8) !== 0);
 			case 0x2c: // LBGE
-				return void this.lbcc(((this.ccr >>> 2 ^ this.ccr) & 2) === 0);
+				return this.lbcc(((this.ccr >>> 2 ^ this.ccr) & 2) === 0);
 			case 0x2d: // LBLT
-				return void this.lbcc(((this.ccr >>> 2 ^ this.ccr) & 2) !== 0);
+				return this.lbcc(((this.ccr >>> 2 ^ this.ccr) & 2) !== 0);
 			case 0x2e: // LBGT
-				return void this.lbcc(((this.ccr >>> 2 ^ this.ccr | this.ccr >>> 1) & 2) === 0);
+				return this.lbcc(((this.ccr >>> 2 ^ this.ccr | this.ccr >>> 1) & 2) === 0);
 			case 0x2f: // LBLE
-				return void this.lbcc(((this.ccr >>> 2 ^ this.ccr | this.ccr >>> 1) & 2) !== 0);
+				return this.lbcc(((this.ccr >>> 2 ^ this.ccr | this.ccr >>> 1) & 2) !== 0);
 			case 0x3f: // SWI2
 				this.pshs16(this.pc);
 				this.pshs16(this.u);
@@ -140,49 +140,49 @@ export default class MC6809 extends Cpu {
 				this.pc = this.read(0xfff4) << 8 | this.read(0xfff5);
 				return;
 			case 0x83: // CMPD #nn
-				return void this.cmp16(this.a << 8 | this.b, null);
+				return this.cmp16(this.a << 8 | this.b, null);
 			case 0x8c: // CMPY #nn
-				return void this.cmp16(this.y, null);
+				return this.cmp16(this.y, null);
 			case 0x8e: // LDY #nn
 				return void(this.y = this.ld16(null));
 			case 0x93: // CMPD <n
-				return void this.cmp16(this.a << 8 | this.b, this.direct());
+				return this.cmp16(this.a << 8 | this.b, this.direct());
 			case 0x9c: // CMPY <n
-				return void this.cmp16(this.y, this.direct());
+				return this.cmp16(this.y, this.direct());
 			case 0x9e: // LDY <n
 				return void(this.y = this.ld16(this.direct()));
 			case 0x9f: // STY <n
-				return void this.st16(this.y, this.direct());
+				return this.st16(this.y, this.direct());
 			case 0xa3: // CMPD ,r
-				return void this.cmp16(this.a << 8 | this.b, this.index());
+				return this.cmp16(this.a << 8 | this.b, this.index());
 			case 0xac: // CMPY ,r
-				return void this.cmp16(this.y, this.index());
+				return this.cmp16(this.y, this.index());
 			case 0xae: // LDY ,r
 				return void(this.y = this.ld16(this.index()));
 			case 0xaf: // STY ,r
-				return void this.st16(this.y, this.index());
+				return this.st16(this.y, this.index());
 			case 0xb3: // CMPD >nn
-				return void this.cmp16(this.a << 8 | this.b, this.extend());
+				return this.cmp16(this.a << 8 | this.b, this.extend());
 			case 0xbc: // CMPY >nn
-				return void this.cmp16(this.y, this.extend());
+				return this.cmp16(this.y, this.extend());
 			case 0xbe: // LDY >nn
 				return void(this.y = this.ld16(this.extend()));
 			case 0xbf: // STY >nn
-				return void this.st16(this.y, this.extend());
+				return this.st16(this.y, this.extend());
 			case 0xce: // LDS #nn
 				return void(this.s = this.ld16(null));
 			case 0xde: // LDS <n
 				return void(this.s = this.ld16(this.direct()));
 			case 0xdf: // STS <n
-				return void this.st16(this.s, this.direct());
+				return this.st16(this.s, this.direct());
 			case 0xee: // LDS ,r
 				return void(this.s = this.ld16(this.index()));
 			case 0xef: // STS ,r
-				return void this.st16(this.s, this.index());
+				return this.st16(this.s, this.index());
 			case 0xfe: // LDS >nn
 				return void(this.s = this.ld16(this.extend()));
 			case 0xff: // STS >nn
-				return void this.st16(this.s, this.extend());
+				return this.st16(this.s, this.extend());
 			default:
 				this.undefsize = 2;
 				if (this.undef)
@@ -203,21 +203,21 @@ export default class MC6809 extends Cpu {
 				this.pc = this.read(0xfff2) << 8 | this.read(0xfff3);
 				return;
 			case 0x83: // CMPU #nn
-				return void this.cmp16(this.u, null);
+				return this.cmp16(this.u, null);
 			case 0x8c: // CMPS #nn
-				return void this.cmp16(this.s, null);
+				return this.cmp16(this.s, null);
 			case 0x93: // CMPU <n
-				return void this.cmp16(this.u, this.direct());
+				return this.cmp16(this.u, this.direct());
 			case 0x9c: // CMPS <n
-				return void this.cmp16(this.s, this.direct());
+				return this.cmp16(this.s, this.direct());
 			case 0xa3: // CMPU ,r
-				return void this.cmp16(this.u, this.index());
+				return this.cmp16(this.u, this.index());
 			case 0xac: // CMPS ,r
-				return void this.cmp16(this.s, this.index());
+				return this.cmp16(this.s, this.index());
 			case 0xb3: // CMPU >nn
-				return void this.cmp16(this.u, this.extend());
+				return this.cmp16(this.u, this.extend());
 			case 0xbc: // CMPS >nn
-				return void this.cmp16(this.s, this.extend());
+				return this.cmp16(this.s, this.extend());
 			default:
 				this.undefsize = 2;
 				if (this.undef)
@@ -227,11 +227,11 @@ export default class MC6809 extends Cpu {
 		case 0x12: // NOP
 			return;
 		case 0x13: // SYNC
-			return void this.suspend();
+			return this.suspend();
 		case 0x16: // LBRA
-			return void this.lbcc(true);
+			return this.lbcc(true);
 		case 0x17: // LBSR
-			return void this.lbsr();
+			return this.lbsr();
 		case 0x19: // DAA
 			this.a = (v = MC6809.aDaa[this.ccr >>> 4 & 2 | this.ccr & 1][this.a]) & 0xff;
 			this.ccr = this.ccr & ~0x0f | v >>> 8;
@@ -436,37 +436,37 @@ export default class MC6809 extends Cpu {
 				return;
 			}
 		case 0x20: // BRA
-			return void this.bcc(true);
+			return this.bcc(true);
 		case 0x21: // BRN
-			return void this.bcc(false);
+			return this.bcc(false);
 		case 0x22: // BHI
-			return void this.bcc(((this.ccr >>> 2 | this.ccr) & 1) === 0);
+			return this.bcc(((this.ccr >>> 2 | this.ccr) & 1) === 0);
 		case 0x23: // BLS
-			return void this.bcc(((this.ccr >>> 2 | this.ccr) & 1) !== 0);
+			return this.bcc(((this.ccr >>> 2 | this.ccr) & 1) !== 0);
 		case 0x24: // BHS(BCC)
-			return void this.bcc((this.ccr & 1) === 0);
+			return this.bcc((this.ccr & 1) === 0);
 		case 0x25: // BLO(BCS)
-			return void this.bcc((this.ccr & 1) !== 0);
+			return this.bcc((this.ccr & 1) !== 0);
 		case 0x26: // BNE
-			return void this.bcc((this.ccr & 4) === 0);
+			return this.bcc((this.ccr & 4) === 0);
 		case 0x27: // BEQ
-			return void this.bcc((this.ccr & 4) !== 0);
+			return this.bcc((this.ccr & 4) !== 0);
 		case 0x28: // BVC
-			return void this.bcc((this.ccr & 2) === 0);
+			return this.bcc((this.ccr & 2) === 0);
 		case 0x29: // BVS
-			return void this.bcc((this.ccr & 2) !== 0);
+			return this.bcc((this.ccr & 2) !== 0);
 		case 0x2a: // BPL
-			return void this.bcc((this.ccr & 8) === 0);
+			return this.bcc((this.ccr & 8) === 0);
 		case 0x2b: // BMI
-			return void this.bcc((this.ccr & 8) !== 0);
+			return this.bcc((this.ccr & 8) !== 0);
 		case 0x2c: // BGE
-			return void this.bcc(((this.ccr >>> 2 ^ this.ccr) & 2) === 0);
+			return this.bcc(((this.ccr >>> 2 ^ this.ccr) & 2) === 0);
 		case 0x2d: // BLT
-			return void this.bcc(((this.ccr >>> 2 ^ this.ccr) & 2) !== 0);
+			return this.bcc(((this.ccr >>> 2 ^ this.ccr) & 2) !== 0);
 		case 0x2e: // BGT
-			return void this.bcc(((this.ccr >>> 2 ^ this.ccr | this.ccr >>> 1) & 2) === 0);
+			return this.bcc(((this.ccr >>> 2 ^ this.ccr | this.ccr >>> 1) & 2) === 0);
 		case 0x2f: // BLE
-			return void this.bcc(((this.ccr >>> 2 ^ this.ccr | this.ccr >>> 1) & 2) !== 0);
+			return this.bcc(((this.ccr >>> 2 ^ this.ccr | this.ccr >>> 1) & 2) !== 0);
 		case 0x30: // LEAX
 			return void(this.ccr = this.ccr & ~4 | !(this.x = this.index()) << 2);
 		case 0x31: // LEAY
@@ -602,7 +602,7 @@ export default class MC6809 extends Cpu {
 		case 0x4c: // INCA
 			return void(this.a = this.inca(this.a));
 		case 0x4d: // TSTA
-			return void this.tsta(this.a);
+			return this.tsta(this.a);
 		case 0x4f: // CLRA
 			return void(this.a = this.clra());
 		case 0x50: // NEGB
@@ -624,69 +624,69 @@ export default class MC6809 extends Cpu {
 		case 0x5c: // INCB
 			return void(this.b = this.inca(this.b));
 		case 0x5d: // TSTB
-			return void this.tsta(this.b);
+			return this.tsta(this.b);
 		case 0x5f: // CLRB
 			return void(this.b = this.clra());
 		case 0x60: // NEG ,r
-			return void this.neg(this.index());
+			return this.neg(this.index());
 		case 0x63: // COM ,r
-			return void this.com(this.index());
+			return this.com(this.index());
 		case 0x64: // LSR ,r
-			return void this.lsr(this.index());
+			return this.lsr(this.index());
 		case 0x66: // ROR ,r
-			return void this.ror(this.index());
+			return this.ror(this.index());
 		case 0x67: // ASR ,r
-			return void this.asr(this.index());
+			return this.asr(this.index());
 		case 0x68: // LSL ,r
-			return void this.lsl(this.index());
+			return this.lsl(this.index());
 		case 0x69: // ROL ,r
-			return void this.rol(this.index());
+			return this.rol(this.index());
 		case 0x6a: // DEC ,r
-			return void this.dec(this.index());
+			return this.dec(this.index());
 		case 0x6c: // INC ,r
-			return void this.inc(this.index());
+			return this.inc(this.index());
 		case 0x6d: // TST ,r
-			return void this.tst(this.index());
+			return this.tst(this.index());
 		case 0x6e: // JMP ,r
 			return void(this.pc = this.index());
 		case 0x6f: // CLR ,r
-			return void this.clr(this.index());
+			return this.clr(this.index());
 		case 0x70: // NEG >nn
-			return void this.neg(this.extend());
+			return this.neg(this.extend());
 		case 0x73: // COM >nn
-			return void this.com(this.extend());
+			return this.com(this.extend());
 		case 0x74: // LSR >nn
-			return void this.lsr(this.extend());
+			return this.lsr(this.extend());
 		case 0x76: // ROR >nn
-			return void this.ror(this.extend());
+			return this.ror(this.extend());
 		case 0x77: // ASR >nn
-			return void this.asr(this.extend());
+			return this.asr(this.extend());
 		case 0x78: // LSL >nn
-			return void this.lsl(this.extend());
+			return this.lsl(this.extend());
 		case 0x79: // ROL >nn
-			return void this.rol(this.extend());
+			return this.rol(this.extend());
 		case 0x7a: // DEC >nn
-			return void this.dec(this.extend());
+			return this.dec(this.extend());
 		case 0x7c: // INC >nn
-			return void this.inc(this.extend());
+			return this.inc(this.extend());
 		case 0x7d: // TST >nn
-			return void this.tst(this.extend());
+			return this.tst(this.extend());
 		case 0x7e: // JMP >nn
 			return void(this.pc = this.extend());
 		case 0x7f: // CLR >nn
-			return void this.clr(this.extend());
+			return this.clr(this.extend());
 		case 0x80: // SUBA #n
 			return void(this.a = this.sub(this.a, null));
 		case 0x81: // CMPA #n
-			return void this.cmp(this.a, null);
+			return this.cmp(this.a, null);
 		case 0x82: // SBCA #n
 			return void(this.a = this.sbc(this.a, null));
 		case 0x83: // SUBD #nn
-			return void this.subd(null);
+			return this.subd(null);
 		case 0x84: // ANDA #n
 			return void(this.a = this.and(this.a, null));
 		case 0x85: // BITA #n
-			return void this.bit(this.a, null);
+			return this.bit(this.a, null);
 		case 0x86: // LDA #n
 			return void(this.a = this.ld(null));
 		case 0x88: // EORA #n
@@ -698,27 +698,27 @@ export default class MC6809 extends Cpu {
 		case 0x8b: // ADDA #n
 			return void(this.a = this.add(this.a, null));
 		case 0x8c: // CMPX #nn
-			return void this.cmp16(this.x, null);
+			return this.cmp16(this.x, null);
 		case 0x8d: // BSR
-			return void this.bsr();
+			return this.bsr();
 		case 0x8e: // LDX #nn
 			return void(this.x = this.ld16(null));
 		case 0x90: // SUBA <n
 			return void(this.a = this.sub(this.a, this.direct()));
 		case 0x91: // CMPA <n
-			return void this.cmp(this.a, this.direct());
+			return this.cmp(this.a, this.direct());
 		case 0x92: // SBCA <n
 			return void(this.a = this.sbc(this.a, this.direct()));
 		case 0x93: // SUBD <n
-			return void this.subd(this.direct());
+			return this.subd(this.direct());
 		case 0x94: // ANDA <n
 			return void(this.a = this.and(this.a, this.direct()));
 		case 0x95: // BITA <n
-			return void this.bit(this.a, this.direct());
+			return this.bit(this.a, this.direct());
 		case 0x96: // LDA <n
 			return void(this.a = this.ld(this.direct()));
 		case 0x97: // STA <n
-			return void this.st(this.a, this.direct());
+			return this.st(this.a, this.direct());
 		case 0x98: // EORA <n
 			return void(this.a = this.eor(this.a, this.direct()));
 		case 0x99: // ADCA <n
@@ -728,29 +728,29 @@ export default class MC6809 extends Cpu {
 		case 0x9b: // ADDA <n
 			return void(this.a = this.add(this.a, this.direct()));
 		case 0x9c: // CMPX <n
-			return void this.cmp16(this.x, this.direct());
+			return this.cmp16(this.x, this.direct());
 		case 0x9d: // JSR <n
-			return void this.jsr(this.direct());
+			return this.jsr(this.direct());
 		case 0x9e: // LDX <n
 			return void(this.x = this.ld16(this.direct()));
 		case 0x9f: // STX <n
-			return void this.st16(this.x, this.direct());
+			return this.st16(this.x, this.direct());
 		case 0xa0: // SUBA ,r
 			return void(this.a = this.sub(this.a, this.index()));
 		case 0xa1: // CMPA ,r
-			return void this.cmp(this.a, this.index());
+			return this.cmp(this.a, this.index());
 		case 0xa2: // SBCA ,r
 			return void(this.a = this.sbc(this.a, this.index()));
 		case 0xa3: // SUBD ,r
-			return void this.subd(this.index());
+			return this.subd(this.index());
 		case 0xa4: // ANDA ,r
 			return void(this.a = this.and(this.a, this.index()));
 		case 0xa5: // BITA ,r
-			return void this.bit(this.a, this.index());
+			return this.bit(this.a, this.index());
 		case 0xa6: // LDA ,r
 			return void(this.a = this.ld(this.index()));
 		case 0xa7: // STA ,r
-			return void this.st(this.a, this.index());
+			return this.st(this.a, this.index());
 		case 0xa8: // EORA ,r
 			return void(this.a = this.eor(this.a, this.index()));
 		case 0xa9: // ADCA ,r
@@ -760,29 +760,29 @@ export default class MC6809 extends Cpu {
 		case 0xab: // ADDA ,r
 			return void(this.a = this.add(this.a, this.index()));
 		case 0xac: // CMPX ,r
-			return void this.cmp16(this.x, this.index());
+			return this.cmp16(this.x, this.index());
 		case 0xad: // JSR ,r
-			return void this.jsr(this.index());
+			return this.jsr(this.index());
 		case 0xae: // LDX ,r
 			return void(this.x = this.ld16(this.index()));
 		case 0xaf: // STX ,r
-			return void this.st16(this.x, this.index());
+			return this.st16(this.x, this.index());
 		case 0xb0: // SUBA >nn
 			return void(this.a = this.sub(this.a, this.extend()));
 		case 0xb1: // CMPA >nn
-			return void this.cmp(this.a, this.extend());
+			return this.cmp(this.a, this.extend());
 		case 0xb2: // SBCA >nn
 			return void(this.a = this.sbc(this.a, this.extend()));
 		case 0xb3: // SUBD >nn
-			return void this.subd(this.extend());
+			return this.subd(this.extend());
 		case 0xb4: // ANDA >nn
 			return void(this.a = this.and(this.a, this.extend()));
 		case 0xb5: // BITA >nn
-			return void this.bit(this.a, this.extend());
+			return this.bit(this.a, this.extend());
 		case 0xb6: // LDA >nn
 			return void(this.a = this.ld(this.extend()));
 		case 0xb7: // STA >nn
-			return void this.st(this.a, this.extend());
+			return this.st(this.a, this.extend());
 		case 0xb8: // EORA >nn
 			return void(this.a = this.eor(this.a, this.extend()));
 		case 0xb9: // ADCA >nn
@@ -792,25 +792,25 @@ export default class MC6809 extends Cpu {
 		case 0xbb: // ADDA >nn
 			return void(this.a = this.add(this.a, this.extend()));
 		case 0xbc: // CMPX >nn
-			return void this.cmp16(this.x, this.extend());
+			return this.cmp16(this.x, this.extend());
 		case 0xbd: // JSR >nn
-			return void this.jsr(this.extend());
+			return this.jsr(this.extend());
 		case 0xbe: // LDX >nn
 			return void(this.x = this.ld16(this.extend()));
 		case 0xbf: // STX >nn
-			return void this.st16(this.x, this.extend());
+			return this.st16(this.x, this.extend());
 		case 0xc0: // SUBB #n
 			return void(this.b = this.sub(this.b, null));
 		case 0xc1: // CMPB #n
-			return void this.cmp(this.b, null);
+			return this.cmp(this.b, null);
 		case 0xc2: // SBCB #n
 			return void(this.b = this.sbc(this.b, null));
 		case 0xc3: // ADDD #nn
-			return void this.addd(null);
+			return this.addd(null);
 		case 0xc4: // ANDB #n
 			return void(this.b = this.and(this.b, null));
 		case 0xc5: // BITB #n
-			return void this.bit(this.b, null);
+			return this.bit(this.b, null);
 		case 0xc6: // LDB #n
 			return void(this.b = this.ld(null));
 		case 0xc8: // EORB #n
@@ -822,25 +822,25 @@ export default class MC6809 extends Cpu {
 		case 0xcb: // ADDB #n
 			return void(this.b = this.add(this.b, null));
 		case 0xcc: // LDD #nn
-			return void this.ldd(null);
+			return this.ldd(null);
 		case 0xce: // LDU #nn
 			return void(this.u = this.ld16(null));
 		case 0xd0: // SUBB <n
 			return void(this.b = this.sub(this.b, this.direct()));
 		case 0xd1: // CMPB <n
-			return void this.cmp(this.b, this.direct());
+			return this.cmp(this.b, this.direct());
 		case 0xd2: // SBCB <n
 			return void(this.b = this.sbc(this.b, this.direct()));
 		case 0xd3: // ADDD <n
-			return void this.addd(this.direct());
+			return this.addd(this.direct());
 		case 0xd4: // ANDB <n
 			return void(this.b = this.and(this.b, this.direct()));
 		case 0xd5: // BITB <n
-			return void this.bit(this.b, this.direct());
+			return this.bit(this.b, this.direct());
 		case 0xd6: // LDB <n
 			return void(this.b = this.ld(this.direct()));
 		case 0xd7: // STB <n
-			return void this.st(this.b, this.direct());
+			return this.st(this.b, this.direct());
 		case 0xd8: // EORB <n
 			return void(this.b = this.eor(this.b, this.direct()));
 		case 0xd9: // ADCB <n
@@ -850,29 +850,29 @@ export default class MC6809 extends Cpu {
 		case 0xdb: // ADDB <n
 			return void(this.b = this.add(this.b, this.direct()));
 		case 0xdc: // LDD <n
-			return void this.ldd(this.direct());
+			return this.ldd(this.direct());
 		case 0xdd: // STD <n
-			return void this.std(this.direct());
+			return this.std(this.direct());
 		case 0xde: // LDU <n
 			return void(this.u = this.ld16(this.direct()));
 		case 0xdf: // STU <n
-			return void this.st16(this.u, this.direct());
+			return this.st16(this.u, this.direct());
 		case 0xe0: // SUBB ,r
 			return void(this.b = this.sub(this.b, this.index()));
 		case 0xe1: // CMPB ,r
-			return void this.cmp(this.b, this.index());
+			return this.cmp(this.b, this.index());
 		case 0xe2: // SBCB ,r
 			return void(this.b = this.sbc(this.b, this.index()));
 		case 0xe3: // ADDD ,r
-			return void this.addd(this.index());
+			return this.addd(this.index());
 		case 0xe4: // ANDB ,r
 			return void(this.b = this.and(this.b, this.index()));
 		case 0xe5: // BITB ,r
-			return void this.bit(this.b, this.index());
+			return this.bit(this.b, this.index());
 		case 0xe6: // LDB ,r
 			return void(this.b = this.ld(this.index()));
 		case 0xe7: // STB ,r
-			return void this.st(this.b, this.index());
+			return this.st(this.b, this.index());
 		case 0xe8: // EORB ,r
 			return void(this.b = this.eor(this.b, this.index()));
 		case 0xe9: // ADCB ,r
@@ -882,29 +882,29 @@ export default class MC6809 extends Cpu {
 		case 0xeb: // ADDB ,r
 			return void(this.b = this.add(this.b, this.index()));
 		case 0xec: // LDD ,r
-			return void this.ldd(this.index());
+			return this.ldd(this.index());
 		case 0xed: // STD ,r
-			return void this.std(this.index());
+			return this.std(this.index());
 		case 0xee: // LDU ,r
 			return void(this.u = this.ld16(this.index()));
 		case 0xef: // STU ,r
-			return void this.st16(this.u, this.index());
+			return this.st16(this.u, this.index());
 		case 0xf0: // SUBB >nn
 			return void(this.b = this.sub(this.b, this.extend()));
 		case 0xf1: // CMPB >nn
-			return void this.cmp(this.b, this.extend());
+			return this.cmp(this.b, this.extend());
 		case 0xf2: // SBCB >nn
 			return void(this.b = this.sbc(this.b, this.extend()));
 		case 0xf3: // ADDD >nn
-			return void this.addd(this.extend());
+			return this.addd(this.extend());
 		case 0xf4: // ANDB >nn
 			return void(this.b = this.and(this.b, this.extend()));
 		case 0xf5: // BITB >nn
-			return void this.bit(this.b, this.extend());
+			return this.bit(this.b, this.extend());
 		case 0xf6: // LDB >nn
 			return void(this.b = this.ld(this.extend()));
 		case 0xf7: // STB >nn
-			return void this.st(this.b, this.extend());
+			return this.st(this.b, this.extend());
 		case 0xf8: // EORB >nn
 			return void(this.b = this.eor(this.b, this.extend()));
 		case 0xf9: // ADCB >nn
@@ -914,13 +914,13 @@ export default class MC6809 extends Cpu {
 		case 0xfb: // ADDB >nn
 			return void(this.b = this.add(this.b, this.extend()));
 		case 0xfc: // LDD >nn
-			return void this.ldd(this.extend());
+			return this.ldd(this.extend());
 		case 0xfd: // STD >nn
-			return void this.std(this.extend());
+			return this.std(this.extend());
 		case 0xfe: // LDU >nn
 			return void(this.u = this.ld16(this.extend()));
 		case 0xff: // STU >nn
-			return void this.st16(this.u, this.extend());
+			return this.st16(this.u, this.extend());
 		default:
 			this.undefsize = 1;
 			if (this.undef)

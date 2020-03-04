@@ -110,9 +110,9 @@ export default class Z80 extends Cpu {
 		case 0x01: // LD BC,nn
 			return void([this.c, this.b] = [this.fetch(), this.fetch()]);
 		case 0x02: // LD (BC),A
-			return void this.write(this.c | this.b << 8, this.a);
+			return this.write(this.c | this.b << 8, this.a);
 		case 0x03: // INC BC
-			return void this.incbc();
+			return this.incbc();
 		case 0x04: // INC B
 			return void(this.b = this.inc(this.b));
 		case 0x05: // DEC B
@@ -120,7 +120,7 @@ export default class Z80 extends Cpu {
 		case 0x06: // LD B,n
 			return void(this.b = this.fetch());
 		case 0x07: // RLCA
-			return void this.rlca();
+			return this.rlca();
 		case 0x08: // EX AF,AF'
 			return void([this.a, this.f, this.a_prime, this.f_prime] = [this.a_prime, this.f_prime, this.a, this.f]);
 		case 0x09: // ADD HL,BC
@@ -131,7 +131,7 @@ export default class Z80 extends Cpu {
 		case 0x0a: // LD A,(BC)
 			return void(this.a = this.read(this.c | this.b << 8));
 		case 0x0b: // DEC BC
-			return void this.decbc();
+			return this.decbc();
 		case 0x0c: // INC C
 			return void(this.c = this.inc(this.c));
 		case 0x0d: // DEC C
@@ -139,15 +139,15 @@ export default class Z80 extends Cpu {
 		case 0x0e: // LD C,n
 			return void(this.c = this.fetch());
 		case 0x0f: // RRCA
-			return void this.rrca();
+			return this.rrca();
 		case 0x10: // DJNZ e
-			return void this.jr((this.b = this.b - 1 & 0xff) !== 0);
+			return this.jr((this.b = this.b - 1 & 0xff) !== 0);
 		case 0x11: // LD DE,nn
 			return void([this.e, this.d] = [this.fetch(), this.fetch()]);
 		case 0x12: // LD (DE),A
-			return void this.write(this.e | this.d << 8, this.a);
+			return this.write(this.e | this.d << 8, this.a);
 		case 0x13: // INC DE
-			return void this.incde();
+			return this.incde();
 		case 0x14: // INC D
 			return void(this.d = this.inc(this.d));
 		case 0x15: // DEC D
@@ -155,9 +155,9 @@ export default class Z80 extends Cpu {
 		case 0x16: // LD D,n
 			return void(this.d = this.fetch());
 		case 0x17: // RLA
-			return void this.rla();
+			return this.rla();
 		case 0x18: // JR e
-			return void this.jr(true);
+			return this.jr(true);
 		case 0x19: // ADD HL,DE
 			this.l = (v = Z80.aAdd[0][this.e][this.l]) & 0xff;
 			this.h = (v = Z80.aAdd[v >>> 8 & 1][this.d][this.h]) & 0xff;
@@ -166,7 +166,7 @@ export default class Z80 extends Cpu {
 		case 0x1a: // LD A,(DE)
 			return void(this.a = this.read(this.e | this.d << 8));
 		case 0x1b: // DEC DE
-			return void this.decde();
+			return this.decde();
 		case 0x1c: // INC E
 			return void(this.e = this.inc(this.e));
 		case 0x1d: // DEC E
@@ -174,9 +174,9 @@ export default class Z80 extends Cpu {
 		case 0x1e: // LD E,n
 			return void(this.e = this.fetch());
 		case 0x1f: // RRA
-			return void this.rra();
+			return this.rra();
 		case 0x20: // JR NZ,e
-			return void this.jr((this.f & 0x40) === 0);
+			return this.jr((this.f & 0x40) === 0);
 		case 0x21: // LD HL,nn
 			return void([this.l, this.h] = [this.fetch(), this.fetch()]);
 		case 0x22: // LD (nn),HL
@@ -184,7 +184,7 @@ export default class Z80 extends Cpu {
 			this.write1(v, this.h);
 			return;
 		case 0x23: // INC HL
-			return void this.inchl();
+			return this.inchl();
 		case 0x24: // INC H
 			return void(this.h = this.inc(this.h));
 		case 0x25: // DEC H
@@ -196,7 +196,7 @@ export default class Z80 extends Cpu {
 			this.f = v >>> 8;
 			return;
 		case 0x28: // JR Z,e
-			return void this.jr((this.f & 0x40) !== 0);
+			return this.jr((this.f & 0x40) !== 0);
 		case 0x29: // ADD HL,HL
 			this.l = (v = Z80.aAdd[0][this.l][this.l]) & 0xff;
 			this.h = (v = Z80.aAdd[v >>> 8 & 1][this.h][this.h]) & 0xff;
@@ -207,7 +207,7 @@ export default class Z80 extends Cpu {
 			this.h = this.read1(v);
 			return;
 		case 0x2b: // DEC HL
-			return void this.dechl();
+			return this.dechl();
 		case 0x2c: // INC L
 			return void(this.l = this.inc(this.l));
 		case 0x2d: // DEC L
@@ -219,23 +219,23 @@ export default class Z80 extends Cpu {
 			this.f |= 0x12;
 			return;
 		case 0x30: // JR NC,e
-			return void this.jr((this.f & 1) === 0);
+			return this.jr((this.f & 1) === 0);
 		case 0x31: // LD SP,nn
 			return void(this.sp = this.fetch() | this.fetch() << 8);
 		case 0x32: // LD (nn),A
-			return void this.write(this.fetch() | this.fetch() << 8, this.a);
+			return this.write(this.fetch() | this.fetch() << 8, this.a);
 		case 0x33: // INC SP
 			return void(this.sp = this.sp + 1 & 0xffff);
 		case 0x34: // INC (HL)
-			return void this.write(v = this.l | this.h << 8, this.inc(this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.inc(this.read(v)));
 		case 0x35: // DEC (HL)
-			return void this.write(v = this.l | this.h << 8, this.dec(this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.dec(this.read(v)));
 		case 0x36: // LD (HL),n
-			return void this.write(this.l | this.h << 8, this.fetch());
+			return this.write(this.l | this.h << 8, this.fetch());
 		case 0x37: // SCF
 			return void(this.f = this.f & 0xc4 | 1);
 		case 0x38: // JR C,e
-			return void this.jr((this.f & 1) !== 0);
+			return this.jr((this.f & 1) !== 0);
 		case 0x39: // ADD HL,SP
 			this.l = (v = Z80.aAdd[0][this.sp & 0xff][this.l]) & 0xff;
 			this.h = (v = Z80.aAdd[v >>> 8 & 1][this.sp >>> 8][this.h]) & 0xff;
@@ -350,21 +350,21 @@ export default class Z80 extends Cpu {
 		case 0x6f: // LD L,A
 			return void(this.l = this.a);
 		case 0x70: // LD (HL),B
-			return void this.write(this.l | this.h << 8, this.b);
+			return this.write(this.l | this.h << 8, this.b);
 		case 0x71: // LD (HL),C
-			return void this.write(this.l | this.h << 8, this.c);
+			return this.write(this.l | this.h << 8, this.c);
 		case 0x72: // LD (HL),D
-			return void this.write(this.l | this.h << 8, this.d);
+			return this.write(this.l | this.h << 8, this.d);
 		case 0x73: // LD (HL),E
-			return void this.write(this.l | this.h << 8, this.e);
+			return this.write(this.l | this.h << 8, this.e);
 		case 0x74: // LD (HL),H
-			return void this.write(this.l | this.h << 8, this.h);
+			return this.write(this.l | this.h << 8, this.h);
 		case 0x75: // LD (HL),L
-			return void this.write(this.l | this.h << 8, this.l);
+			return this.write(this.l | this.h << 8, this.l);
 		case 0x76: // HALT
-			return void this.suspend();
+			return this.suspend();
 		case 0x77: // LD (HL),A
-			return void this.write(this.l | this.h << 8, this.a);
+			return this.write(this.l | this.h << 8, this.a);
 		case 0x78: // LD A,B
 			return void(this.a = this.b);
 		case 0x79: // LD A,C
@@ -382,210 +382,210 @@ export default class Z80 extends Cpu {
 		case 0x7f: // LD A,A
 			return;
 		case 0x80: // ADD A,B
-			return void this.add(this.b);
+			return this.add(this.b);
 		case 0x81: // ADD A,C
-			return void this.add(this.c);
+			return this.add(this.c);
 		case 0x82: // ADD A,D
-			return void this.add(this.d);
+			return this.add(this.d);
 		case 0x83: // ADD A,E
-			return void this.add(this.e);
+			return this.add(this.e);
 		case 0x84: // ADD A,H
-			return void this.add(this.h);
+			return this.add(this.h);
 		case 0x85: // ADD A,L
-			return void this.add(this.l);
+			return this.add(this.l);
 		case 0x86: // ADD A,(HL)
-			return void this.add(this.read(this.l | this.h << 8));
+			return this.add(this.read(this.l | this.h << 8));
 		case 0x87: // ADD A,A
-			return void this.add(this.a);
+			return this.add(this.a);
 		case 0x88: // ADC A,B
-			return void this.adc(this.b);
+			return this.adc(this.b);
 		case 0x89: // ADC A,C
-			return void this.adc(this.c);
+			return this.adc(this.c);
 		case 0x8a: // ADC A,D
-			return void this.adc(this.d);
+			return this.adc(this.d);
 		case 0x8b: // ADC A,E
-			return void this.adc(this.e);
+			return this.adc(this.e);
 		case 0x8c: // ADC A,H
-			return void this.adc(this.h);
+			return this.adc(this.h);
 		case 0x8d: // ADC A,L
-			return void this.adc(this.l);
+			return this.adc(this.l);
 		case 0x8e: // ADC A,(HL)
-			return void this.adc(this.read(this.l | this.h << 8));
+			return this.adc(this.read(this.l | this.h << 8));
 		case 0x8f: // ADC A,A
-			return void this.adc(this.a);
+			return this.adc(this.a);
 		case 0x90: // SUB B
-			return void this.sub(this.b);
+			return this.sub(this.b);
 		case 0x91: // SUB C
-			return void this.sub(this.c);
+			return this.sub(this.c);
 		case 0x92: // SUB D
-			return void this.sub(this.d);
+			return this.sub(this.d);
 		case 0x93: // SUB E
-			return void this.sub(this.e);
+			return this.sub(this.e);
 		case 0x94: // SUB H
-			return void this.sub(this.h);
+			return this.sub(this.h);
 		case 0x95: // SUB L
-			return void this.sub(this.l);
+			return this.sub(this.l);
 		case 0x96: // SUB (HL)
-			return void this.sub(this.read(this.l | this.h << 8));
+			return this.sub(this.read(this.l | this.h << 8));
 		case 0x97: // SUB A
-			return void this.sub(this.a);
+			return this.sub(this.a);
 		case 0x98: // SBC A,B
-			return void this.sbc(this.b);
+			return this.sbc(this.b);
 		case 0x99: // SBC A,C
-			return void this.sbc(this.c);
+			return this.sbc(this.c);
 		case 0x9a: // SBC A,D
-			return void this.sbc(this.d);
+			return this.sbc(this.d);
 		case 0x9b: // SBC A,E
-			return void this.sbc(this.e);
+			return this.sbc(this.e);
 		case 0x9c: // SBC A,H
-			return void this.sbc(this.h);
+			return this.sbc(this.h);
 		case 0x9d: // SBC A,L
-			return void this.sbc(this.l);
+			return this.sbc(this.l);
 		case 0x9e: // SBC A,(HL)
-			return void this.sbc(this.read(this.l | this.h << 8));
+			return this.sbc(this.read(this.l | this.h << 8));
 		case 0x9f: // SBC A,A
-			return void this.sbc(this.a);
+			return this.sbc(this.a);
 		case 0xa0: // AND B
-			return void this.and(this.b);
+			return this.and(this.b);
 		case 0xa1: // AND C
-			return void this.and(this.c);
+			return this.and(this.c);
 		case 0xa2: // AND D
-			return void this.and(this.d);
+			return this.and(this.d);
 		case 0xa3: // AND E
-			return void this.and(this.e);
+			return this.and(this.e);
 		case 0xa4: // AND H
-			return void this.and(this.h);
+			return this.and(this.h);
 		case 0xa5: // AND L
-			return void this.and(this.l);
+			return this.and(this.l);
 		case 0xa6: // AND (HL)
-			return void this.and(this.read(this.l | this.h << 8));
+			return this.and(this.read(this.l | this.h << 8));
 		case 0xa7: // AND A
-			return void this.and(this.a);
+			return this.and(this.a);
 		case 0xa8: // XOR B
-			return void this.xor(this.b);
+			return this.xor(this.b);
 		case 0xa9: // XOR C
-			return void this.xor(this.c);
+			return this.xor(this.c);
 		case 0xaa: // XOR D
-			return void this.xor(this.d);
+			return this.xor(this.d);
 		case 0xab: // XOR E
-			return void this.xor(this.e);
+			return this.xor(this.e);
 		case 0xac: // XOR H
-			return void this.xor(this.h);
+			return this.xor(this.h);
 		case 0xad: // XOR L
-			return void this.xor(this.l);
+			return this.xor(this.l);
 		case 0xae: // XOR (HL)
-			return void this.xor(this.read(this.l | this.h << 8));
+			return this.xor(this.read(this.l | this.h << 8));
 		case 0xaf: // XOR A
-			return void this.xor(this.a);
+			return this.xor(this.a);
 		case 0xb0: // OR B
-			return void this.or(this.b);
+			return this.or(this.b);
 		case 0xb1: // OR C
-			return void this.or(this.c);
+			return this.or(this.c);
 		case 0xb2: // OR D
-			return void this.or(this.d);
+			return this.or(this.d);
 		case 0xb3: // OR E
-			return void this.or(this.e);
+			return this.or(this.e);
 		case 0xb4: // OR H
-			return void this.or(this.h);
+			return this.or(this.h);
 		case 0xb5: // OR L
-			return void this.or(this.l);
+			return this.or(this.l);
 		case 0xb6: // OR (HL)
-			return void this.or(this.read(this.l | this.h << 8));
+			return this.or(this.read(this.l | this.h << 8));
 		case 0xb7: // OR A
-			return void this.or(this.a);
+			return this.or(this.a);
 		case 0xb8: // CP B
-			return void this.cp(this.b);
+			return this.cp(this.b);
 		case 0xb9: // CP C
-			return void this.cp(this.c);
+			return this.cp(this.c);
 		case 0xba: // CP D
-			return void this.cp(this.d);
+			return this.cp(this.d);
 		case 0xbb: // CP E
-			return void this.cp(this.e);
+			return this.cp(this.e);
 		case 0xbc: // CP H
-			return void this.cp(this.h);
+			return this.cp(this.h);
 		case 0xbd: // CP L
-			return void this.cp(this.l);
+			return this.cp(this.l);
 		case 0xbe: // CP (HL)
-			return void this.cp(this.read(this.l | this.h << 8));
+			return this.cp(this.read(this.l | this.h << 8));
 		case 0xbf: // CP A
-			return void this.cp(this.a);
+			return this.cp(this.a);
 		case 0xc0: // RET NZ
-			return void this.ret((this.f & 0x40) === 0);
+			return this.ret((this.f & 0x40) === 0);
 		case 0xc1: // POP BC
 			return void([this.c, this.b] = [this.pop(), this.pop()]);
 		case 0xc2: // JP NZ,nn
-			return void this.jp((this.f & 0x40) === 0);
+			return this.jp((this.f & 0x40) === 0);
 		case 0xc3: // JP nn
-			return void this.jp(true);
+			return this.jp(true);
 		case 0xc4: // CALL NZ,nn
-			return void this.call((this.f & 0x40) === 0);
+			return this.call((this.f & 0x40) === 0);
 		case 0xc5: // PUSH BC
 			this.push(this.b);
 			this.push(this.c);
 			return;
 		case 0xc6: // ADD A,n
-			return void this.add(this.fetch());
+			return this.add(this.fetch());
 		case 0xc7: // RST 00h
-			return void this.rst(0x00);
+			return this.rst(0x00);
 		case 0xc8: // RET Z
-			return void this.ret((this.f & 0x40) !== 0);
+			return this.ret((this.f & 0x40) !== 0);
 		case 0xc9: // RET
-			return void this.ret(true);
+			return this.ret(true);
 		case 0xca: // JP Z,nn
-			return void this.jp((this.f & 0x40) !== 0);
+			return this.jp((this.f & 0x40) !== 0);
 		case 0xcb:
-			return void this.execute_cb();
+			return this.execute_cb();
 		case 0xcc: // CALL Z,nn
-			return void this.call((this.f & 0x40) !== 0);
+			return this.call((this.f & 0x40) !== 0);
 		case 0xcd: // CALL nn
-			return void this.call(true);
+			return this.call(true);
 		case 0xce: // ADC A,n
-			return void this.adc(this.fetch());
+			return this.adc(this.fetch());
 		case 0xcf: // RST 08h
-			return void this.rst(0x08);
+			return this.rst(0x08);
 		case 0xd0: // RET NC
-			return void this.ret((this.f & 1) === 0);
+			return this.ret((this.f & 1) === 0);
 		case 0xd1: // POP DE
 			return void([this.e, this.d] = [this.pop(), this.pop()]);
 		case 0xd2: // JP NC,nn
-			return void this.jp((this.f & 1) === 0);
+			return this.jp((this.f & 1) === 0);
 		case 0xd3: // OUT n,A
-			return void this.iowrite(this.a, this.fetch(), this.a);
+			return this.iowrite(this.a, this.fetch(), this.a);
 		case 0xd4: // CALL NC,nn
-			return void this.call((this.f & 1) === 0);
+			return this.call((this.f & 1) === 0);
 		case 0xd5: // PUSH DE
 			this.push(this.d);
 			this.push(this.e);
 			return;
 		case 0xd6: // SUB n
-			return void this.sub(this.fetch());
+			return this.sub(this.fetch());
 		case 0xd7: // RST 10h
-			return void this.rst(0x10);
+			return this.rst(0x10);
 		case 0xd8: // RET C
-			return void this.ret((this.f & 1) !== 0);
+			return this.ret((this.f & 1) !== 0);
 		case 0xd9: // EXX
 			[this.b, this.c, this.b_prime, this.c_prime] = [this.b_prime, this.c_prime, this.b, this.c];
 			[this.d, this.e, this.d_prime, this.e_prime] = [this.d_prime, this.e_prime, this.d, this.e];
 			[this.h, this.l, this.h_prime, this.l_prime] = [this.h_prime, this.l_prime, this.h, this.l];
 			return;
 		case 0xda: // JP C,nn
-			return void this.jp((this.f & 1) !== 0);
+			return this.jp((this.f & 1) !== 0);
 		case 0xdb: // IN A,n
 			return void(this.a = this.ioread(this.a, this.fetch()));
 		case 0xdc: // CALL C,nn
-			return void this.call((this.f & 1) !== 0);
+			return this.call((this.f & 1) !== 0);
 		case 0xdd:
-			return void this.execute_dd();
+			return this.execute_dd();
 		case 0xde: // SBC A,n
-			return void this.sbc(this.fetch());
+			return this.sbc(this.fetch());
 		case 0xdf: // RST 18h
-			return void this.rst(0x18);
+			return this.rst(0x18);
 		case 0xe0: // RET PO
-			return void this.ret((this.f & 4) === 0);
+			return this.ret((this.f & 4) === 0);
 		case 0xe1: // POP HL
 			return void([this.l, this.h] = [this.pop(), this.pop()]);
 		case 0xe2: // JP PO,nn
-			return void this.jp((this.f & 4) === 0);
+			return this.jp((this.f & 4) === 0);
 		case 0xe3: // EX (SP),HL
 			v = this.read(this.sp);
 			this.write(this.sp, this.l);
@@ -595,65 +595,65 @@ export default class Z80 extends Cpu {
 			this.h = v;
 			return;
 		case 0xe4: // CALL PO,nn
-			return void this.call((this.f & 4) === 0);
+			return this.call((this.f & 4) === 0);
 		case 0xe5: // PUSH HL
 			this.push(this.h);
 			this.push(this.l);
 			return;
 		case 0xe6: // AND n
-			return void this.and(this.fetch());
+			return this.and(this.fetch());
 		case 0xe7: // RST 20h
-			return void this.rst(0x20);
+			return this.rst(0x20);
 		case 0xe8: // RET PE
-			return void this.ret((this.f & 4) !== 0);
+			return this.ret((this.f & 4) !== 0);
 		case 0xe9: // JP (HL)
 			return void(this.pc = this.l | this.h << 8);
 		case 0xea: // JP PE,nn
-			return void this.jp((this.f & 4) !== 0);
+			return this.jp((this.f & 4) !== 0);
 		case 0xeb: // EX DE,HL
 			return void([this.d, this.e, this.h, this.l] = [this.h, this.l, this.d, this.e]);
 		case 0xec: // CALL PE,nn
-			return void this.call((this.f & 4) !== 0);
+			return this.call((this.f & 4) !== 0);
 		case 0xed:
-			return void this.execute_ed();
+			return this.execute_ed();
 		case 0xee: // XOR n
-			return void this.xor(this.fetch());
+			return this.xor(this.fetch());
 		case 0xef: // RST 28h
-			return void this.rst(0x28);
+			return this.rst(0x28);
 		case 0xf0: // RET P
-			return void this.ret((this.f & 0x80) === 0);
+			return this.ret((this.f & 0x80) === 0);
 		case 0xf1: // POP AF
 			return void([this.f, this.a] = [this.pop(), this.pop()]);
 		case 0xf2: // JP P,nn
-			return void this.jp((this.f & 0x80) === 0);
+			return this.jp((this.f & 0x80) === 0);
 		case 0xf3: // DI
 			return void(this.iff = 0);
 		case 0xf4: // CALL P,nn
-			return void this.call((this.f & 0x80) === 0);
+			return this.call((this.f & 0x80) === 0);
 		case 0xf5: // PUSH AF
 			this.push(this.a);
 			this.push(this.f);
 			return;
 		case 0xf6: // OR n
-			return void this.or(this.fetch());
+			return this.or(this.fetch());
 		case 0xf7: // RST 30h
-			return void this.rst(0x30);
+			return this.rst(0x30);
 		case 0xf8: // RET M
-			return void this.ret((this.f & 0x80) !== 0);
+			return this.ret((this.f & 0x80) !== 0);
 		case 0xf9: // LD SP,HL
 			return void(this.sp = this.l | this.h << 8);
 		case 0xfa: // JP M,nn
-			return void this.jp((this.f & 0x80) !== 0);
+			return this.jp((this.f & 0x80) !== 0);
 		case 0xfb: // EI
 			return void(this.iff = 3);
 		case 0xfc: // CALL M,nn
-			return void this.call((this.f & 0x80) !== 0);
+			return this.call((this.f & 0x80) !== 0);
 		case 0xfd:
-			return void this.execute_fd();
+			return this.execute_fd();
 		case 0xfe: // CP A,n
-			return void this.cp(this.fetch());
+			return this.cp(this.fetch());
 		case 0xff: // RST 38h
-			return void this.rst(0x38);
+			return this.rst(0x38);
 		}
 	}
 
@@ -674,7 +674,7 @@ export default class Z80 extends Cpu {
 		case 0x05: // RLC L
 			return void(this.l = this.rlc(this.l));
 		case 0x06: // RLC (HL)
-			return void this.write(v = this.l | this.h << 8, this.rlc(this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.rlc(this.read(v)));
 		case 0x07: // RLC A
 			return void(this.a = this.rlc(this.a));
 		case 0x08: // RRC B
@@ -690,7 +690,7 @@ export default class Z80 extends Cpu {
 		case 0x0d: // RRC L
 			return void(this.l = this.rrc(this.l));
 		case 0x0e: // RRC (HL)
-			return void this.write(v = this.l | this.h << 8, this.rrc(this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.rrc(this.read(v)));
 		case 0x0f: // RRC A
 			return void(this.a = this.rrc(this.a));
 		case 0x10: // RL B
@@ -706,7 +706,7 @@ export default class Z80 extends Cpu {
 		case 0x15: // RL L
 			return void(this.l = this.rl(this.l));
 		case 0x16: // RL (HL)
-			return void this.write(v = this.l | this.h << 8, this.rl(this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.rl(this.read(v)));
 		case 0x17: // RL A
 			return void(this.a = this.rl(this.a));
 		case 0x18: // RR B
@@ -722,7 +722,7 @@ export default class Z80 extends Cpu {
 		case 0x1d: // RR L
 			return void(this.l = this.rr(this.l));
 		case 0x1e: // RR (HL)
-			return void this.write(v = this.l | this.h << 8, this.rr(this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.rr(this.read(v)));
 		case 0x1f: // RR A
 			return void(this.a = this.rr(this.a));
 		case 0x20: // SLA B
@@ -738,7 +738,7 @@ export default class Z80 extends Cpu {
 		case 0x25: // SLA L
 			return void(this.l = this.sla(this.l));
 		case 0x26: // SLA (HL)
-			return void this.write(v = this.l | this.h << 8, this.sla(this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.sla(this.read(v)));
 		case 0x27: // SLA A
 			return void(this.a = this.sla(this.a));
 		case 0x28: // SRA B
@@ -754,7 +754,7 @@ export default class Z80 extends Cpu {
 		case 0x2d: // SRA L
 			return void(this.l = this.sra(this.l));
 		case 0x2e: // SRA (HL)
-			return void this.write(v = this.l | this.h << 8, this.sra(this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.sra(this.read(v)));
 		case 0x2f: // SRA A
 			return void(this.a = this.sra(this.a));
 		case 0x38: // SRL B
@@ -770,137 +770,137 @@ export default class Z80 extends Cpu {
 		case 0x3d: // SRL L
 			return void(this.l = this.srl(this.l));
 		case 0x3e: // SRL (HL)
-			return void this.write(v = this.l | this.h << 8, this.srl(this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.srl(this.read(v)));
 		case 0x3f: // SRL A
 			return void(this.a = this.srl(this.a));
 		case 0x40: // BIT 0,B
-			return void this.bit(0, this.b);
+			return this.bit(0, this.b);
 		case 0x41: // BIT 0,C
-			return void this.bit(0, this.c);
+			return this.bit(0, this.c);
 		case 0x42: // BIT 0,D
-			return void this.bit(0, this.d);
+			return this.bit(0, this.d);
 		case 0x43: // BIT 0,E
-			return void this.bit(0, this.e);
+			return this.bit(0, this.e);
 		case 0x44: // BIT 0,H
-			return void this.bit(0, this.h);
+			return this.bit(0, this.h);
 		case 0x45: // BIT 0,L
-			return void this.bit(0, this.l);
+			return this.bit(0, this.l);
 		case 0x46: // BIT 0,(HL)
-			return void this.bit(0, this.read(this.l | this.h << 8));
+			return this.bit(0, this.read(this.l | this.h << 8));
 		case 0x47: // BIT 0,A
-			return void this.bit(0, this.a);
+			return this.bit(0, this.a);
 		case 0x48: // BIT 1,B
-			return void this.bit(1, this.b);
+			return this.bit(1, this.b);
 		case 0x49: // BIT 1,C
-			return void this.bit(1, this.c);
+			return this.bit(1, this.c);
 		case 0x4a: // BIT 1,D
-			return void this.bit(1, this.d);
+			return this.bit(1, this.d);
 		case 0x4b: // BIT 1,E
-			return void this.bit(1, this.e);
+			return this.bit(1, this.e);
 		case 0x4c: // BIT 1,H
-			return void this.bit(1, this.h);
+			return this.bit(1, this.h);
 		case 0x4d: // BIT 1,L
-			return void this.bit(1, this.l);
+			return this.bit(1, this.l);
 		case 0x4e: // BIT 1,(HL)
-			return void this.bit(1, this.read(this.l | this.h << 8));
+			return this.bit(1, this.read(this.l | this.h << 8));
 		case 0x4f: // BIT 1,A
-			return void this.bit(1, this.a);
+			return this.bit(1, this.a);
 		case 0x50: // BIT 2,B
-			return void this.bit(2, this.b);
+			return this.bit(2, this.b);
 		case 0x51: // BIT 2,C
-			return void this.bit(2, this.c);
+			return this.bit(2, this.c);
 		case 0x52: // BIT 2,D
-			return void this.bit(2, this.d);
+			return this.bit(2, this.d);
 		case 0x53: // BIT 2,E
-			return void this.bit(2, this.e);
+			return this.bit(2, this.e);
 		case 0x54: // BIT 2,H
-			return void this.bit(2, this.h);
+			return this.bit(2, this.h);
 		case 0x55: // BIT 2,L
-			return void this.bit(2, this.l);
+			return this.bit(2, this.l);
 		case 0x56: // BIT 2,(HL)
-			return void this.bit(2, this.read(this.l | this.h << 8));
+			return this.bit(2, this.read(this.l | this.h << 8));
 		case 0x57: // BIT 2,A
-			return void this.bit(2, this.a);
+			return this.bit(2, this.a);
 		case 0x58: // BIT 3,B
-			return void this.bit(3, this.b);
+			return this.bit(3, this.b);
 		case 0x59: // BIT 3,C
-			return void this.bit(3, this.c);
+			return this.bit(3, this.c);
 		case 0x5a: // BIT 3,D
-			return void this.bit(3, this.d);
+			return this.bit(3, this.d);
 		case 0x5b: // BIT 3,E
-			return void this.bit(3, this.e);
+			return this.bit(3, this.e);
 		case 0x5c: // BIT 3,H
-			return void this.bit(3, this.h);
+			return this.bit(3, this.h);
 		case 0x5d: // BIT 3,L
-			return void this.bit(3, this.l);
+			return this.bit(3, this.l);
 		case 0x5e: // BIT 3,(HL)
-			return void this.bit(3, this.read(this.l | this.h << 8));
+			return this.bit(3, this.read(this.l | this.h << 8));
 		case 0x5f: // BIT 3,A
-			return void this.bit(3, this.a);
+			return this.bit(3, this.a);
 		case 0x60: // BIT 4,B
-			return void this.bit(4, this.b);
+			return this.bit(4, this.b);
 		case 0x61: // BIT 4,C
-			return void this.bit(4, this.c);
+			return this.bit(4, this.c);
 		case 0x62: // BIT 4,D
-			return void this.bit(4, this.d);
+			return this.bit(4, this.d);
 		case 0x63: // BIT 4,E
-			return void this.bit(4, this.e);
+			return this.bit(4, this.e);
 		case 0x64: // BIT 4,H
-			return void this.bit(4, this.h);
+			return this.bit(4, this.h);
 		case 0x65: // BIT 4,L
-			return void this.bit(4, this.l);
+			return this.bit(4, this.l);
 		case 0x66: // BIT 4,(HL)
-			return void this.bit(4, this.read(this.l | this.h << 8));
+			return this.bit(4, this.read(this.l | this.h << 8));
 		case 0x67: // BIT 4,A
-			return void this.bit(4, this.a);
+			return this.bit(4, this.a);
 		case 0x68: // BIT 5,B
-			return void this.bit(5, this.b);
+			return this.bit(5, this.b);
 		case 0x69: // BIT 5,C
-			return void this.bit(5, this.c);
+			return this.bit(5, this.c);
 		case 0x6a: // BIT 5,D
-			return void this.bit(5, this.d);
+			return this.bit(5, this.d);
 		case 0x6b: // BIT 5,E
-			return void this.bit(5, this.e);
+			return this.bit(5, this.e);
 		case 0x6c: // BIT 5,H
-			return void this.bit(5, this.h);
+			return this.bit(5, this.h);
 		case 0x6d: // BIT 5,L
-			return void this.bit(5, this.l);
+			return this.bit(5, this.l);
 		case 0x6e: // BIT 5,(HL)
-			return void this.bit(5, this.read(this.l | this.h << 8));
+			return this.bit(5, this.read(this.l | this.h << 8));
 		case 0x6f: // BIT 5,A
-			return void this.bit(5, this.a);
+			return this.bit(5, this.a);
 		case 0x70: // BIT 6,B
-			return void this.bit(6, this.b);
+			return this.bit(6, this.b);
 		case 0x71: // BIT 6,C
-			return void this.bit(6, this.c);
+			return this.bit(6, this.c);
 		case 0x72: // BIT 6,D
-			return void this.bit(6, this.d);
+			return this.bit(6, this.d);
 		case 0x73: // BIT 6,E
-			return void this.bit(6, this.e);
+			return this.bit(6, this.e);
 		case 0x74: // BIT 6,H
-			return void this.bit(6, this.h);
+			return this.bit(6, this.h);
 		case 0x75: // BIT 6,L
-			return void this.bit(6, this.l);
+			return this.bit(6, this.l);
 		case 0x76: // BIT 6,(HL)
-			return void this.bit(6, this.read(this.l | this.h << 8));
+			return this.bit(6, this.read(this.l | this.h << 8));
 		case 0x77: // BIT 6,A
-			return void this.bit(6, this.a);
+			return this.bit(6, this.a);
 		case 0x78: // BIT 7,B
-			return void this.bit(7, this.b);
+			return this.bit(7, this.b);
 		case 0x79: // BIT 7,C
-			return void this.bit(7, this.c);
+			return this.bit(7, this.c);
 		case 0x7a: // BIT 7,D
-			return void this.bit(7, this.d);
+			return this.bit(7, this.d);
 		case 0x7b: // BIT 7,E
-			return void this.bit(7, this.e);
+			return this.bit(7, this.e);
 		case 0x7c: // BIT 7,H
-			return void this.bit(7, this.h);
+			return this.bit(7, this.h);
 		case 0x7d: // BIT 7,L
-			return void this.bit(7, this.l);
+			return this.bit(7, this.l);
 		case 0x7e: // BIT 7,(HL)
-			return void this.bit(7, this.read(this.l | this.h << 8));
+			return this.bit(7, this.read(this.l | this.h << 8));
 		case 0x7f: // BIT 7,A
-			return void this.bit(7, this.a);
+			return this.bit(7, this.a);
 		case 0x80: // RES 0,B
 			return void(this.b = this.constructor.res(0, this.b));
 		case 0x81: // RES 0,C
@@ -914,7 +914,7 @@ export default class Z80 extends Cpu {
 		case 0x85: // RES 0,L
 			return void(this.l = this.constructor.res(0, this.l));
 		case 0x86: // RES 0,(HL)
-			return void this.write(v = this.l | this.h << 8, this.constructor.res(0, this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.constructor.res(0, this.read(v)));
 		case 0x87: // RES 0,A
 			return void(this.a = this.constructor.res(0, this.a));
 		case 0x88: // RES 1,B
@@ -930,7 +930,7 @@ export default class Z80 extends Cpu {
 		case 0x8d: // RES 1,L
 			return void(this.l = this.constructor.res(1, this.l));
 		case 0x8e: // RES 1,(HL)
-			return void this.write(v = this.l | this.h << 8, this.constructor.res(1, this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.constructor.res(1, this.read(v)));
 		case 0x8f: // RES 1,A
 			return void(this.a = this.constructor.res(1, this.a));
 		case 0x90: // RES 2,B
@@ -946,7 +946,7 @@ export default class Z80 extends Cpu {
 		case 0x95: // RES 2,L
 			return void(this.l = this.constructor.res(2, this.l));
 		case 0x96: // RES 2,(HL)
-			return void this.write(v = this.l | this.h << 8, this.constructor.res(2, this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.constructor.res(2, this.read(v)));
 		case 0x97: // RES 2,A
 			return void(this.a = this.constructor.res(2, this.a));
 		case 0x98: // RES 3,B
@@ -962,7 +962,7 @@ export default class Z80 extends Cpu {
 		case 0x9d: // RES 3,L
 			return void(this.l = this.constructor.res(3, this.l));
 		case 0x9e: // RES 3,(HL)
-			return void this.write(v = this.l | this.h << 8, this.constructor.res(3, this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.constructor.res(3, this.read(v)));
 		case 0x9f: // RES 3,A
 			return void(this.a = this.constructor.res(3, this.a));
 		case 0xa0: // RES 4,B
@@ -978,7 +978,7 @@ export default class Z80 extends Cpu {
 		case 0xa5: // RES 4,L
 			return void(this.l = this.constructor.res(4, this.l));
 		case 0xa6: // RES 4,(HL)
-			return void this.write(v = this.l | this.h << 8, this.constructor.res(4, this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.constructor.res(4, this.read(v)));
 		case 0xa7: // RES 4,A
 			return void(this.a = this.constructor.res(4, this.a));
 		case 0xa8: // RES 5,B
@@ -994,7 +994,7 @@ export default class Z80 extends Cpu {
 		case 0xad: // RES 5,L
 			return void(this.l = this.constructor.res(5, this.l));
 		case 0xae: // RES 5,(HL)
-			return void this.write(v = this.l | this.h << 8, this.constructor.res(5, this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.constructor.res(5, this.read(v)));
 		case 0xaf: // RES 5,A
 			return void(this.a = this.constructor.res(5, this.a));
 		case 0xb0: // RES 6,B
@@ -1010,7 +1010,7 @@ export default class Z80 extends Cpu {
 		case 0xb5: // RES 6,L
 			return void(this.l = this.constructor.res(6, this.l));
 		case 0xb6: // RES 6,(HL)
-			return void this.write(v = this.l | this.h << 8, this.constructor.res(6, this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.constructor.res(6, this.read(v)));
 		case 0xb7: // RES 6,A
 			return void(this.a = this.constructor.res(6, this.a));
 		case 0xb8: // RES 7,B
@@ -1026,7 +1026,7 @@ export default class Z80 extends Cpu {
 		case 0xbd: // RES 7,L
 			return void(this.l = this.constructor.res(7, this.l));
 		case 0xbe: // RES 7,(HL)
-			return void this.write(v = this.l | this.h << 8, this.constructor.res(7, this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.constructor.res(7, this.read(v)));
 		case 0xbf: // RES 7,A
 			return void(this.a = this.constructor.res(7, this.a));
 		case 0xc0: // SET 0,B
@@ -1042,7 +1042,7 @@ export default class Z80 extends Cpu {
 		case 0xc5: // SET 0,L
 			return void(this.l = this.constructor.set(0, this.l));
 		case 0xc6: // SET 0,(HL)
-			return void this.write(v = this.l | this.h << 8, this.constructor.set(0, this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.constructor.set(0, this.read(v)));
 		case 0xc7: // SET 0,A
 			return void(this.a = this.constructor.set(0, this.a));
 		case 0xc8: // SET 1,B
@@ -1058,7 +1058,7 @@ export default class Z80 extends Cpu {
 		case 0xcd: // SET 1,L
 			return void(this.l = this.constructor.set(1, this.l));
 		case 0xce: // SET 1,(HL)
-			return void this.write(v = this.l | this.h << 8, this.constructor.set(1, this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.constructor.set(1, this.read(v)));
 		case 0xcf: // SET 1,A
 			return void(this.a = this.constructor.set(1, this.a));
 		case 0xd0: // SET 2,B
@@ -1074,7 +1074,7 @@ export default class Z80 extends Cpu {
 		case 0xd5: // SET 2,L
 			return void(this.l = this.constructor.set(2, this.l));
 		case 0xd6: // SET 2,(HL)
-			return void this.write(v = this.l | this.h << 8, this.constructor.set(2, this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.constructor.set(2, this.read(v)));
 		case 0xd7: // SET 2,A
 			return void(this.a = this.constructor.set(2, this.a));
 		case 0xd8: // SET 3,B
@@ -1090,7 +1090,7 @@ export default class Z80 extends Cpu {
 		case 0xdd: // SET 3,L
 			return void(this.l = this.constructor.set(3, this.l));
 		case 0xde: // SET 3,(HL)
-			return void this.write(v = this.l | this.h << 8, this.constructor.set(3, this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.constructor.set(3, this.read(v)));
 		case 0xdf: // SET 3,A
 			return void(this.a = this.constructor.set(3, this.a));
 		case 0xe0: // SET 4,B
@@ -1106,7 +1106,7 @@ export default class Z80 extends Cpu {
 		case 0xe5: // SET 4,L
 			return void(this.l = this.constructor.set(4, this.l));
 		case 0xe6: // SET 4,(HL)
-			return void this.write(v = this.l | this.h << 8, this.constructor.set(4, this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.constructor.set(4, this.read(v)));
 		case 0xe7: // SET 4,A
 			return void(this.a = this.constructor.set(4, this.a));
 		case 0xe8: // SET 5,B
@@ -1122,7 +1122,7 @@ export default class Z80 extends Cpu {
 		case 0xed: // SET 5,L
 			return void(this.l = this.constructor.set(5, this.l));
 		case 0xee: // SET 5,(HL)
-			return void this.write(v = this.l | this.h << 8, this.constructor.set(5, this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.constructor.set(5, this.read(v)));
 		case 0xef: // SET 5,A
 			return void(this.a = this.constructor.set(5, this.a));
 		case 0xf0: // SET 6,B
@@ -1138,7 +1138,7 @@ export default class Z80 extends Cpu {
 		case 0xf5: // SET 6,L
 			return void(this.l = this.constructor.set(6, this.l));
 		case 0xf6: // SET 6,(HL)
-			return void this.write(v = this.l | this.h << 8, this.constructor.set(6, this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.constructor.set(6, this.read(v)));
 		case 0xf7: // SET 6,A
 			return void(this.a = this.constructor.set(6, this.a));
 		case 0xf8: // SET 7,B
@@ -1154,7 +1154,7 @@ export default class Z80 extends Cpu {
 		case 0xfd: // SET 7,L
 			return void(this.l = this.constructor.set(7, this.l));
 		case 0xfe: // SET 7,(HL)
-			return void this.write(v = this.l | this.h << 8, this.constructor.set(7, this.read(v)));
+			return this.write(v = this.l | this.h << 8, this.constructor.set(7, this.read(v)));
 		case 0xff: // SET 7,A
 			return void(this.a = this.constructor.set(7, this.a));
 		default:
@@ -1215,11 +1215,11 @@ export default class Z80 extends Cpu {
 		case 0x2e: // LD IXL,n (undefined operation)
 			return void(this.ixl = this.fetch());
 		case 0x34: // INC (IX+d)
-			return void this.write(v = this.disp(this.ixh, this.ixl), this.inc(this.read(v)));
+			return this.write(v = this.disp(this.ixh, this.ixl), this.inc(this.read(v)));
 		case 0x35: // DEC (IX+d)
-			return void this.write(v = this.disp(this.ixh, this.ixl), this.dec(this.read(v)));
+			return this.write(v = this.disp(this.ixh, this.ixl), this.dec(this.read(v)));
 		case 0x36: // LD (IX+d),n
-			return void this.write(this.disp(this.ixh, this.ixl), this.fetch());
+			return this.write(this.disp(this.ixh, this.ixl), this.fetch());
 		case 0x39: // ADD IX,SP
 			this.ixl = (v = Z80.aAdd[0][this.sp & 0xff][this.ixl]) & 0xff;
 			this.ixh = (v = Z80.aAdd[v >>> 8 & 1][this.sp >>> 8][this.ixh]) & 0xff;
@@ -1274,19 +1274,19 @@ export default class Z80 extends Cpu {
 		case 0x6f: // LD IXL,A (undefined operation)
 			return void(this.ixl = this.a);
 		case 0x70: // LD (IX+d),B
-			return void this.write(this.disp(this.ixh, this.ixl), this.b);
+			return this.write(this.disp(this.ixh, this.ixl), this.b);
 		case 0x71: // LD (IX+d),C
-			return void this.write(this.disp(this.ixh, this.ixl), this.c);
+			return this.write(this.disp(this.ixh, this.ixl), this.c);
 		case 0x72: // LD (IX+d),D
-			return void this.write(this.disp(this.ixh, this.ixl), this.d);
+			return this.write(this.disp(this.ixh, this.ixl), this.d);
 		case 0x73: // LD (IX+d),E
-			return void this.write(this.disp(this.ixh, this.ixl), this.e);
+			return this.write(this.disp(this.ixh, this.ixl), this.e);
 		case 0x74: // LD (IX+d),H
-			return void this.write(this.disp(this.ixh, this.ixl), this.h);
+			return this.write(this.disp(this.ixh, this.ixl), this.h);
 		case 0x75: // LD (IX+d),L
-			return void this.write(this.disp(this.ixh, this.ixl), this.l);
+			return this.write(this.disp(this.ixh, this.ixl), this.l);
 		case 0x77: // LD (IX+d),A
-			return void this.write(this.disp(this.ixh, this.ixl), this.a);
+			return this.write(this.disp(this.ixh, this.ixl), this.a);
 		case 0x7c: // LD A,IXH (undefined operation)
 			return void(this.a = this.ixh);
 		case 0x7d: // LD A,IXL (undefined operation)
@@ -1294,118 +1294,118 @@ export default class Z80 extends Cpu {
 		case 0x7e: // LD A,(IX+d)
 			return void(this.a = this.read(this.disp(this.ixh, this.ixl)));
 		case 0x84: // ADD A,IXH (undefined operation)
-			return void this.add(this.ixh);
+			return this.add(this.ixh);
 		case 0x85: // ADD A,IXL (undefined operation)
-			return void this.add(this.ixl);
+			return this.add(this.ixl);
 		case 0x86: // ADD A,(IX+d)
-			return void this.add(this.read(this.disp(this.ixh, this.ixl)));
+			return this.add(this.read(this.disp(this.ixh, this.ixl)));
 		case 0x8c: // ADC A,IXH (undefined operation)
-			return void this.adc(this.ixh);
+			return this.adc(this.ixh);
 		case 0x8d: // ADC A,IXL (undefined operation)
-			return void this.adc(this.ixl);
+			return this.adc(this.ixl);
 		case 0x8e: // ADC A,(IX+d)
-			return void this.adc(this.read(this.disp(this.ixh, this.ixl)));
+			return this.adc(this.read(this.disp(this.ixh, this.ixl)));
 		case 0x94: // SUB IXH (undefined operation)
-			return void this.sub(this.ixh);
+			return this.sub(this.ixh);
 		case 0x95: // SUB IXL (undefined operation)
-			return void this.sub(this.ixl);
+			return this.sub(this.ixl);
 		case 0x96: // SUB (IX+d)
-			return void this.sub(this.read(this.disp(this.ixh, this.ixl)));
+			return this.sub(this.read(this.disp(this.ixh, this.ixl)));
 		case 0x9c: // SBC A,IXH (undefined operation)
-			return void this.sbc(this.ixh);
+			return this.sbc(this.ixh);
 		case 0x9d: // SBC A,IXL (undefined operation)
-			return void this.sbc(this.ixl);
+			return this.sbc(this.ixl);
 		case 0x9e: // SBC A,(IX+d)
-			return void this.sbc(this.read(this.disp(this.ixh, this.ixl)));
+			return this.sbc(this.read(this.disp(this.ixh, this.ixl)));
 		case 0xa4: // AND IXH (undefined operation)
-			return void this.and(this.ixh);
+			return this.and(this.ixh);
 		case 0xa5: // AND IXL (undefined operation)
-			return void this.and(this.ixl);
+			return this.and(this.ixl);
 		case 0xa6: // AND (IX+d)
-			return void this.and(this.read(this.disp(this.ixh, this.ixl)));
+			return this.and(this.read(this.disp(this.ixh, this.ixl)));
 		case 0xac: // XOR IXH (undefined operation)
-			return void this.xor(this.ixh);
+			return this.xor(this.ixh);
 		case 0xad: // XOR IXL (undefined operation)
-			return void this.xor(this.ixl);
+			return this.xor(this.ixl);
 		case 0xae: // XOR (IX+d)
-			return void this.xor(this.read(this.disp(this.ixh, this.ixl)));
+			return this.xor(this.read(this.disp(this.ixh, this.ixl)));
 		case 0xb4: // OR IXH (undefined operation)
-			return void this.or(this.ixh);
+			return this.or(this.ixh);
 		case 0xb5: // OR IXL (undefined operation)
-			return void this.or(this.ixl);
+			return this.or(this.ixl);
 		case 0xb6: // OR (IX+d)
-			return void this.or(this.read(this.disp(this.ixh, this.ixl)));
+			return this.or(this.read(this.disp(this.ixh, this.ixl)));
 		case 0xbc: // CP IXH (undefined operation)
-			return void this.cp(this.ixh);
+			return this.cp(this.ixh);
 		case 0xbd: // CP IXL (undefined operation)
-			return void this.cp(this.ixl);
+			return this.cp(this.ixl);
 		case 0xbe: // CP (IX+d)
-			return void this.cp(this.read(this.disp(this.ixh, this.ixl)));
+			return this.cp(this.read(this.disp(this.ixh, this.ixl)));
 		case 0xcb:
 			v = this.disp(this.ixh, this.ixl);
 			switch (this.fetch()) {
 			case 0x06: // RLC (IX+d)
-				return void this.write(v, this.rlc(this.read(v)));
+				return this.write(v, this.rlc(this.read(v)));
 			case 0x0e: // RRC (IX+d)
-				return void this.write(v, this.rrc(this.read(v)));
+				return this.write(v, this.rrc(this.read(v)));
 			case 0x16: // RL (IX+d)
-				return void this.write(v, this.rl(this.read(v)));
+				return this.write(v, this.rl(this.read(v)));
 			case 0x1e: // RR (IX+d)
-				return void this.write(v, this.rr(this.read(v)));
+				return this.write(v, this.rr(this.read(v)));
 			case 0x26: // SLA (IX+d)
-				return void this.write(v, this.sla(this.read(v)));
+				return this.write(v, this.sla(this.read(v)));
 			case 0x2e: // SRA (IX+d)
-				return void this.write(v, this.sra(this.read(v)));
+				return this.write(v, this.sra(this.read(v)));
 			case 0x3e: // SRL (IX+d)
-				return void this.write(v, this.srl(this.read(v)));
+				return this.write(v, this.srl(this.read(v)));
 			case 0x46: // BIT 0,(IX+d)
-				return void this.bit(0, this.read(v));
+				return this.bit(0, this.read(v));
 			case 0x4e: // BIT 1,(IX+d)
-				return void this.bit(1, this.read(v));
+				return this.bit(1, this.read(v));
 			case 0x56: // BIT 2,(IX+d)
-				return void this.bit(2, this.read(v));
+				return this.bit(2, this.read(v));
 			case 0x5e: // BIT 3,(IX+d)
-				return void this.bit(3, this.read(v));
+				return this.bit(3, this.read(v));
 			case 0x66: // BIT 4,(IX+d)
-				return void this.bit(4, this.read(v));
+				return this.bit(4, this.read(v));
 			case 0x6e: // BIT 5,(IX+d)
-				return void this.bit(5, this.read(v));
+				return this.bit(5, this.read(v));
 			case 0x76: // BIT 6,(IX+d)
-				return void this.bit(6, this.read(v));
+				return this.bit(6, this.read(v));
 			case 0x7e: // BIT 7,(IX+d)
-				return void this.bit(7, this.read(v));
+				return this.bit(7, this.read(v));
 			case 0x86: // RES 0,(IX+d)
-				return void this.write(v, this.constructor.res(0, this.read(v)));
+				return this.write(v, this.constructor.res(0, this.read(v)));
 			case 0x8e: // RES 1,(IX+d)
-				return void this.write(v, this.constructor.res(1, this.read(v)));
+				return this.write(v, this.constructor.res(1, this.read(v)));
 			case 0x96: // RES 2,(IX+d)
-				return void this.write(v, this.constructor.res(2, this.read(v)));
+				return this.write(v, this.constructor.res(2, this.read(v)));
 			case 0x9e: // RES 3,(IX+d)
-				return void this.write(v, this.constructor.res(3, this.read(v)));
+				return this.write(v, this.constructor.res(3, this.read(v)));
 			case 0xa6: // RES 4,(IX+d)
-				return void this.write(v, this.constructor.res(4, this.read(v)));
+				return this.write(v, this.constructor.res(4, this.read(v)));
 			case 0xae: // RES 5,(IX+d)
-				return void this.write(v, this.constructor.res(5, this.read(v)));
+				return this.write(v, this.constructor.res(5, this.read(v)));
 			case 0xb6: // RES 6,(IX+d)
-				return void this.write(v, this.constructor.res(6, this.read(v)));
+				return this.write(v, this.constructor.res(6, this.read(v)));
 			case 0xbe: // RES 7,(IX+d)
-				return void this.write(v, this.constructor.res(7, this.read(v)));
+				return this.write(v, this.constructor.res(7, this.read(v)));
 			case 0xc6: // SET 0,(IX+d)
-				return void this.write(v, this.constructor.set(0, this.read(v)));
+				return this.write(v, this.constructor.set(0, this.read(v)));
 			case 0xce: // SET 1,(IX+d)
-				return void this.write(v, this.constructor.set(1, this.read(v)));
+				return this.write(v, this.constructor.set(1, this.read(v)));
 			case 0xd6: // SET 2,(IX+d)
-				return void this.write(v, this.constructor.set(2, this.read(v)));
+				return this.write(v, this.constructor.set(2, this.read(v)));
 			case 0xde: // SET 3,(IX+d)
-				return void this.write(v, this.constructor.set(3, this.read(v)));
+				return this.write(v, this.constructor.set(3, this.read(v)));
 			case 0xe6: // SET 4,(IX+d)
-				return void this.write(v, this.constructor.set(4, this.read(v)));
+				return this.write(v, this.constructor.set(4, this.read(v)));
 			case 0xee: // SET 5,(IX+d)
-				return void this.write(v, this.constructor.set(5, this.read(v)));
+				return this.write(v, this.constructor.set(5, this.read(v)));
 			case 0xf6: // SET 6,(IX+d)
-				return void this.write(v, this.constructor.set(6, this.read(v)));
+				return this.write(v, this.constructor.set(6, this.read(v)));
 			case 0xfe: // SET 7,(IX+d)
-				return void this.write(v, this.constructor.set(7, this.read(v)));
+				return this.write(v, this.constructor.set(7, this.read(v)));
 			default:
 				this.undefsize = 4;
 				if (this.undef)
@@ -1445,7 +1445,7 @@ export default class Z80 extends Cpu {
 		case 0x40: // IN B,(C)
 			return void(this.f = this.f & 1 | Z80.fLogic[this.b = this.ioread(this.b, this.c)]);
 		case 0x41: // OUT (C),B
-			return void this.iowrite(this.b, this.c, this.b);
+			return this.iowrite(this.b, this.c, this.b);
 		case 0x42: // SBC HL,BC
 			this.l = (v = Z80.aSub[this.f & 1][this.c][this.l]) & 0xff;
 			this.h = (v = Z80.aSub[v >>> 8 & 1][this.b][this.h]) & 0xff;
@@ -1470,7 +1470,7 @@ export default class Z80 extends Cpu {
 		case 0x48: // IN C,(C)
 			return void(this.f = this.f & 1 | Z80.fLogic[this.c = this.ioread(this.b, this.c)]);
 		case 0x49: // OUT (C),C
-			return void this.iowrite(this.b, this.c, this.c);
+			return this.iowrite(this.b, this.c, this.c);
 		case 0x4a: // ADC HL,BC
 			this.l = (v = Z80.aAdd[this.f & 1][this.c][this.l]) & 0xff;
 			this.h = (v = Z80.aAdd[v >>> 8 & 1][this.b][this.h]) & 0xff;
@@ -1481,13 +1481,13 @@ export default class Z80 extends Cpu {
 			this.b = this.read1(v);
 			return;
 		case 0x4d: // RETI
-			return void this.ret(true);
+			return this.ret(true);
 		case 0x4f: // LD R,A
 			return void(this.r = this.a & 0x7f);
 		case 0x50: // IN D,(C)
 			return void(this.f = this.f & 1 | Z80.fLogic[this.d = this.ioread(this.b, this.c)]);
 		case 0x51: // OUT (C),D
-			return void this.iowrite(this.b, this.c, this.d);
+			return this.iowrite(this.b, this.c, this.d);
 		case 0x52: // SBC HL,DE
 			this.l = (v = Z80.aSub[this.f & 1][this.e][this.l]) & 0xff;
 			this.h = (v = Z80.aSub[v >>> 8 & 1][this.d][this.h]) & 0xff;
@@ -1504,7 +1504,7 @@ export default class Z80 extends Cpu {
 		case 0x58: // IN E,(C)
 			return void(this.f = this.f & 1 | Z80.fLogic[this.e = this.ioread(this.b, this.c)]);
 		case 0x59: // OUT (C),E
-			return void this.iowrite(this.b, this.c, this.e);
+			return this.iowrite(this.b, this.c, this.e);
 		case 0x5a: // ADC HL,DE
 			this.l = (v = Z80.aAdd[this.f & 1][this.e][this.l]) & 0xff;
 			this.h = (v = Z80.aAdd[v >>> 8 & 1][this.d][this.h]) & 0xff;
@@ -1521,7 +1521,7 @@ export default class Z80 extends Cpu {
 		case 0x60: // IN H,(C)
 			return void(this.f = this.f & 1 | Z80.fLogic[this.h = this.ioread(this.b, this.c)]);
 		case 0x61: // OUT (C),H
-			return void this.iowrite(this.b, this.c, this.h);
+			return this.iowrite(this.b, this.c, this.h);
 		case 0x62: // SBC HL,HL
 			this.l = (v = Z80.aSub[this.f & 1][this.l][this.l]) & 0xff;
 			this.h = (v = Z80.aSub[v >>> 8 & 1][this.h][this.h]) & 0xff;
@@ -1534,7 +1534,7 @@ export default class Z80 extends Cpu {
 		case 0x68: // IN L,(C)
 			return void(this.f = this.f & 1 | Z80.fLogic[this.l = this.ioread(this.b, this.c)]);
 		case 0x69: // OUT (C),L
-			return void this.iowrite(this.b, this.c, this.l);
+			return this.iowrite(this.b, this.c, this.l);
 		case 0x6a: // ADC HL,HL
 			this.l = (v = Z80.aAdd[this.f & 1][this.l][this.l]) & 0xff;
 			this.h = (v = Z80.aAdd[v >>> 8 & 1][this.h][this.h]) & 0xff;
@@ -1556,7 +1556,7 @@ export default class Z80 extends Cpu {
 		case 0x78: // IN A,(C)
 			return void(this.f = this.f & 1 | Z80.fLogic[this.a = this.ioread(this.b, this.c)]);
 		case 0x79: // OUT (C),A
-			return void this.iowrite(this.b, this.c, this.a);
+			return this.iowrite(this.b, this.c, this.a);
 		case 0x7a: // ADC HL,SP
 			this.l = (v = Z80.aAdd[this.f & 1][this.sp & 0xff][this.l]) & 0xff;
 			this.h = (v = Z80.aAdd[v >>> 8 & 1][this.sp >>> 8][this.h]) & 0xff;
@@ -1565,21 +1565,21 @@ export default class Z80 extends Cpu {
 		case 0x7b: // LD SP,(nn)
 			return void(this.sp = this.read(v = this.fetch() | this.fetch() << 8) | this.read1(v) << 8);
 		case 0xa0: // LDI
-			return void this.ldi();
+			return this.ldi();
 		case 0xa1: // CPI
-			return void this.cpi();
+			return this.cpi();
 		case 0xa2: // INI
-			return void this.ini();
+			return this.ini();
 		case 0xa3: // OUTI
-			return void this.outi();
+			return this.outi();
 		case 0xa8: // LDD
-			return void this.ldd();
+			return this.ldd();
 		case 0xa9: // CPD
-			return void this.cpd();
+			return this.cpd();
 		case 0xaa: // IND
-			return void this.ind();
+			return this.ind();
 		case 0xab: // OUTD
-			return void this.outd();
+			return this.outd();
 		case 0xb0: // LDIR
 			this.ldi();
 			if ((this.f & 4) !== 0)
@@ -1678,11 +1678,11 @@ export default class Z80 extends Cpu {
 		case 0x2e: // LD IYL,n (undefined operation)
 			return void(this.iyl = this.fetch());
 		case 0x34: // INC (IY+d)
-			return void this.write(v = this.disp(this.iyh, this.iyl), this.inc(this.read(v)));
+			return this.write(v = this.disp(this.iyh, this.iyl), this.inc(this.read(v)));
 		case 0x35: // DEC (IY+d)
-			return void this.write(v = this.disp(this.iyh, this.iyl), this.dec(this.read(v)));
+			return this.write(v = this.disp(this.iyh, this.iyl), this.dec(this.read(v)));
 		case 0x36: // LD (IY+d),n
-			return void this.write(this.disp(this.iyh, this.iyl), this.fetch());
+			return this.write(this.disp(this.iyh, this.iyl), this.fetch());
 		case 0x39: // ADD IY,SP
 			this.iyl = (v = Z80.aAdd[0][this.sp & 0xff][this.iyl]) & 0xff;
 			this.iyh = (v = Z80.aAdd[v >>> 8 & 1][this.sp >>> 8][this.iyh]) & 0xff;
@@ -1737,19 +1737,19 @@ export default class Z80 extends Cpu {
 		case 0x6f: // LD IYL,A (undefined operation)
 			return void(this.iyl = this.a);
 		case 0x70: // LD (IY+d),B
-			return void this.write(this.disp(this.iyh, this.iyl), this.b);
+			return this.write(this.disp(this.iyh, this.iyl), this.b);
 		case 0x71: // LD (IY+d),C
-			return void this.write(this.disp(this.iyh, this.iyl), this.c);
+			return this.write(this.disp(this.iyh, this.iyl), this.c);
 		case 0x72: // LD (IY+d),D
-			return void this.write(this.disp(this.iyh, this.iyl), this.d);
+			return this.write(this.disp(this.iyh, this.iyl), this.d);
 		case 0x73: // LD (IY+d),E
-			return void this.write(this.disp(this.iyh, this.iyl), this.e);
+			return this.write(this.disp(this.iyh, this.iyl), this.e);
 		case 0x74: // LD (IY+d),H
-			return void this.write(this.disp(this.iyh, this.iyl), this.h);
+			return this.write(this.disp(this.iyh, this.iyl), this.h);
 		case 0x75: // LD (IY+d),L
-			return void this.write(this.disp(this.iyh, this.iyl), this.l);
+			return this.write(this.disp(this.iyh, this.iyl), this.l);
 		case 0x77: // LD (IY+d),A
-			return void this.write(this.disp(this.iyh, this.iyl), this.a);
+			return this.write(this.disp(this.iyh, this.iyl), this.a);
 		case 0x7c: // LD A,IYH (undefined operation)
 			return void(this.a = this.iyh);
 		case 0x7d: // LD A,IYL (undefined operation)
@@ -1757,118 +1757,118 @@ export default class Z80 extends Cpu {
 		case 0x7e: // LD A,(IY+d)
 			return void(this.a = this.read(this.disp(this.iyh, this.iyl)));
 		case 0x84: // ADD A,IYH (undefined operation)
-			return void this.add(this.iyh);
+			return this.add(this.iyh);
 		case 0x85: // ADD A,IYL (undefined operation)
-			return void this.add(this.iyl);
+			return this.add(this.iyl);
 		case 0x86: // ADD A,(IY+d)
-			return void this.add(this.read(this.disp(this.iyh, this.iyl)));
+			return this.add(this.read(this.disp(this.iyh, this.iyl)));
 		case 0x8c: // ADC A,IYH (undefined operation)
-			return void this.adc(this.iyh);
+			return this.adc(this.iyh);
 		case 0x8d: // ADC A,IYL (undefined operation)
-			return void this.adc(this.iyl);
+			return this.adc(this.iyl);
 		case 0x8e: // ADC A,(IY+d)
-			return void this.adc(this.read(this.disp(this.iyh, this.iyl)));
+			return this.adc(this.read(this.disp(this.iyh, this.iyl)));
 		case 0x94: // SUB IYH (undefined operation)
-			return void this.sub(this.iyh);
+			return this.sub(this.iyh);
 		case 0x95: // SUB IYL (undefined operation)
-			return void this.sub(this.iyl);
+			return this.sub(this.iyl);
 		case 0x96: // SUB (IY+d)
-			return void this.sub(this.read(this.disp(this.iyh, this.iyl)));
+			return this.sub(this.read(this.disp(this.iyh, this.iyl)));
 		case 0x9c: // SBC A,IYH (undefined operation)
-			return void this.sbc(this.iyh);
+			return this.sbc(this.iyh);
 		case 0x9d: // SBC A,IYL (undefined operation)
-			return void this.sbc(this.iyl);
+			return this.sbc(this.iyl);
 		case 0x9e: // SBC A,(IY+d)
-			return void this.sbc(this.read(this.disp(this.iyh, this.iyl)));
+			return this.sbc(this.read(this.disp(this.iyh, this.iyl)));
 		case 0xa4: // AND IYH (undefined operation)
-			return void this.and(this.iyh);
+			return this.and(this.iyh);
 		case 0xa5: // AND IYL (undefined operation)
-			return void this.and(this.iyl);
+			return this.and(this.iyl);
 		case 0xa6: // AND (IY+d)
-			return void this.and(this.read(this.disp(this.iyh, this.iyl)));
+			return this.and(this.read(this.disp(this.iyh, this.iyl)));
 		case 0xac: // XOR IYH (undefined operation)
-			return void this.xor(this.iyh);
+			return this.xor(this.iyh);
 		case 0xad: // XOR IYL (undefined operation)
-			return void this.xor(this.iyl);
+			return this.xor(this.iyl);
 		case 0xae: // XOR (IY+d)
-			return void this.xor(this.read(this.disp(this.iyh, this.iyl)));
+			return this.xor(this.read(this.disp(this.iyh, this.iyl)));
 		case 0xb4: // OR IYH (undefined operation)
-			return void this.or(this.iyh);
+			return this.or(this.iyh);
 		case 0xb5: // OR IYL (undefined operation)
-			return void this.or(this.iyl);
+			return this.or(this.iyl);
 		case 0xb6: // OR (IY+d)
-			return void this.or(this.read(this.disp(this.iyh, this.iyl)));
+			return this.or(this.read(this.disp(this.iyh, this.iyl)));
 		case 0xbc: // CP IYH (undefined operation)
-			return void this.cp(this.iyh);
+			return this.cp(this.iyh);
 		case 0xbd: // CP IYL (undefined operation)
-			return void this.cp(this.iyl);
+			return this.cp(this.iyl);
 		case 0xbe: // CP (IY+d)
-			return void this.cp(this.read(this.disp(this.iyh, this.iyl)));
+			return this.cp(this.read(this.disp(this.iyh, this.iyl)));
 		case 0xcb:
 			v = this.disp(this.iyh, this.iyl);
 			switch (this.fetch()) {
 			case 0x06: // RLC (IY+d)
-				return void this.write(v, this.rlc(this.read(v)));
+				return this.write(v, this.rlc(this.read(v)));
 			case 0x0e: // RRC (IY+d)
-				return void this.write(v, this.rrc(this.read(v)));
+				return this.write(v, this.rrc(this.read(v)));
 			case 0x16: // RL (IY+d)
-				return void this.write(v, this.rl(this.read(v)));
+				return this.write(v, this.rl(this.read(v)));
 			case 0x1e: // RR (IY+d)
-				return void this.write(v, this.rr(this.read(v)));
+				return this.write(v, this.rr(this.read(v)));
 			case 0x26: // SLA (IY+d)
-				return void this.write(v, this.sla(this.read(v)));
+				return this.write(v, this.sla(this.read(v)));
 			case 0x2e: // SRA (IY+d)
-				return void this.write(v, this.sra(this.read(v)));
+				return this.write(v, this.sra(this.read(v)));
 			case 0x3e: // SRL (IY+d)
-				return void this.write(v, this.srl(this.read(v)));
+				return this.write(v, this.srl(this.read(v)));
 			case 0x46: // BIT 0,(IY+d)
-				return void this.bit(0, this.read(v));
+				return this.bit(0, this.read(v));
 			case 0x4e: // BIT 1,(IY+d)
-				return void this.bit(1, this.read(v));
+				return this.bit(1, this.read(v));
 			case 0x56: // BIT 2,(IY+d)
-				return void this.bit(2, this.read(v));
+				return this.bit(2, this.read(v));
 			case 0x5e: // BIT 3,(IY+d)
-				return void this.bit(3, this.read(v));
+				return this.bit(3, this.read(v));
 			case 0x66: // BIT 4,(IY+d)
-				return void this.bit(4, this.read(v));
+				return this.bit(4, this.read(v));
 			case 0x6e: // BIT 5,(IY+d)
-				return void this.bit(5, this.read(v));
+				return this.bit(5, this.read(v));
 			case 0x76: // BIT 6,(IY+d)
-				return void this.bit(6, this.read(v));
+				return this.bit(6, this.read(v));
 			case 0x7e: // BIT 7,(IY+d)
-				return void this.bit(7, this.read(v));
+				return this.bit(7, this.read(v));
 			case 0x86: // RES 0,(IY+d)
-				return void this.write(v, this.constructor.res(0, this.read(v)));
+				return this.write(v, this.constructor.res(0, this.read(v)));
 			case 0x8e: // RES 1,(IY+d)
-				return void this.write(v, this.constructor.res(1, this.read(v)));
+				return this.write(v, this.constructor.res(1, this.read(v)));
 			case 0x96: // RES 2,(IY+d)
-				return void this.write(v, this.constructor.res(2, this.read(v)));
+				return this.write(v, this.constructor.res(2, this.read(v)));
 			case 0x9e: // RES 3,(IY+d)
-				return void this.write(v, this.constructor.res(3, this.read(v)));
+				return this.write(v, this.constructor.res(3, this.read(v)));
 			case 0xa6: // RES 4,(IY+d)
-				return void this.write(v, this.constructor.res(4, this.read(v)));
+				return this.write(v, this.constructor.res(4, this.read(v)));
 			case 0xae: // RES 5,(IY+d)
-				return void this.write(v, this.constructor.res(5, this.read(v)));
+				return this.write(v, this.constructor.res(5, this.read(v)));
 			case 0xb6: // RES 6,(IY+d)
-				return void this.write(v, this.constructor.res(6, this.read(v)));
+				return this.write(v, this.constructor.res(6, this.read(v)));
 			case 0xbe: // RES 7,(IY+d)
-				return void this.write(v, this.constructor.res(7, this.read(v)));
+				return this.write(v, this.constructor.res(7, this.read(v)));
 			case 0xc6: // SET 0,(IY+d)
-				return void this.write(v, this.constructor.set(0, this.read(v)));
+				return this.write(v, this.constructor.set(0, this.read(v)));
 			case 0xce: // SET 1,(IY+d)
-				return void this.write(v, this.constructor.set(1, this.read(v)));
+				return this.write(v, this.constructor.set(1, this.read(v)));
 			case 0xd6: // SET 2,(IY+d)
-				return void this.write(v, this.constructor.set(2, this.read(v)));
+				return this.write(v, this.constructor.set(2, this.read(v)));
 			case 0xde: // SET 3,(IY+d)
-				return void this.write(v, this.constructor.set(3, this.read(v)));
+				return this.write(v, this.constructor.set(3, this.read(v)));
 			case 0xe6: // SET 4,(IY+d)
-				return void this.write(v, this.constructor.set(4, this.read(v)));
+				return this.write(v, this.constructor.set(4, this.read(v)));
 			case 0xee: // SET 5,(IY+d)
-				return void this.write(v, this.constructor.set(5, this.read(v)));
+				return this.write(v, this.constructor.set(5, this.read(v)));
 			case 0xf6: // SET 6,(IY+d)
-				return void this.write(v, this.constructor.set(6, this.read(v)));
+				return this.write(v, this.constructor.set(6, this.read(v)));
 			case 0xfe: // SET 7,(IY+d)
-				return void this.write(v, this.constructor.set(7, this.read(v)));
+				return this.write(v, this.constructor.set(7, this.read(v)));
 			default:
 				this.undefsize = 4;
 				if (this.undef)
