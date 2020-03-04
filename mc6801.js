@@ -112,7 +112,7 @@ export default class MC6801 extends Cpu {
 			return void(this.ccr = this.ccr & ~0x0f | MC6801.aSub[0][this.b][this.a] >>> 8);
 		case 0x12: // undocumented instruction
 		case 0x13: // undocumented instruction
-			return void(this.x += this.read1(this.s));
+			return void(this.x = this.x + this.read1(this.s) & 0xffff);
 		case 0x16: // TAB
 			return void(this.ccr = this.ccr & ~0x0e | MC6801.fLogic[this.b = this.a]);
 		case 0x17: // TBA
