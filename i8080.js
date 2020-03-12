@@ -466,7 +466,7 @@ export default class I8080 extends Cpu {
 		case 0xcd: // CALL addr
 			return this.call(true);
 		case 0xce: // ACI data
-			return this.adc(this.fetch());
+			return void(this.a = this.adc8(this.a, this.fetch()));
 		case 0xcf: // RST 08h
 			return this.rst(0x08);
 		case 0xd0: // RNC
