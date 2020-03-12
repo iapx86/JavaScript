@@ -42,7 +42,7 @@ export default class MC68000 extends Cpu {
 	}
 
 	interrupt(ipl) {
-		if (!super.interrupt() || ipl < 7 && ipl <= (this.sr >>> 8 & 7))
+		if (!super.interrupt() || ipl < 7 && ipl <= (this.sr >> 8 & 7))
 			return false;
 		this.exception(24 + ipl);
 		this.sr = this.sr & ~0x0700 | ipl << 8;
@@ -61,7 +61,7 @@ export default class MC68000 extends Cpu {
 	_execute() {
 		const op = this.fetch16();
 
-		switch (op >>> 12) {
+		switch (op >> 12) {
 		case 0x0: // Bit Manipulation/MOVEP/Immediate
 			return this.execute_0(op);
 		case 0x1: // Move Byte
@@ -98,7 +98,7 @@ export default class MC68000 extends Cpu {
 	}
 
 	execute_0(op) {
-		switch (op >>> 3 & 0o777) {
+		switch (op >> 3 & 0o777) {
 		case 0o000: // ORI.B #<data>,Dn
 		case 0o002: // ORI.B #<data>,(An)
 		case 0o003: // ORI.B #<data>,(An)+
@@ -847,7 +847,7 @@ export default class MC68000 extends Cpu {
 	}
 
 	execute_1(op) {
-		switch (op >>> 3 & 0o777) {
+		switch (op >> 3 & 0o777) {
 		case 0o000: // MOVE.B Dn,D0
 		case 0o002: // MOVE.B (An),D0
 		case 0o003: // MOVE.B (An)+,D0
@@ -1420,7 +1420,7 @@ export default class MC68000 extends Cpu {
 	}
 
 	execute_2(op) {
-		switch (op >>> 3 & 0o777) {
+		switch (op >> 3 & 0o777) {
 		case 0o000: // MOVE.L Dn,D0
 		case 0o001: // MOVE.L An,D0
 		case 0o002: // MOVE.L (An),D0
@@ -2139,7 +2139,7 @@ export default class MC68000 extends Cpu {
 	}
 
 	execute_3(op) {
-		switch (op >>> 3 & 0o777) {
+		switch (op >> 3 & 0o777) {
 		case 0o000: // MOVE.W Dn,D0
 		case 0o001: // MOVE.W An,D0
 		case 0o002: // MOVE.W (An),D0
@@ -2858,7 +2858,7 @@ export default class MC68000 extends Cpu {
 	}
 
 	execute_4(op) {
-		switch (op >>> 3 & 0o777) {
+		switch (op >> 3 & 0o777) {
 		case 0o000: // NEGX.B Dn
 		case 0o002: // NEGX.B (An)
 		case 0o003: // NEGX.B (An)+
@@ -3369,7 +3369,7 @@ export default class MC68000 extends Cpu {
 	}
 
 	execute_5(op) {
-		switch (op >>> 3 & 0o777) {
+		switch (op >> 3 & 0o777) {
 		case 0o000: // ADDQ.B #8,Dn
 		case 0o002: // ADDQ.B #8,(An)
 		case 0o003: // ADDQ.B #8,(An)+
@@ -3516,19 +3516,19 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.add32, 1);
 		case 0o130: // SHI Dn
-			return this.rwop8(op, src => src, ((this.sr >>> 2 | this.sr) & 1) === 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 | this.sr) & 1) === 0 ? 0xff : 0);
 		case 0o131: // DBHI Dn,<label>
-			return this.rwop16(op & 7, this.dbcc, ((this.sr >>> 2 | this.sr) & 1) === 0);
+			return this.rwop16(op & 7, this.dbcc, ((this.sr >> 2 | this.sr) & 1) === 0);
 		case 0o132: // SHI (An)
 		case 0o133: // SHI (An)+
 		case 0o134: // SHI -(An)
 		case 0o135: // SHI d(An)
 		case 0o136: // SHI d(An,Xi)
-			return this.rwop8(op, src => src, ((this.sr >>> 2 | this.sr) & 1) === 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 | this.sr) & 1) === 0 ? 0xff : 0);
 		case 0o137: // SHI Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, ((this.sr >>> 2 | this.sr) & 1) === 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 | this.sr) & 1) === 0 ? 0xff : 0);
 		case 0o140: // SUBQ.B #1,Dn
 		case 0o142: // SUBQ.B #1,(An)
 		case 0o143: // SUBQ.B #1,(An)+
@@ -3569,19 +3569,19 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.sub32, 1);
 		case 0o170: // SLS Dn
-			return this.rwop8(op, src => src, ((this.sr >>> 2 | this.sr) & 1) !== 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 | this.sr) & 1) !== 0 ? 0xff : 0);
 		case 0o171: // DBLS Dn,<label>
-			return this.rwop16(op & 7, this.dbcc, ((this.sr >>> 2 | this.sr) & 1) !== 0);
+			return this.rwop16(op & 7, this.dbcc, ((this.sr >> 2 | this.sr) & 1) !== 0);
 		case 0o172: // SLS (An)
 		case 0o173: // SLS (An)+
 		case 0o174: // SLS -(An)
 		case 0o175: // SLS d(An)
 		case 0o176: // SLS d(An,Xi)
-			return this.rwop8(op, src => src, ((this.sr >>> 2 | this.sr) & 1) !== 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 | this.sr) & 1) !== 0 ? 0xff : 0);
 		case 0o177: // SLS Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, ((this.sr >>> 2 | this.sr) & 1) !== 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 | this.sr) & 1) !== 0 ? 0xff : 0);
 		case 0o200: // ADDQ.B #2,Dn
 		case 0o202: // ADDQ.B #2,(An)
 		case 0o203: // ADDQ.B #2,(An)+
@@ -4046,19 +4046,19 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.add32, 6);
 		case 0o630: // SGE Dn
-			return this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr) & 2) === 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr) & 2) === 0 ? 0xff : 0);
 		case 0o631: // DBGE Dn,<label>
-			return this.rwop16(op & 7, this.dbcc, ((this.sr >>> 2 ^ this.sr) & 2) === 0);
+			return this.rwop16(op & 7, this.dbcc, ((this.sr >> 2 ^ this.sr) & 2) === 0);
 		case 0o632: // SGE (An)
 		case 0o633: // SGE (An)+
 		case 0o634: // SGE -(An)
 		case 0o635: // SGE d(An)
 		case 0o636: // SGE d(An,Xi)
-			return this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr) & 2) === 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr) & 2) === 0 ? 0xff : 0);
 		case 0o637: // SGE Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr) & 2) === 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr) & 2) === 0 ? 0xff : 0);
 		case 0o640: // SUBQ.B #6,Dn
 		case 0o642: // SUBQ.B #6,(An)
 		case 0o643: // SUBQ.B #6,(An)+
@@ -4099,19 +4099,19 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.sub32, 6);
 		case 0o670: // SLT Dn
-			return this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr) & 2) !== 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr) & 2) !== 0 ? 0xff : 0);
 		case 0o671: // DBLT Dn,<label>
-			return this.rwop16(op & 7, this.dbcc, ((this.sr >>> 2 ^ this.sr) & 2) !== 0);
+			return this.rwop16(op & 7, this.dbcc, ((this.sr >> 2 ^ this.sr) & 2) !== 0);
 		case 0o672: // SLT (An)
 		case 0o673: // SLT (An)+
 		case 0o674: // SLT -(An)
 		case 0o675: // SLT d(An)
 		case 0o676: // SLT d(An,Xi)
-			return this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr) & 2) !== 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr) & 2) !== 0 ? 0xff : 0);
 		case 0o677: // SLT Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr) & 2) !== 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr) & 2) !== 0 ? 0xff : 0);
 		case 0o700: // ADDQ.B #7,Dn
 		case 0o702: // ADDQ.B #7,(An)
 		case 0o703: // ADDQ.B #7,(An)+
@@ -4152,19 +4152,19 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.add32, 7);
 		case 0o730: // SGT Dn
-			return this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) === 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) === 0 ? 0xff : 0);
 		case 0o731: // DBGT Dn,<label>
-			return this.rwop16(op & 7, this.dbcc, ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) === 0);
+			return this.rwop16(op & 7, this.dbcc, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) === 0);
 		case 0o732: // SGT (An)
 		case 0o733: // SGT (An)+
 		case 0o734: // SGT -(An)
 		case 0o735: // SGT d(An)
 		case 0o736: // SGT d(An,Xi)
-			return this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) === 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) === 0 ? 0xff : 0);
 		case 0o737: // SGT Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) === 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) === 0 ? 0xff : 0);
 		case 0o740: // SUBQ.B #7,Dn
 		case 0o742: // SUBQ.B #7,(An)
 		case 0o743: // SUBQ.B #7,(An)+
@@ -4205,19 +4205,19 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.sub32, 7);
 		case 0o770: // SLE Dn
-			return this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) !== 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) !== 0 ? 0xff : 0);
 		case 0o771: // DBLE Dn,<label>
-			return this.rwop16(op & 7, this.dbcc, ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) !== 0);
+			return this.rwop16(op & 7, this.dbcc, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) !== 0);
 		case 0o772: // SLE (An)
 		case 0o773: // SLE (An)+
 		case 0o774: // SLE -(An)
 		case 0o775: // SLE d(An)
 		case 0o776: // SLE d(An,Xi)
-			return this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) !== 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) !== 0 ? 0xff : 0);
 		case 0o777: // SLE Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, ((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) !== 0 ? 0xff : 0);
+			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) !== 0 ? 0xff : 0);
 		default:
 			return this.exception(4);
 		}
@@ -4227,16 +4227,16 @@ export default class MC68000 extends Cpu {
 		const base = this.pc;
 		const disp = (op & 0xff) === 0 ? this.fetch16s() : (op & 0xff) - (op << 1 & 0x100);
 
-		switch (op >>> 8 & 0xf) {
+		switch (op >> 8 & 0xf) {
 		case 0x0: // BRA <label>
 			return void(this.pc = base + disp | 0);
 		case 0x1: // BSR <label>
 			this.write32(this.pc, this.a7 = this.a7 - 4 | 0);
 			return void(this.pc = base + disp | 0);
 		case 0x2: // BHI <label>
-			return void(((this.sr >>> 2 | this.sr) & 1) === 0 && (this.pc = base + disp | 0));
+			return void(((this.sr >> 2 | this.sr) & 1) === 0 && (this.pc = base + disp | 0));
 		case 0x3: // BLS <label>
-			return void(((this.sr >>> 2 | this.sr) & 1) !== 0 && (this.pc = base + disp | 0));
+			return void(((this.sr >> 2 | this.sr) & 1) !== 0 && (this.pc = base + disp | 0));
 		case 0x4: // BCC <label>
 			return void((this.sr & 1) === 0 && (this.pc = base + disp | 0));
 		case 0x5: // BCS <label>
@@ -4254,21 +4254,21 @@ export default class MC68000 extends Cpu {
 		case 0xb: // BMI <label>
 			return void((this.sr & 8) !== 0 && (this.pc = base + disp | 0));
 		case 0xc: // BGE <label>
-			return void(((this.sr >>> 2 ^ this.sr) & 2) === 0 && (this.pc = base + disp | 0));
+			return void(((this.sr >> 2 ^ this.sr) & 2) === 0 && (this.pc = base + disp | 0));
 		case 0xd: // BLT <label>
-			return void(((this.sr >>> 2 ^ this.sr) & 2) !== 0 && (this.pc = base + disp | 0));
+			return void(((this.sr >> 2 ^ this.sr) & 2) !== 0 && (this.pc = base + disp | 0));
 		case 0xe: // BGT <label>
-			return void(((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) === 0 && (this.pc = base + disp | 0));
+			return void(((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) === 0 && (this.pc = base + disp | 0));
 		case 0xf: // BLE <label>
-			return void(((this.sr >>> 2 ^ this.sr | this.sr >>> 1) & 2) !== 0 && (this.pc = base + disp | 0));
+			return void(((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) !== 0 && (this.pc = base + disp | 0));
 		}
 	}
 
 	execute_7(op) {
 		const data = (op & 0xff) - (op << 1 & 0x100);
 
-		this.sr = this.sr & ~0x0f | data >>> 28 & 8 | !data << 2;
-		switch (op >>> 8 & 0xf) {
+		this.sr = this.sr & ~0x0f | data >> 28 & 8 | !data << 2;
+		switch (op >> 8 & 0xf) {
 		case 0x0: // MOVEQ #<data>,D0
 			return void(this.d0 = data);
 		case 0x2: // MOVEQ #<data>,D1
@@ -4291,7 +4291,7 @@ export default class MC68000 extends Cpu {
 	}
 
 	execute_8(op) {
-		switch (op >>> 3 & 0o777) {
+		switch (op >> 3 & 0o777) {
 		case 0o000: // OR.B Dn,D0
 		case 0o002: // OR.B (An),D0
 		case 0o003: // OR.B (An)+,D0
@@ -5012,7 +5012,7 @@ export default class MC68000 extends Cpu {
 	execute_9(op) {
 		let data;
 
-		switch (op >>> 3 & 0o777) {
+		switch (op >> 3 & 0o777) {
 		case 0o000: // SUB.B Dn,D0
 		case 0o002: // SUB.B (An),D0
 		case 0o003: // SUB.B (An)+,D0
@@ -5827,7 +5827,7 @@ export default class MC68000 extends Cpu {
 	}
 
 	execute_b(op) {
-		switch (op >>> 3 & 0o777) {
+		switch (op >> 3 & 0o777) {
 		case 0o000: // CMP.B Dn,D0
 		case 0o002: // CMP.B (An),D0
 		case 0o003: // CMP.B (An)+,D0
@@ -6666,7 +6666,7 @@ export default class MC68000 extends Cpu {
 	}
 
 	execute_c(op) {
-		switch (op >>> 3 & 0o777) {
+		switch (op >> 3 & 0o777) {
 		case 0o000: // AND.B Dn,D0
 		case 0o002: // AND.B (An),D0
 		case 0o003: // AND.B (An)+,D0
@@ -7435,7 +7435,7 @@ export default class MC68000 extends Cpu {
 	execute_d(op) {
 		let data;
 
-		switch (op >>> 3 & 0o777) {
+		switch (op >> 3 & 0o777) {
 		case 0o000: // ADD.B Dn,D0
 		case 0o002: // ADD.B (An),D0
 		case 0o003: // ADD.B (An)+,D0
@@ -8250,7 +8250,7 @@ export default class MC68000 extends Cpu {
 	}
 
 	execute_e(op) {
-		switch (op >>> 3 & 0o777) {
+		switch (op >> 3 & 0o777) {
 		case 0o000: // ASR.B #8,Dy
 			return this.rwop8(op & 7, this.asr8, 8);
 		case 0o001: // LSR.B #8,Dy
@@ -9654,7 +9654,7 @@ export default class MC68000 extends Cpu {
 			break;
 		}
 		if (flag)
-			this.sr = this.sr & ~0x0f | data >>> 4 & 8 | !data << 2;
+			this.sr = this.sr & ~0x0f | data >> 4 & 8 | !data << 2;
 		return data;
 	}
 
@@ -9855,7 +9855,7 @@ export default class MC68000 extends Cpu {
 			break;
 		}
 		if (flag)
-			this.sr = this.sr & ~0x0f | data >>> 12 & 8 | !data << 2;
+			this.sr = this.sr & ~0x0f | data >> 12 & 8 | !data << 2;
 		return data;
 	}
 
@@ -10056,13 +10056,13 @@ export default class MC68000 extends Cpu {
 			break;
 		}
 		if (flag)
-			this.sr = this.sr & ~0x0f | data >>> 28 & 8 | !data << 2;
+			this.sr = this.sr & ~0x0f | data >> 28 & 8 | !data << 2;
 		return data;
 	}
 
 	movep(op, src) {
 		const addr = this.lea(op & 7 | 0o50);
-		switch (op >>> 6 & 3){
+		switch (op >> 6 & 3){
 		case 0: // MOVEP.W d(Ay),Dx
 			return this.read8(addr) << 8 | this.read8(addr + 2);
 		case 1: // MOVEP.L d(Ay),Dx
@@ -10072,9 +10072,9 @@ export default class MC68000 extends Cpu {
 			this.write8(src, addr + 2);
 			return;
 		case 3: // MOVEP.L Dx,d(Ay)
-			this.write8(src >>> 24, addr);
-			this.write8(src >>> 16, addr + 2);
-			this.write8(src >>> 8, addr + 4);
+			this.write8(src >> 24, addr);
+			this.write8(src >> 16, addr + 2);
+			this.write8(src >> 8, addr + 4);
 			this.write8(src, addr + 6);
 			return;
 		}
@@ -10471,145 +10471,145 @@ export default class MC68000 extends Cpu {
 
 	or8(src, dst) {
 		const r = (dst | src) & 0xff;
-		this.sr = this.sr & ~0x0f | r >>> 4 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 4 & 8 | !r << 2;
 		return r;
 	}
 
 	or16(src, dst) {
 		const r = (dst | src) & 0xffff;
-		this.sr = this.sr & ~0x0f | r >>> 12 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 12 & 8 | !r << 2;
 		return r;
 	}
 
 	or32(src, dst) {
 		const r = dst | src;
-		this.sr = this.sr & ~0x0f | r >>> 28 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2;
 		return r;
 	}
 
 	and8(src, dst) {
 		const r = dst & src & 0xff;
-		this.sr = this.sr & ~0x0f | r >>> 4 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 4 & 8 | !r << 2;
 		return r;
 	}
 
 	and16(src, dst) {
 		const r = dst & src & 0xffff;
-		this.sr = this.sr & ~0x0f | r >>> 12 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 12 & 8 | !r << 2;
 		return r;
 	}
 
 	and32(src, dst) {
 		const r = dst & src;
-		this.sr = this.sr & ~0x0f | r >>> 28 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2;
 		return r;
 	}
 
 	sub8(src, dst) {
 		const r = dst - src & 0xff, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
-		this.sr = this.sr & ~0x1f | c >>> 3 & 0x10 | r >>> 4 & 8 | !r << 2 | v >>> 6 & 2 | c >>> 7 & 1;
+		this.sr = this.sr & ~0x1f | c >> 3 & 0x10 | r >> 4 & 8 | !r << 2 | v >> 6 & 2 | c >> 7 & 1;
 		return r;
 	}
 
 	sub16(src, dst) {
 		const r = dst - src & 0xffff, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
-		this.sr = this.sr & ~0x1f | c >>> 11 & 0x10 | r >>> 12 & 8 | !r << 2 | v >>> 14 & 2 | c >>> 15 & 1;
+		this.sr = this.sr & ~0x1f | c >> 11 & 0x10 | r >> 12 & 8 | !r << 2 | v >> 14 & 2 | c >> 15 & 1;
 		return r;
 	}
 
 	sub32(src, dst) {
 		const r = dst - src | 0, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
-		this.sr = this.sr & ~0x1f | c >>> 27 & 0x10 | r >>> 28 & 8 | !r << 2 | v >>> 30 & 2 | c >>> 31;
+		this.sr = this.sr & ~0x1f | c >> 27 & 0x10 | r >> 28 & 8 | !r << 2 | v >> 30 & 2 | c >> 31 & 1;
 		return r;
 	}
 
 	add8(src, dst) {
 		const r = dst + src & 0xff, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
-		this.sr = this.sr & ~0x1f | c >>> 3 & 0x10 | r >>> 4 & 8 | !r << 2 | v >>> 6 & 2 | c >>> 7 & 1;
+		this.sr = this.sr & ~0x1f | c >> 3 & 0x10 | r >> 4 & 8 | !r << 2 | v >> 6 & 2 | c >> 7 & 1;
 		return r;
 	}
 
 	add16(src, dst) {
 		const r = dst + src & 0xffff, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
-		this.sr = this.sr & ~0x1f | c >>> 11 & 0x10 | r >>> 12 & 8 | !r << 2 | v >>> 14 & 2 | c >>> 15 & 1;
+		this.sr = this.sr & ~0x1f | c >> 11 & 0x10 | r >> 12 & 8 | !r << 2 | v >> 14 & 2 | c >> 15 & 1;
 		return r;
 	}
 
 	add32(src, dst) {
 		const r = dst + src | 0, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
-		this.sr = this.sr & ~0x1f | c >>> 27 & 0x10 | r >>> 28 & 8 | !r << 2 | v >>> 30 & 2 | c >>> 31;
+		this.sr = this.sr & ~0x1f | c >> 27 & 0x10 | r >> 28 & 8 | !r << 2 | v >> 30 & 2 | c >> 31 & 1;
 		return r;
 	}
 
 	btst8(src, dst) {
-		this.sr = this.sr & ~4 | ~dst >>> (src & 7) << 2 & 4;
+		this.sr = this.sr & ~4 | ~dst >> (src & 7) << 2 & 4;
 	}
 
 	btst32(src, dst) {
-		this.sr = this.sr & ~4 | ~dst >>> (src & 31) << 2 & 4;
+		this.sr = this.sr & ~4 | ~dst >> (src & 31) << 2 & 4;
 	}
 
 	bchg8(src, dst) {
-		this.sr = this.sr & ~4 | ~dst >>> (src &= 7) << 2 & 4;
+		this.sr = this.sr & ~4 | ~dst >> (src &= 7) << 2 & 4;
 		return dst ^ 1 << src;
 	}
 
 	bchg32(src, dst) {
-		this.sr = this.sr & ~4 | ~dst >>> (src &= 31) << 2 & 4;
+		this.sr = this.sr & ~4 | ~dst >> (src &= 31) << 2 & 4;
 		return dst ^ 1 << src;
 	}
 
 	bclr8(src, dst) {
-		this.sr = this.sr & ~4 | ~dst >>> (src &= 7) << 2 & 4;
+		this.sr = this.sr & ~4 | ~dst >> (src &= 7) << 2 & 4;
 		return dst & ~(1 << src);
 	}
 
 	bclr32(src, dst) {
-		this.sr = this.sr & ~4 | ~dst >>> (src &= 31) << 2 & 4;
+		this.sr = this.sr & ~4 | ~dst >> (src &= 31) << 2 & 4;
 		return dst & ~(1 << src);
 	}
 
 	bset8(src, dst) {
-		this.sr = this.sr & ~4 | ~dst >>> (src &= 7) << 2 & 4;
+		this.sr = this.sr & ~4 | ~dst >> (src &= 7) << 2 & 4;
 		return dst | 1 << src;
 	}
 
 	bset32(src, dst) {
-		this.sr = this.sr & ~4 | ~dst >>> (src &= 31) << 2 & 4;
+		this.sr = this.sr & ~4 | ~dst >> (src &= 31) << 2 & 4;
 		return dst | 1 << src;
 	}
 
 	eor8(src, dst) {
 		const r = (dst ^ src) & 0xff;
-		this.sr = this.sr & ~0x0f | r >>> 4 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 4 & 8 | !r << 2;
 		return r;
 	}
 
 	eor16(src, dst) {
 		const r = (dst ^ src) & 0xffff;
-		this.sr = this.sr & ~0x0f | r >>> 12 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 12 & 8 | !r << 2;
 		return r;
 	}
 
 	eor32(src, dst) {
 		const r = dst ^ src;
-		this.sr = this.sr & ~0x0f | r >>> 28 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2;
 		return r;
 	}
 
 	cmp8(src, dst) {
 		const r = dst - src & 0xff, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
-		this.sr = this.sr & ~0x0f | r >>> 4 & 8 | !r << 2 | v >>> 6 & 2 | c >>> 7 & 1;
+		this.sr = this.sr & ~0x0f | r >> 4 & 8 | !r << 2 | v >> 6 & 2 | c >> 7 & 1;
 	}
 
 	cmp16(src, dst) {
 		const r = dst - src & 0xffff, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
-		this.sr = this.sr & ~0x0f | r >>> 12 & 8 | !r << 2 | v >>> 14 & 2 | c >>> 15 & 1;
+		this.sr = this.sr & ~0x0f | r >> 12 & 8 | !r << 2 | v >> 14 & 2 | c >> 15 & 1;
 	}
 
 	cmp32(src, dst) {
 		const r = dst - src | 0, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
-		this.sr = this.sr & ~0x0f | r >>> 28 & 8 | !r << 2 | v >>> 30 & 2 | c >>> 31;
+		this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2 | v >> 30 & 2 | c >> 31 & 1;
 	}
 
 	divu(src, dst) {
@@ -10622,12 +10622,12 @@ export default class MC68000 extends Cpu {
 			this.sr |= 2;
 			return dst;
 		}
-		this.sr = this.sr & ~0x0f | r >>> 12 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 12 & 8 | !r << 2;
 		return r | ((dst >>> 0) % src) << 16;
 	}
 
 	sbcd(src, dst) {
-		let r = dst - src - (this.sr >>> 4 & 1) & 0xff, c = ~dst & src | src & r | r & ~dst;
+		let r = dst - src - (this.sr >> 4 & 1) & 0xff, c = ~dst & src | src & r | r & ~dst;
 		if ((c & 8) !== 0 && (r & 0x0f) > 5 || (r & 0x0f) > 9)
 			r -= 6;
 		if ((c & 0x80) !== 0 && (r & 0xf0) > 0x50 || (r & 0xf0) > 0x90) {
@@ -10635,7 +10635,7 @@ export default class MC68000 extends Cpu {
 			c |= 0x80;
 		}
 		r &= 0xff;
-		this.sr = this.sr & ~0x15 | c >>> 3 & 0x10 | !r << 2 | c >>> 7 & 1;
+		this.sr = this.sr & ~0x15 | c >> 3 & 0x10 | !r << 2 | c >> 7 & 1;
 		return r;
 	}
 
@@ -10650,47 +10650,47 @@ export default class MC68000 extends Cpu {
 			this.sr |= 2;
 			return dst;
 		}
-		this.sr = this.sr & ~0x0f | r >>> 12 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 12 & 8 | !r << 2;
 		return r & 0xffff | (dst % src) << 16;
 	}
 
 	subx8(src, dst) {
-		const r = dst - src - (this.sr >>> 4 & 1) & 0xff, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
-		this.sr = this.sr & ~0x1f | c >>> 3 & 0x10 | r >>> 4 & 8 | !r << 2 | v >>> 6 & 2 | c >>> 7 & 1;
+		const r = dst - src - (this.sr >> 4 & 1) & 0xff, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
+		this.sr = this.sr & ~0x1f | c >> 3 & 0x10 | r >> 4 & 8 | !r << 2 | v >> 6 & 2 | c >> 7 & 1;
 		return r;
 	}
 
 	subx16(src, dst) {
-		const r = dst - src - (this.sr >>> 4 & 1) & 0xffff, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
-		this.sr = this.sr & ~0x1f | c >>> 11 & 0x10 | r >>> 12 & 8 | !r << 2 | v >>> 14 & 2 | c >>> 15 & 1;
+		const r = dst - src - (this.sr >> 4 & 1) & 0xffff, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
+		this.sr = this.sr & ~0x1f | c >> 11 & 0x10 | r >> 12 & 8 | !r << 2 | v >> 14 & 2 | c >> 15 & 1;
 		return r;
 	}
 
 	subx32(src, dst) {
-		const r = dst - src - (this.sr >>> 4 & 1) | 0, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
-		this.sr = this.sr & ~0x1f | c >>> 27 & 0x10 | r >>> 28 & 8 | !r << 2 | v >>> 30 & 2 | c >>> 31;
+		const r = dst - src - (this.sr >> 4 & 1) | 0, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
+		this.sr = this.sr & ~0x1f | c >> 27 & 0x10 | r >> 28 & 8 | !r << 2 | v >> 30 & 2 | c >> 31 & 1;
 		return r;
 	}
 
 	cmpa16(src, dst) {
 		src -= src << 1 & 0x10000;
 		const r = dst - src | 0, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
-		this.sr = this.sr & ~0x0f | r >>> 28 & 8 | !r << 2 | v >>> 30 & 2 | c >>> 31;
+		this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2 | v >> 30 & 2 | c >> 31 & 1;
 	}
 
 	cmpa32(src, dst) {
 		const r = dst - src | 0, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
-		this.sr = this.sr & ~0x0f | r >>> 28 & 8 | !r << 2 | v >>> 30 & 2 | c >>> 31;
+		this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2 | v >> 30 & 2 | c >> 31 & 1;
 	}
 
 	mulu(src, dst) {
 		const r = src * dst | 0;
-		this.sr = this.sr & ~0x0f | r >>> 28 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2;
 		return r;
 	}
 
 	abcd(src, dst) {
-		let r = dst + src + (this.sr >>> 4 & 1) & 0xff, c = dst & src | src & ~r | ~r & dst;
+		let r = dst + src + (this.sr >> 4 & 1) & 0xff, c = dst & src | src & ~r | ~r & dst;
 		if ((c & 8) !== 0 && (r & 0x0f) < 4 || (r & 0x0f) > 9)
 			if ((r += 6) >= 0x100)
 				c |= 0x80;
@@ -10699,233 +10699,233 @@ export default class MC68000 extends Cpu {
 			c |= 0x80;
 		}
 		r &= 0xff;
-		this.sr = this.sr & ~0x15 | c >>> 3 & 0x10 | !r << 2 | c >>> 7 & 1;
+		this.sr = this.sr & ~0x15 | c >> 3 & 0x10 | !r << 2 | c >> 7 & 1;
 		return r;
 	}
 
 	muls(src, dst) {
 		const r = (dst - (dst << 1 & 0x10000)) * (src - (src << 1 & 0x10000)) | 0;
-		this.sr = this.sr & ~0x0f | r >>> 28 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2;
 		return r;
 	}
 
 	addx8(src, dst) {
-		const r = dst + src + (this.sr >>> 4 & 1) & 0xff, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
-		this.sr = this.sr & ~0x1f | c >>> 3 & 0x10 | r >>> 4 & 8 | !r << 2 | v >>> 6 & 2 | c >>> 7 & 1;
+		const r = dst + src + (this.sr >> 4 & 1) & 0xff, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
+		this.sr = this.sr & ~0x1f | c >> 3 & 0x10 | r >> 4 & 8 | !r << 2 | v >> 6 & 2 | c >> 7 & 1;
 		return r;
 	}
 
 	addx16(src, dst) {
-		const r = dst + src + (this.sr >>> 4 & 1) & 0xffff, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
-		this.sr = this.sr & ~0x1f | c >>> 11 & 0x10 | r >>> 12 & 8 | !r << 2 | v >>> 14 & 2 | c >>> 15 & 1;
+		const r = dst + src + (this.sr >> 4 & 1) & 0xffff, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
+		this.sr = this.sr & ~0x1f | c >> 11 & 0x10 | r >> 12 & 8 | !r << 2 | v >> 14 & 2 | c >> 15 & 1;
 		return r;
 	}
 
 	addx32(src, dst) {
-		const r = dst + src + (this.sr >>> 4 & 1) | 0, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
-		this.sr = this.sr & ~0x1f | c >>> 27 & 0x10 | r >>> 28 & 8 | !r << 2 | v >>> 30 & 2 | c >>> 31;
+		const r = dst + src + (this.sr >> 4 & 1) | 0, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
+		this.sr = this.sr & ~0x1f | c >> 27 & 0x10 | r >> 28 & 8 | !r << 2 | v >> 30 & 2 | c >> 31 & 1;
 		return r;
 	}
 
 	asr8(src, dst) {
 		src &= 63;
 		dst -= dst << 1 & 0x100;
-		const r = dst >> src & 0xff, x = src ? dst >> (src - 1) & 1 : this.sr >>> 4 & 1, c = src ? dst >> (src - 1) & 1 : 0;
-		this.sr = this.sr & ~0x1f | x << 4 | r >>> 4 & 8 | !r << 2 | c;
+		const r = dst >> src & 0xff, x = src ? dst >> (src - 1) & 1 : this.sr >> 4 & 1, c = src ? dst >> (src - 1) & 1 : 0;
+		this.sr = this.sr & ~0x1f | x << 4 | r >> 4 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	asr16(src, dst) {
 		src &= 63;
 		dst -= dst << 1 & 0x10000;
-		const r = dst >> src & 0xffff, x = src ? dst >> (src - 1) & 1 : this.sr >>> 4 & 1, c = src ? dst >> (src - 1) & 1 : 0;
-		this.sr = this.sr & ~0x1f | x << 4 | r >>> 12 & 8 | !r << 2 | c;
+		const r = dst >> src & 0xffff, x = src ? dst >> (src - 1) & 1 : this.sr >> 4 & 1, c = src ? dst >> (src - 1) & 1 : 0;
+		this.sr = this.sr & ~0x1f | x << 4 | r >> 12 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	asr32(src, dst) {
 		src &= 63;
-		const r = dst >> src, x = src ? dst >> (src - 1) & 1 : this.sr >>> 4 & 1, c = src ? dst >> (src - 1) & 1 : 0;
-		this.sr = this.sr & ~0x1f | x << 4 | r >>> 28 & 8 | !r << 2 | c;
+		const r = dst >> src, x = src ? dst >> (src - 1) & 1 : this.sr >> 4 & 1, c = src ? dst >> (src - 1) & 1 : 0;
+		this.sr = this.sr & ~0x1f | x << 4 | r >> 28 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	lsr8(src, dst) {
 		src &= 63;
-		const r = dst >>> src | 0, x = src ? dst >>> (src - 1) & 1 : this.sr >>> 4 & 1, c = src ? dst >>> (src - 1) & 1 : 0;
-		this.sr = this.sr & ~0x1f | x << 4 | r >>> 4 & 8 | !r << 2 | c;
+		const r = dst >>> src | 0, x = src ? dst >> (src - 1) & 1 : this.sr >> 4 & 1, c = src ? dst >> (src - 1) & 1 : 0;
+		this.sr = this.sr & ~0x1f | x << 4 | r >> 4 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	lsr16(src, dst) {
 		src &= 63;
-		const r = dst >>> src | 0, x = src ? dst >>> (src - 1) & 1 : this.sr >>> 4 & 1, c = src ? dst >>> (src - 1) & 1 : 0;
-		this.sr = this.sr & ~0x1f | x << 4 | r >>> 12 & 8 | !r << 2 | c;
+		const r = dst >>> src | 0, x = src ? dst >> (src - 1) & 1 : this.sr >> 4 & 1, c = src ? dst >> (src - 1) & 1 : 0;
+		this.sr = this.sr & ~0x1f | x << 4 | r >> 12 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	lsr32(src, dst) {
 		src &= 63;
-		const r = dst >>> src | 0, x = src ? dst >>> (src - 1) & 1 : this.sr >>> 4 & 1, c = src ? dst >>> (src - 1) & 1 : 0;
-		this.sr = this.sr & ~0x1f | x << 4 | r >>> 28 & 8 | !r << 2 | c;
+		const r = dst >>> src | 0, x = src ? dst >> (src - 1) & 1 : this.sr >> 4 & 1, c = src ? dst >> (src - 1) & 1 : 0;
+		this.sr = this.sr & ~0x1f | x << 4 | r >> 28 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	roxr8(src, dst) {
 		src = (src & 63) % 9;
-		const r = (dst >>> src | dst << 9 - src | (this.sr >>> 4 & 1) << 8 - src) & 0xff, x = src ? dst >>> src - 1 & 1 : this.sr >>> 4 & 1;
-		this.sr = this.sr & ~0x1f | x << 4 | r >>> 4 & 8 | !r << 2 | x;
+		const r = (dst >>> src | dst << 9 - src | (this.sr >> 4 & 1) << 8 - src) & 0xff, x = src ? dst >> src - 1 & 1 : this.sr >> 4 & 1;
+		this.sr = this.sr & ~0x1f | x << 4 | r >> 4 & 8 | !r << 2 | x;
 		return r;
 	}
 
 	roxr16(src, dst) {
 		src = (src & 63) % 17;
-		const r = (dst >>> src | dst << 17 - src | (this.sr >>> 4 & 1) << 16 - src) & 0xffff, x = src ? dst >>> src - 1 & 1 : this.sr >>> 4 & 1;
-		this.sr = this.sr & ~0x1f | x << 4 | r >>> 12 & 8 | !r << 2 | x;
+		const r = (dst >>> src | dst << 17 - src | (this.sr >> 4 & 1) << 16 - src) & 0xffff, x = src ? dst >> src - 1 & 1 : this.sr >> 4 & 1;
+		this.sr = this.sr & ~0x1f | x << 4 | r >> 12 & 8 | !r << 2 | x;
 		return r;
 	}
 
 	roxr32(src, dst) {
 		src = (src & 63) % 33;
-		const r = dst >>> src | dst << 33 - src | (this.sr >>> 4 & 1) << 32 - src, x = src ? dst >>> src - 1 & 1 : this.sr >>> 4 & 1;
-		this.sr = this.sr & ~0x1f | x << 4 | r >>> 28 & 8 | !r << 2 | x;
+		const r = dst >>> src | dst << 33 - src | (this.sr >> 4 & 1) << 32 - src, x = src ? dst >> src - 1 & 1 : this.sr >> 4 & 1;
+		this.sr = this.sr & ~0x1f | x << 4 | r >> 28 & 8 | !r << 2 | x;
 		return r;
 	}
 
 	ror8(src, dst) {
 		src &= 63;
-		const r = dst >>> (src & 7) | dst << (~src & 7) + 1 & 0xff, c = src ? dst >>> (src - 1 & 7) & 1 : 0;
-		this.sr = this.sr & ~0x0f | r >>> 4 & 8 | !r << 2 | c;
+		const r = dst >>> (src & 7) | dst << (~src & 7) + 1 & 0xff, c = src ? dst >> (src - 1 & 7) & 1 : 0;
+		this.sr = this.sr & ~0x0f | r >> 4 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	ror16(src, dst) {
 		src &= 63;
-		const r = dst >>> (src & 15) | dst << (~src & 15) + 1 & 0xffff, c = src ? dst >>> (src - 1 & 15) & 1 : 0;
-		this.sr = this.sr & ~0x0f | r >>> 12 & 8 | !r << 2 | c;
+		const r = dst >>> (src & 15) | dst << (~src & 15) + 1 & 0xffff, c = src ? dst >> (src - 1 & 15) & 1 : 0;
+		this.sr = this.sr & ~0x0f | r >> 12 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	ror32(src, dst) {
 		src &= 63;
-		const r = dst >>> (src & 31) | dst << (~src & 31) + 1, c = src ? dst >>> (src - 1 & 31) & 1 : 0;
-		this.sr = this.sr & ~0x0f | r >>> 28 & 8 | !r << 2 | c;
+		const r = dst >>> (src & 31) | dst << (~src & 31) + 1, c = src ? dst >> (src - 1 & 31) & 1 : 0;
+		this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	asl8(src, dst) {
-		let x = this.sr >>> 4 & 1, v = 0, c = 0;
+		let x = this.sr >> 4 & 1, v = 0, c = 0;
 		src &= 63;
 		for (let i = 0; i < src; i++) {
-			v |= (dst >>> 7 ^ dst >>> 6) & 1;
-			[x, c, dst] = [dst >>> 7, dst >>> 7, dst << 1];
+			v |= (dst >> 7 ^ dst >> 6) & 1;
+			[x, c, dst] = [dst >> 7, dst >> 7, dst << 1 & 0xff];
 		}
 		dst &= 0xff;
-		this.sr = this.sr & ~0x1f | x << 4 | dst >>> 4 & 8 | !dst << 2 | v << 1 | c;
+		this.sr = this.sr & ~0x1f | x << 4 | dst >> 4 & 8 | !dst << 2 | v << 1 | c;
 		return dst;
 	}
 
 	asl16(src, dst) {
-		let x = this.sr >>> 4 & 1, v = 0, c = 0;
+		let x = this.sr >> 4 & 1, v = 0, c = 0;
 		src &= 63;
 		for (let i = 0; i < src; i++) {
-			v |= (dst >>> 15 ^ dst >>> 14) & 1;
-			[x, c, dst] = [dst >>> 15, dst >>> 15, dst << 1];
+			v |= (dst >> 15 ^ dst >> 14) & 1;
+			[x, c, dst] = [dst >> 15, dst >> 15, dst << 1 & 0xffff];
 		}
 		dst &= 0xffff;
-		this.sr = this.sr & ~0x1f | x << 4 | dst >>> 12 & 8 | !dst << 2 | v << 1 | c;
+		this.sr = this.sr & ~0x1f | x << 4 | dst >> 12 & 8 | !dst << 2 | v << 1 | c;
 		return dst;
 	}
 
 	asl32(src, dst) {
-		let x = this.sr >>> 4 & 1, v = 0, c = 0;
+		let x = this.sr >> 4 & 1, v = 0, c = 0;
 		src &= 63;
 		for (let i = 0; i < src; i++) {
-			v |= (dst >>> 31 ^ dst >>> 30) & 1;
+			v |= (dst >> 31 ^ dst >> 30) & 1;
 			[x, c, dst] = [dst >>> 31, dst >>> 31, dst << 1];
 		}
-		this.sr = this.sr & ~0x1f | x << 4 | dst >>> 28 & 8 | !dst << 2 | v << 1 | c;
+		this.sr = this.sr & ~0x1f | x << 4 | dst >> 28 & 8 | !dst << 2 | v << 1 | c;
 		return dst;
 	}
 
 	lsl8(src, dst) {
 		src &= 63;
-		const r = dst << src & 0xff, x = src ? dst << (src - 1) >>> 7 & 1 : this.sr >>> 4 & 1, c = src ? dst << (src - 1) >>> 7 & 1 : 0;
-		this.sr = this.sr & ~0x1f | x << 4 | r >>> 4 & 8 | !r << 2 | c;
+		const r = dst << src & 0xff, x = src ? dst << (src - 1) >> 7 & 1 : this.sr >> 4 & 1, c = src ? dst << (src - 1) >> 7 & 1 : 0;
+		this.sr = this.sr & ~0x1f | x << 4 | r >> 4 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	lsl16(src, dst) {
 		src &= 63;
-		const r = dst << src & 0xffff, x = src ? dst << (src - 1) >>> 15 & 1 : this.sr >>> 4 & 1, c = src ? dst << (src - 1) >>> 15 & 1 : 0;
-		this.sr = this.sr & ~0x1f | x << 4 | r >>> 12 & 8 | !r << 2 | c;
+		const r = dst << src & 0xffff, x = src ? dst << (src - 1) >> 15 & 1 : this.sr >> 4 & 1, c = src ? dst << (src - 1) >> 15 & 1 : 0;
+		this.sr = this.sr & ~0x1f | x << 4 | r >> 12 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	lsl32(src, dst) {
 		src &= 63;
-		const r = dst << src, x = src ? dst << (src - 1) >>> 31 & 1 : this.sr >>> 4 & 1, c = src ? dst << (src - 1) >>> 31 & 1 : 0;
-		this.sr = this.sr & ~0x1f | x << 4 | r >>> 28 & 8 | !r << 2 | c;
+		const r = dst << src, x = src ? dst << (src - 1) >> 31 & 1 : this.sr >> 4 & 1, c = src ? dst << (src - 1) >> 31 & 1 : 0;
+		this.sr = this.sr & ~0x1f | x << 4 | r >> 28 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	roxl8(src, dst) {
 		src = (src & 63) % 9;
-		const r = (dst << src | dst >>> 9 - src | (this.sr << 3 & 0x80) >>> 8 - src) & 0xff, x = src ? dst >>> 8 - src & 1 : this.sr >>> 4 & 1;
-		this.sr = this.sr & ~0x1f | x << 4 | r >>> 4 & 8 | !r << 2 | x;
+		const r = (dst << src | dst >> 9 - src | (this.sr << 3 & 0x80) >> 8 - src) & 0xff, x = src ? dst >> 8 - src & 1 : this.sr >> 4 & 1;
+		this.sr = this.sr & ~0x1f | x << 4 | r >> 4 & 8 | !r << 2 | x;
 		return r;
 	}
 
 	roxl16(src, dst) {
 		src = (src & 63) % 17;
-		const r = (dst << src | dst >>> 17 - src | (this.sr << 11 & 0x8000) >>> 16 - src) & 0xffff, x = src ? dst >>> 16 - src & 1 : this.sr >>> 4 & 1;
-		this.sr = this.sr & ~0x1f | x << 4 | r >>> 12 & 8 | !r << 2 | x;
+		const r = (dst << src | dst >> 17 - src | (this.sr << 11 & 0x8000) >> 16 - src) & 0xffff, x = src ? dst >> 16 - src & 1 : this.sr >> 4 & 1;
+		this.sr = this.sr & ~0x1f | x << 4 | r >> 12 & 8 | !r << 2 | x;
 		return r;
 	}
 
 	roxl32(src, dst) {
 		src = (src & 63) % 33;
-		const r = dst << src | dst >>> 33 - src | (this.sr << 27 & 0x80000000) >>> 32 - src, x = src ? dst >>> 32 - src & 1 : this.sr >>> 4 & 1;
-		this.sr = this.sr & ~0x1f | x << 4 | r >>> 28 & 8 | !r << 2 | x;
+		const r = dst << src | dst >>> 33 - src | (this.sr << 27 & 0x80000000) >>> 32 - src, x = src ? dst >> 32 - src & 1 : this.sr >> 4 & 1;
+		this.sr = this.sr & ~0x1f | x << 4 | r >> 28 & 8 | !r << 2 | x;
 		return r;
 	}
 
 	rol8(src, dst) {
 		src &= 63;
-		const r = dst << (src & 7) & 0xff | dst >>> (~src & 7) + 1, c = src ? dst >>> (-src & 7) & 1 : 0;
-		this.sr = this.sr & ~0x0f | r >>> 4 & 8 | !r << 2 | c;
+		const r = dst << (src & 7) & 0xff | dst >> (~src & 7) + 1, c = src ? dst >> (-src & 7) & 1 : 0;
+		this.sr = this.sr & ~0x0f | r >> 4 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	rol16(src, dst) {
 		src &= 63;
-		const r = dst << (src & 15) & 0xffff | dst >>> (~src & 15) + 1, c = src ? dst >>> (-src & 15) & 1 : 0;
-		this.sr = this.sr & ~0x0f | r >>> 12 & 8 | !r << 2 | c;
+		const r = dst << (src & 15) & 0xffff | dst >> (~src & 15) + 1, c = src ? dst >> (-src & 15) & 1 : 0;
+		this.sr = this.sr & ~0x0f | r >> 12 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	rol32(src, dst) {
 		src &= 63;
-		const r = dst << (src & 31) | dst >>> (~src & 31) + 1, c = src ? dst >>> (-src & 31) & 1 : 0;
-		this.sr = this.sr & ~0x0f | r >>> 28 & 8 | !r << 2 | c;
+		const r = dst << (src & 31) | dst >>> (~src & 31) + 1, c = src ? dst >> (-src & 31) & 1 : 0;
+		this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2 | c;
 		return r;
 	}
 
 	negx8(src, dst) {
-		const r = -dst - (this.sr >>> 4 & 1) & 0xff, v = dst & r, c = dst | r;
-		this.sr = this.sr & ~0x1f | c >>> 3 & 0x10 | r >>> 4 & 8 | !r << 2 | v >>> 6 & 2 | c >>> 7 & 1;
+		const r = -dst - (this.sr >> 4 & 1) & 0xff, v = dst & r, c = dst | r;
+		this.sr = this.sr & ~0x1f | c >> 3 & 0x10 | r >> 4 & 8 | !r << 2 | v >> 6 & 2 | c >> 7 & 1;
 		return r;
 	}
 
 	negx16(src, dst) {
-		const r = -dst - (this.sr >>> 4 & 1) & 0xffff, v = dst & r, c = dst | r;
-		this.sr = this.sr & ~0x1f | c >>> 11 & 0x10 | r >>> 12 & 8 | !r << 2 | v >>> 14 & 2 | c >>> 15 & 1;
+		const r = -dst - (this.sr >> 4 & 1) & 0xffff, v = dst & r, c = dst | r;
+		this.sr = this.sr & ~0x1f | c >> 11 & 0x10 | r >> 12 & 8 | !r << 2 | v >> 14 & 2 | c >> 15 & 1;
 		return r;
 	}
 
 	negx32(src, dst) {
-		const r = -dst - (this.sr >>> 4 & 1) | 0, v = dst & r, c = dst | r;
-		this.sr = this.sr & ~0x1f | c >>> 27 & 0x10 | r >>> 28 & 8 | !r << 2 | v >>> 30 & 2 | c >>> 31;
+		const r = -dst - (this.sr >> 4 & 1) | 0, v = dst & r, c = dst | r;
+		this.sr = this.sr & ~0x1f | c >> 27 & 0x10 | r >> 28 & 8 | !r << 2 | v >> 30 & 2 | c >> 31 & 1;
 		return r;
 	}
 
@@ -10936,42 +10936,42 @@ export default class MC68000 extends Cpu {
 
 	neg8(src, dst) {
 		const r = -dst & 0xff, v = dst & r, c = dst | r;
-		this.sr = this.sr & ~0x1f | c >>> 3 & 0x10 | r >>> 4 & 8 | !r << 2 | v >>> 6 & 2 | c >>> 7 & 1;
+		this.sr = this.sr & ~0x1f | c >> 3 & 0x10 | r >> 4 & 8 | !r << 2 | v >> 6 & 2 | c >> 7 & 1;
 		return r;
 	}
 
 	neg16(src, dst) {
 		const r = -dst & 0xffff, v = dst & r, c = dst | r;
-		this.sr = this.sr & ~0x1f | c >>> 11 & 0x10 | r >>> 12 & 8 | !r << 2 | v >>> 14 & 2 | c >>> 15 & 1;
+		this.sr = this.sr & ~0x1f | c >> 11 & 0x10 | r >> 12 & 8 | !r << 2 | v >> 14 & 2 | c >> 15 & 1;
 		return r;
 	}
 
 	neg32(src, dst) {
 		const r = -dst | 0, v = dst & r, c = dst | r;
-		this.sr = this.sr & ~0x1f | c >>> 27 & 0x10 | r >>> 28 & 8 | !r << 2 | v >>> 30 & 2 | c >>> 31;
+		this.sr = this.sr & ~0x1f | c >> 27 & 0x10 | r >> 28 & 8 | !r << 2 | v >> 30 & 2 | c >> 31 & 1;
 		return r;
 	}
 
 	not8(src, dst) {
 		const r = ~dst & 0xff;
-		this.sr = this.sr & ~0x0f | r >>> 4 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 4 & 8 | !r << 2;
 		return r;
 	}
 
 	not16(src, dst) {
 		const r = ~dst & 0xffff;
-		this.sr = this.sr & ~0x0f | r >>> 12 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 12 & 8 | !r << 2;
 		return r;
 	}
 
 	not32(src, dst) {
 		const r = ~dst;
-		this.sr = this.sr & ~0x0f | r >>> 28 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2;
 		return r;
 	}
 
 	nbcd(src, dst) {
-		let r = -dst - (this.sr >>> 4 & 1) & 0xff, c = dst | r;
+		let r = -dst - (this.sr >> 4 & 1) & 0xff, c = dst | r;
 		if ((c & 8) !== 0 && (r & 0x0f) > 5 || (r & 0x0f) > 9)
 			r -= 6;
 		if ((c & 0x80) !== 0 && (r & 0xf0) > 0x50 || (r & 0xf0) > 0x90) {
@@ -10979,30 +10979,30 @@ export default class MC68000 extends Cpu {
 			c |= 0x80;
 		}
 		r &= 0xff;
-		this.sr = this.sr & ~0x15 | c >>> 3 & 0x10 | !r << 2 | c >>> 7 & 1;
+		this.sr = this.sr & ~0x15 | c >> 3 & 0x10 | !r << 2 | c >> 7 & 1;
 		return r;
 	}
 
 	swap(src, dst) {
 		const r = dst << 16 | dst >>> 16;
-		this.sr = this.sr & ~0x0f | r >>> 28 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2;
 		return r;
 	}
 
 	ext16(src, dst) {
 		const r = (dst & 0xff) - (dst << 1 & 0x100) & 0xffff;
-		this.sr = this.sr & ~0x0f | r >>> 12 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 12 & 8 | !r << 2;
 		return r;
 	}
 
 	ext32(src, dst) {
 		const r = (dst & 0xffff) - (dst << 1 & 0x10000);
-		this.sr = this.sr & ~0x0f | r >>> 28 & 8 | !r << 2;
+		this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2;
 		return r;
 	}
 
 	tas(src, dst) {
-		this.sr = this.sr & ~0x0f | dst >>> 4 & 8 | !dst << 2;
+		this.sr = this.sr & ~0x0f | dst >> 4 & 8 | !dst << 2;
 		return dst | 0x80;
 	}
 
@@ -11029,7 +11029,7 @@ export default class MC68000 extends Cpu {
 	index(base) {
 		const word = this.fetch16();
 		const disp = (word & 0xff) - (word << 1 & 0x100);
-		switch (word >>> 11) {
+		switch (word >> 11) {
 		case 0x00: // D0.W
 			return base + (this.d0 & 0xffff) - (this.d0 << 1 & 0x10000) + disp | 0;
 		case 0x01: // D0.L
@@ -11098,14 +11098,14 @@ export default class MC68000 extends Cpu {
 	}
 
 	fetch16() {
-		const page = this.memorymap[this.pc >>> 8 & 0xffff];
+		const page = this.memorymap[this.pc >> 8 & 0xffff];
 		const data = page.base[this.pc & 0xff] << 8 | page.base[this.pc + 1 & 0xff];
 		this.pc = this.pc + 2 | 0;
 		return data;
 	}
 
 	fetch16s() {
-		const page = this.memorymap[this.pc >>> 8 & 0xffff];
+		const page = this.memorymap[this.pc >> 8 & 0xffff];
 		const data = page.base[this.pc & 0xff] << 8 | page.base[this.pc + 1 & 0xff];
 		this.pc = this.pc + 2 | 0;
 		return data - (data << 1 & 0x10000);
@@ -11116,17 +11116,17 @@ export default class MC68000 extends Cpu {
 	}
 
 	read8(addr) {
-		const page = this.memorymap[addr >>> 8 & 0xffff];
+		const page = this.memorymap[addr >> 8 & 0xffff];
 		return page.read ? page.read(addr, this.arg) : page.base[addr & 0xff];
 	}
 
 	read16(addr) {
-		const page = this.memorymap[addr >>> 8 & 0xffff];
+		const page = this.memorymap[addr >> 8 & 0xffff];
 		return page.read16 ? page.read16(addr, this.arg) : page.read ? page.read(addr, this.arg) << 8 | page.read(addr + 1 | 0, this.arg) : page.base[addr & 0xff] << 8 | page.base[addr + 1 & 0xff];
 	}
 
 	read16s(addr) {
-		const page = this.memorymap[addr >>> 8 & 0xffff];
+		const page = this.memorymap[addr >> 8 & 0xffff];
 		const data = page.read16 ? page.read16(addr, this.arg) : page.read ? page.read(addr, this.arg) << 8 | page.read(addr + 1 | 0, this.arg) : page.base[addr & 0xff] << 8 | page.base[addr + 1 & 0xff];
 		return data - (data << 1 & 0x10000);
 	}
@@ -11136,7 +11136,7 @@ export default class MC68000 extends Cpu {
 	}
 
 	write8(data, addr) {
-		const page = this.memorymap[addr >>> 8 & 0xffff];
+		const page = this.memorymap[addr >> 8 & 0xffff];
 		if (page.write)
 			page.write(addr, data & 0xff, this.arg);
 		else
@@ -11144,21 +11144,21 @@ export default class MC68000 extends Cpu {
 	}
 
 	write16(data, addr) {
-		const page = this.memorymap[addr >>> 8 & 0xffff];
+		const page = this.memorymap[addr >> 8 & 0xffff];
 		if (page.write16)
 			page.write16(addr, data & 0xffff, this.arg);
 		else if (page.write) {
-			page.write(addr, data >>> 8 & 0xff, this.arg);
+			page.write(addr, data >> 8 & 0xff, this.arg);
 			page.write(addr + 1 | 0, data & 0xff, this.arg);
 		}
 		else {
-			page.base[addr & 0xff] = data >>> 8;
+			page.base[addr & 0xff] = data >> 8;
 			page.base[addr + 1 & 0xff] = data;
 		}
 	}
 
 	write32(data, addr) {
-		this.write16(data >>> 16, addr);
+		this.write16(data >> 16, addr);
 		this.write16(data, addr + 2 | 0);
 	}
 }
