@@ -442,11 +442,11 @@ export default class Cpu {
 	}
 
 	set_breakpoint(addr) {
-		this.breakpointmap[addr >>> 5] |= 1 << (addr & 0x1f);
+		this.breakpointmap[addr >> 5] |= 1 << (addr & 0x1f);
 	}
 
 	clear_breakpoint(addr) {
-		this.breakpointmap[addr >>> 5] &= ~(1 << (addr & 0x1f));
+		this.breakpointmap[addr >> 5] &= ~(1 << (addr & 0x1f));
 	}
 
 	clear_all_breakpoint() {
@@ -493,7 +493,7 @@ export default class Cpu {
 			for (let j = 0; j < n; j++) {
 				if (!cpu[j].fActive || cpu[j].check_interrupt && cpu[j].check_interrupt(cpu[j].arg) || cpu[j].fSuspend)
 					continue;
-				if (cpu[j].breakpoint && (cpu[j].breakpointmap[cpu[j].pc >>> 5] & 1 << (cpu[j].pc & 0x1f)) !== 0)
+				if (cpu[j].breakpoint && (cpu[j].breakpointmap[cpu[j].pc >> 5] & 1 << (cpu[j].pc & 0x1f)) !== 0)
 					cpu[j].breakpoint(cpu[j].pc, cpu[j].arg);
 				cpu[j]._execute();
 			}
@@ -505,7 +505,7 @@ export default class Cpu {
 				break;
 			if (this.check_interrupt && this.check_interrupt(this.arg) || this.fSuspend)
 				continue;
-			if (this.breakpoint && (this.breakpointmap[this.pc >>> 5] & 1 << (this.pc & 0x1f)) !== 0)
+			if (this.breakpoint && (this.breakpointmap[this.pc >> 5] & 1 << (this.pc & 0x1f)) !== 0)
 				this.breakpoint(this.pc, this.arg);
 			this._execute();
 		}
@@ -515,39 +515,31 @@ export default class Cpu {
 	}
 
 	fetch() {
-//		const page = this.memorymap[this.pc >>> 8];
+//		const page = this.memorymap[this.pc >> 8];
 //		const data = !page.fetch ? page.base[this.pc & 0xff] : page.fetch(this.pc, this.arg);
-		const data = this.memorymap[this.pc >>> 8].base[this.pc & 0xff];
+		const data = this.memorymap[this.pc >> 8].base[this.pc & 0xff];
 		this.pc = this.pc + 1 & 0xffff;
 		return data;
 	}
 
 	read(addr) {
-		const page = this.memorymap[addr >>> 8];
+		const page = this.memorymap[addr >> 8];
 		return !page.read ? page.base[addr & 0xff] : page.read(addr, this.arg);
 	}
 
 	read1(addr) {
-		const page = this.memorymap[(addr = addr + 1 & 0xffff) >>> 8];
+		const page = this.memorymap[(addr = addr + 1 & 0xffff) >> 8];
 		return !page.read ? page.base[addr & 0xff] : page.read(addr, this.arg);
 	}
 
 	write(addr, data) {
-		const page = this.memorymap[addr >>> 8];
-		if (!page.write)
-			page.base[addr & 0xff] = data;
-		else
-			page.write(addr, data, this.arg);
-		return data;
+		const page = this.memorymap[addr >> 8];
+		!page.write ? void(page.base[addr & 0xff] = data) : page.write(addr, data, this.arg);
 	}
 
 	write1(addr, data) {
-		const page = this.memorymap[(addr = addr + 1 & 0xffff) >>> 8];
-		if (!page.write)
-			page.base[addr & 0xff] = data;
-		else
-			page.write(addr, data, this.arg);
-		return data;
+		const page = this.memorymap[(addr = addr + 1 & 0xffff) >> 8];
+		!page.write ? void(page.base[addr & 0xff] = data) : page.write(addr, data, this.arg);
 	}
 }
 

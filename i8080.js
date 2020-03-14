@@ -681,10 +681,7 @@ export default class I8080 extends Cpu {
 
 	iowrite(h, l, data) {
 		const page = this.iomap[h];
-		if (!page.write)
-			page.base[l] = data;
-		else
-			page.write(l | h << 8, data, this.arg);
+		!page.write ? void(page.base[l] = data) : page.write(l | h << 8, data, this.arg);
 	}
 
 	split(v) {

@@ -731,7 +731,7 @@ export default class MC6801 extends Cpu {
 
 	write8(data, addr) {
 		const page = this.memorymap[addr >> 8];
-		page.write ? page.write(addr, data, this.arg) : (page.base[addr & 0xff] = data);
+		!page.write ? void(page.base[addr & 0xff] = data) : page.write(addr, data, this.arg);
 	}
 
 	write16(data, addr) {
