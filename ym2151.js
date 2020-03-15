@@ -53,7 +53,7 @@ export default class YM2151 {
 
 	update() {
 		if (this.wheel) {
-			if (this.wheel.length >= this.resolution) {
+			if (this.wheel.length > this.resolution) {
 				this.wheel.forEach(q => q.forEach(({addr, data}) => this.opm.SetReg(addr, data)));
 				this.count = this.sampleRate - 1;
 				this.wheel.splice(0);

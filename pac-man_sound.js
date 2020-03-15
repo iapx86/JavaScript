@@ -62,7 +62,7 @@ export default class PacManSound {
 
 	update() {
 		if (this.wheel) {
-			if (this.wheel.length >= this.resolution) {
+			if (this.wheel.length > this.resolution) {
 				this.wheel.forEach(q => q.forEach(({addr, data}) => this.reg[addr] = data));
 				this.count = this.sampleRate - 1;
 				this.wheel.splice(0);

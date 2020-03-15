@@ -75,7 +75,7 @@ export default class C30 {
 
 	update() {
 		if (this.wheel) {
-			if (this.wheel.length >= this.resolution) {
+			if (this.wheel.length > this.resolution) {
 				this.wheel.forEach(q => q.forEach(e => this.regwrite(e)));
 				this.count = this.sampleRate - 1;
 				this.wheel.splice(0);
