@@ -94,7 +94,7 @@ export default class MC6801 extends Cpu {
 			return void(this.sub8(this.b, this.a));
 		case 0x12: // undocumented instruction
 		case 0x13: // undocumented instruction
-			return void(this.x = this.x + this.read1(this.s) & 0xffff);
+			return void(this.x = this.x + this.read(this.s + 1 & 0xffff) & 0xffff);
 		case 0x16: // TAB
 			return void(this.b = this.mov8(this.a));
 		case 0x17: // TBA

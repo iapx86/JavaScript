@@ -527,18 +527,8 @@ export default class Cpu {
 		return !page.read ? page.base[addr & 0xff] : page.read(addr, this.arg);
 	}
 
-	read1(addr) {
-		const page = this.memorymap[(addr = addr + 1 & 0xffff) >> 8];
-		return !page.read ? page.base[addr & 0xff] : page.read(addr, this.arg);
-	}
-
 	write(addr, data) {
 		const page = this.memorymap[addr >> 8];
-		!page.write ? void(page.base[addr & 0xff] = data) : page.write(addr, data, this.arg);
-	}
-
-	write1(addr, data) {
-		const page = this.memorymap[(addr = addr + 1 & 0xffff) >> 8];
 		!page.write ? void(page.base[addr & 0xff] = data) : page.write(addr, data, this.arg);
 	}
 }

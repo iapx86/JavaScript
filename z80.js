@@ -48,8 +48,6 @@ export default class Z80 extends Cpu {
 	}
 
 	interrupt(vector = 0xff) {
-		let v;
-
 		if (!super.interrupt() || this.iff !== 3)
 			return false;
 		this.iff = 0;
@@ -86,7 +84,7 @@ export default class Z80 extends Cpu {
 			this.rst(0x38);
 			break;
 		case 2:
-			this.rst(this.read(v = vector & 0xff | this.i << 8) | this.read1(v) << 8);
+			this.rst(this.read16(vector & 0xff | this.i << 8));
 			break;
 		}
 		return true;
