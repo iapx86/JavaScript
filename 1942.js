@@ -40,36 +40,26 @@ class _1942 {
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0xc0; i++)
 			this.cpu.memorymap[i].base = PRG1.base[i];
-		this.cpu.memorymap[0xc0].read = addr => {
-			if ((addr &= 0xff) < 5)
-				return this.in[addr];
-			return 0xff;
-		};
+		this.cpu.memorymap[0xc0].read = addr => (addr &= 0xff) < 5 ? this.in[addr] : 0xff;
 		this.cpu.memorymap[0xc8].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				this.command = data;
-				break;
+				return void(this.command = data);
 			case 2:
-				this.dwScroll = this.dwScroll & 0xff00 | data;
-				break;
+				return void(this.dwScroll = this.dwScroll & 0xff00 | data);
 			case 3:
-				this.dwScroll = this.dwScroll & 0xff | data << 8;
-				break;
+				return void(this.dwScroll = this.dwScroll & 0xff | data << 8);
 			case 4:
-				(data & 0x10) !== 0 ? this.cpu2.disable() : this.cpu2.enable();
-				break;
+				return (data & 0x10) !== 0 ? this.cpu2.disable() : this.cpu2.enable();
 			case 5:
-				this.palette = data << 4 & 0x30;
-				break;
+				return void(this.palette = data << 4 & 0x30);
 			case 6:
 				const bank = (data << 6 & 0xc0) + 0x80;
 				if (bank === this.bank)
-					break;
+					return;
 				for (let i = 0; i < 0x40; i++)
 					this.cpu.memorymap[0x80 + i].base = PRG1.base[bank + i];
-				this.bank = bank;
-				break;
+				return void(this.bank = bank);
 			}
 		};
 		this.cpu.memorymap[0xcc].base = this.ram.base[0];
@@ -94,21 +84,17 @@ class _1942 {
 		this.cpu2.memorymap[0x80].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				this.psg[0].addr = data;
-				break;
+				return void(this.psg[0].addr = data);
 			case 1:
-				sound[0].write(this.psg[0].addr, data, this.timer);
-				break;
+				return sound[0].write(this.psg[0].addr, data, this.timer);
 			}
 		};
 		this.cpu2.memorymap[0xc0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				this.psg[1].addr = data;
-				break;
+				return void(this.psg[1].addr = data);
 			case 1:
-				sound[1].write(this.psg[1].addr, data, this.timer);
-				break;
+				return sound[1].write(this.psg[1].addr, data, this.timer);
 			}
 		};
 

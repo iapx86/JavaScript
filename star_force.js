@@ -35,36 +35,32 @@ class StarForce {
 		this.in = Uint8Array.of(0, 0, 0, 0, 0xc0, 0);
 		this.count = 0;
 		this.timer = 0;
+		this.cpu_int = false;
 		this.cpu2_command = 0;
-		this.pio = {int: false, fInterruptEnable: false};
-		this.ctc = {int: false, fInterruptEnable: false};
+		this.pio = {irq: false, fInterruptEnable: false};
+		this.ctc = {irq: false, fInterruptEnable: false};
 
 		this.cpu = new Z80(this);
-		this.cpu.int = false;
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[i].base = PRG1.base[i];
 		for (let i = 0; i < 0x3c; i++) {
 			this.cpu.memorymap[0x80 + i].base = this.ram.base[i];
 			this.cpu.memorymap[0x80 + i].write = null;
 		}
-		this.cpu.memorymap[0xd0].read = addr => {
-			if ((addr &= 0xff) < 6)
-				return this.in[addr];
-			return 0xff;
-		};
+		this.cpu.memorymap[0xd0].read = addr => (addr &= 0xff) < 6 ? this.in[addr] : 0xff;
 		this.cpu.memorymap[0xd0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 2:
-				this.cpu.int = false;
+				this.cpu_irq = false;
 				break;
 			case 4:
 				this.cpu2_command = data;
-				this.pio.int = this.pio.fInterruptEnable;
+				this.pio.irq = this.pio.fInterruptEnable;
 				break;
 			}
 		};
 
-		this.cpu.check_interrupt = () => this.cpu.int && this.cpu.interrupt();
+		this.cpu.check_interrupt = () => this.cpu_irq && this.cpu.interrupt();
 
 		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x20; i++)
@@ -94,12 +90,12 @@ class StarForce {
 		}
 
 		this.cpu2.check_interrupt = () => {
-			if (this.pio.int && this.cpu2.interrupt(0)) {
-				this.pio.int = false;
+			if (this.pio.irq && this.cpu2.interrupt(0)) {
+				this.pio.irq = false;
 				return true;
 			}
-			if (this.ctc.int && this.cpu2.interrupt(10)) {
-				this.ctc.int = false;
+			if (this.ctc.irq && this.cpu2.interrupt(10)) {
+				this.ctc.irq = false;
 				return true;
 			}
 			return false;
@@ -118,10 +114,10 @@ class StarForce {
 	}
 
 	execute() {
-		this.cpu.int = true;
+		this.cpu_irq = true;
 		for (this.count = 0; this.count < 3; this.count++) {
 			if (this.timer === 0)
-				this.ctc.int = this.ctc.fInterruptEnable;
+				this.ctc.irq = this.ctc.fInterruptEnable;
 			Cpu.multiple_execute([this.cpu, this.cpu2], 0x800);
 			if (++this.timer >= 2)
 				this.timer = 0;
@@ -209,12 +205,12 @@ class StarForce {
 		if (this.fReset) {
 			this.fReset = false;
 			this.cpu.reset();
-			this.cpu.int = false;
+			this.cpu_irq = false;
 			this.cpu2.reset();
 			this.timer = 0;
-			this.pio.int = false;
+			this.pio.irq = false;
 			this.pio.fInterruptEnable = false;
-			this.ctc.int = false;
+			this.ctc.irq = false;
 			this.ctc.fInterruptEnable = false;
 		}
 		return this;
