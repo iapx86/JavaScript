@@ -1117,11 +1117,11 @@ export default class MC6809 extends Cpu {
 		case 0x84: // ,X
 			return this.x;
 		case 0x85: // B,X
-			return this.x + this.b - (this.b << 1 & 0x100) & 0xffff;
+			return this.x + (this.b << 24 >> 24) & 0xffff;
 		case 0x86: // A,X
-			return this.x + this.a - (this.a << 1 & 0x100) & 0xffff;
+			return this.x + (this.a << 24 >> 24) & 0xffff;
 		case 0x88: // n,X
-			return this.x + (v = this.fetch()) - (v << 1 & 0x100) & 0xffff;
+			return this.x + (this.fetch() << 24 >> 24) & 0xffff;
 		case 0x89: // nn,X
 			return this.x + (this.fetch() << 8 | this.fetch()) & 0xffff;
 		case 0x8b: // D,X
@@ -1134,11 +1134,11 @@ export default class MC6809 extends Cpu {
 		case 0x94: // [,X]
 			return this.read16(this.x);
 		case 0x95: // [B,X]
-			return this.read16(this.x + this.b - (this.b << 1 & 0x100) & 0xffff);
+			return this.read16(this.x + (this.b << 24 >> 24) & 0xffff);
 		case 0x96: // [A,X]
-			return this.read16(this.x + this.a - (this.a << 1 & 0x100) & 0xffff);
+			return this.read16(this.x + (this.a << 24 >> 24) & 0xffff);
 		case 0x98: // [n,X]
-			return this.read16(this.x + (v = this.fetch()) - (v << 1 & 0x100) & 0xffff);
+			return this.read16(this.x + (this.fetch() << 24 >> 24) & 0xffff);
 		case 0x99: // [nn,X]
 			return this.read16(this.x + (this.fetch() << 8 | this.fetch()) & 0xffff);
 		case 0x9b: // [D,X]
@@ -1156,11 +1156,11 @@ export default class MC6809 extends Cpu {
 		case 0xa4: // ,Y
 			return this.y;
 		case 0xa5: // B,Y
-			return this.y + this.b - (this.b << 1 & 0x100) & 0xffff;
+			return this.y + (this.b << 24 >> 24) & 0xffff;
 		case 0xa6: // A,Y
-			return this.y + this.a - (this.a << 1 & 0x100) & 0xffff;
+			return this.y + (this.a << 24 >> 24) & 0xffff;
 		case 0xa8: // n,Y
-			return this.y + (v = this.fetch()) - (v << 1 & 0x100) & 0xffff;
+			return this.y + (this.fetch() << 24 >> 24) & 0xffff;
 		case 0xa9: // nn,Y
 			return this.y + (this.fetch() << 8 | this.fetch()) & 0xffff;
 		case 0xab: // D,Y
@@ -1173,11 +1173,11 @@ export default class MC6809 extends Cpu {
 		case 0xb4: // [,Y]
 			return this.read16(this.y);
 		case 0xb5: // [B,Y]
-			return this.read16(this.y + this.b - (this.b << 1 & 0x100) & 0xffff);
+			return this.read16(this.y + (this.b << 24 >> 24) & 0xffff);
 		case 0xb6: // [A,Y]
-			return this.read16(this.y + this.a - (this.a << 1 & 0x100) & 0xffff);
+			return this.read16(this.y + (this.a << 24 >> 24) & 0xffff);
 		case 0xb8: // [n,Y]
-			return this.read16(this.y + (v = this.fetch()) - (v << 1 & 0x100) & 0xffff);
+			return this.read16(this.y + (this.fetch() << 24 >> 24) & 0xffff);
 		case 0xb9: // [nn,Y]
 			return this.read16(this.y + (this.fetch() << 8 | this.fetch()) & 0xffff);
 		case 0xbb: // [D,Y]
@@ -1195,11 +1195,11 @@ export default class MC6809 extends Cpu {
 		case 0xc4: // ,U
 			return this.u;
 		case 0xc5: // B,U
-			return this.u + this.b - (this.b << 1 & 0x100) & 0xffff;
+			return this.u + (this.b << 24 >> 24) & 0xffff;
 		case 0xc6: // A,U
-			return this.u + this.a - (this.a << 1 & 0x100) & 0xffff;
+			return this.u + (this.a << 24 >> 24) & 0xffff;
 		case 0xc8: // n,U
-			return this.u + (v = this.fetch()) - (v << 1 & 0x100) & 0xffff;
+			return this.u + (this.fetch() << 24 >> 24) & 0xffff;
 		case 0xc9: // nn,U
 			return this.u + (this.fetch() << 8 | this.fetch()) & 0xffff;
 		case 0xcb: // D,U
@@ -1212,11 +1212,11 @@ export default class MC6809 extends Cpu {
 		case 0xd4: // [,U]
 			return this.read16(this.u);
 		case 0xd5: // [B,U]
-			return this.read16(this.u + this.b - (this.b << 1 & 0x100) & 0xffff);
+			return this.read16(this.u + (this.b << 24 >> 24) & 0xffff);
 		case 0xd6: // [A,U]
-			return this.read16(this.u + this.a - (this.a << 1 & 0x100) & 0xffff);
+			return this.read16(this.u + (this.a << 24 >> 24) & 0xffff);
 		case 0xd8: // [n,U]
-			return this.read16(this.u + (v = this.fetch()) - (v << 1 & 0x100) & 0xffff);
+			return this.read16(this.u + (this.fetch() << 24 >> 24) & 0xffff);
 		case 0xd9: // [nn,U]
 			return this.read16(this.u + (this.fetch() << 8 | this.fetch()) & 0xffff);
 		case 0xdb: // [D,U]
@@ -1234,11 +1234,11 @@ export default class MC6809 extends Cpu {
 		case 0xe4: // ,S
 			return this.s;
 		case 0xe5: // B,S
-			return this.s + this.b - (this.b << 1 & 0x100) & 0xffff;
+			return this.s + (this.b << 24 >> 24) & 0xffff;
 		case 0xe6: // A,S
-			return this.s + this.a - (this.a << 1 & 0x100) & 0xffff;
+			return this.s + (this.a << 24 >> 24) & 0xffff;
 		case 0xe8: // n,S
-			return this.s + (v = this.fetch()) - (v << 1 & 0x100) & 0xffff;
+			return this.s + (this.fetch() << 24 >> 24) & 0xffff;
 		case 0xe9: // nn,S
 			return this.s + (this.fetch() << 8 | this.fetch()) & 0xffff;
 		case 0xeb: // D,S
@@ -1251,11 +1251,11 @@ export default class MC6809 extends Cpu {
 		case 0xf4: // [,S]
 			return this.read16(this.s);
 		case 0xf5: // [B,S]
-			return this.read16(this.s + this.b - (this.b << 1 & 0x100) & 0xffff);
+			return this.read16(this.s + (this.b << 24 >> 24) & 0xffff);
 		case 0xf6: // [A,S]
-			return this.read16(this.s + this.a - (this.a << 1 & 0x100) & 0xffff);
+			return this.read16(this.s + (this.a << 24 >> 24) & 0xffff);
 		case 0xf8: // [n,S]
-			return this.read16(this.s + (v = this.fetch()) - (v << 1 & 0x100) & 0xffff);
+			return this.read16(this.s + (this.fetch() << 24 >> 24) & 0xffff);
 		case 0xf9: // [nn,S]
 			return this.read16(this.s + (this.fetch() << 8 | this.fetch()) & 0xffff);
 		case 0xfb: // [D,S]
@@ -1265,7 +1265,7 @@ export default class MC6809 extends Cpu {
 		case 0xcc:
 		case 0xec:
 			v = this.fetch();
-			return this.pc + v - (v << 1 & 0x100) & 0xffff;
+			return this.pc + (v << 24 >> 24) & 0xffff;
 		case 0x8d: // nn,PC
 		case 0xad:
 		case 0xcd:
@@ -1277,7 +1277,7 @@ export default class MC6809 extends Cpu {
 		case 0xdc:
 		case 0xfc:
 			v = this.fetch();
-			return this.read16(this.pc + v - (v << 1 & 0x100) & 0xffff);
+			return this.read16(this.pc + (v << 24 >> 24) & 0xffff);
 		case 0x9d: // [nn,PC]
 		case 0xbd:
 		case 0xdd:
@@ -1307,13 +1307,13 @@ export default class MC6809 extends Cpu {
 
 	bcc(cond) {
 		const n = this.fetch();
-		if (cond) this.pc = this.pc + n - (n << 1 & 0x100) & 0xffff;
+		if (cond) this.pc = this.pc + (n << 24 >> 24) & 0xffff;
 	}
 
 	bsr() {
 		const n = this.fetch();
 		this.pshs16(this.pc);
-		this.pc = this.pc + n - (n << 1 & 0x100) & 0xffff;
+		this.pc = this.pc + (n << 24 >> 24) & 0xffff;
 	}
 
 	neg8(dst) {

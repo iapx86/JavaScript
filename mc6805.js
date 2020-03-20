@@ -482,13 +482,13 @@ export default class MC6805 extends Cpu {
 
 	bcc(cond) {
 		const n = this.fetch();
-		if (cond) this.pc = this.pc + n - (n << 1 & 0x100) & 0x7ff;
+		if (cond) this.pc = this.pc + (n << 24 >> 24) & 0x7ff;
 	}
 
 	bsr() {
 		const n = this.fetch();
 		this.psh16(this.pc);
-		this.pc = this.pc + n - (n << 1 & 0x100) & 0x7ff;
+		this.pc = this.pc + (n << 24 >> 24) & 0x7ff;
 	}
 
 	neg8(dst) {

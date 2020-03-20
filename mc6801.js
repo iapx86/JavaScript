@@ -539,13 +539,13 @@ export default class MC6801 extends Cpu {
 
 	bcc(cond) {
 		const n = this.fetch();
-		if (cond) this.pc = this.pc + n - (n << 1 & 0x100) & 0xffff;
+		if (cond) this.pc = this.pc + (n << 24 >> 24) & 0xffff;
 	}
 
 	bsr() {
 		const n = this.fetch();
 		this.psh16(this.pc);
-		this.pc = this.pc + n - (n << 1 & 0x100) & 0xffff;
+		this.pc = this.pc + (n << 24 >> 24) & 0xffff;
 	}
 
 	neg8(dst) {

@@ -1760,12 +1760,12 @@ export default class Z80 extends Cpu {
 
 	disp(h, l) {
 		const d = this.fetch();
-		return (l | h << 8) + d - (d << 1 & 0x100) & 0xffff;
+		return (l | h << 8) + (d << 24 >> 24) & 0xffff;
 	}
 
 	jr(cond) {
 		const d = this.fetch();
-		if (cond) this.pc = this.pc + d - (d << 1 & 0x100) & 0xffff;
+		if (cond) this.pc = this.pc + (d << 24 >> 24) & 0xffff;
 	}
 
 	ret(cond) {
