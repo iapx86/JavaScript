@@ -10979,75 +10979,75 @@ export default class MC68000 extends Cpu {
 	}
 
 	link(op) {
-        switch(op & 7) {
-        case 0:
+		switch(op & 7) {
+		case 0:
 			this.write32(this.a0, this.a7 = this.a7 - 4 | 0);
-            return void([this.a0, this.a7] = [this.a7, this.a7 + this.fetch16s() | 0]);
-        case 1:
+			return void([this.a0, this.a7] = [this.a7, this.a7 + this.fetch16s() | 0]);
+		case 1:
 			this.write32(this.a1, this.a7 = this.a7 - 4 | 0);
 			return void([this.a1, this.a7] = [this.a7, this.a7 + this.fetch16s() | 0]);
-        case 2:
+		case 2:
 			this.write32(this.a2, this.a7 = this.a7 - 4 | 0);
 			return void([this.a2, this.a7] = [this.a7, this.a7 + this.fetch16s() | 0]);
-        case 3:
+		case 3:
 			this.write32(this.a3, this.a7 = this.a7 - 4 | 0);
 			return void([this.a3, this.a7] = [this.a7, this.a7 + this.fetch16s() | 0]);
-        case 4:
+		case 4:
 			this.write32(this.a4, this.a7 = this.a7 - 4 | 0);
 			return void([this.a4, this.a7] = [this.a7, this.a7 + this.fetch16s() | 0]);
-        case 5:
+		case 5:
 			this.write32(this.a5, this.a7 = this.a7 - 4 | 0);
 			return void([this.a5, this.a7] = [this.a7, this.a7 + this.fetch16s() | 0]);
-        case 6:
+		case 6:
 			this.write32(this.a6, this.a7 = this.a7 - 4 | 0);
 			return void([this.a6, this.a7] = [this.a7, this.a7 + this.fetch16s() | 0]);
-        case 7:
+		case 7:
 			this.write32(this.a7, this.a7 = this.a7 - 4 | 0);
 			return void(this.a7 = this.a7 + this.fetch16s() | 0);
-        }
+		}
 	}
 
 	unlk(op) {
-        switch(op & 7) {
-        case 0:
-            return void([this.a0, this.a7] = [this.read32(this.a0), this.a0 + 4 | 0]);
-        case 1:
-            return void([this.a1, this.a7] = [this.read32(this.a1), this.a1 + 4 | 0]);
-        case 2:
-            return void([this.a2, this.a7] = [this.read32(this.a2), this.a2 + 4 | 0]);
-        case 3:
-            return void([this.a3, this.a7] = [this.read32(this.a3), this.a3 + 4 | 0]);
-        case 4:
-            return void([this.a4, this.a7] = [this.read32(this.a4), this.a4 + 4 | 0]);
-        case 5:
-            return void([this.a5, this.a7] = [this.read32(this.a5), this.a5 + 4 | 0]);
-        case 6:
-            return void([this.a6, this.a7] = [this.read32(this.a6), this.a6 + 4 | 0]);
-        case 7:
-            return void(this.a7 = this.read32(this.a7) + 4 | 0);
-        }
+		switch(op & 7) {
+		case 0:
+			return void([this.a0, this.a7] = [this.read32(this.a0), this.a0 + 4 | 0]);
+		case 1:
+			return void([this.a1, this.a7] = [this.read32(this.a1), this.a1 + 4 | 0]);
+		case 2:
+			return void([this.a2, this.a7] = [this.read32(this.a2), this.a2 + 4 | 0]);
+		case 3:
+			return void([this.a3, this.a7] = [this.read32(this.a3), this.a3 + 4 | 0]);
+		case 4:
+			return void([this.a4, this.a7] = [this.read32(this.a4), this.a4 + 4 | 0]);
+		case 5:
+			return void([this.a5, this.a7] = [this.read32(this.a5), this.a5 + 4 | 0]);
+		case 6:
+			return void([this.a6, this.a7] = [this.read32(this.a6), this.a6 + 4 | 0]);
+		case 7:
+			return void(this.a7 = this.read32(this.a7) + 4 | 0);
+		}
 	}
 
 	dbcc(op, cond) {
 		const base = this.pc;
-        switch(op & 7) {
-        case 0:
-            return void(this.pc = !cond && ((this.d0 = this.d0 & ~0xffff | this.d0 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
-        case 1:
-            return void(this.pc = !cond && ((this.d1 = this.d1 & ~0xffff | this.d1 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
-        case 2:
-            return void(this.pc = !cond && ((this.d2 = this.d2 & ~0xffff | this.d2 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
-        case 3:
-            return void(this.pc = !cond && ((this.d3 = this.d3 & ~0xffff | this.d3 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
-        case 4:
-            return void(this.pc = !cond && ((this.d4 = this.d4 & ~0xffff | this.d4 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
-        case 5:
-            return void(this.pc = !cond && ((this.d5 = this.d5 & ~0xffff | this.d5 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
-        case 6:
-            return void(this.pc = !cond && ((this.d6 = this.d6 & ~0xffff | this.d6 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
-        case 7:
-            return void(this.pc = !cond && ((this.d7 = this.d7 & ~0xffff | this.d7 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
-        }
+		switch(op & 7) {
+		case 0:
+			return void(this.pc = !cond && ((this.d0 = this.d0 & ~0xffff | this.d0 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
+		case 1:
+			return void(this.pc = !cond && ((this.d1 = this.d1 & ~0xffff | this.d1 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
+		case 2:
+			return void(this.pc = !cond && ((this.d2 = this.d2 & ~0xffff | this.d2 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
+		case 3:
+			return void(this.pc = !cond && ((this.d3 = this.d3 & ~0xffff | this.d3 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
+		case 4:
+			return void(this.pc = !cond && ((this.d4 = this.d4 & ~0xffff | this.d4 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
+		case 5:
+			return void(this.pc = !cond && ((this.d5 = this.d5 & ~0xffff | this.d5 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
+		case 6:
+			return void(this.pc = !cond && ((this.d6 = this.d6 & ~0xffff | this.d6 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
+		case 7:
+			return void(this.pc = !cond && ((this.d7 = this.d7 & ~0xffff | this.d7 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
+		}
 	}
 
 	index(base) {
