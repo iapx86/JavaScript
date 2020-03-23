@@ -6,32 +6,23 @@
 
 export default class YM2151 {
 	constructor({clock, resolution = 1, gain = 1}) {
-		this.clock = clock;
+		this.opm = new OPM();
+		this.opm.Init(clock, Math.floor(audioCtx.sampleRate));
+		this.sampleRate = Math.floor(audioCtx.sampleRate);
+		this.count = this.sampleRate - 1;
 		this.resolution = resolution;
 		this.gain = gain;
-		this.tmpwheel = new Array(resolution);
+		this.tmpwheel = [];
+		for (let i = 0; i < resolution; i++)
+			this.tmpwheel.push([]);
+		this.wheel = [];
 		if (!audioCtx)
 			return;
 		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
-		this.sampleRate = Math.floor(audioCtx.sampleRate);
-		this.count = this.sampleRate - 1;
-		this.wheel = [];
-		this.opm = new OPM();
-		this.opm.Init(clock, this.sampleRate);
 		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
-		this.scriptNode.onaudioprocess = ({outputBuffer}) => {
-			outputBuffer.getChannelData(0).forEach((e, i, data) => {
-				for (this.count += 60 * resolution; this.count >= this.sampleRate; this.count -= this.sampleRate) {
-					const q = this.wheel.shift();
-					q && q.forEach(({addr, data}) => this.opm.SetReg(addr, data));
-				}
-				const ch0 = [], ch1 = [];
-				this.opm.Mix(ch0, ch1, 0, 1);
-				data[i] = (ch0[0] + ch1[0]) / 2;
-			});
-		};
+		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0));
 		this.source.connect(this.scriptNode);
 		this.scriptNode.connect(this.gainNode);
 		this.gainNode.connect(audioCtx.destination);
@@ -45,22 +36,31 @@ export default class YM2151 {
 	}
 
 	write(addr, data, timer = 0) {
-		if (this.tmpwheel[timer])
-			this.tmpwheel[timer].push({addr, data});
-		else
-			this.tmpwheel[timer] = [{addr, data}];
+		this.tmpwheel[timer].push({addr, data});
 	}
 
 	update() {
-		if (this.wheel) {
+		if (audioCtx) {
 			if (this.wheel.length > this.resolution) {
-				this.wheel.forEach(q => q.forEach(({addr, data}) => this.opm.SetReg(addr, data)));
+				while (this.wheel.length)
+					this.wheel.shift().forEach(({addr, data}) => this.opm.SetReg(addr, data));
 				this.count = this.sampleRate - 1;
-				this.wheel.splice(0);
 			}
-			this.wheel = this.wheel.concat(this.tmpwheel);
+			this.tmpwheel.forEach(e => this.wheel.push(e));
 		}
-		this.tmpwheel = new Array(this.resolution);
+		for (let i = 0; i < this.resolution; i++)
+			this.tmpwheel[i] = [];
+	}
+
+	makeSound(data) {
+		data.forEach((e, i) => {
+			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
+				if (this.wheel.length)
+					this.wheel.shift().forEach(({addr, data}) => this.opm.SetReg(addr, data));
+			const ch0 = [], ch1 = [];
+			this.opm.Mix(ch0, ch1, 0, 1);
+			data[i] = (ch0[0] + ch1[0]) / 2;
+		});
 	}
 }
 
