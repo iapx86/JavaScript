@@ -35,7 +35,7 @@ class StarForce {
 		this.in = Uint8Array.of(0, 0, 0, 0, 0xc0, 0);
 		this.count = 0;
 		this.timer = 0;
-		this.cpu_int = false;
+		this.cpu_irq = false;
 		this.cpu2_command = 0;
 		this.pio = {irq: false, fInterruptEnable: false};
 		this.ctc = {irq: false, fInterruptEnable: false};
