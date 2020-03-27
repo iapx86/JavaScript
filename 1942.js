@@ -119,7 +119,7 @@ class _1942 {
 			if (i === 1)
 				this.cpu.interrupt(0xcf); // RST 08H
 			if ((i & 3) === 0) {
-				this.timer = i >>> 2;
+				this.timer = i >> 2;
 				this.cpu2.interrupt();
 			}
 			Cpu.multiple_execute([this.cpu, this.cpu2], 800);
@@ -288,10 +288,10 @@ class _1942 {
 		for (let p = 0, q = 0, i = 512; i !== 0; q += 16, --i) {
 			for (let j = 0; j < 4; j++)
 				for (let k = 0; k < 16; k += 2)
-					this.fg[p++] = FG[q + k + 1] >>> (j + 4) & 1 | FG[q + k + 1] >>> j << 1 & 2;
+					this.fg[p++] = FG[q + k + 1] >> (j + 4) & 1 | FG[q + k + 1] >> j << 1 & 2;
 			for (let j = 0; j < 4; j++)
 				for (let k = 0; k < 16; k += 2)
-					this.fg[p++] = FG[q + k] >>> (j + 4) & 1 | FG[q + k] >>> j << 1 & 2;
+					this.fg[p++] = FG[q + k] >> (j + 4) & 1 | FG[q + k] >> j << 1 & 2;
 		}
 	}
 
@@ -299,10 +299,10 @@ class _1942 {
 		for (let p = 0, q = 0, i = 512; i !== 0; q += 32, --i) {
 			for (let j = 0; j < 8; j++)
 				for (let k = 0; k < 16; k++)
-					this.bg[p++] = BG[q + k + 0x8000 + 16] >>> j & 1 | BG[q + k + 0x4000 + 16] >>> j << 1 & 2 | BG[q + k + 16] >>> j << 2 & 4;
+					this.bg[p++] = BG[q + k + 0x8000 + 16] >> j & 1 | BG[q + k + 0x4000 + 16] >> j << 1 & 2 | BG[q + k + 16] >> j << 2 & 4;
 			for (let j = 0; j < 8; j++)
 				for (let k = 0; k < 16; k++)
-					this.bg[p++] = BG[q + k + 0x8000] >>> j & 1 | BG[q + k + 0x4000] >>> j << 1 & 2 | BG[q + k] >>> j << 2 & 4;
+					this.bg[p++] = BG[q + k + 0x8000] >> j & 1 | BG[q + k + 0x4000] >> j << 1 & 2 | BG[q + k] >> j << 2 & 4;
 		}
 	}
 
@@ -310,16 +310,16 @@ class _1942 {
 		for (let p = 0, q = 0, i = 512; i !== 0; q += 64, --i) {
 			for (let j = 0; j < 4; j++)
 				for (let k = 0; k < 32; k += 2)
-					this.obj[p++] = OBJ[q + k + 33] >>> (j + 4) & 1 | OBJ[q + k + 33] >>> j << 1 & 2 | OBJ[q + k + 0x8000 + 33] >>> (j + 2) & 4 | OBJ[q + k + 0x8000 + 33] >>> j << 3 & 8;
+					this.obj[p++] = OBJ[q + k + 33] >> (j + 4) & 1 | OBJ[q + k + 33] >> j << 1 & 2 | OBJ[q + k + 0x8000 + 33] >> (j + 2) & 4 | OBJ[q + k + 0x8000 + 33] >> j << 3 & 8;
 			for (let j = 0; j < 4; j++)
 				for (let k = 0; k < 32; k += 2)
-					this.obj[p++] = OBJ[q + k + 32] >>> (j + 4) & 1 | OBJ[q + k + 32] >>> j << 1 & 2 | OBJ[q + k + 0x8000 + 32] >>> (j + 2) & 4 | OBJ[q + k + 0x8000 + 32] >>> j << 3 & 8;
+					this.obj[p++] = OBJ[q + k + 32] >> (j + 4) & 1 | OBJ[q + k + 32] >> j << 1 & 2 | OBJ[q + k + 0x8000 + 32] >> (j + 2) & 4 | OBJ[q + k + 0x8000 + 32] >> j << 3 & 8;
 			for (let j = 0; j < 4; j++)
 				for (let k = 0; k < 32; k += 2)
-					this.obj[p++] = OBJ[q + k + 1] >>> (j + 4) & 1 | OBJ[q + k + 1] >>> j << 1 & 2 | OBJ[q + k + 0x8000 + 1] >>> (j + 2) & 4 | OBJ[q + k + 0x8000 + 1] >>> j << 3 & 8;
+					this.obj[p++] = OBJ[q + k + 1] >> (j + 4) & 1 | OBJ[q + k + 1] >> j << 1 & 2 | OBJ[q + k + 0x8000 + 1] >> (j + 2) & 4 | OBJ[q + k + 0x8000 + 1] >> j << 3 & 8;
 			for (let j = 0; j < 4; j++)
 				for (let k = 0; k < 32; k += 2)
-					this.obj[p++] = OBJ[q + k] >>> (j + 4) & 1 | OBJ[q + k] >>> j << 1 & 2 | OBJ[q + k + 0x8000] >>> (j + 2) & 4 | OBJ[q + k + 0x8000] >>> j << 3 & 8;
+					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2 | OBJ[q + k + 0x8000] >> (j + 2) & 4 | OBJ[q + k + 0x8000] >> j << 3 & 8;
 		}
 	}
 
@@ -338,7 +338,7 @@ class _1942 {
 			const y = 256 - (this.ram[p + 3] | this.ram[p + 1] << 4 & 0x100) & 0x1ff;
 			const x = this.ram[p + 2];
 			const src = this.ram[p] & 0x7f | this.ram[p + 1] << 2 & 0x80 | this.ram[p] << 1 & 0x100 | this.ram[p + 1] << 9 & 0x1e00;
-			switch (this.ram[p + 1] >>> 6) {
+			switch (this.ram[p + 1] >> 6) {
 			case 0:
 				this.xfer16x16x4(data, x | y << 8, src);
 				break;
@@ -444,7 +444,7 @@ class _1942 {
 		const idx = this.ram[k + 0x10] << 3 & 0xf8;
 		let i, j, q = (this.ram[k] | this.ram[k + 0x10] << 1 & 0x100) << 8;
 
-		switch (this.ram[k + 0x10] >>> 5 & 3) {
+		switch (this.ram[k + 0x10] >> 5 & 3) {
 		case 0:
 			for (i = 16; i !== 0; p += 256 - 16, --i)
 				for (j = 16; j !== 0; --j)
@@ -469,7 +469,7 @@ class _1942 {
 	}
 
 	xfer16x16x4(data, dst, src) {
-		const idx = src >>> 5 & 0xf0;
+		const idx = src >> 5 & 0xf0;
 		let px, i, j;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)

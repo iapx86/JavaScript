@@ -63,7 +63,7 @@ class TwinBee {
 			this.cpu.memorymap[0x300 + i].write = (addr, data) => {
 				let offset = addr & 0xffff;
 				this.ram[0x10000 | offset] = data;
-				this.chr[offset <<= 1] = data >>> 4;
+				this.chr[offset <<= 1] = data >> 4;
 				this.chr[1 | offset] = data & 0xf;
 			};
 		}
@@ -76,17 +76,17 @@ class TwinBee {
 			this.cpu.memorymap[0x5a0 + i].write = null;
 			this.cpu.memorymap[0x5a0 + i].write16 = (addr, data) => {
 				const offset = addr & 0xffe;
-				this.ram[0x28000 | offset] = data >>> 8;
+				this.ram[0x28000 | offset] = data >> 8;
 				this.ram[0x28001 | offset] = data;
-				this.rgb[offset >>> 1] = this.intensity[data & 0x1f]	// Red
-					| this.intensity[data >>> 5 & 0x1f] << 8			// Green
-					| this.intensity[data >>> 10 & 0x1f] << 16			// Blue
-					| 0xff000000;										// Alpha
+				this.rgb[offset >> 1] = this.intensity[data & 0x1f]	// Red
+					| this.intensity[data >> 5 & 0x1f] << 8			// Green
+					| this.intensity[data >> 10 & 0x1f] << 16		// Blue
+					| 0xff000000;									// Alpha
 			};
 		}
 		this.cpu.memorymap[0x5c0].write = (addr, data) => addr === 0x5c001 && this.command.push(data);
-		this.cpu.memorymap[0x5c4].read = addr => addr >= 0x5c402 && addr < 0x5c408 ? this.in[addr - 0x5c402 >>> 1] : 0xff;
-		this.cpu.memorymap[0x5cc].read = addr => addr < 0x5cc06 ? this.in[addr - 0x5cc00 + 6 >>> 1] : 0xff;
+		this.cpu.memorymap[0x5c4].read = addr => addr >= 0x5c402 && addr < 0x5c408 ? this.in[addr - 0x5c402 >> 1] : 0xff;
+		this.cpu.memorymap[0x5cc].read = addr => addr < 0x5cc06 ? this.in[addr - 0x5cc00 + 6 >> 1] : 0xff;
 		this.cpu.memorymap[0x5d0].read = addr => addr === 0x5d001 ? 0 : 0xff;
 		this.cpu.memorymap[0x5e0].write = (addr, data) => {
 			switch (addr & 0xff) {
@@ -178,7 +178,7 @@ class TwinBee {
 		for (let i = 0; i < 32; i++) {
 			let rt = 0, v = 0;
 			for (let j = 0; j < r.length; j++)
-				if ((i >>> j & 1) === 0) {
+				if ((i >> j & 1) === 0) {
 					rt += 1 / r[j];
 					v += 0.05 / r[j];
 				}
@@ -401,8 +401,8 @@ class TwinBee {
 				const color = this.ram[p + 9] << 3 & 0xf0;
 				const y = (this.ram[p + 9] << 8 | this.ram[p + 11]) + 16 & 0x1ff;
 				const x = ~this.ram[p + 13] & 0xff;
-				const [h, w] = size[this.ram[p + 3] >>> 3 & 7];
-				switch (this.ram[p + 9] >>> 4 & 2 | this.ram[p + 3] & 1) {
+				const [h, w] = size[this.ram[p + 3] >> 3 & 7];
+				switch (this.ram[p + 9] >> 4 & 2 | this.ram[p + 3] & 1) {
 				case 0:
 					this.xferHxW(data, src, color, y, x, h, w, zoom);
 					break;
@@ -434,17 +434,17 @@ class TwinBee {
 	}
 
 	xfer8x8(data, k) {
-		const x0 = (((this.flip & 2) === 0 ? ~k : k) >>> 4 & 0xf8 | 7) + this.ram[0x20f01 | ~k >>> 5 & 0x80 | k & 0x7e] & 0xff;
+		const x0 = (((this.flip & 2) === 0 ? ~k : k) >> 4 & 0xf8 | 7) + this.ram[0x20f01 | ~k >> 5 & 0x80 | k & 0x7e] & 0xff;
 		const color = this.ram[k + 0x2001] << 4 & 0x7f0;
 		let src = (this.ram[k] << 8 & 0x700 | this.ram[k + 1]) << 6, px;
 
 		if (x0 < 16 && x0 >= 247)
 			return;
 		if ((this.ram[k] & 0x20) === 0 || (this.ram[k] & 0xc0) === 0x40)
-			switch ((this.ram[k] >>> 2 & 2 | this.ram[k + 0x2001] >>> 7) ^ this.flip) {
+			switch ((this.ram[k] >> 2 & 2 | this.ram[k + 0x2001] >> 7) ^ this.flip) {
 			case 0: // ノーマル
 				for (let x = x0, i = 0; i < 8; src += 8, --x, i++) {
-					const offset = k >>> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
+					const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 					const y = (k << 2) - scroll + 16 & 0x1ff;
 					if (y > 8 && y < 272) {
 						data[y << 8 | x] = color | this.chr[src | 0];
@@ -460,7 +460,7 @@ class TwinBee {
 				return;
 			case 1: // V反転
 				for (let x = x0, i = 0; i < 8; src += 8, --x, i++){
-					const offset = k >>> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
+					const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 					const y = (k << 2) - scroll + 16 & 0x1ff;
 					if (y > 8 && y < 272) {
 						data[y + 7 << 8 | x] = color | this.chr[src | 0];
@@ -476,7 +476,7 @@ class TwinBee {
 				return;
 			case 2: // H反転
 				for (let x = x0 - 7, i = 0; i < 8; src += 8, x++, i++) {
-					const offset = k >>> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
+					const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 					const y = (k << 2) - scroll + 16 & 0x1ff;
 					if (y > 8 && y < 272) {
 						data[y << 8 | x] = color | this.chr[src | 0];
@@ -492,7 +492,7 @@ class TwinBee {
 				return;
 			case 3: // HV反転
 				for (let x = x0 - 7, i = 0; i < 8; src += 8, x++, i++) {
-					const offset = k >>> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
+					const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 					const y = (k << 2) - scroll + 16 & 0x1ff;
 					if (y > 8 && y < 272) {
 						data[y + 7 << 8 | x] = color | this.chr[src | 0];
@@ -507,10 +507,10 @@ class TwinBee {
 				}
 				return;
 			}
-		switch ((this.ram[k] >>> 2 & 2 | this.ram[k + 0x2001] >>> 7) ^ this.flip) {
+		switch ((this.ram[k] >> 2 & 2 | this.ram[k + 0x2001] >> 7) ^ this.flip) {
 		case 0: // ノーマル
 			for (let x = x0, i = 0; i < 8; src += 8, --x, i++) {
-				const offset = k >>> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
+				const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 				const y = (k << 2) - scroll + 16 & 0x1ff;
 				if (y > 8 && y < 272) {
 					if ((px = this.chr[src | 0]) !== 0) data[y << 8 | x] = color | px;
@@ -526,7 +526,7 @@ class TwinBee {
 			break;
 		case 1: // V反転
 			for (let x = x0, i = 0; i < 8; src += 8, --x, i++){
-				const offset = k >>> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
+				const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 				const y = (k << 2) - scroll + 16 & 0x1ff;
 				if (y > 8 && y < 272) {
 					if ((px = this.chr[src | 0]) !== 0) data[y + 7 << 8 | x] = color | px;
@@ -542,7 +542,7 @@ class TwinBee {
 			break;
 		case 2: // H反転
 			for (let x = x0 - 7, i = 0; i < 8; src += 8, x++, i++) {
-				const offset = k >>> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
+				const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 				const y = (k << 2) - scroll + 16 & 0x1ff;
 				if (y > 8 && y < 272) {
 					if ((px = this.chr[src | 0]) !== 0) data[y << 8 | x] = color | px;
@@ -558,7 +558,7 @@ class TwinBee {
 			break;
 		case 3: // HV反転
 			for (let x = x0 - 7, i = 0; i < 8; src += 8, x++, i++) {
-				const offset = k >>> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
+				const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 				const y = (k << 2) - scroll + 16 & 0x1ff;
 				if (y > 8 && y < 272) {
 					if ((px = this.chr[src | 0]) !== 0) data[y + 7 << 8 | x] = color | px;
@@ -581,9 +581,9 @@ class TwinBee {
 
 		if (dh <= 256 && (y0 < 16 || y0 >= 272) && (y1 < 16 || y1 >= 272) || dw <= 32 && (x0 < 16 || x0 >= 240) && (x1 < 16 || x1 >= 240))
 			return;
-		for (let x = x0, i = 0; i >>> 7 < w; x = x - 1 & 0xff, i += zoom)
-			for (let y = y0, j = 0; j >>> 7 < h; y = y + 1 & 0x1ff, j += zoom)
-				if ((px = this.chr[src | (i >>> 7) * h | j >>> 7]) !== 0)
+		for (let x = x0, i = 0; i >> 7 < w; x = x - 1 & 0xff, i += zoom)
+			for (let y = y0, j = 0; j >> 7 < h; y = y + 1 & 0x1ff, j += zoom)
+				if ((px = this.chr[src | (i >> 7) * h | j >> 7]) !== 0)
 					data[y << 8 | x] = color | px;
 	}
 
@@ -593,9 +593,9 @@ class TwinBee {
 
 		if (dh <= 256 && (y0 < 16 || y0 >= 272) && (y1 < 16 || y1 >= 272) || dw <= 32 && (x0 < 16 || x0 >= 240) && (x1 < 16 || x1 >= 240))
 			return;
-		for (let x = x0, i = 0; i >>> 7 < w; x = x - 1 & 0xff, i += zoom)
-			for (let y = y1, j = 0; j >>> 7 < h; y = y - 1 & 0x1ff, j += zoom)
-				if ((px = this.chr[src | (i >>> 7) * h | j >>> 7]) !== 0)
+		for (let x = x0, i = 0; i >> 7 < w; x = x - 1 & 0xff, i += zoom)
+			for (let y = y1, j = 0; j >> 7 < h; y = y - 1 & 0x1ff, j += zoom)
+				if ((px = this.chr[src | (i >> 7) * h | j >> 7]) !== 0)
 					data[y << 8 | x] = color | px;
 	}
 
@@ -605,9 +605,9 @@ class TwinBee {
 
 		if (dh <= 256 && (y0 < 16 || y0 >= 272) && (y1 < 16 || y1 >= 272) || dw <= 32 && (x0 < 16 || x0 >= 240) && (x1 < 16 || x1 >= 240))
 			return;
-		for (let x = x1, i = 0; i >>> 7 < w; x = x + 1 & 0xff, i += zoom)
-			for (let y = y0, j = 0; j >>> 7 < h; y = y + 1 & 0x1ff, j += zoom)
-				if ((px = this.chr[src | (i >>> 7) * h | j >>> 7]) !== 0)
+		for (let x = x1, i = 0; i >> 7 < w; x = x + 1 & 0xff, i += zoom)
+			for (let y = y0, j = 0; j >> 7 < h; y = y + 1 & 0x1ff, j += zoom)
+				if ((px = this.chr[src | (i >> 7) * h | j >> 7]) !== 0)
 					data[y << 8 | x] = color | px;
 	}
 
@@ -617,9 +617,9 @@ class TwinBee {
 
 		if (dh <= 256 && (y0 < 16 || y0 >= 272) && (y1 < 16 || y1 >= 272) || dw <= 32 && (x0 < 16 || x0 >= 240) && (x1 < 16 || x1 >= 240))
 			return;
-		for (let x = x1, i = 0; i >>> 7 < w; x = x + 1 & 0xff, i += zoom)
-			for (let y = y1, j = 0; j >>> 7 < h; y = y - 1 & 0x1ff, j += zoom)
-				if ((px = this.chr[src | (i >>> 7) * h | j >>> 7]) !== 0)
+		for (let x = x1, i = 0; i >> 7 < w; x = x + 1 & 0xff, i += zoom)
+			for (let y = y1, j = 0; j >> 7 < h; y = y - 1 & 0x1ff, j += zoom)
+				if ((px = this.chr[src | (i >> 7) * h | j >> 7]) !== 0)
 					data[y << 8 | x] = color | px;
 	}
 }

@@ -72,28 +72,23 @@ class ChacknPop {
 			case 0x00:
 				this.mcu_command = data;
 				this.mcu_flag |= 1;
-				this.mcu.int = true;
-				break;
+				this.mcu.irq = true;
+				return;
 			case 0x04:
-				this.psg[0].addr = data;
-				break;
+				return void(this.psg[0].addr = data);
 			case 0x05:
-				(this.psg[0].addr & 0x0f) < 0x0e && sound[0].write(this.psg[0].addr, data);
-				break;
+				return void((this.psg[0].addr & 0x0f) < 0x0e && sound[0].write(this.psg[0].addr, data));
 			case 0x06:
-				this.psg[1].addr = data;
-				break;
+				return void(this.psg[1].addr = data);
 			case 0x07:
-				sound[1].write(this.psg[1].addr, data);
-				break;
+				return sound[1].write(this.psg[1].addr, data);
 			case 0x0c:
 				if (((data ^ this.mode) & 4) !== 0) {
 					const bank = data << 4 & 0x40;
 					for (let i = 0; i < 0x40; i++)
 						this.cpu.memorymap[0xc0 + i].base = this.vram.base[bank + i];
 				}
-				this.mode = data;
-				break;
+				return void(this.mode = data);
 			}
 		};
 		for (let i = 0; i < 4; i++) {
@@ -127,7 +122,7 @@ class ChacknPop {
 				return;
 			if (addr === 1 && (~this.ram2[1] & data & 2) !== 0) {
 				this.mcu_flag &= ~1;
-				this.mcu.int = false;
+				this.mcu.irq = false;
 			}
 			if (addr === 1 && (this.ram2[1] & ~data & 4) !== 0) {
 				this.mcu_result = this.ram2[0];
@@ -138,7 +133,7 @@ class ChacknPop {
 		for (let i = 1; i < 8; i++)
 			this.mcu.memorymap[i].base = PRG2.base[i];
 
-		this.mcu.check_interrupt = () => this.mcu.int && this.mcu.interrupt();
+		this.mcu.check_interrupt = () => this.mcu.irq && this.mcu.interrupt();
 
 		// Videoの初期化
 		this.bg = new Uint8Array(0x10000);
@@ -290,8 +285,8 @@ class ChacknPop {
 	convertRGB() {
 		for (let i = 0; i < 0x400; i++)
 			this.rgb[i] = ((RGB_H[i] << 4 & 0xf0 | RGB_L[i] & 0x0f) & 7) * 255 / 7		// Red
-				| ((RGB_H[i] << 4 & 0xf0 | RGB_L[i] & 0x0f) >>> 3 & 7) * 255 / 7 << 8	// Green
-				| ((RGB_H[i] << 4 & 0xf0 | RGB_L[i] & 0x0f) >>> 6) * 255 / 3 << 16		// Blue
+				| ((RGB_H[i] << 4 & 0xf0 | RGB_L[i] & 0x0f) >> 3 & 7) * 255 / 7 << 8	// Green
+				| ((RGB_H[i] << 4 & 0xf0 | RGB_L[i] & 0x0f) >> 6) * 255 / 3 << 16		// Blue
 				| 0xff000000;															// Alpha
 	}
 
@@ -299,22 +294,22 @@ class ChacknPop {
 		for (let p = 0, q = 0, i = 1024; i !== 0; q += 8, --i)
 			for (let j = 7; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k + 0x2000] >>> j & 1 | BG[q + k] >>> j << 1 & 2;
+					this.bg[p++] = BG[q + k + 0x2000] >> j & 1 | BG[q + k] >> j << 1 & 2;
 	}
 
 	convertOBJ() {
 		for (let p = 0, q = 0, i = 256; i !== 0; q += 32, --i) {
 			for (let j = 7; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x2000 + 16] >>> j & 1 | OBJ[q + k + 16] >>> j << 1 & 2;
+					this.obj[p++] = OBJ[q + k + 0x2000 + 16] >> j & 1 | OBJ[q + k + 16] >> j << 1 & 2;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x2000] >>> j & 1 | OBJ[q + k] >>> j << 1 & 2;
+					this.obj[p++] = OBJ[q + k + 0x2000] >> j & 1 | OBJ[q + k] >> j << 1 & 2;
 			}
 			for (let j = 7; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x2000 + 24] >>> j & 1 | OBJ[q + k + 24] >>> j << 1 & 2;
+					this.obj[p++] = OBJ[q + k + 0x2000 + 24] >> j & 1 | OBJ[q + k + 24] >> j << 1 & 2;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x2000 + 8] >>> j & 1 | OBJ[q + k + 8] >>> j << 1 & 2;
+					this.obj[p++] = OBJ[q + k + 0x2000 + 8] >> j & 1 | OBJ[q + k + 8] >> j << 1 & 2;
 			}
 		}
 	}
@@ -329,27 +324,26 @@ class ChacknPop {
 
 		// obj 描画
 		for (let k = 0xc40, i = 48; i !== 0; k += 4, --i) {
-			const x = this.ram[k] - 1 & 0xff;
-			const y = this.ram[k + 3] + 16;
+			const x = this.ram[k] - 1 & 0xff, y = this.ram[k + 3] + 16;
 			switch (this.ram[k + 1] & 0xc0) {
-				case 0x00: // ノーマル
-					this.xfer16x16(data, x | y << 8, this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6);
-					break;
-				case 0x40: // V反転
-					this.xfer16x16V(data, x | y << 8, this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6);
-					break;
-				case 0x80: // H反転
-					this.xfer16x16H(data, x | y << 8, this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6);
-					break;
-				case 0xc0: // HV反転
-					this.xfer16x16HV(data, x | y << 8, this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6);
-					break;
+			case 0x00: // ノーマル
+				this.xfer16x16(data, x | y << 8, this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6);
+				break;
+			case 0x40: // V反転
+				this.xfer16x16V(data, x | y << 8, this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6);
+				break;
+			case 0x80: // H反転
+				this.xfer16x16H(data, x | y << 8, this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6);
+				break;
+			case 0xc0: // HV反転
+				this.xfer16x16HV(data, x | y << 8, this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6);
+				break;
 			}
 		}
 
 		// bitmap 描画
-		for (let p = 256 * 8 * 33 + 16, k = 0x0200, i = 256 >>> 3; i !== 0; --i) {
-			for (let j = 224 >>> 2; j !== 0; k += 0x80, p += 4, --j) {
+		for (let p = 256 * 8 * 33 + 16, k = 0x0200, i = 256 >> 3; i !== 0; --i) {
+			for (let j = 224 >> 2; j !== 0; k += 0x80, p += 4, --j) {
 				let [p0, p1, p2, p3] = [this.vram[k], this.vram[0x2000 + k], this.vram[0x4000 + k], this.vram[0x6000 + k]];
 				data[p + 7 * 256] = this.rgb[p0 << 9 & 0x200 | p2 << 8 & 0x100 | p1 << 7 & 0x80 | p3 << 6 & 0x40 | data[p + 7 * 256]];
 				data[p + 6 * 256] = this.rgb[p0 << 8 & 0x200 | p2 << 7 & 0x100 | p1 << 6 & 0x80 | p3 << 5 & 0x40 | data[p + 6 * 256]];
@@ -463,7 +457,7 @@ class ChacknPop {
 	}
 
 	xfer16x16(data, dst, src) {
-		const idx = src >>> 4 & 0x1c;
+		const idx = src >> 4 & 0x1c;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)
@@ -476,7 +470,7 @@ class ChacknPop {
 	}
 
 	xfer16x16V(data, dst, src) {
-		const idx = src >>> 4 & 0x1c;
+		const idx = src >> 4 & 0x1c;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)
@@ -489,7 +483,7 @@ class ChacknPop {
 	}
 
 	xfer16x16H(data, dst, src) {
-		const idx = src >>> 4 & 0x1c;
+		const idx = src >> 4 & 0x1c;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)
@@ -502,7 +496,7 @@ class ChacknPop {
 	}
 
 	xfer16x16HV(data, dst, src) {
-		const idx = src >>> 4 & 0x1c;
+		const idx = src >> 4 & 0x1c;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)

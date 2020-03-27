@@ -39,51 +39,62 @@ class TimePilot {
 		this.timer = 0;
 		this.command = [];
 
+		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
+
 		this.cpu = new Z80(this);
-		for (let i = 0; i < 0x60; i++)
-			this.cpu.memorymap[i].base = PRG1.base[i];
-		for (let i = 0; i < 0x10; i++) {
-			this.cpu.memorymap[0xa0 + i].base = this.ram.base[i];
-			this.cpu.memorymap[0xa0 + i].write = null;
-		}
-		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0xb8 + i].base = this.cpu.memorymap[0xb0 + i].base = this.ram.base[0x10];
-			this.cpu.memorymap[0xb8 + i].write = this.cpu.memorymap[0xb0 + i].write = null;
-			this.cpu.memorymap[0xbc + i].base = this.cpu.memorymap[0xb4 + i].base = this.ram.base[0x11];
-			this.cpu.memorymap[0xbc + i].write = this.cpu.memorymap[0xb4 + i].write = null;
-		}
-		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0xc0 + i * 4].read = () => this.vpos;
-			this.cpu.memorymap[0xc0 + i * 4].write = (addr, data) => this.command.push(data);
-			this.cpu.memorymap[0xc2 + i * 4].read = () => this.in[4];
-			this.cpu.memorymap[0xc3 + i * 4].read = addr => this.in[addr >>> 5 & 3];
-		}
-		this.cpu.memorymap[0xc3].write = (addr, data) => {
-			switch (addr >>> 1 & 0x7f) {
-			case 0:
-				this.fInterruptEnable = (data & 1) !== 0;
-				break;
-			case 3:
-				this.fSoundEnable = (data & 1) === 0;
-				break;
+		for (let page = 0; page < 0x100; page++)
+			if (range(page, 0, 0x5f))
+				this.cpu.memorymap[page].base = PRG1.base[page & 0x7f];
+			else if (range(page, 0xa0, 0xaf)) {
+				this.cpu.memorymap[page].base = this.ram.base[page & 0xf];
+				this.cpu.memorymap[page].write = null;
 			}
-		};
+			else if (range(page, 0xb0, 0xb0, 0x0b)) {
+				this.cpu.memorymap[page].base = this.ram.base[0x10];
+				this.cpu.memorymap[page].write = null;
+			}
+			else if (range(page, 0xb4, 0xb4, 0x0b)) {
+				this.cpu.memorymap[page].base = this.ram.base[0x11];
+				this.cpu.memorymap[page].write = null;
+			}
+			else if (range(page, 0xc0, 0xc0, 0x0c)) {
+				this.cpu.memorymap[page].read = () => this.vpos;
+				this.cpu.memorymap[page].write = (addr, data) => this.command.push(data);
+			}
+			else if (range(page, 0xc2, 0xc2, 0x0c))
+				this.cpu.memorymap[page].read = () => this.in[4];
+			else if (range(page, 0xc3, 0xc3, 0x0c)) {
+				this.cpu.memorymap[page].read = addr => this.in[addr >> 5 & 3];
+				this.cpu.memorymap[page].write = (addr, data) => {
+					switch (addr >> 1 & 0x7f) {
+					case 0:
+						return void(this.fInterruptEnable = (data & 1) !== 0);
+					case 3:
+						return void(this.fSoundEnable = (data & 1) === 0);
+					}
+				};
+			}
 
 		this.cpu2 = new Z80(this);
-		for (let i = 0; i < 0x10; i++)
-			this.cpu2.memorymap[i].base = PRG2.base[i];
-		for (let i = 0; i < 4; i++) {
-			this.cpu2.memorymap[0x3c + i].base = this.cpu2.memorymap[0x38 + i].base = this.cpu2.memorymap[0x34 + i].base = this.cpu2.memorymap[0x30 + i].base = this.ram2.base[i];
-			this.cpu2.memorymap[0x3c + i].write = this.cpu2.memorymap[0x38 + i].write = this.cpu2.memorymap[0x34 + i].write = this.cpu2.memorymap[0x30 + i].write = null;
-		}
-		for (let i = 0; i < 0x10; i++) {
-			this.cpu2.memorymap[0x40 + i].read = () => sound[0].read(this.psg[0].addr);
-			this.cpu2.memorymap[0x40 + i].write = (addr, data) => sound[0].write(this.psg[0].addr, data, this.count);
-			this.cpu2.memorymap[0x50 + i].write = (addr, data) => this.psg[0].addr = data;
-			this.cpu2.memorymap[0x60 + i].read = () => sound[1].read(this.psg[1].addr);
-			this.cpu2.memorymap[0x60 + i].write = (addr, data) => sound[1].write(this.psg[1].addr, data, this.count);
-			this.cpu2.memorymap[0x70 + i].write = (addr, data) => this.psg[1].addr = data;
-		}
+		for (let page = 0; page < 0x100; page++)
+			if (range(page, 0, 0x0f))
+				this.cpu2.memorymap[page].base = PRG2.base[page & 0xf];
+			else if (range(page, 0x30, 0x33, 0x0c)) {
+				this.cpu2.memorymap[page].base = this.ram2.base[page & 3];
+				this.cpu2.memorymap[page].write = null;
+			}
+			else if (range(page, 0x40, 0x40, 0x0f)) {
+				this.cpu2.memorymap[page].read = () => sound[0].read(this.psg[0].addr);
+				this.cpu2.memorymap[page].write = (addr, data) => sound[0].write(this.psg[0].addr, data, this.count);
+			}
+			else if (range(page, 0x50, 0x50, 0x0f))
+				this.cpu2.memorymap[page].write = (addr, data) => this.psg[0].addr = data;
+			else if (range(page, 0x60, 0x60, 0x0f)) {
+				this.cpu2.memorymap[page].read = () => sound[1].read(this.psg[1].addr);
+				this.cpu2.memorymap[page].write = (addr, data) => sound[1].write(this.psg[1].addr, data, this.count);
+			}
+			else if (range(page, 0x70, 0x70, 0x0f))
+				this.cpu2.memorymap[page].write = (addr, data) => this.psg[1].addr = data;
 
 		// Videoの初期化
 		this.bg = new Uint8Array(0x8000);
@@ -264,9 +275,9 @@ class TimePilot {
 
 	convertRGB() {
 		for (let i = 0; i < 0x20; i++)
-			this.rgb[i] = ((RGB_H[i] << 8 | RGB_L[i]) >>> 1 & 31) * 255 / 31	// Red
-				| ((RGB_H[i] << 8 | RGB_L[i]) >>> 6 & 31) * 255 / 31 << 8		// Green
-				| ((RGB_H[i] << 8 | RGB_L[i]) >>> 11) * 255 / 31 << 16			// Blue
+			this.rgb[i] = ((RGB_H[i] << 8 | RGB_L[i]) >> 1 & 31) * 255 / 31	// Red
+				| ((RGB_H[i] << 8 | RGB_L[i]) >> 6 & 31) * 255 / 31 << 8	// Green
+				| ((RGB_H[i] << 8 | RGB_L[i]) >> 11) * 255 / 31 << 16		// Blue
 				| 0xff000000;
 	}
 
@@ -274,10 +285,10 @@ class TimePilot {
 		for (let p = 0, q = 0, i = 512; i !== 0; q += 16, --i) {
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k] >>> (j + 4) & 1 | BG[q + k] >>> j << 1 & 2;
+					this.bg[p++] = BG[q + k] >> (j + 4) & 1 | BG[q + k] >> j << 1 & 2;
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k + 8] >>> (j + 4) & 1 | BG[q + k + 8] >>> j << 1 & 2;
+					this.bg[p++] = BG[q + k + 8] >> (j + 4) & 1 | BG[q + k + 8] >> j << 1 & 2;
 		}
 	}
 
@@ -285,27 +296,27 @@ class TimePilot {
 		for (let p = 0, q = 0, i = 256; i !== 0; q += 64, --i) {
 			for (let j = 0; j < 4; j++) {
 				for (let k = 63; k >= 56; --k)
-					this.obj[p++] = OBJ[q + k] >>> (j + 4) & 1 | OBJ[q + k] >>> j << 1 & 2;
+					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2;
 				for (let k = 31; k >= 24; --k)
-					this.obj[p++] = OBJ[q + k] >>> (j + 4) & 1 | OBJ[q + k] >>> j << 1 & 2;
+					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2;
 			}
 			for (let j = 0; j < 4; j++) {
 				for (let k = 55; k >= 48; --k)
-					this.obj[p++] = OBJ[q + k] >>> (j + 4) & 1 | OBJ[q + k] >>> j << 1 & 2;
+					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2;
 				for (let k = 23; k >= 16; --k)
-					this.obj[p++] = OBJ[q + k] >>> (j + 4) & 1 | OBJ[q + k] >>> j << 1 & 2;
+					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2;
 			}
 			for (let j = 0; j < 4; j++) {
 				for (let k = 47; k >= 40; --k)
-					this.obj[p++] = OBJ[q + k] >>> (j + 4) & 1 | OBJ[q + k] >>> j << 1 & 2;
+					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2;
 				for (let k = 15; k >= 8; --k)
-					this.obj[p++] = OBJ[q + k] >>> (j + 4) & 1 | OBJ[q + k] >>> j << 1 & 2;
+					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2;
 			}
 			for (let j = 0; j < 4; j++) {
 				for (let k = 39; k >= 32; --k)
-					this.obj[p++] = OBJ[q + k] >>> (j + 4) & 1 | OBJ[q + k] >>> j << 1 & 2;
+					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k] >>> (j + 4) & 1 | OBJ[q + k] >>> j << 1 & 2;
+					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2;
 			}
 		}
 	}
@@ -375,7 +386,7 @@ class TimePilot {
 
 		if ((this.ram[k] >> 4 & 1) !== pri)
 			return;
-		switch (this.ram[k] >>> 6) {
+		switch (this.ram[k] >> 6) {
 		case 0: // ノーマル
 			data[p + 0x000] = BGCOLOR[idx | this.bg[q + 0x00]] | 0x10;
 			data[p + 0x001] = BGCOLOR[idx | this.bg[q + 0x01]] | 0x10;
@@ -644,7 +655,7 @@ class TimePilot {
 	}
 
 	xfer16x16(data, dst, src) {
-		const idx = src >>> 6 & 0xfc;
+		const idx = src >> 6 & 0xfc;
 		let px, i, j;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240)
@@ -656,7 +667,7 @@ class TimePilot {
 	}
 
 	xfer16x16V(data, dst, src) {
-		const idx = src >>> 6 & 0xfc;
+		const idx = src >> 6 & 0xfc;
 		let px, i, j;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240)
@@ -668,7 +679,7 @@ class TimePilot {
 	}
 
 	xfer16x16H(data, dst, src) {
-		const idx = src >>> 6 & 0xfc;
+		const idx = src >> 6 & 0xfc;
 		let px, i, j;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240)
@@ -680,7 +691,7 @@ class TimePilot {
 	}
 
 	xfer16x16HV(data, dst, src) {
-		const idx = src >>> 6 & 0xfc;
+		const idx = src >> 6 & 0xfc;
 		let px, i, j;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240)

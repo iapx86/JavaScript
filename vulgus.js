@@ -38,38 +38,27 @@ class Vulgus {
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0xa0; i++)
 			this.cpu.memorymap[i].base = PRG1.base[i];
-		this.cpu.memorymap[0xc0].read = addr => {
-			if ((addr &= 0xff) < 5)
-				return this.in[addr];
-			return 0xff;
-		};
+		this.cpu.memorymap[0xc0].read = addr => (addr &= 0xff) < 5 ? this.in[addr] : 0xff;
 		this.cpu.memorymap[0xc8].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				this.command = data;
-				break;
+				return void(this.command = data);
 			case 2:
-				this.hScroll = this.hScroll & 0xff00 | data;
-				break;
+				return void(this.hScroll = this.hScroll & 0xff00 | data);
 			case 3:
-				this.vScroll = this.vScroll & 0xff00 | data;
-				break;
+				return void(this.vScroll = this.vScroll & 0xff00 | data);
 			case 4:
-				(data & 0x10) !== 0 ? this.cpu2.disable() : this.cpu2.enable();
-				break;
+				return (data & 0x10) !== 0 ? this.cpu2.disable() : this.cpu2.enable();
 			case 5:
-				this.palette = data << 6 & 0xc0;
-				break;
+				return void(this.palette = data << 6 & 0xc0);
 			}
 		};
 		this.cpu.memorymap[0xc9].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 2:
-				this.hScroll = this.hScroll & 0xff | data << 8;
-				break;
+				return void(this.hScroll = this.hScroll & 0xff | data << 8);
 			case 3:
-				this.vScroll = this.vScroll & 0xff | data << 8;
-				break;
+				return void(this.vScroll = this.vScroll & 0xff | data << 8);
 			}
 		};
 		this.cpu.memorymap[0xcc].base = this.ram.base[0];
@@ -90,21 +79,17 @@ class Vulgus {
 		this.cpu2.memorymap[0x80].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				this.psg[0].addr = data;
-				break;
+				return void(this.psg[0].addr = data);
 			case 1:
-				sound[0].write(this.psg[0].addr, data, this.timer);
-				break;
+				return sound[0].write(this.psg[0].addr, data, this.timer);
 			}
 		};
 		this.cpu2.memorymap[0xc0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				this.psg[1].addr = data;
-				break;
+				return void(this.psg[1].addr = data);
 			case 1:
-				sound[1].write(this.psg[1].addr, data, this.timer);
-				break;
+				return sound[1].write(this.psg[1].addr, data, this.timer);
 			}
 		};
 
@@ -128,7 +113,7 @@ class Vulgus {
 			if (i === 0)
 				this.cpu.interrupt(0xd7); // RST 10H
 			if ((i & 1) === 0) {
-				this.timer = i >>> 1;
+				this.timer = i >> 1;
 				this.cpu2.interrupt();
 			}
 			Cpu.multiple_execute([this.cpu, this.cpu2], 600);
@@ -295,10 +280,10 @@ class Vulgus {
 		for (let p = 0, q = 0, i = 512; i !== 0; q += 16, --i) {
 			for (let j = 0; j < 4; j++)
 				for (let k = 0; k < 16; k += 2)
-					this.fg[p++] = FG[q + k + 1] >>> (j + 4) & 1 | FG[q + k + 1] >>> j << 1 & 2;
+					this.fg[p++] = FG[q + k + 1] >> (j + 4) & 1 | FG[q + k + 1] >> j << 1 & 2;
 			for (let j = 0; j < 4; j++)
 				for (let k = 0; k < 16; k += 2)
-					this.fg[p++] = FG[q + k] >>> (j + 4) & 1 | FG[q + k] >>> j << 1 & 2;
+					this.fg[p++] = FG[q + k] >> (j + 4) & 1 | FG[q + k] >> j << 1 & 2;
 		}
 	}
 
@@ -306,10 +291,10 @@ class Vulgus {
 		for (let p = 0, q = 0, i = 512; i !== 0; q += 32, --i) {
 			for (let j = 0; j < 8; j++)
 				for (let k = 0; k < 16; k++)
-					this.bg[p++] = BG[q + k + 0x8000 + 16] >>> j & 1 | BG[q + k + 0x4000 + 16] >>> j << 1 & 2 | BG[q + k + 16] >>> j << 2 & 4;
+					this.bg[p++] = BG[q + k + 0x8000 + 16] >> j & 1 | BG[q + k + 0x4000 + 16] >> j << 1 & 2 | BG[q + k + 16] >> j << 2 & 4;
 			for (let j = 0; j < 8; j++)
 				for (let k = 0; k < 16; k++)
-					this.bg[p++] = BG[q + k + 0x8000] >>> j & 1 | BG[q + k + 0x4000] >>> j << 1 & 2 | BG[q + k] >>> j << 2 & 4;
+					this.bg[p++] = BG[q + k + 0x8000] >> j & 1 | BG[q + k + 0x4000] >> j << 1 & 2 | BG[q + k] >> j << 2 & 4;
 		}
 	}
 
@@ -317,16 +302,16 @@ class Vulgus {
 		for (let p = 0, q = 0, i = 256; i !== 0; q += 64, --i) {
 			for (let j = 0; j < 4; j++)
 				for (let k = 0; k < 32; k += 2)
-					this.obj[p++] = OBJ[q + k + 33] >>> (j + 4) & 1 | OBJ[q + k + 33] >>> j << 1 & 2 | OBJ[q + k + 0x4000 + 33] >>> (j + 2) & 4 | OBJ[q + k + 0x4000 + 33] >>> j << 3 & 8;
+					this.obj[p++] = OBJ[q + k + 33] >> (j + 4) & 1 | OBJ[q + k + 33] >> j << 1 & 2 | OBJ[q + k + 0x4000 + 33] >> (j + 2) & 4 | OBJ[q + k + 0x4000 + 33] >> j << 3 & 8;
 			for (let j = 0; j < 4; j++)
 				for (let k = 0; k < 32; k += 2)
-					this.obj[p++] = OBJ[q + k + 32] >>> (j + 4) & 1 | OBJ[q + k + 32] >>> j << 1 & 2 | OBJ[q + k + 0x4000 + 32] >>> (j + 2) & 4 | OBJ[q + k + 0x4000 + 32] >>> j << 3 & 8;
+					this.obj[p++] = OBJ[q + k + 32] >> (j + 4) & 1 | OBJ[q + k + 32] >> j << 1 & 2 | OBJ[q + k + 0x4000 + 32] >> (j + 2) & 4 | OBJ[q + k + 0x4000 + 32] >> j << 3 & 8;
 			for (let j = 0; j < 4; j++)
 				for (let k = 0; k < 32; k += 2)
-					this.obj[p++] = OBJ[q + k + 1] >>> (j + 4) & 1 | OBJ[q + k + 1] >>> j << 1 & 2 | OBJ[q + k + 0x4000 + 1] >>> (j + 2) & 4 | OBJ[q + k + 0x4000 + 1] >>> j << 3 & 8;
+					this.obj[p++] = OBJ[q + k + 1] >> (j + 4) & 1 | OBJ[q + k + 1] >> j << 1 & 2 | OBJ[q + k + 0x4000 + 1] >> (j + 2) & 4 | OBJ[q + k + 0x4000 + 1] >> j << 3 & 8;
 			for (let j = 0; j < 4; j++)
 				for (let k = 0; k < 32; k += 2)
-					this.obj[p++] = OBJ[q + k] >>> (j + 4) & 1 | OBJ[q + k] >>> j << 1 & 2 | OBJ[q + k + 0x4000] >>> (j + 2) & 4 | OBJ[q + k + 0x4000] >>> j << 3 & 8;
+					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2 | OBJ[q + k + 0x4000] >> (j + 2) & 4 | OBJ[q + k + 0x4000] >> j << 3 & 8;
 		}
 	}
 
@@ -335,7 +320,7 @@ class Vulgus {
 
 		// bg描画
 		let p = 256 * 256 + 16 - (16 + this.hScroll & 0x0f) + (this.vScroll & 0x0f) * 256;
-		let k = 16 + this.hScroll >>> 4 & 0x1f | this.vScroll << 1 & 0x3e0;
+		let k = 16 + this.hScroll >> 4 & 0x1f | this.vScroll << 1 & 0x3e0;
 		for (let i = 0; i < 17; k = k + 0x11 & 0x1f | k + 0x20 & 0x3e0, p -= 15 * 16 + 256 * 16, i++)
 			for (let j = 0; j < 15; k = k + 1 & 0x1f | k & 0x3e0, p += 16, j++)
 				this.xfer16x16x3(data, p, 0x900 + k);
@@ -345,7 +330,7 @@ class Vulgus {
 			const y = 256 - this.ram[p + 3];
 			const x = this.ram[p + 2];
 			const src = this.ram[p] | this.ram[p + 1] << 8;
-			switch (this.ram[p + 1] >>> 6) {
+			switch (this.ram[p + 1] >> 6) {
 			case 0:
 				this.xfer16x16x4(data, x | y << 8, src);
 				break;
@@ -451,7 +436,7 @@ class Vulgus {
 		const idx = this.ram[k + 0x400] << 3 & 0xf8;
 		let i, j, q = (this.ram[k] | this.ram[k + 0x400] << 1 & 0x100) << 8;
 
-		switch (this.ram[k + 0x400] >>> 5 & 3) {
+		switch (this.ram[k + 0x400] >> 5 & 3) {
 		case 0:
 			for (i = 16; i !== 0; p += 256 - 16, --i)
 				for (j = 16; j !== 0; --j)
@@ -476,7 +461,7 @@ class Vulgus {
 	}
 
 	xfer16x16x4(data, dst, src) {
-		const idx = src >>> 4 & 0xf0;
+		const idx = src >> 4 & 0xf0;
 		let px, i, j;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)

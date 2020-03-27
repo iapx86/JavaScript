@@ -13,7 +13,7 @@ export default class MC6805 extends Cpu {
 		this.ccr = 0; // ccr:111hinzc
 		this.x = 0;
 		this.s = 0;
-		this.int = false;
+		this.irq = false;
 	}
 
 	reset() {
@@ -23,7 +23,7 @@ export default class MC6805 extends Cpu {
 		this.x = 0;
 		this.s = 0x7f;
 		this.pc = this.read(0x7fe) << 8 & 0x700 | this.read(0x7ff);
-		this.int = false;
+		this.irq = false;
 	}
 
 	interrupt(vector) {
@@ -141,9 +141,9 @@ export default class MC6805 extends Cpu {
 		case 0x2d: // BMS
 			return this.bcc((this.ccr & 8) !== 0);
 		case 0x2e: // BIL
-			return this.bcc(this.int);
+			return this.bcc(this.irq);
 		case 0x2f: // BIH
-			return this.bcc(!this.int);
+			return this.bcc(!this.irq);
 		case 0x30: // NEG <n
 			return this.write8(this.neg8(this.read(ea = this.fetch())), ea);
 		case 0x33: // COM <n
