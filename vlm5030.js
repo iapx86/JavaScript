@@ -6,8 +6,9 @@
 
 export default class VLM5030 {
 	constructor({VLM, clock, gain = 0.1}) {
+		const sampleRate = Math.floor(audioCtx.sampleRate);
 		this.BSY = 0;
-		this.cycles = this.sampleRate - 1;
+		this.cycles = sampleRate - 1;
 		this.param = 0;
 		this.offset = 0;
 		this.icount = 0;
@@ -29,7 +30,7 @@ export default class VLM5030 {
 		this.output = 0;
 		this.base = VLM;
 		this.rate = Math.floor(clock / 440);
-		this.sampleRate = Math.floor(audioCtx.sampleRate);
+		this.sampleRate = sampleRate;
 		this.gain = gain;
 		if (!audioCtx)
 			return;
