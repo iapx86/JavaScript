@@ -38,57 +38,60 @@ class Frogger {
 		this.timer = 0;
 		this.command = [];
 
+		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
+
 		this.cpu = new Z80(this);
-		for (let i = 0; i < 0x30; i++)
-			this.cpu.memorymap[i].base = PRG1.base[i];
-		for (let i = 0; i < 8; i++) {
-			this.cpu.memorymap[0x80 + i].base = this.ram.base[i];
-			this.cpu.memorymap[0x80 + i].write = null;
-		}
-		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0xac + i].base = this.cpu.memorymap[0xa8 + i].base = this.ram.base[8 + i];
-			this.cpu.memorymap[0xac + i].write = this.cpu.memorymap[0xa8 + i].write = null;
-		}
-		for (let i = 0; i < 8; i++) {
-			this.cpu.memorymap[0xb0 + i].base = this.ram.base[0x0c];
-			this.cpu.memorymap[0xb0 + i].write = null;
-			this.cpu.memorymap[0xb8].write = (addr, data) => {
-				if ((addr & 0x1c) === 8)
-					this.fInterruptEnable = (data & 1) !== 0;
-			};
-		}
-		for (let i = 0; i < 0x40; i++) {
-			this.cpu.memorymap[0xc0 + i].read = addr => {
-				let data = 0xff;
-				if ((addr & 0x1000) !== 0)
-					data &= this.ppi1[addr >> 1 & 3];
-				if ((addr & 0x2000) !== 0)
-					data &= this.ppi0[addr >> 1 & 3];
-				return data;
-			};
-			this.cpu.memorymap[0xc0 + i].write = (addr, data) => {
-				if ((addr & 0x1000) !== 0)
-					switch (addr >> 1 & 3) {
-					case 0:
-						return this.command.push(data);
-					case 1:
-						return void(this.fSoundEnable = (data & 0x10) === 0);
-					}
-			};
-		}
+		for (let page = 0; page < 0x100; page++)
+			if (range(page, 0, 0x2f))
+				this.cpu.memorymap[page].base = PRG1.base[page & 0x3f];
+			else if (range(page, 0x80, 0x87)) {
+				this.cpu.memorymap[page].base = this.ram.base[page & 7];
+				this.cpu.memorymap[page].write = null;
+			}
+			else if (range(page, 0xa8, 0xab, 0x04)) {
+				this.cpu.memorymap[page].base = this.ram.base[8 | page & 3];
+				this.cpu.memorymap[page].write = null;
+			}
+			else if (range(page, 0xb0, 0xb0, 0x07)) {
+				this.cpu.memorymap[page].base = this.ram.base[0x0c];
+				this.cpu.memorymap[page].write = null;
+			}
+			else if (range(page, 0xb8, 0xb8, 0x07))
+				this.cpu.memorymap[page].write = (addr, data) => {
+					if ((addr & 0x1c) === 8)
+						this.fInterruptEnable = (data & 1) !== 0;
+				};
+			else if (range(page, 0xc0, 0xff)) {
+				this.cpu.memorymap[page].read = addr => {
+					let data = 0xff;
+					if ((addr & 0x1000) !== 0)
+						data &= this.ppi1[addr >> 1 & 3];
+					if ((addr & 0x2000) !== 0)
+						data &= this.ppi0[addr >> 1 & 3];
+					return data;
+				};
+				this.cpu.memorymap[page].write = (addr, data) => {
+					if ((addr & 0x1000) !== 0)
+						switch (addr >> 1 & 3) {
+						case 0:
+							return this.command.push(data);
+						case 1:
+							return void(this.fSoundEnable = (data & 0x10) === 0);
+						}
+				};
+			}
 
 		this.cpu2 = new Z80(this);
-		for (let i = 0; i < 0x20; i++)
-			this.cpu2.memorymap[i].base = PRG2.base[i];
-		for (let i = 0; i < 4; i++) {
-			this.cpu2.memorymap[0x4c + i].base = this.cpu2.memorymap[0x48 + i].base = this.cpu2.memorymap[0x44 + i].base = this.cpu2.memorymap[0x40 + i].base = this.ram2.base[i];
-			this.cpu2.memorymap[0x4c + i].write = this.cpu2.memorymap[0x48 + i].write = this.cpu2.memorymap[0x44 + i].write = this.cpu2.memorymap[0x40 + i].write = null;
-			this.cpu2.memorymap[0x5c + i].base = this.cpu2.memorymap[0x58 + i].base = this.cpu2.memorymap[0x54 + i].base = this.cpu2.memorymap[0x50 + i].base = this.ram2.base[i];
-			this.cpu2.memorymap[0x5c + i].write = this.cpu2.memorymap[0x58 + i].write = this.cpu2.memorymap[0x54 + i].write = this.cpu2.memorymap[0x50 + i].write = null;
-		}
-		for (let i = 0; i < 0x100; i++) {
-			this.cpu2.iomap[i].read = addr => (addr & 0x40) !== 0 ? sound.read(this.psg.addr) : 0xff;
-			this.cpu2.iomap[i].write = (addr, data) => {
+		for (let page = 0; page < 0x100; page++)
+			if (range(page, 0, 0x1f))
+				this.cpu2.memorymap[page].base = PRG2.base[page & 0x1f];
+			else if (range(page, 0x40, 0x43, 0x1c)) {
+				this.cpu2.memorymap[page].base = this.ram2.base[page & 3];
+				this.cpu2.memorymap[page].write = null;
+			}
+		for (let page = 0; page < 0x100; page++) {
+			this.cpu2.iomap[page].read = addr => (addr & 0x40) !== 0 ? sound.read(this.psg.addr) : 0xff;
+			this.cpu2.iomap[page].write = (addr, data) => {
 				if ((addr & 0x40) !== 0)
 					sound.write(this.psg.addr, data, this.count);
 				else if ((addr & 0x80) !== 0)
@@ -293,8 +296,7 @@ class Frogger {
 
 		// obj 描画
 		for (let k = 0xc5c, i = 7; i >= 0; k -= 4, --i) {
-			const x = this.ram[k] >> 4 | this.ram[k] << 4 & 0xf0;
-			const y = this.ram[k + 3] + 16;
+			const x = this.ram[k] >> 4 | this.ram[k] << 4 & 0xf0, y = this.ram[k + 3] + 16;
 			switch (this.ram[k + 1] & 0xc0) {
 			case 0x00: // ノーマル
 				this.xfer16x16(data, x | y << 8, this.ram[k + 1] & 0x3f | this.ram[k + 2] << 5 & 0xc0 | this.ram[k + 2] << 8 & 0x100);
