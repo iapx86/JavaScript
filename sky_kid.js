@@ -291,10 +291,10 @@ class SkyKid {
 		for (let p = 0, q = 0, i = 512; i !== 0; q += 16, --i) {
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.fg[p++] = FG[q + k + 8] >>> j & 1 | FG[q + k + 8] >>> (j + 3) & 2;
+					this.fg[p++] = FG[q + k + 8] >> j & 1 | FG[q + k + 8] >> (j + 3) & 2;
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.fg[p++] = FG[q + k] >>> j & 1 | FG[q + k] >>> (j + 3) & 2;
+					this.fg[p++] = FG[q + k] >> j & 1 | FG[q + k] >> (j + 3) & 2;
 		}
 	}
 
@@ -302,10 +302,10 @@ class SkyKid {
 		for (let p = 0, q = 0, i = 512; i !== 0; q += 16, --i) {
 			for (let j = 3; j >= 0; --j)
 				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k] >>> j & 1 | BG[q + k] >>> (j + 3) & 2;
+					this.bg[p++] = BG[q + k] >> j & 1 | BG[q + k] >> (j + 3) & 2;
 			for (let j = 3; j >= 0; --j)
 				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k + 1] >>> j & 1 | BG[q + k + 1] >>> (j + 3) & 2;
+					this.bg[p++] = BG[q + k + 1] >> j & 1 | BG[q + k + 1] >> (j + 3) & 2;
 		}
 	}
 
@@ -313,79 +313,79 @@ class SkyKid {
 		for (let p = 0, q = 0, i = 128; i !== 0; q += 64, --i) {
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 32] >>> j & 1 | OBJ[q + k + 32] >>> (j + 3) & 2 | OBJ[q + k + 0x4000 + 32] << 2 >>> j & 4;
+					this.obj[p++] = OBJ[q + k + 32] >> j & 1 | OBJ[q + k + 32] >> (j + 3) & 2 | OBJ[q + k + 0x4000 + 32] << 2 >> j & 4;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k] >>> j & 1 | OBJ[q + k] >>> (j + 3) & 2 | OBJ[q + k + 0x4000] << 2 >>> j & 4;
+					this.obj[p++] = OBJ[q + k] >> j & 1 | OBJ[q + k] >> (j + 3) & 2 | OBJ[q + k + 0x4000] << 2 >> j & 4;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 40] >>> j & 1 | OBJ[q + k + 40] >>> (j + 3) & 2 | OBJ[q + k + 0x4000 + 40] << 2 >>> j & 4;
+					this.obj[p++] = OBJ[q + k + 40] >> j & 1 | OBJ[q + k + 40] >> (j + 3) & 2 | OBJ[q + k + 0x4000 + 40] << 2 >> j & 4;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 8] >>> j & 1 | OBJ[q + k + 8] >>> (j + 3) & 2 | OBJ[q + k + 0x4000 + 8] << 2 >>> j & 4;
+					this.obj[p++] = OBJ[q + k + 8] >> j & 1 | OBJ[q + k + 8] >> (j + 3) & 2 | OBJ[q + k + 0x4000 + 8] << 2 >> j & 4;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 48] >>> j & 1 | OBJ[q + k + 48] >>> (j + 3) & 2 | OBJ[q + k + 0x4000 + 48] << 2 >>> j & 4;
+					this.obj[p++] = OBJ[q + k + 48] >> j & 1 | OBJ[q + k + 48] >> (j + 3) & 2 | OBJ[q + k + 0x4000 + 48] << 2 >> j & 4;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 16] >>> j & 1 | OBJ[q + k + 16] >>> (j + 3) & 2 | OBJ[q + k + 0x4000 + 16] << 2 >>> j & 4;
+					this.obj[p++] = OBJ[q + k + 16] >> j & 1 | OBJ[q + k + 16] >> (j + 3) & 2 | OBJ[q + k + 0x4000 + 16] << 2 >> j & 4;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 56] >>> j & 1 | OBJ[q + k + 56] >>> (j + 3) & 2 | OBJ[q + k + 0x4000 + 56] << 2 >>> j & 4;
+					this.obj[p++] = OBJ[q + k + 56] >> j & 1 | OBJ[q + k + 56] >> (j + 3) & 2 | OBJ[q + k + 0x4000 + 56] << 2 >> j & 4;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 24] >>> j & 1 | OBJ[q + k + 24] >>> (j + 3) & 2 | OBJ[q + k + 0x4000 + 24] << 2 >>> j & 4;
+					this.obj[p++] = OBJ[q + k + 24] >> j & 1 | OBJ[q + k + 24] >> (j + 3) & 2 | OBJ[q + k + 0x4000 + 24] << 2 >> j & 4;
 			}
 		}
 		for (let p = 0x8000, q = 0x2000, i = 128; i !== 0; q += 64, --i) {
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 32] >>> j & 1 | OBJ[q + k + 32] >>> (j + 3) & 2 | OBJ[q + k + 0x2000 + 32] >>> (j + 2) & 4;
+					this.obj[p++] = OBJ[q + k + 32] >> j & 1 | OBJ[q + k + 32] >> (j + 3) & 2 | OBJ[q + k + 0x2000 + 32] >> (j + 2) & 4;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k] >>> j & 1 | OBJ[q + k] >>> (j + 3) & 2 | OBJ[q + k + 0x2000] >>> (j + 2) & 4;
+					this.obj[p++] = OBJ[q + k] >> j & 1 | OBJ[q + k] >> (j + 3) & 2 | OBJ[q + k + 0x2000] >> (j + 2) & 4;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 40] >>> j & 1 | OBJ[q + k + 40] >>> (j + 3) & 2 | OBJ[q + k + 0x2000 + 40] >>> (j + 2) & 4;
+					this.obj[p++] = OBJ[q + k + 40] >> j & 1 | OBJ[q + k + 40] >> (j + 3) & 2 | OBJ[q + k + 0x2000 + 40] >> (j + 2) & 4;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 8] >>> j & 1 | OBJ[q + k + 8] >>> (j + 3) & 2 | OBJ[q + k + 0x2000 + 8] >>> (j + 2) & 4;
+					this.obj[p++] = OBJ[q + k + 8] >> j & 1 | OBJ[q + k + 8] >> (j + 3) & 2 | OBJ[q + k + 0x2000 + 8] >> (j + 2) & 4;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 48] >>> j & 1 | OBJ[q + k + 48] >>> (j + 3) & 2 | OBJ[q + k + 0x2000 + 48] >>> (j + 2) & 4;
+					this.obj[p++] = OBJ[q + k + 48] >> j & 1 | OBJ[q + k + 48] >> (j + 3) & 2 | OBJ[q + k + 0x2000 + 48] >> (j + 2) & 4;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 16] >>> j & 1 | OBJ[q + k + 16] >>> (j + 3) & 2 | OBJ[q + k + 0x2000 + 16] >>> (j + 2) & 4;
+					this.obj[p++] = OBJ[q + k + 16] >> j & 1 | OBJ[q + k + 16] >> (j + 3) & 2 | OBJ[q + k + 0x2000 + 16] >> (j + 2) & 4;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 56] >>> j & 1 | OBJ[q + k + 56] >>> (j + 3) & 2 | OBJ[q + k + 0x2000 + 56] >>> (j + 2) & 4;
+					this.obj[p++] = OBJ[q + k + 56] >> j & 1 | OBJ[q + k + 56] >> (j + 3) & 2 | OBJ[q + k + 0x2000 + 56] >> (j + 2) & 4;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 24] >>> j & 1 | OBJ[q + k + 24] >>> (j + 3) & 2 | OBJ[q + k + 0x2000 + 24] >>> (j + 2) & 4;
+					this.obj[p++] = OBJ[q + k + 24] >> j & 1 | OBJ[q + k + 24] >> (j + 3) & 2 | OBJ[q + k + 0x2000 + 24] >> (j + 2) & 4;
 			}
 		}
 		for (let p = 0x10000, q = 0x6000, i = 128; i !== 0; q += 64, --i) {
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 32] >>> j & 1 | OBJ[q + k + 32] >>> (j + 3) & 2;
+					this.obj[p++] = OBJ[q + k + 32] >> j & 1 | OBJ[q + k + 32] >> (j + 3) & 2;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k] >>> j & 1 | OBJ[q + k] >>> (j + 3) & 2;
+					this.obj[p++] = OBJ[q + k] >> j & 1 | OBJ[q + k] >> (j + 3) & 2;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 40] >>> j & 1 | OBJ[q + k + 40] >>> (j + 3) & 2;
+					this.obj[p++] = OBJ[q + k + 40] >> j & 1 | OBJ[q + k + 40] >> (j + 3) & 2;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 8] >>> j & 1 | OBJ[q + k + 8] >>> (j + 3) & 2;
+					this.obj[p++] = OBJ[q + k + 8] >> j & 1 | OBJ[q + k + 8] >> (j + 3) & 2;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 48] >>> j & 1 | OBJ[q + k + 48] >>> (j + 3) & 2;
+					this.obj[p++] = OBJ[q + k + 48] >> j & 1 | OBJ[q + k + 48] >> (j + 3) & 2;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 16] >>> j & 1 | OBJ[q + k + 16] >>> (j + 3) & 2;
+					this.obj[p++] = OBJ[q + k + 16] >> j & 1 | OBJ[q + k + 16] >> (j + 3) & 2;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 56] >>> j & 1 | OBJ[q + k + 56] >>> (j + 3) & 2;
+					this.obj[p++] = OBJ[q + k + 56] >> j & 1 | OBJ[q + k + 56] >> (j + 3) & 2;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 24] >>> j & 1 | OBJ[q + k + 24] >>> (j + 3) & 2;
+					this.obj[p++] = OBJ[q + k + 24] >> j & 1 | OBJ[q + k + 24] >> (j + 3) & 2;
 			}
 		}
 		this.obj.fill(3, 0x18000);
@@ -394,7 +394,7 @@ class SkyKid {
 	makeBitmap(data) {
 		// bg描画
 		let p = 256 * 8 * 2 + 232 + (this.fFlip ? (7 - this.hScroll & 7) - (4 - this.vScroll & 7) * 256 : (1 + this.hScroll & 7) - (3 + this.vScroll & 7) * 256);
-		let k = this.fFlip ? 7 - this.hScroll << 3 & 0x7c0 | (4 - this.vScroll >>> 3) + 23 & 0x3f : 0x18 + 1 + this.hScroll << 3 & 0x7c0 | (3 + this.vScroll >>> 3) + 4 & 0x3f;
+		let k = this.fFlip ? 7 - this.hScroll << 3 & 0x7c0 | (4 - this.vScroll >> 3) + 23 & 0x3f : 0x18 + 1 + this.hScroll << 3 & 0x7c0 | (3 + this.vScroll >> 3) + 4 & 0x3f;
 		for (let i = 0; i < 29; k = k + 27 & 0x3f | k + 0x40 & 0x7c0, p -= 256 * 8 * 37 + 8, i++)
 			for (let j = 0; j < 37; k = k + 1 & 0x3f | k & 0x7c0, p += 256 * 8, j++)
 				this.xfer8x8b(data, p, k);
@@ -761,7 +761,7 @@ class SkyKid {
 	}
 
 	xfer16x16(data, dst, src) {
-		const idx = src >>> 6 & 0x1f8;
+		const idx = src >> 6 & 0x1f8;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
@@ -774,7 +774,7 @@ class SkyKid {
 	}
 
 	xfer16x16V(data, dst, src) {
-		const idx = src >>> 6 & 0x1f8;
+		const idx = src >> 6 & 0x1f8;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
@@ -787,7 +787,7 @@ class SkyKid {
 	}
 
 	xfer16x16H(data, dst, src) {
-		const idx = src >>> 6 & 0x1f8;
+		const idx = src >> 6 & 0x1f8;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
@@ -800,7 +800,7 @@ class SkyKid {
 	}
 
 	xfer16x16HV(data, dst, src) {
-		const idx = src >>> 6 & 0x1f8;
+		const idx = src >> 6 & 0x1f8;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)

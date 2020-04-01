@@ -41,7 +41,7 @@ class FantasyZone {
 		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
 
 		this.cpu = new MC68000(this);
-		for (let page = 0; page < 0x10000; page++) {
+		for (let page = 0; page < 0x10000; page++)
 			if (range(page, 0, 0x2ff, 0x3800))
 				this.cpu.memorymap[page].base = PRG1.base[page & 0x3ff];
 			else if (range(page, 0x4000, 0x407f, 0xb880)) {
@@ -61,35 +61,32 @@ class FantasyZone {
 				this.cpu.memorymap[page].write = null;
 				this.cpu.memorymap[page].write16 = (addr, data) => {
 					const offset = addr & 0xffe;
-					this.ram[0xa000 | offset] = data >>> 8;
+					this.ram[0xa000 | offset] = data >> 8;
 					this.ram[0xa001 | offset] = data;
-					this.rgb[offset >>> 1] = (data >>> 12 & 1 | data << 1 & 0x1e) * 255 / 31	// Red
-						| (data >>> 13 & 1 | data >>> 3 & 0x1e) * 255 / 31 << 8					// Green
-						| (data >>> 14 & 1 | data >>> 7 & 0x1e) * 255 / 31 << 16				// Blue
-						| 0xff000000;															// Alpha
+					this.rgb[offset >> 1] = (data >> 12 & 1 | data << 1 & 0x1e) * 255 / 31	// Red
+						| (data >> 13 & 1 | data >> 3 & 0x1e) * 255 / 31 << 8				// Green
+						| (data >> 14 & 1 | data >> 7 & 0x1e) * 255 / 31 << 16				// Blue
+						| 0xff000000;														// Alpha
 				};
 			}
 			else if (range(page, 0xc400, 0xc43f, 0x39c0)) {
 				this.cpu.memorymap[page].read = addr => {
 					switch (addr & 0x3000) {
 					case 0x1000:
-						return this.in[addr >>> 1 & 3];
+						return this.in[addr >> 1 & 3];
 					case 0x2000:
-						return this.in[4 | addr >>> 1 & 1];
+						return this.in[4 | addr >> 1 & 1];
 					}
 					return 0xff;
 				};
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 0x3007) {
 					case 1:
-						this.command.push(data);
-						break;
+						return this.command.push(data);
 					case 3:
-						this.mode[0] = data;
-						break;
+						return void(this.mode[0] = data);
 					case 5:
-						this.mode[1] = data;
-						break;
+						return void(this.mode[1] = data);
 					}
 				};
 			}
@@ -97,7 +94,6 @@ class FantasyZone {
 				this.cpu.memorymap[page].base = this.ram.base[0xc0 | page & 0x3f];
 				this.cpu.memorymap[page].write = null;
 			}
-		}
 
 		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x80; i++)
@@ -109,33 +105,32 @@ class FantasyZone {
 		}
 		for (let i = 0; i < 0x100; i++) {
 			this.cpu2.iomap[i].read = addr => {
-				switch (addr >>> 6 & 3) {
+				switch (addr >> 6 & 3) {
 				case 0:
 					return (addr & 1) !== 0 ? this.fm.status : 0xff;
 				case 3:
 					return this.command.length ? this.command.shift() : 0xff;
+				default:
+					return 0xff;
 				}
-				return 0xff;
 			};
 			this.cpu2.iomap[i].write = (addr, data) => {
-				if ((addr >>> 6 & 3) !== 0)
+				if ((addr >> 6 & 3) !== 0)
 					return;
 				switch (addr & 1) {
 				case 0:
-					this.fm.addr = data;
-					break;
+					return void(this.fm.addr = data);
 				case 1:
 					if (this.fm.addr === 0x14) { // CSM/F RESET/IRQEN/LOAD
-						this.fm.status &= ~(data >>> 4 & 3);
+						this.fm.status &= ~(data >> 4 & 3);
 						if ((data & 1) !== 0)
 							this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
 						if ((data & 2) !== 0)
 							this.fm.timerb = this.fm.reg[0x12];
 					}
-					sound.write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
-					break;
+					return sound.write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
 				}
-			}
+			};
 		}
 
 		// Videoの初期化
@@ -153,11 +148,11 @@ class FantasyZone {
 			this.cpu2.execute(128);
 			if ((this.fm.reg[0x14] & 1) !== 0 && (this.fm.timera += 16) >= 0x400) {
 				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-				this.fm.status |= this.fm.reg[0x14] >>> 2 & 1;
+				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
 			}
 			if ((this.fm.reg[0x14] & 2) !== 0 && ++this.fm.timerb >= 0x100) {
 				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
-				this.fm.status |= this.fm.reg[0x14] >>> 2 & 2;
+				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
 			}
 		}
 		return this;
@@ -328,7 +323,7 @@ class FantasyZone {
 		for (let p = 0, q = 0, i = 0; i < 4096; q += 8, i++)
 			for (let j = 7; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k] >>> j & 1 | BG[q + k + 0x8000] >>> j << 1 & 2 | BG[q + k + 0x10000] >>> j << 2 & 4;
+					this.bg[p++] = BG[q + k] >> j & 1 | BG[q + k + 0x8000] >> j << 1 & 2 | BG[q + k + 0x10000] >> j << 2 & 4;
 	}
 
 	makeBitmap(data) {
@@ -391,15 +386,15 @@ class FantasyZone {
 				continue;
 			const pitch = this.ram[p + 4] << 9 | this.ram[p + 5] << 1;
 			const idx = this.ram[p + 8] << 4 & 0x3f0 | 0x400, bank = this.ram[p + 9] << 12 & 0x30000;
-			for (let addr = this.ram[p + 6] << 9 | this.ram[p + 7] << 1, x = x0; x > x1; --x) {
+			for (let addr = this.ram[p + 6] << 9 | this.ram[p + 7] << 1, x = x0; x > x1; --x)
 				if (((addr += pitch) & 0x10000) === 0)
 					for (let a = addr & 0xfffe, y = y0, px = 0; px !== 0xf && y < y0 + 512; a = a + 2 & 0xfffe, y += 4) {
 						let px0 = OBJ[a | bank], px1 = OBJ[1 | a | bank];
-						if ((px = px0 >>> 4) !== 0 && px !== 0xf)
+						if ((px = px0 >> 4) !== 0 && px !== 0xf)
 							data[x - 17 & 0xff | y << 8 & 0x1ff00] = idx | px;
 						if ((px = px0 & 0xf) !== 0 && px !== 0xf)
 							data[x - 17 & 0xff | y + 1 << 8 & 0x1ff00] = idx | px;
-						if ((px = px1 >>> 4) !== 0 && px !== 0xf)
+						if ((px = px1 >> 4) !== 0 && px !== 0xf)
 							data[x - 17 & 0xff | y + 2 << 8 & 0x1ff00] = idx | px;
 						if ((px = px1 & 0xf) !== 0 && px !== 0xf)
 							data[x - 17 & 0xff | y + 3 << 8 & 0x1ff00] = idx | px;
@@ -409,19 +404,18 @@ class FantasyZone {
 						let px0 = OBJ[a | bank], px1 = OBJ[1 | a | bank];
 						if ((px = px1 & 0xf) !== 0 && px !== 0xf)
 							data[x - 17 & 0xff | y << 8 & 0x1ff00] = idx | px;
-						if ((px = px1 >>> 4) !== 0 && px !== 0xf)
+						if ((px = px1 >> 4) !== 0 && px !== 0xf)
 							data[x - 17 & 0xff | y + 1 << 8 & 0x1ff00] = idx | px;
 						if ((px = px0 & 0xf) !== 0 && px !== 0xf)
 							data[x - 17 & 0xff | y + 2 << 8 & 0x1ff00] = idx | px;
-						if ((px = px0 >>> 4) !== 0 && px !== 0xf)
+						if ((px = px0 >> 4) !== 0 && px !== 0xf)
 							data[x - 17 & 0xff | y + 3 << 8 & 0x1ff00] = idx | px;
 					}
-			}
 		}
 	}
 
 	xfer8x8(data, k, layer, mask, cmp) {
-		let x0 = ~k >>> 4 & 0xf8, y0 = k << 2 & 0x1f8;
+		let x0 = ~k >> 4 & 0xf8, y0 = k << 2 & 0x1f8;
 		let x, y, page, p, q, idx, px;
 		switch (layer) {
 		case 0:
@@ -447,7 +441,7 @@ class FantasyZone {
 		case 0:
 		case 1:
 			q = (this.ram[k | page] << 8 & 0xf00 | this.ram[k | page | 1]) << 6;
-			idx = this.ram[k | page] << 6 & 0x3c0 | this.ram[k | page | 1] >>> 2 & 0x38;
+			idx = this.ram[k | page] << 6 & 0x3c0 | this.ram[k | page | 1] >> 2 & 0x38;
 			break;
 		case 2:
 			q = this.ram[k | page | 1] << 6;

@@ -21,9 +21,9 @@ class Toypop {
 		this.fReset = true;
 		this.fTest = false;
 		this.fDIPSwitchChanged = true;
-		this.fCoin = false;
-		this.fStart1P = false;
-		this.fStart2P = false;
+		this.fCoin = 0;
+		this.fStart1P = 0;
+		this.fStart2P = 0;
 		this.nPino = 3;
 		this.nBonus = 'A';
 		this.nRank = 'NORMAL';
@@ -39,60 +39,61 @@ class Toypop {
 		this.vram = new Uint8Array(0x10000).addBase();
 		this.port = new Uint8Array(0x30);
 
-		this.cpu = [new MC6809(this), new MC6809(this), new MC68000(this)];
-
+		this.cpu = new MC6809(this);
 		for (let i = 0; i < 0x20; i++) {
-			this.cpu[0].memorymap[i].base = this.ram.base[i];
-			this.cpu[0].memorymap[i].write = null;
+			this.cpu.memorymap[i].base = this.ram.base[i];
+			this.cpu.memorymap[i].write = null;
 		}
 		for (let i = 0; i < 8; i++) {
-			this.cpu[0].memorymap[0x28 + i].base = this.ram2.base[i];
-			this.cpu[0].memorymap[0x28 + i].write = null;
+			this.cpu.memorymap[0x28 + i].base = this.ram2.base[i];
+			this.cpu.memorymap[0x28 + i].write = null;
 		}
-		this.cpu[0].memorymap[0x60].base = this.ram.base[0x20];
-		this.cpu[0].memorymap[0x60].write = null;
+		this.cpu.memorymap[0x60].base = this.ram.base[0x20];
+		this.cpu.memorymap[0x60].write = null;
 		for (let i = 0; i < 4; i++) {
-			this.cpu[0].memorymap[0x68 + i].read = addr => sound.read(addr);
-			this.cpu[0].memorymap[0x68 + i].write = (addr, data) => sound.write(addr, data);
+			this.cpu.memorymap[0x68 + i].read = addr => sound.read(addr);
+			this.cpu.memorymap[0x68 + i].write = (addr, data) => sound.write(addr, data);
 		}
 		for (let i = 0; i < 0x80; i++)
-			this.cpu[0].memorymap[0x80 + i].base = PRG1.base[i];
-		this.cpu[0].memorymap[0x80].write = () => this.cpu[2].enable();
-		this.cpu[0].memorymap[0x88].write = () => this.cpu[2].disable();
-		this.cpu[0].memorymap[0x90].write = () => this.cpu[1].enable();
-		this.cpu[0].memorymap[0x98].write = () => this.cpu[1].disable();
-		this.cpu[0].memorymap[0xa0].write = addr => this.palette = addr << 7 & 0x80;
+			this.cpu.memorymap[0x80 + i].base = PRG1.base[i];
+		this.cpu.memorymap[0x80].write = () => this.cpu3.enable();
+		this.cpu.memorymap[0x88].write = () => this.cpu3.disable();
+		this.cpu.memorymap[0x90].write = () => this.cpu2.enable();
+		this.cpu.memorymap[0x98].write = () => this.cpu2.disable();
+		this.cpu.memorymap[0xa0].write = addr => this.palette = addr << 7 & 0x80;
 
+		this.cpu2 = new MC6809(this);
 		for (let i = 0; i < 4; i++) {
-			this.cpu[1].memorymap[i].read = addr => sound.read(addr);
-			this.cpu[1].memorymap[i].write = (addr, data) => sound.write(addr, data);
+			this.cpu2.memorymap[i].read = addr => sound.read(addr);
+			this.cpu2.memorymap[i].write = (addr, data) => sound.write(addr, data);
 		}
 		for (let i = 0; i < 0x20; i++)
-			this.cpu[1].memorymap[0xe0 + i].base = PRG2.base[i];
+			this.cpu2.memorymap[0xe0 + i].base = PRG2.base[i];
 
+		this.cpu3 = new MC68000(this);
 		for (let i = 0; i < 0x80; i++)
-			this.cpu[2].memorymap[i].base = PRG3.base[i];
+			this.cpu3.memorymap[i].base = PRG3.base[i];
 		for (let i = 0; i < 0x400; i++) {
-			this.cpu[2].memorymap[0x800 + i].base = this.ram3.base[i];
-			this.cpu[2].memorymap[0x800 + i].write = null;
+			this.cpu3.memorymap[0x800 + i].base = this.ram3.base[i];
+			this.cpu3.memorymap[0x800 + i].write = null;
 		}
 		for (let i = 0; i < 0x10; i++) {
-			this.cpu[2].memorymap[0x1000 + i].read = addr => this.ram2[addr >>> 1 & 0x7ff];
-			this.cpu[2].memorymap[0x1000 + i].write = (addr, data) => this.ram2[addr >>> 1 & 0x7ff] = data;
+			this.cpu3.memorymap[0x1000 + i].read = addr => this.ram2[addr >> 1 & 0x7ff];
+			this.cpu3.memorymap[0x1000 + i].write = (addr, data) => this.ram2[addr >> 1 & 0x7ff] = data;
 		}
 		for (let i = 0; i < 0x80; i++) {
-			this.cpu[2].memorymap[0x1800 + i].read = addr => this.vram[addr = addr << 1 & 0xfffe] << 4 | this.vram[addr | 1] & 0xf;
-			this.cpu[2].memorymap[0x1800 + i].write = (addr, data) => {
+			this.cpu3.memorymap[0x1800 + i].read = addr => this.vram[addr = addr << 1 & 0xfffe] << 4 | this.vram[addr | 1] & 0xf;
+			this.cpu3.memorymap[0x1800 + i].write = (addr, data) => {
 				this.vram[addr = addr << 1 & 0xfffe] = data >> 4;
 				this.vram[addr | 1] = data & 0xf;
 			};
 		}
 		for (let i = 0; i < 0x500; i++) {
-			this.cpu[2].memorymap[0x1900 + i].base = this.vram.base[i & 0xff];
-			this.cpu[2].memorymap[0x1900 + i].write = null;
+			this.cpu3.memorymap[0x1900 + i].base = this.vram.base[i & 0xff];
+			this.cpu3.memorymap[0x1900 + i].write = null;
 		}
 		for (let i = 0; i < 0x1000; i++)
-			this.cpu[2].memorymap[0x3000 + i].write16 = addr => this.fInterruptEnable2 = (addr & 0x80000) === 0;
+			this.cpu3.memorymap[0x3000 + i].write16 = addr => this.fInterruptEnable2 = (addr & 0x80000) === 0;
 
 		// Videoの初期化
 		this.bg = new Uint8Array(0x8000);
@@ -105,13 +106,13 @@ class Toypop {
 	}
 
 	execute() {
-		this.cpu[0].interrupt();
-		this.cpu[1].interrupt();
+		this.cpu.interrupt();
+		this.cpu2.interrupt();
 		if (this.fInterruptEnable2)
-			this.cpu[2].interrupt(6);
+			this.cpu3.interrupt(6);
 		for (let i = 0; i < 0x100; i++) {
-			Cpu.multiple_execute([this.cpu[0], this.cpu[1]], 32);
-			this.cpu[2].execute(48);
+			Cpu.multiple_execute([this.cpu, this.cpu2], 32);
+			this.cpu3.execute(48);
 		}
 		return this;
 	}
@@ -180,9 +181,9 @@ class Toypop {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.cpu[0].reset();
-			this.cpu[1].disable();
-			this.cpu[2].disable();
+			this.cpu.reset();
+			this.cpu2.disable();
+			this.cpu3.disable();
 		}
 		return this;
 	}
@@ -288,43 +289,41 @@ class Toypop {
 	}
 
 	convertBG() {
-		// 4 color bg
 		for (let p = 0, q = 0, i = 512; i !== 0; q += 16, --i) {
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k + 8] >>> j & 1 | BG[q + k + 8] >>> (j + 3) & 2;
+					this.bg[p++] = BG[q + k + 8] >> j & 1 | BG[q + k + 8] >> (j + 3) & 2;
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k] >>> j & 1 | BG[q + k] >>> (j + 3) & 2;
+					this.bg[p++] = BG[q + k] >> j & 1 | BG[q + k] >> (j + 3) & 2;
 		}
 	}
 
 	convertOBJ() {
-		// 4 color object
 		for (let p = 0, q = 0, i = 256; i !== 0; q += 64, --i) {
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 39; k >= 32; --k)
-					this.obj[p++] = OBJ[q + k] >>> j & 1 | OBJ[q + k] >>> (j + 3) & 2;
+					this.obj[p++] = OBJ[q + k] >> j & 1 | OBJ[q + k] >> (j + 3) & 2;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k] >>> j & 1 | OBJ[q + k] >>> (j + 3) & 2;
+					this.obj[p++] = OBJ[q + k] >> j & 1 | OBJ[q + k] >> (j + 3) & 2;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 47; k >= 40; --k)
-					this.obj[p++] = OBJ[q + k] >>> j & 1 | OBJ[q + k] >>> (j + 3) & 2;
+					this.obj[p++] = OBJ[q + k] >> j & 1 | OBJ[q + k] >> (j + 3) & 2;
 				for (let k = 15; k >= 8; --k)
-					this.obj[p++] = OBJ[q + k] >>> j & 1 | OBJ[q + k] >>> (j + 3) & 2;
+					this.obj[p++] = OBJ[q + k] >> j & 1 | OBJ[q + k] >> (j + 3) & 2;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 55; k >= 48; --k)
-					this.obj[p++] = OBJ[q + k] >>> j & 1 | OBJ[q + k] >>> (j + 3) & 2;
+					this.obj[p++] = OBJ[q + k] >> j & 1 | OBJ[q + k] >> (j + 3) & 2;
 				for (let k = 23; k >= 16; --k)
-					this.obj[p++] = OBJ[q + k] >>> j & 1 | OBJ[q + k] >>> (j + 3) & 2;
+					this.obj[p++] = OBJ[q + k] >> j & 1 | OBJ[q + k] >> (j + 3) & 2;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 63; k >= 56; --k)
-					this.obj[p++] = OBJ[q + k] >>> j & 1 | OBJ[q + k] >>> (j + 3) & 2;
+					this.obj[p++] = OBJ[q + k] >> j & 1 | OBJ[q + k] >> (j + 3) & 2;
 				for (let k = 31; k >= 24; --k)
-					this.obj[p++] = OBJ[q + k] >>> j & 1 | OBJ[q + k] >>> (j + 3) & 2;
+					this.obj[p++] = OBJ[q + k] >> j & 1 | OBJ[q + k] >> (j + 3) & 2;
 			}
 		}
 	}
@@ -363,7 +362,7 @@ class Toypop {
 
 		// obj描画
 		for (let p = 0xf80, i = 64; i !== 0; p += 2, --i) {
-			const y = 0x167 - this.ram[p + 0x801] - this.ram[p + 0x1001] * 0x100 & 0x1ff;
+			const y = 0x167 - (this.ram[p + 0x801] | this.ram[p + 0x1001] << 8) & 0x1ff;
 			const x = 0xe9 - this.ram[p + 0x800] & 0xff;
 			const src = this.ram[p] | this.ram[p + 1] << 8;
 			switch (this.ram[p + 0x1000] & 0x0f) {
@@ -516,7 +515,7 @@ class Toypop {
 	}
 
 	xfer16x16(data, dst, src) {
-		const idx = src >>> 6 & 0xfc | 0x100;
+		const idx = src >> 6 & 0xfc | 0x100;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) <= 8 * 0x100 || dst >= 304 * 0x100)
@@ -529,7 +528,7 @@ class Toypop {
 	}
 
 	xfer16x16V(data, dst, src) {
-		const idx = src >>> 6 & 0xfc | 0x100;
+		const idx = src >> 6 & 0xfc | 0x100;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) <= 8 * 0x100 || dst >= 304 * 0x100)
@@ -542,7 +541,7 @@ class Toypop {
 	}
 
 	xfer16x16H(data, dst, src) {
-		const idx = src >>> 6 & 0xfc | 0x100;
+		const idx = src >> 6 & 0xfc | 0x100;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) <= 8 * 0x100 || dst >= 304 * 0x100)
@@ -555,7 +554,7 @@ class Toypop {
 	}
 
 	xfer16x16HV(data, dst, src) {
-		const idx = src >>> 6 & 0xfc | 0x100;
+		const idx = src >> 6 & 0xfc | 0x100;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) <= 8 * 0x100 || dst >= 304 * 0x100)

@@ -281,7 +281,7 @@ class PacLand {
 	convertRGB() {
 		for (let i = 0; i < 0x400; i++)
 			this.rgb[i] = (RED[i] & 0x0f) * 255 / 15	// Red
-				| (RED[i] >>> 4) * 255 / 15 << 8		// Green
+				| (RED[i] >> 4) * 255 / 15 << 8			// Green
 				| (BLUE[i] & 0x0f) * 255 / 15 << 16		// Blue
 				| 0xff000000;							// Alpha
 	}
@@ -290,10 +290,10 @@ class PacLand {
 		for (let p = 0, q = 0, i = 512; i !== 0; q += 16, --i) {
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.fg[p++] = FG[q + k + 8] >>> j & 1 | FG[q + k + 8] >>> (j + 3) & 2;
+					this.fg[p++] = FG[q + k + 8] >> j & 1 | FG[q + k + 8] >> (j + 3) & 2;
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.fg[p++] = FG[q + k] >>> j & 1 | FG[q + k] >>> (j + 3) & 2;
+					this.fg[p++] = FG[q + k] >> j & 1 | FG[q + k] >> (j + 3) & 2;
 		}
 	}
 
@@ -301,10 +301,10 @@ class PacLand {
 		for (let p = 0, q = 0, i = 512; i !== 0; q += 16, --i) {
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k + 8] >>> j & 1 | BG[q + k + 8] >>> (j + 3) & 2;
+					this.bg[p++] = BG[q + k + 8] >> j & 1 | BG[q + k + 8] >> (j + 3) & 2;
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k] >>> j & 1 | BG[q + k] >>> (j + 3) & 2;
+					this.bg[p++] = BG[q + k] >> j & 1 | BG[q + k] >> (j + 3) & 2;
 		}
 	}
 
@@ -316,27 +316,27 @@ class PacLand {
 		for (let p = 0, q = 0, i = 512; i !== 0; q += 64, --i) {
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x8000 + 32] >>> j & 1 | OBJ[q + k + 0x8000 + 32] >>> (j + 3) & 2 | OBJ[q + k + 32] >>> j << 2 & 4 | OBJ[q + k + 32] >>> (j + 1) & 8;
+					this.obj[p++] = OBJ[q + k + 0x8000 + 32] >> j & 1 | OBJ[q + k + 0x8000 + 32] >> (j + 3) & 2 | OBJ[q + k + 32] >> j << 2 & 4 | OBJ[q + k + 32] >> (j + 1) & 8;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x8000] >>> j & 1 | OBJ[q + k + 0x8000] >>> (j + 3) & 2 | OBJ[q + k] >>> j << 2 & 4 | OBJ[q + k] >>> (j + 1) & 8;
+					this.obj[p++] = OBJ[q + k + 0x8000] >> j & 1 | OBJ[q + k + 0x8000] >> (j + 3) & 2 | OBJ[q + k] >> j << 2 & 4 | OBJ[q + k] >> (j + 1) & 8;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x8000 + 40] >>> j & 1 | OBJ[q + k + 0x8000 + 40] >>> (j + 3) & 2 | OBJ[q + k + 40] >>> j << 2 & 4 | OBJ[q + k + 40] >>> (j + 1) & 8;
+					this.obj[p++] = OBJ[q + k + 0x8000 + 40] >> j & 1 | OBJ[q + k + 0x8000 + 40] >> (j + 3) & 2 | OBJ[q + k + 40] >> j << 2 & 4 | OBJ[q + k + 40] >> (j + 1) & 8;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x8000 + 8] >>> j & 1 | OBJ[q + k + 0x8000 + 8] >>> (j + 3) & 2 | OBJ[q + k + 8] >>> j << 2 & 4 | OBJ[q + k + 8] >>> (j + 1) & 8;
+					this.obj[p++] = OBJ[q + k + 0x8000 + 8] >> j & 1 | OBJ[q + k + 0x8000 + 8] >> (j + 3) & 2 | OBJ[q + k + 8] >> j << 2 & 4 | OBJ[q + k + 8] >> (j + 1) & 8;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x8000 + 48] >>> j & 1 | OBJ[q + k + 0x8000 + 48] >>> (j + 3) & 2 | OBJ[q + k + 48] >>> j << 2 & 4 | OBJ[q + k + 48] >>> (j + 1) & 8;
+					this.obj[p++] = OBJ[q + k + 0x8000 + 48] >> j & 1 | OBJ[q + k + 0x8000 + 48] >> (j + 3) & 2 | OBJ[q + k + 48] >> j << 2 & 4 | OBJ[q + k + 48] >> (j + 1) & 8;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x8000 + 16] >>> j & 1 | OBJ[q + k + 0x8000 + 16] >>> (j + 3) & 2 | OBJ[q + k + 16] >>> j << 2 & 4 | OBJ[q + k + 16] >>> (j + 1) & 8;
+					this.obj[p++] = OBJ[q + k + 0x8000 + 16] >> j & 1 | OBJ[q + k + 0x8000 + 16] >> (j + 3) & 2 | OBJ[q + k + 16] >> j << 2 & 4 | OBJ[q + k + 16] >> (j + 1) & 8;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x8000 + 56] >>> j & 1 | OBJ[q + k + 0x8000 + 56] >>> (j + 3) & 2 | OBJ[q + k + 56] >>> j << 2 & 4 | OBJ[q + k + 56] >>> (j + 1) & 8;
+					this.obj[p++] = OBJ[q + k + 0x8000 + 56] >> j & 1 | OBJ[q + k + 0x8000 + 56] >> (j + 3) & 2 | OBJ[q + k + 56] >> j << 2 & 4 | OBJ[q + k + 56] >> (j + 1) & 8;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x8000 + 24] >>> j & 1 | OBJ[q + k + 0x8000 + 24] >>> (j + 3) & 2 | OBJ[q + k + 24] >>> j << 2 & 4 | OBJ[q + k + 24] >>> (j + 1) & 8;
+					this.obj[p++] = OBJ[q + k + 0x8000 + 24] >> j & 1 | OBJ[q + k + 0x8000 + 24] >> (j + 3) & 2 | OBJ[q + k + 24] >> j << 2 & 4 | OBJ[q + k + 24] >> (j + 1) & 8;
 			}
 		}
 	}
@@ -354,14 +354,14 @@ class PacLand {
 
 		// bg描画
 		p = 256 * 8 * 2 + 232 - (this.fFlip ? 4 + this.dwScroll1 & 7 : 5 + this.dwScroll1 & 7) * 256;
-		let k = 0x1100 | (this.fFlip ? (4 + this.dwScroll1 >>> 2) + 0x30 : (5 + this.dwScroll1 >>> 2) + 4) & 0x7e;
+		let k = 0x1100 | (this.fFlip ? (4 + this.dwScroll1 >> 2) + 0x30 : (5 + this.dwScroll1 >> 2) + 4) & 0x7e;
 		for (let i = 0; i < 28; k = k + 54 & 0x7e | k + 0x80 & 0x1f80, p -= 256 * 8 * 37 + 8, i++)
 			for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x1f80, p += 256 * 8, j++)
 				this.xfer8x8(data, BGCOLOR, this.bg, ram[k + 1] << 1 & 0x7c | ram[k] << 1 & 0x180 | ram[k + 1] << 9 & 0x200, p, k);
 
 		// fg描画
 		p = 256 * 8 * 2 + 208 - (this.fFlip ? 1 + this.dwScroll0 & 7 : this.dwScroll0 & 7) * 256;
-		k = 0x280 | (this.fFlip ? (1 + this.dwScroll0 >>> 2) + 0x30 : (this.dwScroll0 >>> 2) + 6) & 0x7e;
+		k = 0x280 | (this.fFlip ? (1 + this.dwScroll0 >> 2) + 0x30 : (this.dwScroll0 >> 2) + 6) & 0x7e;
 		for (let i = 0; i < 24; k = k + 54 & 0x7e | k + 0x80 & 0x1f80, p -= 256 * 8 * 37 + 8, i++)
 			for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x1f80, p += 256 * 8, j++)
 				if ((ram[k + 1] & 0x20) === 0)
@@ -383,7 +383,7 @@ class PacLand {
 
 		// fg描画
 		p = 256 * 8 * 2 + 208 - (this.fFlip ? 1 + this.dwScroll0 & 7 : this.dwScroll0 & 7) * 256;
-		k = 0x280 | (this.fFlip ? (1 + this.dwScroll0 >>> 2) + 0x30 : (this.dwScroll0 >>> 2) + 6) & 0x7e;
+		k = 0x280 | (this.fFlip ? (1 + this.dwScroll0 >> 2) + 0x30 : (this.dwScroll0 >> 2) + 6) & 0x7e;
 		for (let i = 0; i < 24; k = k + 54 & 0x7e | k + 0x80 & 0x1f80, p -= 256 * 8 * 37 + 8, i++)
 			for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x1f80, p += 256 * 8, j++)
 				if ((ram[k + 1] & 0x20) !== 0)
@@ -571,7 +571,7 @@ class PacLand {
 		const q = (this.ram[k] | this.ram[k + 1] << 8) << 6 & 0x7fc0;
 		let px;
 
-		switch (this.ram[k + 1] >>> 6) {
+		switch (this.ram[k + 1] >> 6) {
 		case 0: // ノーマル
 			if ((px = color[idx | pattern[q | 0x00]]) !== 0xff) data[p + 0x000] = px;
 			if ((px = color[idx | pattern[q | 0x01]]) !== 0xff) data[p + 0x001] = px;
@@ -840,7 +840,7 @@ class PacLand {
 	}
 
 	xfer16x16(data, dst, src, cat) {
-		const idx = src >>> 5 & 0x3f0;
+		const idx = src >> 5 & 0x3f0;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
@@ -853,7 +853,7 @@ class PacLand {
 	}
 
 	xfer16x16V(data, dst, src, cat) {
-		const idx = src >>> 5 & 0x3f0;
+		const idx = src >> 5 & 0x3f0;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
@@ -866,7 +866,7 @@ class PacLand {
 	}
 
 	xfer16x16H(data, dst, src, cat) {
-		const idx = src >>> 5 & 0x3f0;
+		const idx = src >> 5 & 0x3f0;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
@@ -879,7 +879,7 @@ class PacLand {
 	}
 
 	xfer16x16HV(data, dst, src, cat) {
-		const idx = src >>> 5 & 0x3f0;
+		const idx = src >> 5 & 0x3f0;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)

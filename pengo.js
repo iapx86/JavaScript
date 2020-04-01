@@ -404,88 +404,100 @@ class Pengo {
 	}
 
 	xfer16x16(data, dst, src) {
-		const idx = src >> 6 & 0x7c | this.ram[0x1046] << 7;
-		let px, i, j, h;
+		const idx = src >> 6 & 0x7c | this.ram[0x1046] << 7, h = 288 - (dst >> 8);
+		let px;
 
-		if ((h = 288 - (dst >> 8)) >= 16) {
-			for (src = src << 6 & 0x3f00 | this.ram[0x1047] << 14, i = 16; i !== 0; dst += 256 - 16, --i)
-				for (j = 16; j !== 0; dst++, --j)
+		if (h >= 16) {
+			src = src << 6 & 0x3f00 | this.ram[0x1047] << 14;
+			for (let i = 16; i !== 0; dst += 256 - 16, --i)
+				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
 		}
 		else {
-			for (src = src << 6 & 0x3f00 | this.ram[0x1047] << 14, i = h; i !== 0; dst += 256 - 16, --i)
-				for (j = 16; j !== 0; dst++, --j)
+			src = src << 6 & 0x3f00 | this.ram[0x1047] << 14;
+			for (let i = h; i !== 0; dst += 256 - 16, --i)
+				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
-			for (dst -= 0x10000, i = 16 - h; i !== 0; dst += 256 - 16, --i)
-				for (j = 16; j !== 0; dst++, --j)
+			dst -= 0x10000;
+			for (let i = 16 - h; i !== 0; dst += 256 - 16, --i)
+				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
 		}
 	}
 
 	xfer16x16V(data, dst, src) {
-		const idx = src >> 6 & 0x7c | this.ram[0x1046] << 7;
-		let px, i, j, h;
+		const idx = src >> 6 & 0x7c | this.ram[0x1046] << 7, h = 288 - (dst >> 8);
+		let px;
 
-		if ((h = 288 - (dst >> 8)) >= 16) {
-			for (src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 256 - 16, i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
-				for (j = 16; j !== 0; dst++, --j)
+		if (h >= 16) {
+			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 256 - 16;
+			for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
+				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
 		}
 		else {
-			for (src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 256 - 16, i = h; i !== 0; dst += 256 - 16, src -= 32, --i)
-				for (j = 16; j !== 0; dst++, --j)
+			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 256 - 16;
+			for (let i = h; i !== 0; dst += 256 - 16, src -= 32, --i)
+				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
-			for (dst -= 0x10000, i = 16 - h; i !== 0; dst += 256 - 16, src -= 32, --i)
-				for (j = 16; j !== 0; dst++, --j)
+			dst -= 0x10000;
+			for (let i = 16 - h; i !== 0; dst += 256 - 16, src -= 32, --i)
+				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
 		}
 	}
 
 	xfer16x16H(data, dst, src) {
-		const idx = src >> 6 & 0x7c | this.ram[0x1046] << 7;
-		let px, i, j, h;
+		const idx = src >> 6 & 0x7c | this.ram[0x1046] << 7, h = 288 - (dst >> 8);
+		let px;
 
-		if ((h = 288 - (dst >> 8)) >= 16) {
-			for (src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 16, i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
-				for (j = 16; j !== 0; dst++, --j)
+		if (h >= 16) {
+			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 16;
+			for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
+				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
 		}
 		else {
-			for (src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 16, i = h; i !== 0; dst += 256 - 16, src += 32, --i)
-				for (j = 16; j !== 0; dst++, --j)
+			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 16;
+			for (let i = h; i !== 0; dst += 256 - 16, src += 32, --i)
+				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
-			for (dst -= 0x10000, i = 16 - h; i !== 0; dst += 256 - 16, src += 32, --i)
-				for (j = 16; j !== 0; dst++, --j)
+			dst -= 0x10000;
+			for (let i = 16 - h; i !== 0; dst += 256 - 16, src += 32, --i)
+				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
 		}
 	}
 
 	xfer16x16HV(data, dst, src) {
-		const idx = src >> 6 & 0x7c | this.ram[0x1046] << 7;
-		let px, i, j, h;
+		const idx = src >> 6 & 0x7c | this.ram[0x1046] << 7, h = 288 - (dst >> 8);
+		let px;
 
-		if ((h = 288 - (dst >> 8)) >= 16) {
-			for (src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 256, i = 16; i !== 0; dst += 256 - 16, --i)
-				for (j = 16; j !== 0; dst++, --j)
+		if (h >= 16) {
+			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 256;
+			for (let i = 16; i !== 0; dst += 256 - 16, --i)
+				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
 		}
 		else {
-			for (src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 256, i = h; i !== 0; dst += 256 - 16, --i)
-				for (j = 16; j !== 0; dst++, --j)
+			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 256;
+			for (let i = h; i !== 0; dst += 256 - 16, --i)
+				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
-			for (dst -= 0x10000, i = 16 - h; i !== 0; dst += 256 - 16, --i)
-				for (j = 16; j !== 0; dst++, --j)
+			dst -= 0x10000;
+			for (let i = 16 - h; i !== 0; dst += 256 - 16, --i)
+				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
 		}

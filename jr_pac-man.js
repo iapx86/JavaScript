@@ -314,28 +314,14 @@ class JrPacMan {
 	}
 
 	makeBitmap(data) {
+		// 画面クリア
+		let p = 256 * 16 + 16;
+		for (let i = 0; i < 288; p += 256, i++)
+			data.fill(0, p, p + 224);
+
 		// bg描画
-		let p = 256 * 8 * 4 + 232 + (this.dwScroll & 7);
-		let k = 0x40 + (this.dwScroll << 2 & 0x3e0);
-		for (let i = 0; i < 29; p -= 256 * 8 * 32 + 8, i++)
-			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
-				this.xfer8x8(data, p, j, k);
-		p = 256 * 8 * 36 + 232;
-		k = 0x702;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8(data, p, k + 0x80, k);
-		p = 256 * 8 * 37 + 232;
-		k = 0x722;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8(data, p, k + 0x80, k);
-		p = 256 * 8 * 2 + 232;
-		k = 0x742;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8(data, p, k + 0x80, k);
-		p = 256 * 8 * 3 + 232;
-		k = 0x762;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8(data, p, k + 0x80, k);
+		if (this.ram[0x1073] === 0)
+			this.drawBG(data);
 
 		// obj描画
 		for (let p = 0x0ffe, i = 7; i !== 0; p -= 2, --i) {
@@ -359,6 +345,10 @@ class JrPacMan {
 			}
 		}
 
+		// bg描画
+		if (this.ram[0x1073] !== 0)
+			this.drawBG(data);
+
 		// palette変換
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256 - 224, i++)
@@ -366,159 +356,196 @@ class JrPacMan {
 				data[p] = this.rgb[data[p] | this.ram[0x1071] << 4];
 	}
 
+	drawBG(data) {
+		let p = 256 * 8 * 4 + 232 + (this.dwScroll & 7);
+		let k = 0x40 + (this.dwScroll << 2 & 0x3e0);
+		for (let i = 0; i < 29; p -= 256 * 8 * 32 + 8, i++)
+			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
+				this.xfer8x8(data, p, j, k);
+		p = 256 * 8 * 36 + 232;
+		k = 0x702;
+		for (let i = 0; i < 28; p -= 8, k++, i++)
+			this.xfer8x8(data, p, k + 0x80, k);
+		p = 256 * 8 * 37 + 232;
+		k = 0x722;
+		for (let i = 0; i < 28; p -= 8, k++, i++)
+			this.xfer8x8(data, p, k + 0x80, k);
+		p = 256 * 8 * 2 + 232;
+		k = 0x742;
+		for (let i = 0; i < 28; p -= 8, k++, i++)
+			this.xfer8x8(data, p, k + 0x80, k);
+		p = 256 * 8 * 3 + 232;
+		k = 0x762;
+		for (let i = 0; i < 28; p -= 8, k++, i++)
+			this.xfer8x8(data, p, k + 0x80, k);
+	}
+
 	xfer8x8(data, p, j, k) {
 		const q = this.ram[k] << 6 | this.ram[0x1074] << 14, idx = this.ram[j] << 2 & 0x7c | this.ram[0x1070] << 7;
+		let px;
 
-		data[p + 0x000] = COLOR[idx | this.bg[q + 0x00]];
-		data[p + 0x001] = COLOR[idx | this.bg[q + 0x01]];
-		data[p + 0x002] = COLOR[idx | this.bg[q + 0x02]];
-		data[p + 0x003] = COLOR[idx | this.bg[q + 0x03]];
-		data[p + 0x004] = COLOR[idx | this.bg[q + 0x04]];
-		data[p + 0x005] = COLOR[idx | this.bg[q + 0x05]];
-		data[p + 0x006] = COLOR[idx | this.bg[q + 0x06]];
-		data[p + 0x007] = COLOR[idx | this.bg[q + 0x07]];
-		data[p + 0x100] = COLOR[idx | this.bg[q + 0x08]];
-		data[p + 0x101] = COLOR[idx | this.bg[q + 0x09]];
-		data[p + 0x102] = COLOR[idx | this.bg[q + 0x0a]];
-		data[p + 0x103] = COLOR[idx | this.bg[q + 0x0b]];
-		data[p + 0x104] = COLOR[idx | this.bg[q + 0x0c]];
-		data[p + 0x105] = COLOR[idx | this.bg[q + 0x0d]];
-		data[p + 0x106] = COLOR[idx | this.bg[q + 0x0e]];
-		data[p + 0x107] = COLOR[idx | this.bg[q + 0x0f]];
-		data[p + 0x200] = COLOR[idx | this.bg[q + 0x10]];
-		data[p + 0x201] = COLOR[idx | this.bg[q + 0x11]];
-		data[p + 0x202] = COLOR[idx | this.bg[q + 0x12]];
-		data[p + 0x203] = COLOR[idx | this.bg[q + 0x13]];
-		data[p + 0x204] = COLOR[idx | this.bg[q + 0x14]];
-		data[p + 0x205] = COLOR[idx | this.bg[q + 0x15]];
-		data[p + 0x206] = COLOR[idx | this.bg[q + 0x16]];
-		data[p + 0x207] = COLOR[idx | this.bg[q + 0x17]];
-		data[p + 0x300] = COLOR[idx | this.bg[q + 0x18]];
-		data[p + 0x301] = COLOR[idx | this.bg[q + 0x19]];
-		data[p + 0x302] = COLOR[idx | this.bg[q + 0x1a]];
-		data[p + 0x303] = COLOR[idx | this.bg[q + 0x1b]];
-		data[p + 0x304] = COLOR[idx | this.bg[q + 0x1c]];
-		data[p + 0x305] = COLOR[idx | this.bg[q + 0x1d]];
-		data[p + 0x306] = COLOR[idx | this.bg[q + 0x1e]];
-		data[p + 0x307] = COLOR[idx | this.bg[q + 0x1f]];
-		data[p + 0x400] = COLOR[idx | this.bg[q + 0x20]];
-		data[p + 0x401] = COLOR[idx | this.bg[q + 0x21]];
-		data[p + 0x402] = COLOR[idx | this.bg[q + 0x22]];
-		data[p + 0x403] = COLOR[idx | this.bg[q + 0x23]];
-		data[p + 0x404] = COLOR[idx | this.bg[q + 0x24]];
-		data[p + 0x405] = COLOR[idx | this.bg[q + 0x25]];
-		data[p + 0x406] = COLOR[idx | this.bg[q + 0x26]];
-		data[p + 0x407] = COLOR[idx | this.bg[q + 0x27]];
-		data[p + 0x500] = COLOR[idx | this.bg[q + 0x28]];
-		data[p + 0x501] = COLOR[idx | this.bg[q + 0x29]];
-		data[p + 0x502] = COLOR[idx | this.bg[q + 0x2a]];
-		data[p + 0x503] = COLOR[idx | this.bg[q + 0x2b]];
-		data[p + 0x504] = COLOR[idx | this.bg[q + 0x2c]];
-		data[p + 0x505] = COLOR[idx | this.bg[q + 0x2d]];
-		data[p + 0x506] = COLOR[idx | this.bg[q + 0x2e]];
-		data[p + 0x507] = COLOR[idx | this.bg[q + 0x2f]];
-		data[p + 0x600] = COLOR[idx | this.bg[q + 0x30]];
-		data[p + 0x601] = COLOR[idx | this.bg[q + 0x31]];
-		data[p + 0x602] = COLOR[idx | this.bg[q + 0x32]];
-		data[p + 0x603] = COLOR[idx | this.bg[q + 0x33]];
-		data[p + 0x604] = COLOR[idx | this.bg[q + 0x34]];
-		data[p + 0x605] = COLOR[idx | this.bg[q + 0x35]];
-		data[p + 0x606] = COLOR[idx | this.bg[q + 0x36]];
-		data[p + 0x607] = COLOR[idx | this.bg[q + 0x37]];
-		data[p + 0x700] = COLOR[idx | this.bg[q + 0x38]];
-		data[p + 0x701] = COLOR[idx | this.bg[q + 0x39]];
-		data[p + 0x702] = COLOR[idx | this.bg[q + 0x3a]];
-		data[p + 0x703] = COLOR[idx | this.bg[q + 0x3b]];
-		data[p + 0x704] = COLOR[idx | this.bg[q + 0x3c]];
-		data[p + 0x705] = COLOR[idx | this.bg[q + 0x3d]];
-		data[p + 0x706] = COLOR[idx | this.bg[q + 0x3e]];
-		data[p + 0x707] = COLOR[idx | this.bg[q + 0x3f]];
+		if ((px = COLOR[idx | this.bg[q + 0x00]]) !== 0) data[p + 0x000] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x01]]) !== 0) data[p + 0x001] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x02]]) !== 0) data[p + 0x002] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x03]]) !== 0) data[p + 0x003] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x04]]) !== 0) data[p + 0x004] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x05]]) !== 0) data[p + 0x005] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x06]]) !== 0) data[p + 0x006] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x07]]) !== 0) data[p + 0x007] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x08]]) !== 0) data[p + 0x100] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x09]]) !== 0) data[p + 0x101] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x0a]]) !== 0) data[p + 0x102] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x0b]]) !== 0) data[p + 0x103] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x0c]]) !== 0) data[p + 0x104] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x0d]]) !== 0) data[p + 0x105] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x0e]]) !== 0) data[p + 0x106] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x0f]]) !== 0) data[p + 0x107] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x10]]) !== 0) data[p + 0x200] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x11]]) !== 0) data[p + 0x201] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x12]]) !== 0) data[p + 0x202] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x13]]) !== 0) data[p + 0x203] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x14]]) !== 0) data[p + 0x204] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x15]]) !== 0) data[p + 0x205] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x16]]) !== 0) data[p + 0x206] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x17]]) !== 0) data[p + 0x207] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x18]]) !== 0) data[p + 0x300] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x19]]) !== 0) data[p + 0x301] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x1a]]) !== 0) data[p + 0x302] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x1b]]) !== 0) data[p + 0x303] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x1c]]) !== 0) data[p + 0x304] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x1d]]) !== 0) data[p + 0x305] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x1e]]) !== 0) data[p + 0x306] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x1f]]) !== 0) data[p + 0x307] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x20]]) !== 0) data[p + 0x400] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x21]]) !== 0) data[p + 0x401] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x22]]) !== 0) data[p + 0x402] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x23]]) !== 0) data[p + 0x403] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x24]]) !== 0) data[p + 0x404] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x25]]) !== 0) data[p + 0x405] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x26]]) !== 0) data[p + 0x406] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x27]]) !== 0) data[p + 0x407] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x28]]) !== 0) data[p + 0x500] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x29]]) !== 0) data[p + 0x501] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x2a]]) !== 0) data[p + 0x502] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x2b]]) !== 0) data[p + 0x503] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x2c]]) !== 0) data[p + 0x504] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x2d]]) !== 0) data[p + 0x505] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x2e]]) !== 0) data[p + 0x506] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x2f]]) !== 0) data[p + 0x507] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x30]]) !== 0) data[p + 0x600] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x31]]) !== 0) data[p + 0x601] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x32]]) !== 0) data[p + 0x602] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x33]]) !== 0) data[p + 0x603] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x34]]) !== 0) data[p + 0x604] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x35]]) !== 0) data[p + 0x605] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x36]]) !== 0) data[p + 0x606] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x37]]) !== 0) data[p + 0x607] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x38]]) !== 0) data[p + 0x700] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x39]]) !== 0) data[p + 0x701] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x3a]]) !== 0) data[p + 0x702] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x3b]]) !== 0) data[p + 0x703] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x3c]]) !== 0) data[p + 0x704] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x3d]]) !== 0) data[p + 0x705] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x3e]]) !== 0) data[p + 0x706] = px;
+		if ((px = COLOR[idx | this.bg[q + 0x3f]]) !== 0) data[p + 0x707] = px;
 	}
 
 	xfer16x16(data, dst, src) {
-		const idx = src >> 6 & 0x7c | this.ram[0x1070] << 7;
-		let px, i, j, h;
+		const idx = src >> 6 & 0x7c | this.ram[0x1070] << 7, h = 288 - (dst >> 8);
+		let px;
 
-		if ((h = 288 - (dst >> 8)) >= 16) {
-			for (src = src << 6 & 0x3f00 | this.ram[0x1075] << 14, i = 16; i !== 0; dst += 256 - 16, --i)
-				for (j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[src++]]) !== 0 && (this.ram[0x1073] === 0 || data[dst] === 0))
+		if (h >= 16) {
+			src = src << 6 & 0x3f00 | this.ram[0x1075] << 14;
+			for (let i = 16; i !== 0; dst += 256 - 16, --i)
+				for (let j = 16; j !== 0; dst++, --j)
+					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
 		}
 		else {
-			for (src = src << 6 & 0x3f00 | this.ram[0x1075] << 14, i = h; i !== 0; dst += 256 - 16, --i)
-				for (j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[src++]]) !== 0 && (this.ram[0x1073] === 0 || data[dst] === 0))
+			src = src << 6 & 0x3f00 | this.ram[0x1075] << 14;
+			for (let i = h; i !== 0; dst += 256 - 16, --i)
+				for (let j = 16; j !== 0; dst++, --j)
+					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
-			for (dst -= 0x10000, i = 16 - h; i !== 0; dst += 256 - 16, --i)
-				for (j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[src++]]) !== 0 && (this.ram[0x1073] === 0 || data[dst] === 0))
+			dst -= 0x10000;
+			for (let i = 16 - h; i !== 0; dst += 256 - 16, --i)
+				for (let j = 16; j !== 0; dst++, --j)
+					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
 		}
 	}
 
 	xfer16x16V(data, dst, src) {
-		const idx = src >> 6 & 0x7c  | this.ram[0x1070] << 7;
-		let px, i, j, h;
+		const idx = src >> 6 & 0x7c  | this.ram[0x1070] << 7, h = 288 - (dst >> 8);
+		let px;
 
-		if ((h = 288 - (dst >> 8)) >= 16) {
-			for (src = (src << 6 & 0x3f00 | this.ram[0x1075] << 14) + 256 - 16, i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
-				for (j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[src++]]) !== 0 && (this.ram[0x1073] === 0 || data[dst] === 0))
+		if (h >= 16) {
+			src = (src << 6 & 0x3f00 | this.ram[0x1075] << 14) + 256 - 16;
+			for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
+				for (let j = 16; j !== 0; dst++, --j)
+					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
 		}
 		else {
-			for (src = (src << 6 & 0x3f00 | this.ram[0x1075] << 14) + 256 - 16, i = h; i !== 0; dst += 256 - 16, src -= 32, --i)
-				for (j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[src++]]) !== 0 && (this.ram[0x1073] === 0 || data[dst] === 0))
+			src = (src << 6 & 0x3f00 | this.ram[0x1075] << 14) + 256 - 16;
+			for (let i = h; i !== 0; dst += 256 - 16, src -= 32, --i)
+				for (let j = 16; j !== 0; dst++, --j)
+					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
-			for (dst -= 0x10000, i = 16 - h; i !== 0; dst += 256 - 16, src -= 32, --i)
-				for (j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[src++]]) !== 0 && (this.ram[0x1073] === 0 || data[dst] === 0))
+			dst -= 0x10000;
+			for (let i = 16 - h; i !== 0; dst += 256 - 16, src -= 32, --i)
+				for (let j = 16; j !== 0; dst++, --j)
+					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
 		}
 	}
 
 	xfer16x16H(data, dst, src) {
-		const idx = src >> 6 & 0x7c | this.ram[0x1070] << 7;
-		let px, i, j, h;
+		const idx = src >> 6 & 0x7c | this.ram[0x1070] << 7, h = 288 - (dst >> 8);
+		let px;
 
-		if ((h = 288 - (dst >> 8)) >= 16) {
-			for (src = (src << 6 & 0x3f00 | this.ram[0x1075] << 14) + 16, i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
-				for (j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[--src]]) !== 0 && (this.ram[0x1073] === 0 || data[dst] === 0))
+		if (h >= 16) {
+			src = (src << 6 & 0x3f00 | this.ram[0x1075] << 14) + 16;
+			for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
+				for (let j = 16; j !== 0; dst++, --j)
+					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
 		}
 		else {
-			for (src = (src << 6 & 0x3f00 | this.ram[0x1075] << 14) + 16, i = h; i !== 0; dst += 256 - 16, src += 32, --i)
-				for (j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[--src]]) !== 0 && (this.ram[0x1073] === 0 || data[dst] === 0))
+			src = (src << 6 & 0x3f00 | this.ram[0x1075] << 14) + 16;
+			for (let i = h; i !== 0; dst += 256 - 16, src += 32, --i)
+				for (let j = 16; j !== 0; dst++, --j)
+					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
-			for (dst -= 0x10000, i = 16 - h; i !== 0; dst += 256 - 16, src += 32, --i)
-				for (j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[--src]]) !== 0 && (this.ram[0x1073] === 0 || data[dst] === 0))
+			dst -= 0x10000;
+			for (let i = 16 - h; i !== 0; dst += 256 - 16, src += 32, --i)
+				for (let j = 16; j !== 0; dst++, --j)
+					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
 		}
 	}
 
 	xfer16x16HV(data, dst, src) {
-		const idx = src >> 6 & 0x7c | this.ram[0x1070] << 7;
-		let px, i, j, h;
+		const idx = src >> 6 & 0x7c | this.ram[0x1070] << 7, h = 288 - (dst >> 8);
+		let px;
 
-		if ((h = 288 - (dst >> 8)) >= 16) {
-			for (src = (src << 6 & 0x3f00 | this.ram[0x1075] << 14) + 256, i = 16; i !== 0; dst += 256 - 16, --i)
-				for (j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[--src]]) !== 0 && (this.ram[0x1073] === 0 || data[dst] === 0))
+		if (h >= 16) {
+			src = (src << 6 & 0x3f00 | this.ram[0x1075] << 14) + 256;
+			for (let i = 16; i !== 0; dst += 256 - 16, --i)
+				for (let j = 16; j !== 0; dst++, --j)
+					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
 		}
 		else {
-			for (src = (src << 6 & 0x3f00 | this.ram[0x1075] << 14) + 256, i = h; i !== 0; dst += 256 - 16, --i)
-				for (j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[--src]]) !== 0 && (this.ram[0x1073] === 0 || data[dst] === 0))
+			src = (src << 6 & 0x3f00 | this.ram[0x1075] << 14) + 256;
+			for (let i = h; i !== 0; dst += 256 - 16, --i)
+				for (let j = 16; j !== 0; dst++, --j)
+					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
-			for (dst -= 0x10000, i = 16 - h; i !== 0; dst += 256 - 16, --i)
-				for (j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[--src]]) !== 0 && (this.ram[0x1073] === 0 || data[dst] === 0))
+			dst -= 0x10000;
+			for (let i = 16 - h; i !== 0; dst += 256 - 16, --i)
+				for (let j = 16; j !== 0; dst++, --j)
+					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
 		}
 	}

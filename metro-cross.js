@@ -34,6 +34,7 @@ class MetroCross {
 		this.ram2 = new Uint8Array(0x900).addBase();
 		this.in = new Uint8Array(8).fill(0xff);
 		this.select = 0;
+		this.cpu_irq = false;
 
 		this.cpu = new MC6809(this);
 		for (let i = 0; i < 0x40; i++) {
@@ -50,32 +51,25 @@ class MetroCross {
 		}
 		for (let i = 0; i < 0xa0; i++)
 			this.cpu.memorymap[0x60 + i].base = PRG1.base[i];
-		this.cpu.memorymap[0x88].write = () => this.cpu.irq = false;
+		this.cpu.memorymap[0x88].write = () => this.cpu_irq = false;
 		this.cpu.memorymap[0xb0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				this.vScroll[0] = this.vScroll[0] & 0xff | data << 8;
-				break;
+				return void(this.vScroll[0] = this.vScroll[0] & 0xff | data << 8);
 			case 1:
-				this.vScroll[0] = this.vScroll[0] & 0xff00 | data;
-				break;
+				return void(this.vScroll[0] = this.vScroll[0] & 0xff00 | data);
 			case 2:
-				this.hScroll[0] = data;
-				break;
+				return void(this.hScroll[0] = data);
 			case 4:
-				this.vScroll[1] = this.vScroll[1] & 0xff | data << 8;
-				break;
+				return void(this.vScroll[1] = this.vScroll[1] & 0xff | data << 8);
 			case 5:
-				this.vScroll[1] = this.vScroll[1] & 0xff00 | data;
-				break;
+				return void(this.vScroll[1] = this.vScroll[1] & 0xff00 | data);
 			case 6:
-				this.hScroll[1] = data;
-				break;
+				return void(this.hScroll[1] = data);
 			}
 		};
 
-		this.cpu.check_interrupt = () => this.cpu.irq && this.cpu.interrupt();
-		this.cpu.irq = false;
+		this.cpu.check_interrupt = () => this.cpu_irq && this.cpu.interrupt();
 
 		this.mcu = new MC6801(this);
 		this.mcu.memorymap[0].read = addr => addr === 2 ? this.in[this.select] : this.ram2[addr];
@@ -111,7 +105,7 @@ class MetroCross {
 	}
 
 	execute() {
-		this.cpu.irq = true;
+		this.cpu_irq = true;
 		this.mcu.interrupt();
 		for (let i = 0; i < 800; i++) {
 			this.cpu.execute(5);
@@ -172,7 +166,7 @@ class MetroCross {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.cpu.irq = false;
+			this.cpu_irq = false;
 			this.cpu.reset();
 			this.mcu.reset();
 		}
@@ -250,8 +244,6 @@ class MetroCross {
 	}
 
 	triggerB(fDown) {
-		if (fDown)
-			this.in[2] ^= 2; // Pause
 	}
 
 	convertRGB() {
@@ -266,10 +258,10 @@ class MetroCross {
 		for (let p = 0, q = 0, i = 512; i !== 0; q += 16, --i) {
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.fg[p++] = FG[q + k + 8] >>> j & 1 | FG[q + k + 8] >>> (j + 3) & 2;
+					this.fg[p++] = FG[q + k + 8] >> j & 1 | FG[q + k + 8] >> (j + 3) & 2;
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.fg[p++] = FG[q + k] >>> j & 1 | FG[q + k] >>> (j + 3) & 2;
+					this.fg[p++] = FG[q + k] >> j & 1 | FG[q + k] >> (j + 3) & 2;
 		}
 	}
 
@@ -277,34 +269,34 @@ class MetroCross {
 		for (let p = 0, q = 0, i = 512; i !== 0; q += 16, --i) {
 			for (let j = 3; j >= 0; --j)
 				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k] >>> j & 1 | BG[q + k] >>> (j + 3) & 2 | BG[q + k + 0x8000] >>> (j + 2) & 4;
+					this.bg[p++] = BG[q + k] >> j & 1 | BG[q + k] >> (j + 3) & 2 | BG[q + k + 0x8000] >> (j + 2) & 4;
 			for (let j = 3; j >= 0; --j)
 				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k + 1] >>> j & 1 | BG[q + k + 1] >>> (j + 3) & 2 | BG[q + k + 0x8000 + 1] >>> (j + 2) & 4;
+					this.bg[p++] = BG[q + k + 1] >> j & 1 | BG[q + k + 1] >> (j + 3) & 2 | BG[q + k + 0x8000 + 1] >> (j + 2) & 4;
 		}
 		for (let p = 0x8000, q = 0x2000, i = 512; i !== 0; q += 16, --i) {
 			for (let j = 3; j >= 0; --j)
 				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k] >>> j & 1 | BG[q + k] >>> (j + 3) & 2 | BG[q + k + 0x6000] >>> j << 2 & 4;
+					this.bg[p++] = BG[q + k] >> j & 1 | BG[q + k] >> (j + 3) & 2 | BG[q + k + 0x6000] >> j << 2 & 4;
 			for (let j = 3; j >= 0; --j)
 				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k + 1] >>> j & 1 | BG[q + k + 1] >>> (j + 3) & 2 | BG[q + k + 0x6000 + 1] >>> j << 2 & 4;
+					this.bg[p++] = BG[q + k + 1] >> j & 1 | BG[q + k + 1] >> (j + 3) & 2 | BG[q + k + 0x6000 + 1] >> j << 2 & 4;
 		}
 		for (let p = 0x10000, q = 0x4000, i = 512; i !== 0; q += 16, --i) {
 			for (let j = 3; j >= 0; --j)
 				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k] >>> j & 1 | BG[q + k] >>> (j + 3) & 2 | BG[q + k + 0x6000] >>> (j + 2) & 4;
+					this.bg[p++] = BG[q + k] >> j & 1 | BG[q + k] >> (j + 3) & 2 | BG[q + k + 0x6000] >> (j + 2) & 4;
 			for (let j = 3; j >= 0; --j)
 				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k + 1] >>> j & 1 | BG[q + k + 1] >>> (j + 3) & 2 | BG[q + k + 0x6000 + 1] >>> (j + 2) & 4;
+					this.bg[p++] = BG[q + k + 1] >> j & 1 | BG[q + k + 1] >> (j + 3) & 2 | BG[q + k + 0x6000 + 1] >> (j + 2) & 4;
 		}
 		for (let p = 0x18000, q = 0x6000, i = 512; i !== 0; q += 16, --i) {
 			for (let j = 3; j >= 0; --j)
 				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k] >>> j & 1 | BG[q + k] >>> (j + 3) & 2 | BG[q + k + 0x4000] >>> j << 2 & 4;
+					this.bg[p++] = BG[q + k] >> j & 1 | BG[q + k] >> (j + 3) & 2 | BG[q + k + 0x4000] >> j << 2 & 4;
 			for (let j = 3; j >= 0; --j)
 				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k + 1] >>> j & 1 | BG[q + k + 1] >>> (j + 3) & 2 | BG[q + k + 0x4000 + 1] >>> j << 2 & 4;
+					this.bg[p++] = BG[q + k + 1] >> j & 1 | BG[q + k + 1] >> (j + 3) & 2 | BG[q + k + 0x4000 + 1] >> j << 2 & 4;
 		}
 	}
 
@@ -312,28 +304,28 @@ class MetroCross {
 		for (let p = 0, q = 0, i = 256; i !== 0; q += 128, --i) {
 			for (let k = 4; k >= 0; k -= 4)
 				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l] >>> k & 0x0f;
+					this.obj[p++] = OBJ[q + l] >> k & 0x0f;
 			for (let k = 4; k >= 0; k -= 4)
 				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 1] >>> k & 0x0f;
+					this.obj[p++] = OBJ[q + l + 1] >> k & 0x0f;
 			for (let k = 4; k >= 0; k -= 4)
 				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 2] >>> k & 0x0f;
+					this.obj[p++] = OBJ[q + l + 2] >> k & 0x0f;
 			for (let k = 4; k >= 0; k -= 4)
 				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 3] >>> k & 0x0f;
+					this.obj[p++] = OBJ[q + l + 3] >> k & 0x0f;
 			for (let k = 4; k >= 0; k -= 4)
 				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 4] >>> k & 0x0f;
+					this.obj[p++] = OBJ[q + l + 4] >> k & 0x0f;
 			for (let k = 4; k >= 0; k -= 4)
 				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 5] >>> k & 0x0f;
+					this.obj[p++] = OBJ[q + l + 5] >> k & 0x0f;
 			for (let k = 4; k >= 0; k -= 4)
 				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 6] >>> k & 0x0f;
+					this.obj[p++] = OBJ[q + l + 6] >> k & 0x0f;
 			for (let k = 4; k >= 0; k -= 4)
 				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 7] >>> k & 0x0f;
+					this.obj[p++] = OBJ[q + l + 7] >> k & 0x0f;
 		}
 		this.obj.fill(0x0f, 0x10000);
 	}
@@ -344,7 +336,7 @@ class MetroCross {
 		// bg描画
 		back = (this.vScroll[0] & 0xe00) === 0xc00 ? 1 : 0;
 		p = 256 * 8 * 2 + 232 + (25 + this.hScroll[back] & 7) - (25 - back * 2 + this.vScroll[back] & 7) * 256;
-		k = 0x2000 | back << 12 | 25 + this.hScroll[back] << 4 & 0xf80 | 25 - back * 2 + this.vScroll[back] >>> 2 & 0x7e;
+		k = 0x2000 | back << 12 | 25 + this.hScroll[back] << 4 & 0xf80 | 25 - back * 2 + this.vScroll[back] >> 2 & 0x7e;
 		for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | k & 0x3000, p -= 256 * 8 * 37 + 8, i++)
 			for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
 				this.xfer8x8b0(data, p, k, back);
@@ -355,7 +347,7 @@ class MetroCross {
 		// bg描画
 		back ^= 1;
 		p = 256 * 8 * 2 + 232 + (25 + this.hScroll[back] & 7) - (25 - back * 2 + this.vScroll[back] & 7) * 256;
-		k = 0x2000 | back << 12 | 25 + this.hScroll[back] << 4 & 0xf80 | 25 - back * 2 + this.vScroll[back] >>> 2 & 0x7e;
+		k = 0x2000 | back << 12 | 25 + this.hScroll[back] << 4 & 0xf80 | 25 - back * 2 + this.vScroll[back] >> 2 & 0x7e;
 		for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | k & 0x3000, p -= 256 * 8 * 37 + 8, i++)
 			for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
 				this.xfer8x8b1(data, p, k, back);
@@ -687,7 +679,7 @@ class MetroCross {
 	}
 
 	xfer16x16(data, dst, src) {
-		const idx = src >>> 5 & 0x7f0;
+		const idx = src >> 5 & 0x7f0;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
@@ -700,7 +692,7 @@ class MetroCross {
 	}
 
 	xfer16x16V(data, dst, src) {
-		const idx = src >>> 5 & 0x7f0;
+		const idx = src >> 5 & 0x7f0;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
@@ -713,7 +705,7 @@ class MetroCross {
 	}
 
 	xfer16x16H(data, dst, src) {
-		const idx = src >>> 5 & 0x7f0;
+		const idx = src >> 5 & 0x7f0;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
@@ -726,7 +718,7 @@ class MetroCross {
 	}
 
 	xfer16x16HV(data, dst, src) {
-		const idx = src >>> 5 & 0x7f0;
+		const idx = src >> 5 & 0x7f0;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
