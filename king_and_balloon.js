@@ -57,7 +57,7 @@ class KingAndBalloon {
 		this.cpu.memorymap[0xb8].write = systemctrl3;
 
 		// Videoの初期化
-		this.bg = new Uint32Array(0x20000);
+		this.bg = new Uint8Array(0x4000);
 		this.obj = new Uint8Array(0x4000);
 		this.rgb = new Uint32Array(0x20);
 		this.convertRGB();
@@ -270,35 +270,31 @@ class KingAndBalloon {
 	convertRGB() {
 		for (let i = 0; i < 0x20; i++)
 			this.rgb[i] = (RGB[i] & 7) * 255 / 7	// Red
-				| (RGB[i] >>> 3 & 7) * 255 / 7 << 8	// Green
-				| (RGB[i] >>> 6) * 255 / 3 << 16;	// Blue
+				| (RGB[i] >> 3 & 7) * 255 / 7 << 8	// Green
+				| (RGB[i] >> 6) * 255 / 3 << 16		// Blue
+				| 0xff000000;						// Alpha
 	}
 
 	convertBG() {
 		for (let p = 0, q = 0, i = 256; i !== 0; q += 8, --i)
 			for (let j = 7; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k + 0x800] >>> j & 1 | BG[q + k] >>> j << 1 & 2;
-		for (let p = 0, i = 7; i !== 0; p += 0x4000, --i)
-			this.bg.copyWithin(p + 0x4000, p, p + 0x4000);
-		for (let p = 0, i = 0; i < 8; i++)
-			for (let j = 0x4000; j !== 0; p++, --j)
-				this.bg[p] = this.rgb[i * 4 + this.bg[p]];
+					this.bg[p++] = BG[q + k + 0x800] >> j & 1 | BG[q + k] >> j << 1 & 2;
 	}
 
 	convertOBJ() {
 		for (let p = 0, q = 0, i = 64; i !== 0; q += 32, --i) {
 			for (let j = 7; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = BG[q + k + 0x800 + 16] >>> j & 1 | BG[q + k + 16] >>> j << 1 & 2;
+					this.obj[p++] = BG[q + k + 0x800 + 16] >> j & 1 | BG[q + k + 16] >> j << 1 & 2;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = BG[q + k + 0x800] >>> j & 1 | BG[q + k] >>> j << 1 & 2;
+					this.obj[p++] = BG[q + k + 0x800] >> j & 1 | BG[q + k] >> j << 1 & 2;
 			}
 			for (let j = 7; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = BG[q + k + 0x800 + 24] >>> j & 1 | BG[q + k + 24] >>> j << 1 & 2;
+					this.obj[p++] = BG[q + k + 0x800 + 24] >> j & 1 | BG[q + k + 24] >> j << 1 & 2;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = BG[q + k + 0x800 + 8] >>> j & 1 | BG[q + k + 8] >>> j << 1 & 2;
+					this.obj[p++] = BG[q + k + 0x800 + 8] >> j & 1 | BG[q + k + 8] >> j << 1 & 2;
 			}
 		}
 	}
@@ -310,7 +306,7 @@ class KingAndBalloon {
 		// Help !
 		i = 0;
 		for (j = 0x700, k = 0x100; j !== 0; --j) {
-			voicebuf[i++] = (VOICE[k] >>> 4) - 8 << 10;
+			voicebuf[i++] = (VOICE[k] >> 4) - 8 << 10;
 			voicebuf[i++] = (VOICE[k++] & 0x0f) - 8 << 10;
 		}
 		for (j = 0x1200; j !== 0; --j)
@@ -327,7 +323,7 @@ class KingAndBalloon {
 		// Thank you !
 		i = 0;
 		for (j = 0x800, k = 0x800; j !== 0; --j) {
-			voicebuf[i++] = (VOICE[k] >>> 4) - 8 << 10;
+			voicebuf[i++] = (VOICE[k] >> 4) - 8 << 10;
 			voicebuf[i++] = (VOICE[k++] & 0x0f) - 8 << 10;
 		}
 		// 5000Hzのオリジナルを11025Hzにコンバート
@@ -342,7 +338,7 @@ class KingAndBalloon {
 		// Bye bye !
 		i = 0;
 		for (j = 0x800, k = 0x1000; j !== 0; --j) {
-			voicebuf[i++] = (VOICE[k] >>> 4) - 8 << 10;
+			voicebuf[i++] = (VOICE[k] >> 4) - 8 << 10;
 			voicebuf[i++] = (VOICE[k++] & 0x0f) - 8 << 10;
 		}
 		// 5000Hzのオリジナルを11025Hzにコンバート
@@ -369,19 +365,18 @@ class KingAndBalloon {
 
 		// obj 描画
 		for (let k = 0x85c, i = 8; i !== 0; k -= 4, --i) {
-			const x = this.ram[k] - (i < 4);
-			const y = this.ram[k + 3] + 16;
+			const x = this.ram[k] - (i < 4), y = this.ram[k + 3] + 16;
 			switch (this.ram[k + 1] & 0xc0) {
-			case 0x00: /* ノーマル */
+			case 0x00: // ノーマル
 				this.xfer16x16(data, x | y << 8, this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6);
 				break;
-			case 0x40: /* V反転 */
+			case 0x40: // V反転
 				this.xfer16x16V(data, x | y << 8, this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6);
 				break;
-			case 0x80: /* H反転 */
+			case 0x80: // H反転
 				this.xfer16x16H(data, x | y << 8, this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6);
 				break;
-			case 0xc0: /* HV反転 */
+			case 0xc0: // HV反転
 				this.xfer16x16HV(data, x | y << 8, this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6);
 				break;
 			}
@@ -390,7 +385,7 @@ class KingAndBalloon {
 		// bullets 描画
 		for (let k = 0x860, i = 0; i < 8; k += 4, i++) {
 			p = this.ram[k + 1] | 267 - this.ram[k + 3] << 8;
-			data[p + 0x300] = data[p + 0x200] = data[p + 0x100] = data[p] = i > 6 ? this.rgb[5] : this.rgb[6];
+			data[p + 0x300] = data[p + 0x200] = data[p + 0x100] = data[p] = i > 6 ? 5 : 6;
 		}
 
 		// bg 描画
@@ -404,84 +399,84 @@ class KingAndBalloon {
 			}
 		}
 
-		// alphaチャンネル修正
+		// palette変換
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 256; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] |= 0xff000000;
+				data[p] = this.rgb[data[p]];
 	}
 
 	xfer8x8(data, p, k, i) {
-		const q = (this.ram[k] | this.ram[0x801 + i * 2] << 8) << 6 & 0x1ffc0;
+		const q = this.ram[k] << 6, idx = this.ram[0x801 + i * 2] << 2 & 0x1c;
 
-		data[p + 0x000] = this.bg[q + 0x00];
-		data[p + 0x001] = this.bg[q + 0x01];
-		data[p + 0x002] = this.bg[q + 0x02];
-		data[p + 0x003] = this.bg[q + 0x03];
-		data[p + 0x004] = this.bg[q + 0x04];
-		data[p + 0x005] = this.bg[q + 0x05];
-		data[p + 0x006] = this.bg[q + 0x06];
-		data[p + 0x007] = this.bg[q + 0x07];
-		data[p + 0x100] = this.bg[q + 0x08];
-		data[p + 0x101] = this.bg[q + 0x09];
-		data[p + 0x102] = this.bg[q + 0x0a];
-		data[p + 0x103] = this.bg[q + 0x0b];
-		data[p + 0x104] = this.bg[q + 0x0c];
-		data[p + 0x105] = this.bg[q + 0x0d];
-		data[p + 0x106] = this.bg[q + 0x0e];
-		data[p + 0x107] = this.bg[q + 0x0f];
-		data[p + 0x200] = this.bg[q + 0x10];
-		data[p + 0x201] = this.bg[q + 0x11];
-		data[p + 0x202] = this.bg[q + 0x12];
-		data[p + 0x203] = this.bg[q + 0x13];
-		data[p + 0x204] = this.bg[q + 0x14];
-		data[p + 0x205] = this.bg[q + 0x15];
-		data[p + 0x206] = this.bg[q + 0x16];
-		data[p + 0x207] = this.bg[q + 0x17];
-		data[p + 0x300] = this.bg[q + 0x18];
-		data[p + 0x301] = this.bg[q + 0x19];
-		data[p + 0x302] = this.bg[q + 0x1a];
-		data[p + 0x303] = this.bg[q + 0x1b];
-		data[p + 0x304] = this.bg[q + 0x1c];
-		data[p + 0x305] = this.bg[q + 0x1d];
-		data[p + 0x306] = this.bg[q + 0x1e];
-		data[p + 0x307] = this.bg[q + 0x1f];
-		data[p + 0x400] = this.bg[q + 0x20];
-		data[p + 0x401] = this.bg[q + 0x21];
-		data[p + 0x402] = this.bg[q + 0x22];
-		data[p + 0x403] = this.bg[q + 0x23];
-		data[p + 0x404] = this.bg[q + 0x24];
-		data[p + 0x405] = this.bg[q + 0x25];
-		data[p + 0x406] = this.bg[q + 0x26];
-		data[p + 0x407] = this.bg[q + 0x27];
-		data[p + 0x500] = this.bg[q + 0x28];
-		data[p + 0x501] = this.bg[q + 0x29];
-		data[p + 0x502] = this.bg[q + 0x2a];
-		data[p + 0x503] = this.bg[q + 0x2b];
-		data[p + 0x504] = this.bg[q + 0x2c];
-		data[p + 0x505] = this.bg[q + 0x2d];
-		data[p + 0x506] = this.bg[q + 0x2e];
-		data[p + 0x507] = this.bg[q + 0x2f];
-		data[p + 0x600] = this.bg[q + 0x30];
-		data[p + 0x601] = this.bg[q + 0x31];
-		data[p + 0x602] = this.bg[q + 0x32];
-		data[p + 0x603] = this.bg[q + 0x33];
-		data[p + 0x604] = this.bg[q + 0x34];
-		data[p + 0x605] = this.bg[q + 0x35];
-		data[p + 0x606] = this.bg[q + 0x36];
-		data[p + 0x607] = this.bg[q + 0x37];
-		data[p + 0x700] = this.bg[q + 0x38];
-		data[p + 0x701] = this.bg[q + 0x39];
-		data[p + 0x702] = this.bg[q + 0x3a];
-		data[p + 0x703] = this.bg[q + 0x3b];
-		data[p + 0x704] = this.bg[q + 0x3c];
-		data[p + 0x705] = this.bg[q + 0x3d];
-		data[p + 0x706] = this.bg[q + 0x3e];
-		data[p + 0x707] = this.bg[q + 0x3f];
+		data[p + 0x000] = idx | this.bg[q + 0x00];
+		data[p + 0x001] = idx | this.bg[q + 0x01];
+		data[p + 0x002] = idx | this.bg[q + 0x02];
+		data[p + 0x003] = idx | this.bg[q + 0x03];
+		data[p + 0x004] = idx | this.bg[q + 0x04];
+		data[p + 0x005] = idx | this.bg[q + 0x05];
+		data[p + 0x006] = idx | this.bg[q + 0x06];
+		data[p + 0x007] = idx | this.bg[q + 0x07];
+		data[p + 0x100] = idx | this.bg[q + 0x08];
+		data[p + 0x101] = idx | this.bg[q + 0x09];
+		data[p + 0x102] = idx | this.bg[q + 0x0a];
+		data[p + 0x103] = idx | this.bg[q + 0x0b];
+		data[p + 0x104] = idx | this.bg[q + 0x0c];
+		data[p + 0x105] = idx | this.bg[q + 0x0d];
+		data[p + 0x106] = idx | this.bg[q + 0x0e];
+		data[p + 0x107] = idx | this.bg[q + 0x0f];
+		data[p + 0x200] = idx | this.bg[q + 0x10];
+		data[p + 0x201] = idx | this.bg[q + 0x11];
+		data[p + 0x202] = idx | this.bg[q + 0x12];
+		data[p + 0x203] = idx | this.bg[q + 0x13];
+		data[p + 0x204] = idx | this.bg[q + 0x14];
+		data[p + 0x205] = idx | this.bg[q + 0x15];
+		data[p + 0x206] = idx | this.bg[q + 0x16];
+		data[p + 0x207] = idx | this.bg[q + 0x17];
+		data[p + 0x300] = idx | this.bg[q + 0x18];
+		data[p + 0x301] = idx | this.bg[q + 0x19];
+		data[p + 0x302] = idx | this.bg[q + 0x1a];
+		data[p + 0x303] = idx | this.bg[q + 0x1b];
+		data[p + 0x304] = idx | this.bg[q + 0x1c];
+		data[p + 0x305] = idx | this.bg[q + 0x1d];
+		data[p + 0x306] = idx | this.bg[q + 0x1e];
+		data[p + 0x307] = idx | this.bg[q + 0x1f];
+		data[p + 0x400] = idx | this.bg[q + 0x20];
+		data[p + 0x401] = idx | this.bg[q + 0x21];
+		data[p + 0x402] = idx | this.bg[q + 0x22];
+		data[p + 0x403] = idx | this.bg[q + 0x23];
+		data[p + 0x404] = idx | this.bg[q + 0x24];
+		data[p + 0x405] = idx | this.bg[q + 0x25];
+		data[p + 0x406] = idx | this.bg[q + 0x26];
+		data[p + 0x407] = idx | this.bg[q + 0x27];
+		data[p + 0x500] = idx | this.bg[q + 0x28];
+		data[p + 0x501] = idx | this.bg[q + 0x29];
+		data[p + 0x502] = idx | this.bg[q + 0x2a];
+		data[p + 0x503] = idx | this.bg[q + 0x2b];
+		data[p + 0x504] = idx | this.bg[q + 0x2c];
+		data[p + 0x505] = idx | this.bg[q + 0x2d];
+		data[p + 0x506] = idx | this.bg[q + 0x2e];
+		data[p + 0x507] = idx | this.bg[q + 0x2f];
+		data[p + 0x600] = idx | this.bg[q + 0x30];
+		data[p + 0x601] = idx | this.bg[q + 0x31];
+		data[p + 0x602] = idx | this.bg[q + 0x32];
+		data[p + 0x603] = idx | this.bg[q + 0x33];
+		data[p + 0x604] = idx | this.bg[q + 0x34];
+		data[p + 0x605] = idx | this.bg[q + 0x35];
+		data[p + 0x606] = idx | this.bg[q + 0x36];
+		data[p + 0x607] = idx | this.bg[q + 0x37];
+		data[p + 0x700] = idx | this.bg[q + 0x38];
+		data[p + 0x701] = idx | this.bg[q + 0x39];
+		data[p + 0x702] = idx | this.bg[q + 0x3a];
+		data[p + 0x703] = idx | this.bg[q + 0x3b];
+		data[p + 0x704] = idx | this.bg[q + 0x3c];
+		data[p + 0x705] = idx | this.bg[q + 0x3d];
+		data[p + 0x706] = idx | this.bg[q + 0x3e];
+		data[p + 0x707] = idx | this.bg[q + 0x3f];
 	}
 
 	xfer16x16(data, dst, src) {
-		const idx = src >>> 4 & 0x1c;
+		const idx = src >> 4 & 0x1c;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)
@@ -489,12 +484,12 @@ class KingAndBalloon {
 		src = src << 8 & 0x3f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.rgb[idx + this.obj[src++]]) !== 0)
-					data[dst] = px;
+				if ((px = this.obj[src++]) !== 0)
+					data[dst] = idx | px;
 	}
 
 	xfer16x16V(data, dst, src) {
-		const idx = src >>> 4 & 0x1c;
+		const idx = src >> 4 & 0x1c;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)
@@ -502,12 +497,12 @@ class KingAndBalloon {
 		src = (src << 8 & 0x3f00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.rgb[idx + this.obj[src++]]) !== 0)
-					data[dst] = px;
+				if ((px = this.obj[src++]) !== 0)
+					data[dst] = idx | px;
 	}
 
 	xfer16x16H(data, dst, src) {
-		const idx = src >>> 4 & 0x1c;
+		const idx = src >> 4 & 0x1c;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)
@@ -515,12 +510,12 @@ class KingAndBalloon {
 		src = (src << 8 & 0x3f00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.rgb[idx + this.obj[--src]]) !== 0)
-					data[dst] = px;
+				if ((px = this.obj[--src]) !== 0)
+					data[dst] = idx | px;
 	}
 
 	xfer16x16HV(data, dst, src) {
-		const idx = src >>> 4 & 0x1c;
+		const idx = src >> 4 & 0x1c;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 272 * 0x100)
@@ -528,8 +523,8 @@ class KingAndBalloon {
 		src = (src << 8 & 0x3f00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.rgb[idx + this.obj[--src]]) !== 0)
-					data[dst] = px;
+				if ((px = this.obj[--src]) !== 0)
+					data[dst] = idx | px;
 	}
 }
 

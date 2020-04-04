@@ -39,50 +39,49 @@ class Gaplus {
 		this.starport = new Uint8Array(0x100);
 		this.port[0x20] = 4; // UPRIGHT
 
-		this.cpu = [];
-		for (let i = 0; i < 3; i++)
-			this.cpu[i] = new MC6809(this);
-
+		this.cpu = new MC6809(this);
 		for (let i = 0; i < 0x08; i++) {
-			this.cpu[0].memorymap[i].base = this.ram.base[i];
-			this.cpu[0].memorymap[i].write = null;
+			this.cpu.memorymap[i].base = this.ram.base[i];
+			this.cpu.memorymap[i].write = null;
 		}
 		for (let i = 0; i < 0x18; i++) {
-			this.cpu[0].memorymap[0x08 + i].base = this.ram.base[8 + i];
-			this.cpu[0].memorymap[0x08 + i].write = null;
+			this.cpu.memorymap[0x08 + i].base = this.ram.base[8 + i];
+			this.cpu.memorymap[0x08 + i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
-			this.cpu[0].memorymap[0x60 + i].read = addr => sound[0].read(addr);
-			this.cpu[0].memorymap[0x60 + i].write = (addr, data) => sound[0].write(addr, data);
+			this.cpu.memorymap[0x60 + i].read = addr => sound[0].read(addr);
+			this.cpu.memorymap[0x60 + i].write = (addr, data) => sound[0].write(addr, data);
 		}
-		this.cpu[0].memorymap[0x68].base = this.ram.base[0x24];
-		this.cpu[0].memorymap[0x68].write = (addr, data) => {
+		this.cpu.memorymap[0x68].base = this.ram.base[0x24];
+		this.cpu.memorymap[0x68].write = (addr, data) => {
 			if (addr === 0x682a && this.ram[0x2428] !== 4 && (data - this.ram[0x2429] - 1 & 0x0f) === 0)
 				this.se[0].start = this.se[0].stop = true;
-			this.ram[0x2400 + (addr & 0xff)] = data;
+			this.ram[0x2400 | addr & 0xff] = data;
 		};
-		this.cpu[0].memorymap[0x74].write = () => this.fInterruptEnable0 = true;
-		this.cpu[0].memorymap[0x7c].write = () => this.fInterruptEnable0 = false;
-		this.cpu[0].memorymap[0x84].write = () => {
-			this.cpu[1].enable();
-			this.cpu[2].enable();
+		this.cpu.memorymap[0x74].write = () => this.fInterruptEnable0 = true;
+		this.cpu.memorymap[0x7c].write = () => this.fInterruptEnable0 = false;
+		this.cpu.memorymap[0x84].write = () => {
+			this.cpu2.enable();
+			this.cpu3.enable();
 		};
-		this.cpu[0].memorymap[0x8c].write = () => {
-			this.cpu[1].disable();
-			this.cpu[2].disable();
+		this.cpu.memorymap[0x8c].write = () => {
+			this.cpu2.disable();
+			this.cpu3.disable();
 		};
 		for (let i = 0; i < 0x60; i++)
-			this.cpu[0].memorymap[0xa0 + i].base = PRG1.base[i];
-		this.cpu[0].memorymap[0xa0].write = (addr, data) => this.starport[addr & 0xff] = data;
+			this.cpu.memorymap[0xa0 + i].base = PRG1.base[i];
+		this.cpu.memorymap[0xa0].write = (addr, data) => this.starport[addr & 0xff] = data;
+
+		this.cpu2 = new MC6809(this);
 		for (let i = 0; i < 0x08; i++) {
-			this.cpu[1].memorymap[i].base = this.ram.base[i];
-			this.cpu[1].memorymap[i].write = null;
+			this.cpu2.memorymap[i].base = this.ram.base[i];
+			this.cpu2.memorymap[i].write = null;
 		}
 		for (let i = 0; i < 0x18; i++) {
-			this.cpu[1].memorymap[0x08 + i].base = this.ram.base[8 + i];
-			this.cpu[1].memorymap[0x08 + i].write = null;
+			this.cpu2.memorymap[0x08 + i].base = this.ram.base[8 + i];
+			this.cpu2.memorymap[0x08 + i].write = null;
 		}
-		this.cpu[1].memorymap[0x60].write = addr => {
+		this.cpu2.memorymap[0x60].write = addr => {
 			switch (addr & 0xff) {
 			case 0x01: // INTERRUPT START
 				this.fInterruptEnable1 = true;
@@ -96,15 +95,17 @@ class Gaplus {
 			}
 		};
 		for (let i = 0; i < 0x60; i++)
-			this.cpu[1].memorymap[0xa0 + i].base = PRG2.base[i];
+			this.cpu2.memorymap[0xa0 + i].base = PRG2.base[i];
+
+		this.cpu3 = new MC6809(this);
 		for (let i = 0; i < 4; i++) {
-			this.cpu[2].memorymap[i].read = addr => sound[0].read(addr);
-			this.cpu[2].memorymap[i].write = (addr, data) => sound[0].write(addr, data);
+			this.cpu3.memorymap[i].read = addr => sound[0].read(addr);
+			this.cpu3.memorymap[i].write = (addr, data) => sound[0].write(addr, data);
 		}
-		this.cpu[2].memorymap[0x40].write = () => this.fInterruptEnable2 = true;
-		this.cpu[2].memorymap[0x60].write = () => this.fInterruptEnable2 = false;
+		this.cpu3.memorymap[0x40].write = () => this.fInterruptEnable2 = true;
+		this.cpu3.memorymap[0x60].write = () => this.fInterruptEnable2 = false;
 		for (let i = 0; i < 0x20; i++)
-			this.cpu[2].memorymap[0xe0 + i].base = PRG3.base[i];
+			this.cpu3.memorymap[0xe0 + i].base = PRG3.base[i];
 
 		// Videoの初期化
 		this.stars = [];
@@ -119,11 +120,12 @@ class Gaplus {
 		this.stars2 = [];
 		for (let i = 0; i < 64; i++)
 			this.stars2.push({x: 0, y: 0, color: 0, blk: 0});
-		this.bg = new Uint32Array(0x200000);
+		this.bg = new Uint8Array(0x4000);
 		this.obj4 = new Uint8Array(0x10000);
 		this.obj8 = new Uint8Array(0x10000);
-		this.objcolor = new Uint32Array(0x200);
-		this.rgb = new Uint32Array(0x100);
+		this.bgcolor = Uint8Array.from(BGCOLOR, e => 0xf0 | e & 0xf);
+		this.objcolor = Uint8Array.from(OBJCOLOR_H, (e, i) => OBJCOLOR_H[i] << 4 & 0xf0 | OBJCOLOR_L[i] & 0xf);
+		this.rgb = new Uint32Array(0x140);
 		this.dwCount = 0;
 		this.convertRGB();
 		this.convertBG();
@@ -137,12 +139,12 @@ class Gaplus {
 
 	execute() {
 		if (this.fInterruptEnable0)
-			this.cpu[0].interrupt();
+			this.cpu.interrupt();
 		if (this.fInterruptEnable1)
-			this.cpu[1].interrupt();
+			this.cpu2.interrupt();
 		if (this.fInterruptEnable2)
-			this.cpu[2].interrupt();
-		Cpu.multiple_execute(this.cpu, 0x2000);
+			this.cpu3.interrupt();
+		Cpu.multiple_execute([this.cpu, this.cpu2, this.cpu3], 0x2000);
 		this.moveStars();
 		return this;
 	}
@@ -243,7 +245,7 @@ class Gaplus {
 			this.fReset = false;
 			this.se[0].stop = true;
 			this.ram.fill(0, 0x2400, 0x2500);
-			this.cpu[0].reset();
+			this.cpu.reset();
 		}
 		return this;
 	}
@@ -453,55 +455,52 @@ class Gaplus {
 		for (let i = 0; i < 0x100; i++)
 			this.rgb[i] = (RED[i] & 0x0f) * 255 / 15	// Red
 				| (GREEN[i] & 0x0f) * 255 / 15 << 8		// Green
-				| (BLUE[i] & 0x0f) * 255 / 15 << 16;	// Blue
+				| (BLUE[i] & 0x0f) * 255 / 15 << 16		// Blue
+				| 0xff000000;							// Alpha
+		for (let i = 0; i < 0x40; i++)
+			this.rgb[0x100 | i] = (i << 1 & 6) * 255 / 7	// Red
+				| (i >> 1 & 6) * 255 / 7 << 8				// Green
+				| (i >> 3 & 6) * 255 / 7 << 16				// Blue
+				| 0xff000000;								// Alpha
 	}
 
 	convertBG() {
 		for (let p = 0, q = 0, i = 128; i !== 0; q += 32, --i) {
 			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 16] >>> 1 & 1 | BG[q + j + 16] >>> 2 & 2;
+				this.bg[p++] = BG[q + j + 16] >> 1 & 1 | BG[q + j + 16] >> 2 & 2;
 			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 16] & 1 | BG[q + j + 16] >>> 1 & 2;
+				this.bg[p++] = BG[q + j + 16] & 1 | BG[q + j + 16] >> 1 & 2;
 			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 24] >>> 1 & 1 | BG[q + j + 24] >>> 2 & 2;
+				this.bg[p++] = BG[q + j + 24] >> 1 & 1 | BG[q + j + 24] >> 2 & 2;
 			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 24] & 1 | BG[q + j + 24] >>> 1 & 2;
+				this.bg[p++] = BG[q + j + 24] & 1 | BG[q + j + 24] >> 1 & 2;
 			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j] >>> 1 & 1 | BG[q + j] >>> 2 & 2;
+				this.bg[p++] = BG[q + j] >> 1 & 1 | BG[q + j] >> 2 & 2;
 			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j] & 1 | BG[q + j] >>> 1 & 2;
+				this.bg[p++] = BG[q + j] & 1 | BG[q + j] >> 1 & 2;
 			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 8] >>> 1 & 1 | BG[q + j + 8] >>> 2 & 2;
+				this.bg[p++] = BG[q + j + 8] >> 1 & 1 | BG[q + j + 8] >> 2 & 2;
 			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 8] & 1 | BG[q + j + 8] >>> 1 & 2;
+				this.bg[p++] = BG[q + j + 8] & 1 | BG[q + j + 8] >> 1 & 2;
 		}
 		for (let p = 0x2000, q = 0, i = 128; i !== 0; q += 32, --i) {
 			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 16] >>> 5 & 1 | BG[q + j + 16] >>> 6 & 2;
+				this.bg[p++] = BG[q + j + 16] >> 5 & 1 | BG[q + j + 16] >> 6 & 2;
 			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 16] >>> 4 & 1 | BG[q + j + 16] >>> 5 & 2;
+				this.bg[p++] = BG[q + j + 16] >> 4 & 1 | BG[q + j + 16] >> 5 & 2;
 			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 24] >>> 5 & 1 | BG[q + j + 24] >>> 6 & 2;
+				this.bg[p++] = BG[q + j + 24] >> 5 & 1 | BG[q + j + 24] >> 6 & 2;
 			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 24] >>> 4 & 1 | BG[q + j + 24] >>> 5 & 2;
+				this.bg[p++] = BG[q + j + 24] >> 4 & 1 | BG[q + j + 24] >> 5 & 2;
 			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j] >>> 5 & 1 | BG[q + j] >>> 6 & 2;
+				this.bg[p++] = BG[q + j] >> 5 & 1 | BG[q + j] >> 6 & 2;
 			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j] >>> 4 & 1 | BG[q + j] >>> 5 & 2;
+				this.bg[p++] = BG[q + j] >> 4 & 1 | BG[q + j] >> 5 & 2;
 			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 8] >>> 5 & 1 | BG[q + j + 8] >>> 6 & 2;
+				this.bg[p++] = BG[q + j + 8] >> 5 & 1 | BG[q + j + 8] >> 6 & 2;
 			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 8] >>> 4 & 1 | BG[q + j + 8] >>> 5 & 2;
+				this.bg[p++] = BG[q + j + 8] >> 4 & 1 | BG[q + j + 8] >> 5 & 2;
 		}
-		for (let p = 0, i = 127; i !== 0; p += 0x4000, --i)
-			this.bg.copyWithin(p + 0x4000, p, p + 0x4000);
-		for (let p = 0, i = 0; i < 64; i++)
-			for (let j = 0x4000; j !== 0; p++, --j)
-				this.bg[p] = this.rgb[BGCOLOR[i * 4 + this.bg[p]] & 0x0f | 0xf0];
-		for (let p = 0x100000, i = 0; i < 64; i++)
-			for (let j = 0x4000; j !== 0; p++, --j)
-				if ((this.bg[p] = this.rgb[BGCOLOR[i * 4 + this.bg[p]] & 0x0f | 0xf0]) !== 0)
-					this.bg[p] |= 0xff000000;
 	}
 
 	convertOBJ4() {
@@ -509,86 +508,82 @@ class Gaplus {
 		for (let p = 0, q = 0, i = 128; i !== 0; q += 64, --i) {
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj4[p++] = OBJ4[q + k + 32] >>> j & 1 | OBJ4[q + k + 32] >>> (j + 3) & 2;
+					this.obj4[p++] = OBJ4[q + k + 32] >> j & 1 | OBJ4[q + k + 32] >> (j + 3) & 2;
 				for (let k = 7; k >= 0; --k)
-					this.obj4[p++] = OBJ4[q + k] >>> j & 1 | OBJ4[q + k] >>> (j + 3) & 2;
+					this.obj4[p++] = OBJ4[q + k] >> j & 1 | OBJ4[q + k] >> (j + 3) & 2;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj4[p++] = OBJ4[q + k + 40] >>> j & 1 | OBJ4[q + k + 40] >>> (j + 3) & 2;
+					this.obj4[p++] = OBJ4[q + k + 40] >> j & 1 | OBJ4[q + k + 40] >> (j + 3) & 2;
 				for (let k = 7; k >= 0; --k)
-					this.obj4[p++] = OBJ4[q + k + 8] >>> j & 1 | OBJ4[q + k + 8] >>> (j + 3) & 2;
+					this.obj4[p++] = OBJ4[q + k + 8] >> j & 1 | OBJ4[q + k + 8] >> (j + 3) & 2;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj4[p++] = OBJ4[q + k + 48] >>> j & 1 | OBJ4[q + k + 48] >>> (j + 3) & 2;
+					this.obj4[p++] = OBJ4[q + k + 48] >> j & 1 | OBJ4[q + k + 48] >> (j + 3) & 2;
 				for (let k = 7; k >= 0; --k)
-					this.obj4[p++] = OBJ4[q + k + 16] >>> j & 1 | OBJ4[q + k + 16] >>> (j + 3) & 2;
+					this.obj4[p++] = OBJ4[q + k + 16] >> j & 1 | OBJ4[q + k + 16] >> (j + 3) & 2;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj4[p++] = OBJ4[q + k + 56] >>> j & 1 | OBJ4[q + k + 56] >>> (j + 3) & 2;
+					this.obj4[p++] = OBJ4[q + k + 56] >> j & 1 | OBJ4[q + k + 56] >> (j + 3) & 2;
 				for (let k = 7; k >= 0; --k)
-					this.obj4[p++] = OBJ4[q + k + 24] >>> j & 1 | OBJ4[q + k + 24] >>> (j + 3) & 2;
+					this.obj4[p++] = OBJ4[q + k + 24] >> j & 1 | OBJ4[q + k + 24] >> (j + 3) & 2;
 			}
 		}
 	}
 
 	convertOBJ8() {
-		// obj palette
-		for (let i = 0; i < 0x200; i++)
-			this.objcolor[i] = this.rgb[OBJCOLOR_H[i] << 4 & 0xf0 | OBJCOLOR_L[i] & 0x0f];
-
 		for (let p = 0, q = 0, i = 128; i !== 0; q += 64, --i) {
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 32] >>> j & 1 | OBJ8[q + k + 32] >>> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 32] >>> (j + 2) & 4;
+					this.obj8[p++] = OBJ8[q + k + 32] >> j & 1 | OBJ8[q + k + 32] >> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 32] >> (j + 2) & 4;
 				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k] >>> j & 1 | OBJ8[q + k] >>> (j + 3) & 2 | OBJ8[q + k + 0x4000] >>> (j + 2) & 4;
+					this.obj8[p++] = OBJ8[q + k] >> j & 1 | OBJ8[q + k] >> (j + 3) & 2 | OBJ8[q + k + 0x4000] >> (j + 2) & 4;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 40] >>> j & 1 | OBJ8[q + k + 40] >>> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 40] >>> (j + 2) & 4;
+					this.obj8[p++] = OBJ8[q + k + 40] >> j & 1 | OBJ8[q + k + 40] >> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 40] >> (j + 2) & 4;
 				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 8] >>> j & 1 | OBJ8[q + k + 8] >>> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 8] >>> (j + 2) & 4;
+					this.obj8[p++] = OBJ8[q + k + 8] >> j & 1 | OBJ8[q + k + 8] >> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 8] >> (j + 2) & 4;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 48] >>> j & 1 | OBJ8[q + k + 48] >>> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 48] >>> (j + 2) & 4;
+					this.obj8[p++] = OBJ8[q + k + 48] >> j & 1 | OBJ8[q + k + 48] >> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 48] >> (j + 2) & 4;
 				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 16] >>> j & 1 | OBJ8[q + k + 16] >>> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 16] >>> (j + 2) & 4;
+					this.obj8[p++] = OBJ8[q + k + 16] >> j & 1 | OBJ8[q + k + 16] >> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 16] >> (j + 2) & 4;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 56] >>> j & 1 | OBJ8[q + k + 56] >>> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 56] >>> (j + 2) & 4;
+					this.obj8[p++] = OBJ8[q + k + 56] >> j & 1 | OBJ8[q + k + 56] >> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 56] >> (j + 2) & 4;
 				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 24] >>> j & 1 | OBJ8[q + k + 24] >>> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 24] >>> (j + 2) & 4;
+					this.obj8[p++] = OBJ8[q + k + 24] >> j & 1 | OBJ8[q + k + 24] >> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 24] >> (j + 2) & 4;
 			}
 		}
 		for (let p = 0x8000, q = 0x2000, i = 128; i !== 0; q += 64, --i) {
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 32] >>> j & 1 | OBJ8[q + k + 32] >>> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 32] << 2 >>> j & 4;
+					this.obj8[p++] = OBJ8[q + k + 32] >> j & 1 | OBJ8[q + k + 32] >> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 32] << 2 >> j & 4;
 				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k] >>> j & 1 | OBJ8[q + k] >>> (j + 3) & 2 | OBJ8[q + k + 0x2000] << 2 >>> j & 4;
+					this.obj8[p++] = OBJ8[q + k] >> j & 1 | OBJ8[q + k] >> (j + 3) & 2 | OBJ8[q + k + 0x2000] << 2 >> j & 4;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 40] >>> j & 1 | OBJ8[q + k + 40] >>> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 40] << 2 >>> j & 4;
+					this.obj8[p++] = OBJ8[q + k + 40] >> j & 1 | OBJ8[q + k + 40] >> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 40] << 2 >> j & 4;
 				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 8] >>> j & 1 | OBJ8[q + k + 8] >>> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 8] << 2 >>> j & 4;
+					this.obj8[p++] = OBJ8[q + k + 8] >> j & 1 | OBJ8[q + k + 8] >> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 8] << 2 >> j & 4;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 48] >>> j & 1 | OBJ8[q + k + 48] >>> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 48] << 2 >>> j & 4;
+					this.obj8[p++] = OBJ8[q + k + 48] >> j & 1 | OBJ8[q + k + 48] >> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 48] << 2 >> j & 4;
 				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 16] >>> j & 1 | OBJ8[q + k + 16] >>> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 16] << 2 >>> j & 4;
+					this.obj8[p++] = OBJ8[q + k + 16] >> j & 1 | OBJ8[q + k + 16] >> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 16] << 2 >> j & 4;
 			}
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 56] >>> j & 1 | OBJ8[q + k + 56] >>> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 56] << 2 >>> j & 4;
+					this.obj8[p++] = OBJ8[q + k + 56] >> j & 1 | OBJ8[q + k + 56] >> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 56] << 2 >> j & 4;
 				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 24] >>> j & 1 | OBJ8[q + k + 24] >>> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 24] << 2 >>> j & 4;
+					this.obj8[p++] = OBJ8[q + k + 24] >> j & 1 | OBJ8[q + k + 24] >> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 24] << 2 >> j & 4;
 			}
 		}
 	}
@@ -599,12 +594,12 @@ class Gaplus {
 		for (let sr = 0, i = 0, x = 223; x >= 0; --x) {
 			for (let y = 0; y < 288; y++) {
 				const cy = ~sr << 5 ^ ~sr << 10 ^ ~sr << 12 ^ sr << 15;
-				sr = cy & 0x8000 | sr >>> 1;
-				if ((sr & 0xf429) === 0xf000 && (color = sr << 1 & 0x20 | sr << 2 & 0x18 | sr >>> 6 & 0x07) !== 0) {
+				sr = cy & 0x8000 | sr >> 1;
+				if ((sr & 0xf429) === 0xf000 && (color = sr << 1 & 0x20 | sr << 2 & 0x18 | sr >> 6 & 0x07) !== 0) {
 					this.stars[i].x = x;
 					this.stars[i].y = y;
 					this.stars[i].color = color;
-					this.stars[i].blk = sr >>> 11 & 0x01 | sr >>> 8 & 0x02;
+					this.stars[i].blk = sr >> 11 & 0x01 | sr >> 8 & 0x02;
 					i++;
 				}
 			}
@@ -618,9 +613,6 @@ class Gaplus {
 				this.stars0[j].color -= 4;
 			if ((this.stars0[j].color & 0x30) === 0x20 || (this.stars0[j].color & 0x30) === 0x30)
 				this.stars0[j].color -= 0x10;
-			this.stars0[j].color = (this.stars0[j].color << 1 & 6) * 255 / 7	// Red
-				| (this.stars0[j].color >>> 1 & 6) * 255 / 7 << 8				// Green
-				| (this.stars0[j].color >>> 3 & 6) * 31 / 7 << 16;				// Blue
 		}
 		for (let i = 1, j = 0; i < 256; j++, i += 8) {
 			this.stars1[j] = this.stars[i];
@@ -630,16 +622,9 @@ class Gaplus {
 				this.stars1[j].color += 4;
 			if ((this.stars1[j].color & 0x30) === 0x10 || (this.stars1[j].color & 0x30) === 0x20)
 				this.stars1[j].color += 0x10;
-			this.stars1[j].color = (this.stars1[j].color << 1 & 6) * 255 / 7	// Red
-				| (this.stars1[j].color >>> 1 & 6) * 255 / 7 << 8				// Green
-				| (this.stars1[j].color >>> 3 & 6) * 255 / 7 << 16;				// Blue
 		}
-		for (let i = 2, j = 0; i < 256; j++, i += 4) {
+		for (let i = 2, j = 0; i < 256; j++, i += 4)
 			this.stars2[j] = this.stars[i];
-			this.stars2[j].color = (this.stars2[j].color << 1 & 6) * 255 / 7	// Red
-				| (this.stars2[j].color >>> 1 & 6) * 255 / 7 << 8				// Green
-				| (this.stars2[j].color >>> 3 & 6) * 255 / 7 << 16;				// Blue
-		}
 	}
 
 	moveStars() {
@@ -658,7 +643,7 @@ class Gaplus {
 				if (++this.stars1[i].x >= 0xe0)
 					this.stars1[i].x -= 0xe0;
 			}
-			this.stars1[i].x += (this.starport[2] >>> 3 & 7 ^ 4) - 4;
+			this.stars1[i].x += (this.starport[2] >> 3 & 7 ^ 4) - 4;
 			if (this.stars1[i].x >= 0xe0)
 				this.stars1[i].x -= 0xe0;
 			else if (this.stars1[i].x < 0)
@@ -678,7 +663,7 @@ class Gaplus {
 				if (++this.stars2[i].x >= 0xe0)
 					this.stars2[i].x -= 0xe0;
 			}
-			this.stars2[i].x += (this.starport[3] >>> 3 & 7 ^ 4) - 4;
+			this.stars2[i].x += (this.starport[3] >> 3 & 7 ^ 4) - 4;
 			if (this.stars2[i].x >= 0xe0)
 				this.stars2[i].x -= 0xe0;
 			else if (this.stars2[i].x < 0)
@@ -698,7 +683,7 @@ class Gaplus {
 				if (++this.stars0[i].x >= 0xe0)
 					this.stars0[i].x -= 0xe0;
 			}
-			this.stars0[i].x += (this.starport[1] >>> 3 & 7 ^ 4) - 4;
+			this.stars0[i].x += (this.starport[1] >> 3 & 7 ^ 4) - 4;
 			if (this.stars0[i].x >= 0xe0)
 				this.stars0[i].x -= 0xe0;
 			else if (this.stars0[i].x < 0)
@@ -707,34 +692,19 @@ class Gaplus {
 	}
 
 	makeBitmap(data) {
+		// 画面クリア
+		let p = 256 * 16 + 16;
+		for (let i = 0; i < 288; p += 256, i++)
+			data.fill(0xff, p, p + 224);
+
 		// bg描画
-		let p = 256 * 8 * 4 + 232;
-		let k = 0x40;
-		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
-			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
-				this.xfer8x8(data, p, k);
-		p = 256 * 8 * 36 + 232;
-		k = 2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8(data, p, k);
-		p = 256 * 8 * 37 + 232;
-		k = 0x22;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8(data, p, k);
-		p = 256 * 8 * 2 + 232;
-		k = 0x3c2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8(data, p, k);
-		p = 256 * 8 * 3 + 232;
-		k = 0x3e2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8(data, p, k);
+		this.drawBG(data, 0);
 
 		// obj描画
 		for (let p = 0x0f80, i = 64; i !== 0; p += 2, --i) {
 			if ((this.ram[p + 0x1001] & 0x80) === 0)
 				continue;
-			const y = this.ram[p + 0x801] + this.ram[p + 0x1001] * 0x100 - 0x37 & 0x1ff;
+			const y = (this.ram[p + 0x801] | this.ram[p + 0x1001] << 8) - 0x37 & 0x1ff;
 			const x = this.ram[p + 0x800] + 8 & 0xff;
 			switch (this.ram[p + 0x1000] & 0xeb) {
 			case 0x00: // ノーマル
@@ -996,6 +966,9 @@ class Gaplus {
 			}
 		}
 
+		// bg描画
+		this.drawBG(data, 1);
+
 		p = 256 * 16 + 16;
 
 		// star 1 描画
@@ -1004,8 +977,8 @@ class Gaplus {
 			if ((this.starport[0] & 2) === 0 || y < 0x10 || y >= 0x110)
 				continue;
 			const x = this.stars1[i].x;
-			if (!data[p + (x | y << 8)])
-				data[p + (x | y << 8)] = this.stars1[i].color;
+			if (data[p + (x | y << 8)] === 0xff)
+				data[p + (x | y << 8)] = 0x100 | this.stars1[i].color;
 		}
 
 		// star 2 描画
@@ -1014,10 +987,10 @@ class Gaplus {
 			if ((this.starport[0] & 8) === 0 || y < 0x10 || y >= 0x110)
 				continue;
 			const x = this.stars2[i].x;
-			if (this.starport[3] & 0x80 && this.stars2[i].blk === (this.dwCount >>> 1 & 3))
+			if (this.starport[3] & 0x80 && this.stars2[i].blk === (this.dwCount >> 1 & 3))
 				continue;
-			if (!data[p + (x | y << 8)])
-				data[p + (x | y << 8)] = this.stars2[i].color;
+			if (data[p + (x | y << 8)] === 0xff)
+				data[p + (x | y << 8)] = 0x100 | this.stars2[i].color;
 		}
 
 		// star 0 描画
@@ -1026,88 +999,115 @@ class Gaplus {
 			if ((this.starport[0] & 4) === 0 || y < 0x10 || y >= 0x110)
 				continue;
 			const x = this.stars0[i].x;
-			if (!data[p + (x | y << 8)])
-				data[p + (x | y << 8)] = this.stars0[i].color;
+			if (data[p + (x | y << 8)] === 0xff)
+				data[p + (x | y << 8)] = 0x100 | this.stars0[i].color;
 		}
 
-		// alphaチャンネル修正
+		// palette変換
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] |= 0xff000000;
+				data[p] = this.rgb[data[p]];
 	}
 
-	xfer8x8(data, p, k) {
-		const q = (this.ram[k + 0x400] * 0x101 & 0x7f80 | this.ram[k] & 0x7f) << 6;
+	drawBG(data, pri) {
+		let p = 256 * 8 * 4 + 232;
+		let k = 0x40;
+		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
+			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
+				this.xfer8x8(data, p, k, pri);
+		p = 256 * 8 * 36 + 232;
+		k = 2;
+		for (let i = 0; i < 28; p -= 8, k++, i++)
+			this.xfer8x8(data, p, k, pri);
+		p = 256 * 8 * 37 + 232;
+		k = 0x22;
+		for (let i = 0; i < 28; p -= 8, k++, i++)
+			this.xfer8x8(data, p, k, pri);
+		p = 256 * 8 * 2 + 232;
+		k = 0x3c2;
+		for (let i = 0; i < 28; p -= 8, k++, i++)
+			this.xfer8x8(data, p, k, pri);
+		p = 256 * 8 * 3 + 232;
+		k = 0x3e2;
+		for (let i = 0; i < 28; p -= 8, k++, i++)
+			this.xfer8x8(data, p, k, pri);
+	}
 
-		data[p + 0x000] = this.bg[q + 0x00];
-		data[p + 0x001] = this.bg[q + 0x01];
-		data[p + 0x002] = this.bg[q + 0x02];
-		data[p + 0x003] = this.bg[q + 0x03];
-		data[p + 0x004] = this.bg[q + 0x04];
-		data[p + 0x005] = this.bg[q + 0x05];
-		data[p + 0x006] = this.bg[q + 0x06];
-		data[p + 0x007] = this.bg[q + 0x07];
-		data[p + 0x100] = this.bg[q + 0x08];
-		data[p + 0x101] = this.bg[q + 0x09];
-		data[p + 0x102] = this.bg[q + 0x0a];
-		data[p + 0x103] = this.bg[q + 0x0b];
-		data[p + 0x104] = this.bg[q + 0x0c];
-		data[p + 0x105] = this.bg[q + 0x0d];
-		data[p + 0x106] = this.bg[q + 0x0e];
-		data[p + 0x107] = this.bg[q + 0x0f];
-		data[p + 0x200] = this.bg[q + 0x10];
-		data[p + 0x201] = this.bg[q + 0x11];
-		data[p + 0x202] = this.bg[q + 0x12];
-		data[p + 0x203] = this.bg[q + 0x13];
-		data[p + 0x204] = this.bg[q + 0x14];
-		data[p + 0x205] = this.bg[q + 0x15];
-		data[p + 0x206] = this.bg[q + 0x16];
-		data[p + 0x207] = this.bg[q + 0x17];
-		data[p + 0x300] = this.bg[q + 0x18];
-		data[p + 0x301] = this.bg[q + 0x19];
-		data[p + 0x302] = this.bg[q + 0x1a];
-		data[p + 0x303] = this.bg[q + 0x1b];
-		data[p + 0x304] = this.bg[q + 0x1c];
-		data[p + 0x305] = this.bg[q + 0x1d];
-		data[p + 0x306] = this.bg[q + 0x1e];
-		data[p + 0x307] = this.bg[q + 0x1f];
-		data[p + 0x400] = this.bg[q + 0x20];
-		data[p + 0x401] = this.bg[q + 0x21];
-		data[p + 0x402] = this.bg[q + 0x22];
-		data[p + 0x403] = this.bg[q + 0x23];
-		data[p + 0x404] = this.bg[q + 0x24];
-		data[p + 0x405] = this.bg[q + 0x25];
-		data[p + 0x406] = this.bg[q + 0x26];
-		data[p + 0x407] = this.bg[q + 0x27];
-		data[p + 0x500] = this.bg[q + 0x28];
-		data[p + 0x501] = this.bg[q + 0x29];
-		data[p + 0x502] = this.bg[q + 0x2a];
-		data[p + 0x503] = this.bg[q + 0x2b];
-		data[p + 0x504] = this.bg[q + 0x2c];
-		data[p + 0x505] = this.bg[q + 0x2d];
-		data[p + 0x506] = this.bg[q + 0x2e];
-		data[p + 0x507] = this.bg[q + 0x2f];
-		data[p + 0x600] = this.bg[q + 0x30];
-		data[p + 0x601] = this.bg[q + 0x31];
-		data[p + 0x602] = this.bg[q + 0x32];
-		data[p + 0x603] = this.bg[q + 0x33];
-		data[p + 0x604] = this.bg[q + 0x34];
-		data[p + 0x605] = this.bg[q + 0x35];
-		data[p + 0x606] = this.bg[q + 0x36];
-		data[p + 0x607] = this.bg[q + 0x37];
-		data[p + 0x700] = this.bg[q + 0x38];
-		data[p + 0x701] = this.bg[q + 0x39];
-		data[p + 0x702] = this.bg[q + 0x3a];
-		data[p + 0x703] = this.bg[q + 0x3b];
-		data[p + 0x704] = this.bg[q + 0x3c];
-		data[p + 0x705] = this.bg[q + 0x3d];
-		data[p + 0x706] = this.bg[q + 0x3e];
-		data[p + 0x707] = this.bg[q + 0x3f];
+	xfer8x8(data, p, k, pri) {
+		const q = (this.ram[k] & 0x7f | this.ram[k + 0x400] & 0x80) << 6, idx = this.ram[k + 0x400] << 2 & 0xfc;
+		let px;
+
+		if ((this.ram[k + 0x400] >> 6 & 1) !== pri)
+			return;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x00]]) !== 0xff) data[p + 0x000] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x01]]) !== 0xff) data[p + 0x001] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x02]]) !== 0xff) data[p + 0x002] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x03]]) !== 0xff) data[p + 0x003] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x04]]) !== 0xff) data[p + 0x004] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x05]]) !== 0xff) data[p + 0x005] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x06]]) !== 0xff) data[p + 0x006] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x07]]) !== 0xff) data[p + 0x007] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x08]]) !== 0xff) data[p + 0x100] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x09]]) !== 0xff) data[p + 0x101] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x0a]]) !== 0xff) data[p + 0x102] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x0b]]) !== 0xff) data[p + 0x103] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x0c]]) !== 0xff) data[p + 0x104] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x0d]]) !== 0xff) data[p + 0x105] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x0e]]) !== 0xff) data[p + 0x106] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x0f]]) !== 0xff) data[p + 0x107] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x10]]) !== 0xff) data[p + 0x200] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x11]]) !== 0xff) data[p + 0x201] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x12]]) !== 0xff) data[p + 0x202] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x13]]) !== 0xff) data[p + 0x203] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x14]]) !== 0xff) data[p + 0x204] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x15]]) !== 0xff) data[p + 0x205] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x16]]) !== 0xff) data[p + 0x206] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x17]]) !== 0xff) data[p + 0x207] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x18]]) !== 0xff) data[p + 0x300] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x19]]) !== 0xff) data[p + 0x301] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x1a]]) !== 0xff) data[p + 0x302] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x1b]]) !== 0xff) data[p + 0x303] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x1c]]) !== 0xff) data[p + 0x304] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x1d]]) !== 0xff) data[p + 0x305] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x1e]]) !== 0xff) data[p + 0x306] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x1f]]) !== 0xff) data[p + 0x307] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x20]]) !== 0xff) data[p + 0x400] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x21]]) !== 0xff) data[p + 0x401] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x22]]) !== 0xff) data[p + 0x402] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x23]]) !== 0xff) data[p + 0x403] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x24]]) !== 0xff) data[p + 0x404] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x25]]) !== 0xff) data[p + 0x405] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x26]]) !== 0xff) data[p + 0x406] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x27]]) !== 0xff) data[p + 0x407] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x28]]) !== 0xff) data[p + 0x500] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x29]]) !== 0xff) data[p + 0x501] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x2a]]) !== 0xff) data[p + 0x502] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x2b]]) !== 0xff) data[p + 0x503] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x2c]]) !== 0xff) data[p + 0x504] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x2d]]) !== 0xff) data[p + 0x505] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x2e]]) !== 0xff) data[p + 0x506] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x2f]]) !== 0xff) data[p + 0x507] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x30]]) !== 0xff) data[p + 0x600] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x31]]) !== 0xff) data[p + 0x601] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x32]]) !== 0xff) data[p + 0x602] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x33]]) !== 0xff) data[p + 0x603] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x34]]) !== 0xff) data[p + 0x604] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x35]]) !== 0xff) data[p + 0x605] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x36]]) !== 0xff) data[p + 0x606] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x37]]) !== 0xff) data[p + 0x607] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x38]]) !== 0xff) data[p + 0x700] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x39]]) !== 0xff) data[p + 0x701] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x3a]]) !== 0xff) data[p + 0x702] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x3b]]) !== 0xff) data[p + 0x703] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x3c]]) !== 0xff) data[p + 0x704] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x3d]]) !== 0xff) data[p + 0x705] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x3e]]) !== 0xff) data[p + 0x706] = px;
+		if ((px = this.bgcolor[idx | this.bg[q + 0x3f]]) !== 0xff) data[p + 0x707] = px;
 	}
 
 	xfer16x16x3(data, dst, src) {
-		const idx = src >>> 5 & 0x1f8;
+		const idx = src >> 5 & 0x1f8;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
@@ -1115,12 +1115,12 @@ class Gaplus {
 		src = src << 8 & 0xff00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx + this.obj8[src++]]) !== 0 && (data[dst] & 0xff000000) === 0)
+				if ((px = this.objcolor[idx + this.obj8[src++]]) !== 0xff)
 					data[dst] = px;
 	}
 
 	xfer16x16x3V(data, dst, src) {
-		const idx = src >>> 5 & 0x1f8;
+		const idx = src >> 5 & 0x1f8;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
@@ -1128,12 +1128,12 @@ class Gaplus {
 		src = (src << 8 & 0xff00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx + this.obj8[src++]]) !== 0 && (data[dst] & 0xff000000) === 0)
+				if ((px = this.objcolor[idx + this.obj8[src++]]) !== 0xff)
 					data[dst] = px;
 	}
 
 	xfer16x16x3H(data, dst, src) {
-		const idx = src >>> 5 & 0x1f8;
+		const idx = src >> 5 & 0x1f8;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
@@ -1141,12 +1141,12 @@ class Gaplus {
 		src = (src << 8 & 0xff00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx + this.obj8[--src]]) !== 0 && (data[dst] & 0xff000000) === 0)
+				if ((px = this.objcolor[idx + this.obj8[--src]]) !== 0xff)
 					data[dst] = px;
 	}
 
 	xfer16x16x3HV(data, dst, src) {
-		const idx = src >>> 5 & 0x1f8;
+		const idx = src >> 5 & 0x1f8;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
@@ -1154,12 +1154,12 @@ class Gaplus {
 		src = (src << 8 & 0xff00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx + this.obj8[--src]]) !== 0 && (data[dst] & 0xff000000) === 0)
+				if ((px = this.objcolor[idx + this.obj8[--src]]) !== 0xff)
 					data[dst] = px;
 	}
 
 	xfer16x16x2(data, dst, src) {
-		const idx = src >>> 5 & 0x1f8;
+		const idx = src >> 5 & 0x1f8;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
@@ -1167,12 +1167,12 @@ class Gaplus {
 		src = src << 8 & 0xff00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx + this.obj4[src++]]) !== 0 && (data[dst] & 0xff000000) === 0)
+				if ((px = this.objcolor[idx + this.obj4[src++]]) !== 0xff)
 					data[dst] = px;
 	}
 
 	xfer16x16x2V(data, dst, src) {
-		const idx = src >>> 5 & 0x1f8;
+		const idx = src >> 5 & 0x1f8;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
@@ -1180,12 +1180,12 @@ class Gaplus {
 		src = (src << 8 & 0xff00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx + this.obj4[src++]]) !== 0 && (data[dst] & 0xff000000) === 0)
+				if ((px = this.objcolor[idx + this.obj4[src++]]) !== 0xff)
 					data[dst] = px;
 	}
 
 	xfer16x16x2H(data, dst, src) {
-		const idx = src >>> 5 & 0x1f8;
+		const idx = src >> 5 & 0x1f8;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
@@ -1193,12 +1193,12 @@ class Gaplus {
 		src = (src << 8 & 0xff00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx + this.obj4[--src]]) !== 0 && (data[dst] & 0xff000000) === 0)
+				if ((px = this.objcolor[idx + this.obj4[--src]]) !== 0xff)
 					data[dst] = px;
 	}
 
 	xfer16x16x2HV(data, dst, src) {
-		const idx = src >>> 5 & 0x1f8;
+		const idx = src >> 5 & 0x1f8;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) === 0 || dst >= 304 * 0x100)
@@ -1206,7 +1206,7 @@ class Gaplus {
 		src = (src << 8 & 0xff00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx + this.obj4[--src]]) !== 0 && (data[dst] & 0xff000000) === 0)
+				if ((px = this.objcolor[idx + this.obj4[--src]]) !== 0xff)
 					data[dst] = px;
 	}
 }

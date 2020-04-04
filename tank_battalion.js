@@ -49,7 +49,7 @@ class TankBattalion {
 		this.rport[0x1d] = 0x7f;
 
 		// Videoの初期化
-		this.bg = new Uint32Array(0x4000);
+		this.bg = new Uint8Array(0x4000);
 		this.rgb = new Uint32Array(0x10);
 		this.convertRGB();
 		this.convertBG();
@@ -250,16 +250,17 @@ class TankBattalion {
 
 	convertRGB() {
 		for (let i = 0; i < 0x10; i++)
-			this.rgb[i] = (i & 3) * 255 / 3		// Red
-				| (i >>> 2 & 1) * 255 << 8		// Green
-				| (i >>> 3 & 1) * 255 << 16;	// Blue
+			this.rgb[i] = (i & 3) * 255 / 3	// Red
+				| (i >> 2 & 1) * 255 << 8	// Green
+				| (i >> 3 & 1) * 255 << 16	// Blue
+				| 0xff000000;				// Alpha
 	}
 
 	convertBG() {
 		for (let p = 0, q = 0, i = 0; i < 0x100; q += 8, i++)
 			for (let j = 7; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = (BG[q + k] >>> j & 1) * this.rgb[RGB[i | 1] & 0x0f];
+					this.bg[p++] = (BG[q + k] >>> j & 1) * RGB[i | 1] & 0xf;
 	}
 
 	makeBitmap(data) {
@@ -272,32 +273,32 @@ class TankBattalion {
 
 		// 弾描画
 		for (let k = 0, i = 0; i < 8; k += 2, i++) {
-			const p = (this.ram[k + 1] + 16) * 256 + this.ram[k];
+			const p = this.ram[k] | this.ram[k + 1] + 16 << 8;
 			if (!data[p])
-				data[p] = this.rgb[0x0e];
+				data[p] = 0xe;
 			if (!data[p + 1])
-				data[p + 1] = this.rgb[0x0e];
+				data[p + 1] = 0xe;
 			if (!data[p + 2])
-				data[p + 2] = this.rgb[0x0e];
+				data[p + 2] = 0xe;
 			if (!data[p + 0x100])
-				data[p + 0x100] = this.rgb[0x0e];
+				data[p + 0x100] = 0xe;
 			if (!data[p + 0x101])
-				data[p + 0x101] = this.rgb[0x0e];
+				data[p + 0x101] = 0xe;
 			if (!data[p + 0x102])
-				data[p + 0x102] = this.rgb[0x0e];
+				data[p + 0x102] = 0xe;
 			if (!data[p + 0x200])
-				data[p + 0x200] = this.rgb[0x0e];
+				data[p + 0x200] = 0xe;
 			if (!data[p + 0x201])
-				data[p + 0x201] = this.rgb[0x0e];
+				data[p + 0x201] = 0xe;
 			if (!data[p + 0x202])
-				data[p + 0x202] = this.rgb[0x0e];
+				data[p + 0x202] = 0xe;
 		}
 
-		// alphaチャンネル修正
+		// palette変換
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 256; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] |= 0xff000000;
+				data[p] = this.rgb[data[p]];
 	}
 
 	xfer8x8(data, p, k) {
