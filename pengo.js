@@ -63,6 +63,7 @@ class Pengo {
 		// Videoの初期化
 		this.bg = new Uint8Array(0x8000);
 		this.obj = new Uint8Array(0x8000);
+		this.color = Uint8Array.from(COLOR, e => e & 0xf);
 		this.rgb = new Uint32Array(0x20);
 		this.convertRGB();
 		this.convertBG();
@@ -273,14 +274,6 @@ class Pengo {
 		}
 	}
 
-	static decodeROM() {
-		if ("decoded" in Pengo)
-			return;
-		for (let i = 0; i < COLOR.length; i++)
-			COLOR[i] &= 0xf;
-		Pengo.decoded = true;
-	}
-
 	makeBitmap(data) {
 		// bg描画
 		let p = 256 * 8 * 4 + 232;
@@ -337,93 +330,95 @@ class Pengo {
 	xfer8x8(data, p, k) {
 		const q = this.ram[k] << 6 | this.ram[0x1047] << 14, idx = this.ram[k + 0x400] << 2 & 0x7c | this.ram[0x1046] << 7;
 
-		data[p + 0x000] = COLOR[idx | this.bg[q + 0x00]];
-		data[p + 0x001] = COLOR[idx | this.bg[q + 0x01]];
-		data[p + 0x002] = COLOR[idx | this.bg[q + 0x02]];
-		data[p + 0x003] = COLOR[idx | this.bg[q + 0x03]];
-		data[p + 0x004] = COLOR[idx | this.bg[q + 0x04]];
-		data[p + 0x005] = COLOR[idx | this.bg[q + 0x05]];
-		data[p + 0x006] = COLOR[idx | this.bg[q + 0x06]];
-		data[p + 0x007] = COLOR[idx | this.bg[q + 0x07]];
-		data[p + 0x100] = COLOR[idx | this.bg[q + 0x08]];
-		data[p + 0x101] = COLOR[idx | this.bg[q + 0x09]];
-		data[p + 0x102] = COLOR[idx | this.bg[q + 0x0a]];
-		data[p + 0x103] = COLOR[idx | this.bg[q + 0x0b]];
-		data[p + 0x104] = COLOR[idx | this.bg[q + 0x0c]];
-		data[p + 0x105] = COLOR[idx | this.bg[q + 0x0d]];
-		data[p + 0x106] = COLOR[idx | this.bg[q + 0x0e]];
-		data[p + 0x107] = COLOR[idx | this.bg[q + 0x0f]];
-		data[p + 0x200] = COLOR[idx | this.bg[q + 0x10]];
-		data[p + 0x201] = COLOR[idx | this.bg[q + 0x11]];
-		data[p + 0x202] = COLOR[idx | this.bg[q + 0x12]];
-		data[p + 0x203] = COLOR[idx | this.bg[q + 0x13]];
-		data[p + 0x204] = COLOR[idx | this.bg[q + 0x14]];
-		data[p + 0x205] = COLOR[idx | this.bg[q + 0x15]];
-		data[p + 0x206] = COLOR[idx | this.bg[q + 0x16]];
-		data[p + 0x207] = COLOR[idx | this.bg[q + 0x17]];
-		data[p + 0x300] = COLOR[idx | this.bg[q + 0x18]];
-		data[p + 0x301] = COLOR[idx | this.bg[q + 0x19]];
-		data[p + 0x302] = COLOR[idx | this.bg[q + 0x1a]];
-		data[p + 0x303] = COLOR[idx | this.bg[q + 0x1b]];
-		data[p + 0x304] = COLOR[idx | this.bg[q + 0x1c]];
-		data[p + 0x305] = COLOR[idx | this.bg[q + 0x1d]];
-		data[p + 0x306] = COLOR[idx | this.bg[q + 0x1e]];
-		data[p + 0x307] = COLOR[idx | this.bg[q + 0x1f]];
-		data[p + 0x400] = COLOR[idx | this.bg[q + 0x20]];
-		data[p + 0x401] = COLOR[idx | this.bg[q + 0x21]];
-		data[p + 0x402] = COLOR[idx | this.bg[q + 0x22]];
-		data[p + 0x403] = COLOR[idx | this.bg[q + 0x23]];
-		data[p + 0x404] = COLOR[idx | this.bg[q + 0x24]];
-		data[p + 0x405] = COLOR[idx | this.bg[q + 0x25]];
-		data[p + 0x406] = COLOR[idx | this.bg[q + 0x26]];
-		data[p + 0x407] = COLOR[idx | this.bg[q + 0x27]];
-		data[p + 0x500] = COLOR[idx | this.bg[q + 0x28]];
-		data[p + 0x501] = COLOR[idx | this.bg[q + 0x29]];
-		data[p + 0x502] = COLOR[idx | this.bg[q + 0x2a]];
-		data[p + 0x503] = COLOR[idx | this.bg[q + 0x2b]];
-		data[p + 0x504] = COLOR[idx | this.bg[q + 0x2c]];
-		data[p + 0x505] = COLOR[idx | this.bg[q + 0x2d]];
-		data[p + 0x506] = COLOR[idx | this.bg[q + 0x2e]];
-		data[p + 0x507] = COLOR[idx | this.bg[q + 0x2f]];
-		data[p + 0x600] = COLOR[idx | this.bg[q + 0x30]];
-		data[p + 0x601] = COLOR[idx | this.bg[q + 0x31]];
-		data[p + 0x602] = COLOR[idx | this.bg[q + 0x32]];
-		data[p + 0x603] = COLOR[idx | this.bg[q + 0x33]];
-		data[p + 0x604] = COLOR[idx | this.bg[q + 0x34]];
-		data[p + 0x605] = COLOR[idx | this.bg[q + 0x35]];
-		data[p + 0x606] = COLOR[idx | this.bg[q + 0x36]];
-		data[p + 0x607] = COLOR[idx | this.bg[q + 0x37]];
-		data[p + 0x700] = COLOR[idx | this.bg[q + 0x38]];
-		data[p + 0x701] = COLOR[idx | this.bg[q + 0x39]];
-		data[p + 0x702] = COLOR[idx | this.bg[q + 0x3a]];
-		data[p + 0x703] = COLOR[idx | this.bg[q + 0x3b]];
-		data[p + 0x704] = COLOR[idx | this.bg[q + 0x3c]];
-		data[p + 0x705] = COLOR[idx | this.bg[q + 0x3d]];
-		data[p + 0x706] = COLOR[idx | this.bg[q + 0x3e]];
-		data[p + 0x707] = COLOR[idx | this.bg[q + 0x3f]];
+		data[p + 0x000] = this.color[idx | this.bg[q + 0x00]];
+		data[p + 0x001] = this.color[idx | this.bg[q + 0x01]];
+		data[p + 0x002] = this.color[idx | this.bg[q + 0x02]];
+		data[p + 0x003] = this.color[idx | this.bg[q + 0x03]];
+		data[p + 0x004] = this.color[idx | this.bg[q + 0x04]];
+		data[p + 0x005] = this.color[idx | this.bg[q + 0x05]];
+		data[p + 0x006] = this.color[idx | this.bg[q + 0x06]];
+		data[p + 0x007] = this.color[idx | this.bg[q + 0x07]];
+		data[p + 0x100] = this.color[idx | this.bg[q + 0x08]];
+		data[p + 0x101] = this.color[idx | this.bg[q + 0x09]];
+		data[p + 0x102] = this.color[idx | this.bg[q + 0x0a]];
+		data[p + 0x103] = this.color[idx | this.bg[q + 0x0b]];
+		data[p + 0x104] = this.color[idx | this.bg[q + 0x0c]];
+		data[p + 0x105] = this.color[idx | this.bg[q + 0x0d]];
+		data[p + 0x106] = this.color[idx | this.bg[q + 0x0e]];
+		data[p + 0x107] = this.color[idx | this.bg[q + 0x0f]];
+		data[p + 0x200] = this.color[idx | this.bg[q + 0x10]];
+		data[p + 0x201] = this.color[idx | this.bg[q + 0x11]];
+		data[p + 0x202] = this.color[idx | this.bg[q + 0x12]];
+		data[p + 0x203] = this.color[idx | this.bg[q + 0x13]];
+		data[p + 0x204] = this.color[idx | this.bg[q + 0x14]];
+		data[p + 0x205] = this.color[idx | this.bg[q + 0x15]];
+		data[p + 0x206] = this.color[idx | this.bg[q + 0x16]];
+		data[p + 0x207] = this.color[idx | this.bg[q + 0x17]];
+		data[p + 0x300] = this.color[idx | this.bg[q + 0x18]];
+		data[p + 0x301] = this.color[idx | this.bg[q + 0x19]];
+		data[p + 0x302] = this.color[idx | this.bg[q + 0x1a]];
+		data[p + 0x303] = this.color[idx | this.bg[q + 0x1b]];
+		data[p + 0x304] = this.color[idx | this.bg[q + 0x1c]];
+		data[p + 0x305] = this.color[idx | this.bg[q + 0x1d]];
+		data[p + 0x306] = this.color[idx | this.bg[q + 0x1e]];
+		data[p + 0x307] = this.color[idx | this.bg[q + 0x1f]];
+		data[p + 0x400] = this.color[idx | this.bg[q + 0x20]];
+		data[p + 0x401] = this.color[idx | this.bg[q + 0x21]];
+		data[p + 0x402] = this.color[idx | this.bg[q + 0x22]];
+		data[p + 0x403] = this.color[idx | this.bg[q + 0x23]];
+		data[p + 0x404] = this.color[idx | this.bg[q + 0x24]];
+		data[p + 0x405] = this.color[idx | this.bg[q + 0x25]];
+		data[p + 0x406] = this.color[idx | this.bg[q + 0x26]];
+		data[p + 0x407] = this.color[idx | this.bg[q + 0x27]];
+		data[p + 0x500] = this.color[idx | this.bg[q + 0x28]];
+		data[p + 0x501] = this.color[idx | this.bg[q + 0x29]];
+		data[p + 0x502] = this.color[idx | this.bg[q + 0x2a]];
+		data[p + 0x503] = this.color[idx | this.bg[q + 0x2b]];
+		data[p + 0x504] = this.color[idx | this.bg[q + 0x2c]];
+		data[p + 0x505] = this.color[idx | this.bg[q + 0x2d]];
+		data[p + 0x506] = this.color[idx | this.bg[q + 0x2e]];
+		data[p + 0x507] = this.color[idx | this.bg[q + 0x2f]];
+		data[p + 0x600] = this.color[idx | this.bg[q + 0x30]];
+		data[p + 0x601] = this.color[idx | this.bg[q + 0x31]];
+		data[p + 0x602] = this.color[idx | this.bg[q + 0x32]];
+		data[p + 0x603] = this.color[idx | this.bg[q + 0x33]];
+		data[p + 0x604] = this.color[idx | this.bg[q + 0x34]];
+		data[p + 0x605] = this.color[idx | this.bg[q + 0x35]];
+		data[p + 0x606] = this.color[idx | this.bg[q + 0x36]];
+		data[p + 0x607] = this.color[idx | this.bg[q + 0x37]];
+		data[p + 0x700] = this.color[idx | this.bg[q + 0x38]];
+		data[p + 0x701] = this.color[idx | this.bg[q + 0x39]];
+		data[p + 0x702] = this.color[idx | this.bg[q + 0x3a]];
+		data[p + 0x703] = this.color[idx | this.bg[q + 0x3b]];
+		data[p + 0x704] = this.color[idx | this.bg[q + 0x3c]];
+		data[p + 0x705] = this.color[idx | this.bg[q + 0x3d]];
+		data[p + 0x706] = this.color[idx | this.bg[q + 0x3e]];
+		data[p + 0x707] = this.color[idx | this.bg[q + 0x3f]];
 	}
 
 	xfer16x16(data, dst, src) {
 		const idx = src >> 6 & 0x7c | this.ram[0x1046] << 7, h = 288 - (dst >> 8);
 		let px;
 
+		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240)
+			return;
 		if (h >= 16) {
 			src = src << 6 & 0x3f00 | this.ram[0x1047] << 14;
 			for (let i = 16; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
 		}
 		else {
 			src = src << 6 & 0x3f00 | this.ram[0x1047] << 14;
 			for (let i = h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
 			dst -= 0x10000;
 			for (let i = 16 - h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
 		}
 	}
@@ -432,23 +427,25 @@ class Pengo {
 		const idx = src >> 6 & 0x7c | this.ram[0x1046] << 7, h = 288 - (dst >> 8);
 		let px;
 
+		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240)
+			return;
 		if (h >= 16) {
 			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 256 - 16;
 			for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
 		}
 		else {
 			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 256 - 16;
 			for (let i = h; i !== 0; dst += 256 - 16, src -= 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
 			dst -= 0x10000;
 			for (let i = 16 - h; i !== 0; dst += 256 - 16, src -= 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
 		}
 	}
@@ -457,23 +454,25 @@ class Pengo {
 		const idx = src >> 6 & 0x7c | this.ram[0x1046] << 7, h = 288 - (dst >> 8);
 		let px;
 
+		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240)
+			return;
 		if (h >= 16) {
 			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 16;
 			for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
 		}
 		else {
 			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 16;
 			for (let i = h; i !== 0; dst += 256 - 16, src += 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
 			dst -= 0x10000;
 			for (let i = 16 - h; i !== 0; dst += 256 - 16, src += 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
 		}
 	}
@@ -482,23 +481,25 @@ class Pengo {
 		const idx = src >> 6 & 0x7c | this.ram[0x1046] << 7, h = 288 - (dst >> 8);
 		let px;
 
+		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240)
+			return;
 		if (h >= 16) {
 			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 256;
 			for (let i = 16; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
 		}
 		else {
 			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 256;
 			for (let i = h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
 			dst -= 0x10000;
 			for (let i = 16 - h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = COLOR[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
 		}
 	}
@@ -523,7 +524,6 @@ function success(zip) {
 	RGB = new Uint8Array(zip.files['pr1633.78'].inflate().split('').map(c => c.charCodeAt(0)));
 	COLOR = new Uint8Array(zip.files['pr1634.88'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['pr1635.51'].inflate().split('').map(c => c.charCodeAt(0)));
-	Pengo.decodeROM();
 	init({
 		game: new Pengo(),
 		sound: sound = new PacManSound({SND}),
