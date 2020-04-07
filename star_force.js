@@ -309,50 +309,50 @@ class StarForce {
 		for (let p = 0, q = 0, i = 0; i < 512; q += 8, i++)
 			for (let j = 7; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.fg[p++] = FG[q + k] >>> j << 2 & 4 | FG[q + k + 0x1000] >>> j << 1 & 2 | FG[q + k + 0x2000] >>> j & 1;
+					this.fg[p++] = FG[q + k] >> j << 2 & 4 | FG[q + k + 0x1000] >> j << 1 & 2 | FG[q + k + 0x2000] >> j & 1;
 	}
 
 	convertBG() {
 		for (let p = 0, q = 0, i = 0; i < 256; q += 32, i++) {
 			for (let j = 7; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.bg1[p++] = BG1[q + k + 16] >>> j << 2 & 4 | BG1[q + k + 0x2000 + 16] >>> j << 1 & 2 | BG1[q + k + 0x4000 + 16] >>> j & 1;
+					this.bg1[p++] = BG1[q + k + 16] >> j << 2 & 4 | BG1[q + k + 0x2000 + 16] >> j << 1 & 2 | BG1[q + k + 0x4000 + 16] >> j & 1;
 				for (let k = 7; k >= 0; --k)
-					this.bg1[p++] = BG1[q + k] >>> j << 2 & 4 | BG1[q + k + 0x2000] >>> j << 1 & 2 | BG1[q + k + 0x4000] >>> j & 1;
+					this.bg1[p++] = BG1[q + k] >> j << 2 & 4 | BG1[q + k + 0x2000] >> j << 1 & 2 | BG1[q + k + 0x4000] >> j & 1;
 			}
 			for (let j = 7; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.bg1[p++] = BG1[q + k + 24] >>> j << 2 & 4 | BG1[q + k + 0x2000 + 24] >>> j << 1 & 2 | BG1[q + k + 0x4000 + 24] >>> j & 1;
+					this.bg1[p++] = BG1[q + k + 24] >> j << 2 & 4 | BG1[q + k + 0x2000 + 24] >> j << 1 & 2 | BG1[q + k + 0x4000 + 24] >> j & 1;
 				for (let k = 7; k >= 0; --k)
-					this.bg1[p++] = BG1[q + k + 8] >>> j << 2 & 4 | BG1[q + k + 0x2000 + 8] >>> j << 1 & 2 | BG1[q + k + 0x4000 + 8] >>> j & 1;
+					this.bg1[p++] = BG1[q + k + 8] >> j << 2 & 4 | BG1[q + k + 0x2000 + 8] >> j << 1 & 2 | BG1[q + k + 0x4000 + 8] >> j & 1;
 			}
 		}
 		for (let p = 0, q = 0, i = 0; i < 256; q += 32, i++) {
 			for (let j = 7; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.bg2[p++] = BG2[q + k + 16] >>> j << 2 & 4 | BG2[q + k + 0x2000 + 16] >>> j << 1 & 2 | BG2[q + k + 0x4000 + 16] >>> j & 1;
+					this.bg2[p++] = BG2[q + k + 16] >> j << 2 & 4 | BG2[q + k + 0x2000 + 16] >> j << 1 & 2 | BG2[q + k + 0x4000 + 16] >> j & 1;
 				for (let k = 7; k >= 0; --k)
-					this.bg2[p++] = BG2[q + k] >>> j << 2 & 4 | BG2[q + k + 0x2000] >>> j << 1 & 2 | BG2[q + k + 0x4000] >>> j & 1;
+					this.bg2[p++] = BG2[q + k] >> j << 2 & 4 | BG2[q + k + 0x2000] >> j << 1 & 2 | BG2[q + k + 0x4000] >> j & 1;
 			}
 			for (let j = 7; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.bg2[p++] = BG2[q + k + 24] >>> j << 2 & 4 | BG2[q + k + 0x2000 + 24] >>> j << 1 & 2 | BG2[q + k + 0x4000 + 24] >>> j & 1;
+					this.bg2[p++] = BG2[q + k + 24] >> j << 2 & 4 | BG2[q + k + 0x2000 + 24] >> j << 1 & 2 | BG2[q + k + 0x4000 + 24] >> j & 1;
 				for (let k = 7; k >= 0; --k)
-					this.bg2[p++] = BG2[q + k + 8] >>> j << 2 & 4 | BG2[q + k + 0x2000 + 8] >>> j << 1 & 2 | BG2[q + k + 0x4000 + 8] >>> j & 1;
+					this.bg2[p++] = BG2[q + k + 8] >> j << 2 & 4 | BG2[q + k + 0x2000 + 8] >> j << 1 & 2 | BG2[q + k + 0x4000 + 8] >> j & 1;
 			}
 		}
 		for (let p = 0, q = 0, i = 0; i < 128; q += 32, i++) {
 			for (let j = 7; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.bg3[p++] = BG3[q + k + 16] >>> j << 2 & 4 | BG3[q + k + 0x1000 + 16] >>> j << 1 & 2 | BG3[q + k + 0x2000 + 16] >>> j & 1;
+					this.bg3[p++] = BG3[q + k + 16] >> j << 2 & 4 | BG3[q + k + 0x1000 + 16] >> j << 1 & 2 | BG3[q + k + 0x2000 + 16] >> j & 1;
 				for (let k = 7; k >= 0; --k)
-					this.bg3[p++] = BG3[q + k] >>> j << 2 & 4 | BG3[q + k + 0x1000] >>> j << 1 & 2 | BG3[q + k + 0x2000] >>> j & 1;
+					this.bg3[p++] = BG3[q + k] >> j << 2 & 4 | BG3[q + k + 0x1000] >> j << 1 & 2 | BG3[q + k + 0x2000] >> j & 1;
 			}
 			for (let j = 7; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.bg3[p++] = BG3[q + k + 24] >>> j << 2 & 4 | BG3[q + k + 0x1000 + 24] >>> j << 1 & 2 | BG3[q + k + 0x2000 + 24] >>> j & 1;
+					this.bg3[p++] = BG3[q + k + 24] >> j << 2 & 4 | BG3[q + k + 0x1000 + 24] >> j << 1 & 2 | BG3[q + k + 0x2000 + 24] >> j & 1;
 				for (let k = 7; k >= 0; --k)
-					this.bg3[p++] = BG3[q + k + 8] >>> j << 2 & 4 | BG3[q + k + 0x1000 + 8] >>> j << 1 & 2 | BG3[q + k + 0x2000 + 8] >>> j & 1;
+					this.bg3[p++] = BG3[q + k + 8] >> j << 2 & 4 | BG3[q + k + 0x1000 + 8] >> j << 1 & 2 | BG3[q + k + 0x2000 + 8] >> j & 1;
 			}
 		}
 	}
@@ -361,15 +361,15 @@ class StarForce {
 		for (let p = 0, q = 0, i = 0; i < 512; q += 32, i++) {
 			for (let j = 7; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 16] >>> j << 2 & 4 | OBJ[q + k + 0x4000 + 16] >>> j << 1 & 2 | OBJ[q + k + 0x8000 + 16] >>> j & 1;
+					this.obj[p++] = OBJ[q + k + 16] >> j << 2 & 4 | OBJ[q + k + 0x4000 + 16] >> j << 1 & 2 | OBJ[q + k + 0x8000 + 16] >> j & 1;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k] >>> j << 2 & 4 | OBJ[q + k + 0x4000] >>> j << 1 & 2 | OBJ[q + k + 0x8000] >>> j & 1;
+					this.obj[p++] = OBJ[q + k] >> j << 2 & 4 | OBJ[q + k + 0x4000] >> j << 1 & 2 | OBJ[q + k + 0x8000] >> j & 1;
 			}
 			for (let j = 7; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 24] >>> j << 2 & 4 | OBJ[q + k + 0x4000 + 24] >>> j << 1 & 2 | OBJ[q + k + 0x8000 + 24] >>> j & 1;
+					this.obj[p++] = OBJ[q + k + 24] >> j << 2 & 4 | OBJ[q + k + 0x4000 + 24] >> j << 1 & 2 | OBJ[q + k + 0x8000 + 24] >> j & 1;
 				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 8] >>> j << 2 & 4 | OBJ[q + k + 0x4000 + 8] >>> j << 1 & 2 | OBJ[q + k + 0x8000 + 8] >>> j & 1;
+					this.obj[p++] = OBJ[q + k + 8] >> j << 2 & 4 | OBJ[q + k + 0x4000 + 8] >> j << 1 & 2 | OBJ[q + k + 0x8000 + 8] >> j & 1;
 			}
 		}
 	}
@@ -389,7 +389,7 @@ class StarForce {
 		let hScroll = (this.ram[0x1e20] | this.ram[0x1e21] << 8) + 15;
 		let vScroll = this.ram[0x1e25];
 		p = 256 * 8 * 2 + 224 + (hScroll & 15) + (-vScroll & 0x0f) * 256;
-		let k = vScroll + 15 >>> 4 & 0x0f | hScroll & 0x7f0 | 0x2000;
+		let k = vScroll + 15 >> 4 & 0x0f | hScroll & 0x7f0 | 0x2000;
 		for (let i = 0; i < 15; k = k + 0x10 & 0x7ff | k & 0xf800, p -= 256 * 16 * 16 + 16, i++)
 			for (let j = 0; j < 16; k = k + 1 & 0x0f | k & 0xfff0, p += 256 * 16, j++)
 				this.xfer16x16_3(data, p, this.ram[k]);
@@ -401,7 +401,7 @@ class StarForce {
 		hScroll = (this.ram[0x1e30] | this.ram[0x1e31] << 8) + 15;
 		vScroll = this.ram[0x1e35];
 		p = 256 * 8 * 2 + 224 + (hScroll & 15) + (-vScroll & 0x0f) * 256;
-		k = vScroll + 15 >>> 4 & 0x0f | hScroll & 0x7f0 | 0x2800;
+		k = vScroll + 15 >> 4 & 0x0f | hScroll & 0x7f0 | 0x2800;
 		for (let i = 0; i < 15; k = k + 0x10 & 0x7ff | k & 0xf800, p -= 256 * 16 * 16 + 16, i++)
 			for (let j = 0; j < 16; k = k + 1 & 0x0f | k & 0xfff0, p += 256 * 16, j++)
 				this.xfer16x16_2(data, p, this.ram[k]);
@@ -413,7 +413,7 @@ class StarForce {
 		hScroll = (this.ram[0x1e30] | this.ram[0x1e31] << 8) + 15;
 		vScroll = this.ram[0x1e35];
 		p = 256 * 8 * 2 + 224 + (hScroll & 15) + (-vScroll & 0x0f) * 256;
-		k = vScroll + 15 >>> 4 & 0x0f | hScroll & 0x7f0 | 0x3000;
+		k = vScroll + 15 >> 4 & 0x0f | hScroll & 0x7f0 | 0x3000;
 		for (let i = 0; i < 15; k = k + 0x10 & 0x7ff | k & 0xf800, p -= 256 * 16 * 16 + 16, i++)
 			for (let j = 0; j < 16; k = k + 1 & 0x0f | k & 0xfff0, p += 256 * 16, j++)
 				this.xfer16x16_1(data, p, this.ram[k]);
@@ -437,51 +437,55 @@ class StarForce {
 
 	drawObj(data, pri) {
 		for (let k = 0x187c, i = 32; i !== 0; k -= 4, --i) {
-			if ((this.ram[k + 1] >>> 4 & 3) !== pri)
+			if ((this.ram[k + 1] >> 4 & 3) !== pri)
 				continue;
 			const x = this.ram[k + 2] - 1 & 0xff;
 			const y = (this.ram[k + 3] - 1 & 0xff) + 16;
-			if (this.ram[k] < 0xc0)
-				switch (this.ram[k + 1] >>> 6) {
+			if (this.ram[k] < 0xc0) {
+				const src = this.ram[k] | this.ram[k + 1] << 9;
+				switch (this.ram[k + 1] >> 6) {
 				case 0: // ノーマル
-					this.xfer16x16(data, x | y << 8, this.ram[k] | this.ram[k + 1] << 9);
-					continue;
+					this.xfer16x16(data, x | y << 8, src);
+					break;
 				case 1: // V反転
-					this.xfer16x16V(data, x | y << 8, this.ram[k] | this.ram[k + 1] << 9);
-					continue;
+					this.xfer16x16V(data, x | y << 8, src);
+					break;
 				case 2: // H反転
-					this.xfer16x16H(data, x | y << 8, this.ram[k] | this.ram[k + 1] << 9);
-					continue;
+					this.xfer16x16H(data, x | y << 8, src);
+					break;
 				case 3: // HV反転
-					this.xfer16x16HV(data, x | y << 8, this.ram[k] | this.ram[k + 1] << 9);
-					continue;
+					this.xfer16x16HV(data, x | y << 8, src);
+					break;
 				}
-			const src = this.ram[k] << 2 & 0x1fc | this.ram[k + 1] << 9;
-			switch (this.ram[k + 1] >>> 6) {
-			case 0: // ノーマル
-				this.xfer16x16(data, x | y << 8, src | 2);
-				this.xfer16x16(data, x + 16 & 0xff | y << 8, src | 0);
-				this.xfer16x16(data, x | (y & 0xff) + 16 << 8, src | 3);
-				this.xfer16x16(data, x + 16 & 0xff | (y & 0xff) + 16 << 8, src | 1);
-				break;
-			case 1: // V反転
-				this.xfer16x16V(data, x | y << 8, src | 3);
-				this.xfer16x16V(data, x + 16 & 0xff | y << 8, src | 1);
-				this.xfer16x16V(data, x | (y & 0xff) + 16 << 8, src | 2);
-				this.xfer16x16V(data, x + 16 & 0xff | (y & 0xff) + 16 << 8, src | 0);
-				break;
-			case 2: // H反転
-				this.xfer16x16H(data, x | y << 8, src | 0);
-				this.xfer16x16H(data, x + 16 & 0xff | y << 8, src | 2);
-				this.xfer16x16H(data, x | (y & 0xff) + 16 << 8, src | 1);
-				this.xfer16x16H(data, x + 16 & 0xff | (y & 0xff) + 16 << 8, src | 3);
-				break;
-			case 3: // HV反転
-				this.xfer16x16HV(data, x | y << 8, src | 1);
-				this.xfer16x16HV(data, x + 16 & 0xff | y << 8, src | 3);
-				this.xfer16x16HV(data, x | (y & 0xff) + 16 << 8, src | 0);
-				this.xfer16x16HV(data, x + 16 & 0xff | (y & 0xff) + 16 << 8, src | 2);
-				break;
+			}
+			else {
+				const src = this.ram[k] << 2 & 0x1fc | this.ram[k + 1] << 9;
+				switch (this.ram[k + 1] >> 6) {
+				case 0: // ノーマル
+					this.xfer16x16(data, x | y << 8, src | 2);
+					this.xfer16x16(data, x + 16 & 0xff | y << 8, src | 0);
+					this.xfer16x16(data, x | (y & 0xff) + 16 << 8, src | 3);
+					this.xfer16x16(data, x + 16 & 0xff | (y & 0xff) + 16 << 8, src | 1);
+					break;
+				case 1: // V反転
+					this.xfer16x16V(data, x | y << 8, src | 3);
+					this.xfer16x16V(data, x + 16 & 0xff | y << 8, src | 1);
+					this.xfer16x16V(data, x | (y & 0xff) + 16 << 8, src | 2);
+					this.xfer16x16V(data, x + 16 & 0xff | (y & 0xff) + 16 << 8, src | 0);
+					break;
+				case 2: // H反転
+					this.xfer16x16H(data, x | y << 8, src | 0);
+					this.xfer16x16H(data, x + 16 & 0xff | y << 8, src | 2);
+					this.xfer16x16H(data, x | (y & 0xff) + 16 << 8, src | 1);
+					this.xfer16x16H(data, x + 16 & 0xff | (y & 0xff) + 16 << 8, src | 3);
+					break;
+				case 3: // HV反転
+					this.xfer16x16HV(data, x | y << 8, src | 1);
+					this.xfer16x16HV(data, x + 16 & 0xff | y << 8, src | 3);
+					this.xfer16x16HV(data, x | (y & 0xff) + 16 << 8, src | 0);
+					this.xfer16x16HV(data, x + 16 & 0xff | (y & 0xff) + 16 << 8, src | 2);
+					break;
+				}
 			}
 		}
 	}
@@ -557,7 +561,7 @@ class StarForce {
 	}
 
 	xfer16x16_1(data, dst, src) {
-		const idx = src >>> 4 & 8 | src >>> 1 & 0x30 | 0x40;
+		const idx = src >> 4 & 8 | src >> 1 & 0x30 | 0x40;
 		let px;
 
 		src = src << 8 & 0xff00;
@@ -568,7 +572,7 @@ class StarForce {
 	}
 
 	xfer16x16_2(data, dst, src) {
-		const idx = src >>> 2 & 0x38 | 0x80;
+		const idx = src >> 2 & 0x38 | 0x80;
 		let px;
 
 		src = src << 8 & 0xff00;
@@ -579,7 +583,7 @@ class StarForce {
 	}
 
 	xfer16x16_3(data, dst, src) {
-		const idx = src >>> 2 & 0x38 | 0xc0;
+		const idx = src >> 2 & 0x38 | 0xc0;
 		let px;
 
 		src = src << 8 & 0x7f00;
@@ -590,7 +594,7 @@ class StarForce {
 	}
 
 	xfer16x16(data, dst, src) {
-		const idx = src >>> 6 & 0x38 | 0x140;
+		const idx = src >> 6 & 0x38 | 0x140;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240)
@@ -603,7 +607,7 @@ class StarForce {
 	}
 
 	xfer16x16V(data, dst, src) {
-		const idx = src >>> 6 & 0x38 | 0x140;
+		const idx = src >> 6 & 0x38 | 0x140;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240)
@@ -616,7 +620,7 @@ class StarForce {
 	}
 
 	xfer16x16H(data, dst, src) {
-		const idx = src >>> 6 & 0x38 | 0x140;
+		const idx = src >> 6 & 0x38 | 0x140;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240)
@@ -629,7 +633,7 @@ class StarForce {
 	}
 
 	xfer16x16HV(data, dst, src) {
-		const idx = src >>> 6 & 0x38 | 0x140;
+		const idx = src >> 6 & 0x38 | 0x140;
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240)

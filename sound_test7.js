@@ -45,23 +45,21 @@ class SoundTest {
 		this.cpu2.memorymap[0xc0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				this.fm.addr = data;
-				break;
+				return void(this.fm.addr = data);
 			case 1:
 				switch (this.fm.addr) {
 				case 8: // KON
 					this.fm.kon[data & 7] = (data & 0x78) !== 0;
 					break;
 				case 0x14: // CSM/F RESET/IRQEN/LOAD
-					this.fm.status &= ~(data >>> 4 & 3);
+					this.fm.status &= ~(data >> 4 & 3);
 					if ((data & 1) !== 0)
 						this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
 					if ((data & 2) !== 0)
 						this.fm.timerb = this.fm.reg[0x12];
 					break;
 				}
-				sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
-				break;
+				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
 			}
 		};
 		this.cpu2.memorymap[0xd0].write = (addr, data) => addr === 0xd000 && (this.vlm_latch = data);
@@ -83,11 +81,11 @@ class SoundTest {
 			this.cpu2.execute(146);
 			if ((this.fm.reg[0x14] & 1) !== 0 && (this.fm.timera += 16) >= 0x400) {
 				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-				this.fm.status |= this.fm.reg[0x14] >>> 2 & 1;
+				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
 			}
 			if ((this.fm.reg[0x14] & 2) !== 0 && ++this.fm.timerb >= 0x100) {
 				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
-				this.fm.status |= this.fm.reg[0x14] >>> 2 & 2;
+				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
 			}
 		}
 		return this;
@@ -178,7 +176,7 @@ class SoundTest {
 			if (!this.fm.kon[i])
 				continue;
 			const kc = this.fm.reg[0x28 + i];
-			SoundTest.Xfer28x16(data, 28 * (kc >>> 4 & 7) + 256 * 16 * i, key[(kc >>> 2 & 3) * 3 + (kc & 3) + 1]);
+			SoundTest.Xfer28x16(data, 28 * (kc >> 4 & 7) + 256 * 16 * i, key[(kc >> 2 & 3) * 3 + (kc & 3) + 1]);
 		}
 	}
 

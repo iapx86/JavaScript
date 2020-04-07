@@ -91,17 +91,13 @@ class Gradius {
 		this.cpu.memorymap[0x5e0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 1:
-				this.fInterrupt2Enable = (data & 1) !== 0;
-				break;
+				return void(this.fInterrupt2Enable = (data & 1) !== 0);
 			case 5:
-				this.flip = this.flip & 2 | data & 1;
-				break;
+				return void(this.flip = this.flip & 2 | data & 1);
 			case 7:
-				this.flip = this.flip & 1 | data << 1 & 2;
-				break;
+				return void(this.flip = this.flip & 1 | data << 1 & 2);
 			case 0xe:
-				this.fInterrupt4Enable = (data & 1) !== 0;
-				break;
+				return void(this.fInterrupt4Enable = (data & 1) !== 0);
 			}
 		};
 		for (let i = 0; i < 0x200; i++) {
@@ -138,23 +134,17 @@ class Gradius {
 		this.cpu2.memorymap[0xe0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				this.vlm_latch = data;
-				break;
+				return void(this.vlm_latch = data);
 			case 3:
-				sound[2].write(2, this.scc.freq0, this.count);
-				break;
+				return sound[2].write(2, this.scc.freq0, this.count);
 			case 4:
-				sound[2].write(3, this.scc.freq1, this.count);
-				break;
+				return sound[2].write(3, this.scc.freq1, this.count);
 			case 5:
-				this.psg[1].addr = data;
-				break;
+				return void(this.psg[1].addr = data);
 			case 6:
-				this.psg[0].addr = data;
-				break;
+				return void(this.psg[0].addr = data);
 			case 0x30:
-				sound[3].st(this.vlm_latch);
-				break;
+				return sound[3].st(this.vlm_latch);
 			}
 		};
 		this.cpu2.memorymap[0xe1].write = (addr, data) => addr === 0xe106 && this.psg[0].addr !== 0xe && sound[0].write(this.psg[0].addr, data, this.count);
@@ -396,20 +386,20 @@ class Gradius {
 		// obj描画
 		const size = [[32, 32], [16, 32], [32, 16], [64, 64], [8, 8], [16, 8], [8, 16], [16, 16]];
 		for (let pri = 0; pri < 256; pri++)
-			for (let p = 0x26000; p < 0x27000; p += 0x10) {
-				if (this.ram[p + 1] !== pri)
+			for (let k = 0x26000; k < 0x27000; k += 0x10) {
+				if (this.ram[k + 1] !== pri)
 					continue;
-				let zoom = this.ram[p + 5];
-				let src = this.ram[p + 9] << 9 & 0x18000 | this.ram[p + 7] << 7;
-				if (this.ram[p + 4] === 0 && this.ram[p + 6] !== 0xff)
-					src = src + (this.ram[p + 6] << 15) & 0x1ff80;
-				if (zoom === 0xff && src === 0 || (zoom |= this.ram[p + 3] << 2 & 0x300) === 0)
+				let zoom = this.ram[k + 5];
+				let src = this.ram[k + 9] << 9 & 0x18000 | this.ram[k + 7] << 7;
+				if (this.ram[k + 4] === 0 && this.ram[k + 6] !== 0xff)
+					src = src + (this.ram[k + 6] << 15) & 0x1ff80;
+				if (zoom === 0xff && src === 0 || (zoom |= this.ram[k + 3] << 2 & 0x300) === 0)
 					continue;
-				const color = this.ram[p + 9] << 3 & 0xf0;
-				const y = (this.ram[p + 9] << 8 | this.ram[p + 11]) + 16 & 0x1ff;
-				const x = ~this.ram[p + 13] & 0xff;
-				const [h, w] = size[this.ram[p + 3] >> 3 & 7];
-				switch (this.ram[p + 9] >> 4 & 2 | this.ram[p + 3] & 1) {
+				const color = this.ram[k + 9] << 3 & 0xf0;
+				const y = (this.ram[k + 9] << 8 | this.ram[k + 11]) + 16 & 0x1ff;
+				const x = ~this.ram[k + 13] & 0xff;
+				const [h, w] = size[this.ram[k + 3] >> 3 & 7];
+				switch (this.ram[k + 9] >> 4 & 2 | this.ram[k + 3] & 1) {
 				case 0:
 					this.xferHxW(data, src, color, y, x, h, w, zoom);
 					break;

@@ -219,19 +219,19 @@ class RoyalMahjong {
 	convertRGB() {
 		for (let i = 0; i < 0x20; i++)
 			this.rgb[i] = (RGB[i] & 7) * 255 / 7	// Red
-				| (RGB[i] >>> 3 & 7) * 255 / 7 << 8	// Green
-				| (RGB[i] >>> 6) * 255 / 3 << 16	// Blue
+				| (RGB[i] >> 3 & 7) * 255 / 7 << 8	// Green
+				| (RGB[i] >> 6) * 255 / 3 << 16		// Blue
 				| 0xff000000;						// Alpha
 	}
 
 	makeBitmap(data) {
 		for (let p = 252 * 256, k = 0x200, i = 240; i !== 0; p += 256 * 256 + 1, --i)
-			for (let j = 256 >>> 2; j !== 0; k++, p -= 4 * 256, --j) {
+			for (let j = 256 >> 2; j !== 0; k++, p -= 4 * 256, --j) {
 				const p0 = this.vram[k], p1 = this.vram[0x4000 + k];
-				data[p] = this.rgb[p0 >>> 3 & 1 | p0 >>> 6 & 2 | p1 >>> 1 & 4 | p1 >>> 4 & 8 | this.palette];
-				data[p + 256] = this.rgb[p0 >>> 2 & 1 | p0 >>> 5 & 2 | p1 & 4 | p1 >>> 3 & 8 | this.palette];
-				data[p + 2 * 256] = this.rgb[p0 >>> 1 & 1 | p0 >>> 4 & 2 | p1 << 1 & 4 | p1 >>> 2 & 8 | this.palette];
-				data[p + 3 * 256] = this.rgb[p0 & 1 | p0 >>> 3 & 2 | p1 << 2 & 4 | p1 >>> 1 & 8 | this.palette];
+				data[p] = this.rgb[p0 >> 3 & 1 | p0 >> 6 & 2 | p1 >> 1 & 4 | p1 >> 4 & 8 | this.palette];
+				data[p + 256] = this.rgb[p0 >> 2 & 1 | p0 >> 5 & 2 | p1 & 4 | p1 >> 3 & 8 | this.palette];
+				data[p + 2 * 256] = this.rgb[p0 >> 1 & 1 | p0 >> 4 & 2 | p1 << 1 & 4 | p1 >> 2 & 8 | this.palette];
+				data[p + 3 * 256] = this.rgb[p0 & 1 | p0 >> 3 & 2 | p1 << 2 & 4 | p1 >> 1 & 8 | this.palette];
 			}
 	}
 }

@@ -114,8 +114,7 @@ class Salamander {
 		this.cpu2.memorymap[0xc0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				this.fm.addr = data;
-				break;
+				return void(this.fm.addr = data);
 			case 1:
 				if (this.fm.addr === 0x14) { // CSM/F RESET/IRQEN/LOAD
 					this.fm.status &= ~(data >> 4 & 3);
@@ -124,8 +123,7 @@ class Salamander {
 					if ((data & 2) !== 0)
 						this.fm.timerb = this.fm.reg[0x12];
 				}
-				sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
-				break;
+				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
 			}
 		};
 		this.cpu2.memorymap[0xd0].write = (addr, data) => addr === 0xd000 && (this.vlm_latch = data);
@@ -341,20 +339,20 @@ class Salamander {
 		// obj描画
 		const size = [[32, 32], [16, 32], [32, 16], [64, 64], [8, 8], [16, 8], [8, 16], [16, 16]];
 		for (let pri = 0; pri < 256; pri++)
-			for (let p = 0xd000; p < 0xe000; p += 0x10) {
-				if (this.ram[p + 1] !== pri)
+			for (let k = 0xd000; k < 0xe000; k += 0x10) {
+				if (this.ram[k + 1] !== pri)
 					continue;
-				let zoom = this.ram[p + 5];
-				let src = this.ram[p + 9] << 9 & 0x18000 | this.ram[p + 7] << 7;
-				if (this.ram[p + 4] === 0 && this.ram[p + 6] !== 0xff)
-					src = src + (this.ram[p + 6] << 15) & 0x1ff80;
-				if (zoom === 0xff && src === 0 || (zoom |= this.ram[p + 3] << 2 & 0x300) === 0)
+				let zoom = this.ram[k + 5];
+				let src = this.ram[k + 9] << 9 & 0x18000 | this.ram[k + 7] << 7;
+				if (this.ram[k + 4] === 0 && this.ram[k + 6] !== 0xff)
+					src = src + (this.ram[k + 6] << 15) & 0x1ff80;
+				if (zoom === 0xff && src === 0 || (zoom |= this.ram[k + 3] << 2 & 0x300) === 0)
 					continue;
-				const color = this.ram[p + 9] << 3 & 0xf0;
-				const y = (this.ram[p + 9] << 8 | this.ram[p + 11]) + 16 & 0x1ff;
-				const x = ~this.ram[p + 13] & 0xff;
-				const [h, w] = size[this.ram[p + 3] >> 3 & 7];
-				switch (this.ram[p + 9] >> 4 & 2 | this.ram[p + 3] & 1) {
+				const color = this.ram[k + 9] << 3 & 0xf0;
+				const y = (this.ram[k + 9] << 8 | this.ram[k + 11]) + 16 & 0x1ff;
+				const x = ~this.ram[k + 13] & 0xff;
+				const [h, w] = size[this.ram[k + 3] >> 3 & 7];
+				switch (this.ram[k + 9] >> 4 & 2 | this.ram[k + 3] & 1) {
 				case 0:
 					this.xferHxW(data, src, color, y, x, h, w, zoom);
 					break;

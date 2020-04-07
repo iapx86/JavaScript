@@ -101,7 +101,7 @@ export default class VLM5030 {
 						this.nk = new Int16Array(10);
 						const frame = this.base.subarray(this.offset);
 						if ((frame[0] & 1) === 0) {
-							this.npitch = VLM5030.table.p[frame[0] >> 1 & 0x1f] + [0, 8, -8, -8][this.param >>> 6 & 3] & 0xff;
+							this.npitch = VLM5030.table.p[frame[0] >> 1 & 0x1f] + [0, 8, -8, -8][this.param >> 6 & 3] & 0xff;
 							this.nenergy = VLM5030.table.e[frame[0] >> 6 | frame[1] << 2 & 0x1c];
 							this.nk[9] = VLM5030.table.k4_9[frame[1] >> 3 & 7];
 							this.nk[8] = VLM5030.table.k4_9[frame[1] >> 6 | frame[2] << 2 & 4];

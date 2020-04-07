@@ -36,7 +36,7 @@ class SoundTest {
 		}
 		for (let i = 0; i < 0x100; i++) {
 			this.cpu2.iomap[i].read = addr => {
-				switch (addr >>> 6 & 3) {
+				switch (addr >> 6 & 3) {
 				case 0:
 					return (addr & 1) !== 0 ? this.fm.status : 0xff;
 				case 3:
@@ -45,27 +45,25 @@ class SoundTest {
 				return 0xff;
 			};
 			this.cpu2.iomap[i].write = (addr, data) => {
-				if ((addr >>> 6 & 3) !== 0)
+				if ((addr >> 6 & 3) !== 0)
 					return;
 				switch (addr & 1) {
 				case 0:
-					this.fm.addr = data;
-					break;
+					return void(this.fm.addr = data);
 				case 1:
 					switch (this.fm.addr) {
 					case 8: // KON
 						this.fm.kon[data & 7] = (data & 0x78) !== 0;
 						break;
 					case 0x14: // CSM/F RESET/IRQEN/LOAD
-						this.fm.status &= ~(data >>> 4 & 3);
+						this.fm.status &= ~(data >> 4 & 3);
 						if ((data & 1) !== 0)
 							this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
 						if ((data & 2) !== 0)
 							this.fm.timerb = this.fm.reg[0x12];
 						break;
 					}
-					sound.write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
-					break;
+					return sound.write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
 				}
 			}
 		}
@@ -77,11 +75,11 @@ class SoundTest {
 			this.cpu2.execute(128);
 			if ((this.fm.reg[0x14] & 1) !== 0 && (this.fm.timera += 16) >= 0x400) {
 				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-				this.fm.status |= this.fm.reg[0x14] >>> 2 & 1;
+				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
 			}
 			if ((this.fm.reg[0x14] & 2) !== 0 && ++this.fm.timerb >= 0x100) {
 				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
-				this.fm.status |= this.fm.reg[0x14] >>> 2 & 2;
+				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
 			}
 		}
 		return this;
@@ -170,7 +168,7 @@ class SoundTest {
 				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[13]);
 
 		for (let i = 0; i < 8; i++) {
-			const kc = this.fm.reg[0x28 + i], pitch = (kc >>> 4 & 7) * 12 + (kc >>> 2 & 3) * 3 + (kc & 3);
+			const kc = this.fm.reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3);
 			if (!this.fm.kon[i] || pitch < 0 || pitch >= 12 * 8)
 				continue;
 			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);

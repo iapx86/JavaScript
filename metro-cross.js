@@ -248,10 +248,10 @@ class MetroCross {
 
 	convertRGB() {
 		for (let i = 0; i < 0x800; i++)
-			this.rgb[i] = (RED[i] & 0x0f) * 255 / 15	// Red
-				| (GREEN[i] & 0x0f) * 255 / 15 << 8		// Green
-				| (GREEN[i] >> 4) * 255 / 15 << 16		// Blue
-				| 0xff000000;							// Alpha
+			this.rgb[i] = (RED[i] & 0xf) * 255 / 15	// Red
+				| (GREEN[i] & 0xf) * 255 / 15 << 8	// Green
+				| (GREEN[i] >> 4) * 255 / 15 << 16	// Blue
+				| 0xff000000;						// Alpha
 	}
 
 	convertFG() {
@@ -304,30 +304,30 @@ class MetroCross {
 		for (let p = 0, q = 0, i = 256; i !== 0; q += 128, --i) {
 			for (let k = 4; k >= 0; k -= 4)
 				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l] >> k & 0x0f;
+					this.obj[p++] = OBJ[q + l] >> k & 0xf;
 			for (let k = 4; k >= 0; k -= 4)
 				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 1] >> k & 0x0f;
+					this.obj[p++] = OBJ[q + l + 1] >> k & 0xf;
 			for (let k = 4; k >= 0; k -= 4)
 				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 2] >> k & 0x0f;
+					this.obj[p++] = OBJ[q + l + 2] >> k & 0xf;
 			for (let k = 4; k >= 0; k -= 4)
 				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 3] >> k & 0x0f;
+					this.obj[p++] = OBJ[q + l + 3] >> k & 0xf;
 			for (let k = 4; k >= 0; k -= 4)
 				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 4] >> k & 0x0f;
+					this.obj[p++] = OBJ[q + l + 4] >> k & 0xf;
 			for (let k = 4; k >= 0; k -= 4)
 				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 5] >> k & 0x0f;
+					this.obj[p++] = OBJ[q + l + 5] >> k & 0xf;
 			for (let k = 4; k >= 0; k -= 4)
 				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 6] >> k & 0x0f;
+					this.obj[p++] = OBJ[q + l + 6] >> k & 0xf;
 			for (let k = 4; k >= 0; k -= 4)
 				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 7] >> k & 0x0f;
+					this.obj[p++] = OBJ[q + l + 7] >> k & 0xf;
 		}
-		this.obj.fill(0x0f, 0x10000);
+		this.obj.fill(0xf, 0x10000);
 	}
 
 	makeBitmap(data) {
@@ -388,13 +388,13 @@ class MetroCross {
 	drawObj(data, pri) {
 		const ram = this.ram;
 
-		for (let p = 0x1800, i = 127; i !== 0; p += 16, --i) {
-			if ((ram[p + 4] & 1) !== pri)
+		for (let k = 0x1800, i = 127; i !== 0; k += 16, --i) {
+			if ((ram[k + 4] & 1) !== pri)
 				continue;
-			const y = -54 + (ram[p + 7] | ram[p + 6] << 8 & 0x100) + (ram[0x1ff5] | ram[0x1ff4] << 8 & 0x100) & 0x1ff;
-			const x = -1 + ram[p + 9] + ram[0x1ff7] & 0xff;
-			const src = ram[p + 4] >> 4 & 1 | ram[p + 8] >> 3 & 2 | ram[p + 5] << 2 & 0x1fc | ram[p + 6] << 8 & 0xfe00;
-			switch (ram[p + 8] & 5 | ram[p + 4] >> 4 & 0x0a) {
+			const x = -1 + ram[k + 9] + ram[0x1ff7] & 0xff;
+			const y = -54 + (ram[k + 7] | ram[k + 6] << 8 & 0x100) + (ram[0x1ff5] | ram[0x1ff4] << 8 & 0x100) & 0x1ff;
+			const src = ram[k + 4] >> 4 & 1 | ram[k + 8] >> 3 & 2 | ram[k + 5] << 2 & 0x1fc | ram[k + 6] << 8 & 0xfe00;
+			switch (ram[k + 8] & 5 | ram[k + 4] >> 4 & 0x0a) {
 			case 0x00:
 				this.xfer16x16(data, x | y << 8, src);
 				break;
@@ -687,7 +687,7 @@ class MetroCross {
 		src = src << 8 & 0x1ff00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0x0f)
+				if ((px = this.obj[src++]) !== 0xf)
 					data[dst] = idx | px;
 	}
 
@@ -700,7 +700,7 @@ class MetroCross {
 		src = (src << 8 & 0x1ff00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0x0f)
+				if ((px = this.obj[src++]) !== 0xf)
 					data[dst] = idx | px;
 	}
 
@@ -713,7 +713,7 @@ class MetroCross {
 		src = (src << 8 & 0x1ff00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0x0f)
+				if ((px = this.obj[--src]) !== 0xf)
 					data[dst] = idx | px;
 	}
 
@@ -726,7 +726,7 @@ class MetroCross {
 		src = (src << 8 & 0x1ff00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0x0f)
+				if ((px = this.obj[--src]) !== 0xf)
 					data[dst] = idx | px;
 	}
 }

@@ -59,23 +59,17 @@ class SoundTest {
 		this.cpu2.memorymap[0xe0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				this.vlm_latch = data;
-				break;
+				return void(this.vlm_latch = data);
 			case 3:
-				sound[2].write(2, this.scc.freq0, this.count);
-				break;
+				return sound[2].write(2, this.scc.freq0, this.count);
 			case 4:
-				sound[2].write(3, this.scc.freq1, this.count);
-				break;
+				return sound[2].write(3, this.scc.freq1, this.count);
 			case 5:
-				this.psg[1].addr = data;
-				break;
+				return void(this.psg[1].addr = data);
 			case 6:
-				this.psg[0].addr = data;
-				break;
+				return void(this.psg[0].addr = data);
 			case 0x30:
-				sound[3].st(this.vlm_latch);
-				break;
+				return sound[3].st(this.vlm_latch);
 			}
 		};
 		this.cpu2.memorymap[0xe1].write = (addr, data) => addr === 0xe106 && this.psg[0].addr !== 0xe && sound[0].write(this.psg[0].addr, data, this.count);
@@ -192,7 +186,7 @@ class SoundTest {
 
 		const reg = [];
 		for (let i = 0; i < 0x20; i++)
-			reg[i] = sound[i >>> 4].read(i & 0xf);
+			reg[i] = sound[i >> 4].read(i & 0xf);
 
 		if (this.scc.freq0 && (this.scc.reg0 & 0xf)) {
 			const pitch = Math.floor(Math.log2(14318180 / 4 / 32 / this.scc.freq0 / 440) * 12 + 45.5);

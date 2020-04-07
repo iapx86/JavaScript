@@ -144,12 +144,12 @@ class TTMahjong {
 
 	makeBitmap(data) {
 		for (let p = 252 * 256, k = 0x200, i = 240; i !== 0; p += 256 * 256 + 1, --i)
-			for (let j = 256 >>> 2; j !== 0; k++, p -= 4 * 256, --j) {
+			for (let j = 256 >> 2; j !== 0; k++, p -= 4 * 256, --j) {
 				const p1 = this.vram1[k], p2 = this.vram2[k];
-				data[p] = this.rgb[(COLOR1[p1 >>> 3 & 1 | p1 >>> 6 & 2 | this.palette1] | COLOR2[p2 >>> 3 & 1 | p2 >>> 6 & 2 | this.palette2 | p1 << 4 & 0x80 | p1 & 0x80]) & 7];
-				data[p + 256] = this.rgb[(COLOR1[p1 >>> 2 & 1 | p1 >>> 5 & 2 | this.palette1] | COLOR2[p2 >>> 2 & 1 | p2 >>> 5 & 2 | this.palette2 | p1 << 5 & 0x80 | p1 << 1 & 0x80]) & 7];
-				data[p + 2 * 256] = this.rgb[(COLOR1[p1 >>> 1 & 1 | p1 >>> 4 & 2 | this.palette1] | COLOR2[p2 >>> 1 & 1 | p2 >>> 4 & 2 | this.palette2 | p1 << 6 & 0x80 | p1 << 2 & 0x80]) & 7];
-				data[p + 3 * 256] = this.rgb[(COLOR1[p1 & 1 | p1 >>> 3 & 2 | this.palette1] | COLOR2[p2 & 1 | p2 >>> 3 & 2 | this.palette2 | p1 << 7 & 0x80 | p1 << 3 & 0x80]) & 7];
+				data[p] = this.rgb[(COLOR1[p1 >> 3 & 1 | p1 >> 6 & 2 | this.palette1] | COLOR2[p2 >> 3 & 1 | p2 >> 6 & 2 | this.palette2 | p1 << 4 & 0x80 | p1 & 0x80]) & 7];
+				data[p + 256] = this.rgb[(COLOR1[p1 >> 2 & 1 | p1 >> 5 & 2 | this.palette1] | COLOR2[p2 >> 2 & 1 | p2 >> 5 & 2 | this.palette2 | p1 << 5 & 0x80 | p1 << 1 & 0x80]) & 7];
+				data[p + 2 * 256] = this.rgb[(COLOR1[p1 >> 1 & 1 | p1 >> 4 & 2 | this.palette1] | COLOR2[p2 >> 1 & 1 | p2 >> 4 & 2 | this.palette2 | p1 << 6 & 0x80 | p1 << 2 & 0x80]) & 7];
+				data[p + 3 * 256] = this.rgb[(COLOR1[p1 & 1 | p1 >> 3 & 2 | this.palette1] | COLOR2[p2 & 1 | p2 >> 3 & 2 | this.palette2 | p1 << 7 & 0x80 | p1 << 3 & 0x80]) & 7];
 			}
 	}
 }

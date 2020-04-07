@@ -453,10 +453,10 @@ class Gaplus {
 
 	convertRGB() {
 		for (let i = 0; i < 0x100; i++)
-			this.rgb[i] = (RED[i] & 0x0f) * 255 / 15	// Red
-				| (GREEN[i] & 0x0f) * 255 / 15 << 8		// Green
-				| (BLUE[i] & 0x0f) * 255 / 15 << 16		// Blue
-				| 0xff000000;							// Alpha
+			this.rgb[i] = (RED[i] & 0xf) * 255 / 15	// Red
+				| (GREEN[i] & 0xf) * 255 / 15 << 8	// Green
+				| (BLUE[i] & 0xf) * 255 / 15 << 16	// Blue
+				| 0xff000000;						// Alpha
 		for (let i = 0; i < 0x40; i++)
 			this.rgb[0x100 | i] = (i << 1 & 6) * 255 / 7	// Red
 				| (i >> 1 & 6) * 255 / 7 << 8				// Green
@@ -701,267 +701,268 @@ class Gaplus {
 		this.drawBG(data, 0);
 
 		// obj描画
-		for (let p = 0x0f80, i = 64; i !== 0; p += 2, --i) {
-			if ((this.ram[p + 0x1001] & 0x80) === 0)
+		for (let k = 0x0f80, i = 64; i !== 0; k += 2, --i) {
+			if ((this.ram[k + 0x1001] & 0x80) === 0)
 				continue;
-			const y = (this.ram[p + 0x801] | this.ram[p + 0x1001] << 8) - 0x37 & 0x1ff;
-			const x = this.ram[p + 0x800] + 8 & 0xff;
-			switch (this.ram[p + 0x1000] & 0xeb) {
+			const x = this.ram[k + 0x800] + 8 & 0xff;
+			const y = (this.ram[k + 0x801] | this.ram[k + 0x1001] << 8) - 0x37 & 0x1ff;
+			const src = this.ram[k] | this.ram[k + 1] << 8;
+			switch (this.ram[k + 0x1000] & 0xeb) {
 			case 0x00: // ノーマル
 			case 0x80:
-				this.xfer16x16x3(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x3(data, x | y << 8, src);
 				break;
 			case 0x01: // V反転
 			case 0x81:
-				this.xfer16x16x3V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x3V(data, x | y << 8, src);
 				break;
 			case 0x02: // H反転
 			case 0x82:
-				this.xfer16x16x3H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x3H(data, x | y << 8, src);
 				break;
 			case 0x03: // HV反転
 			case 0x83:
-				this.xfer16x16x3HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x3HV(data, x | y << 8, src);
 				break;
 			case 0x08: // ノーマル
-				this.xfer16x16x3(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
-				this.xfer16x16x3(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
+				this.xfer16x16x3(data, x | y << 8, src & ~1);
+				this.xfer16x16x3(data, x | (y + 16 & 0x1ff) << 8, src | 1);
 				break;
 			case 0x09: // V反転
-				this.xfer16x16x3V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
-				this.xfer16x16x3V(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
+				this.xfer16x16x3V(data, x | y << 8, src | 1);
+				this.xfer16x16x3V(data, x | (y + 16 & 0x1ff) << 8, src & ~1);
 				break;
 			case 0x0a: // H反転
-				this.xfer16x16x3H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
-				this.xfer16x16x3H(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
+				this.xfer16x16x3H(data, x | y << 8, src & ~1);
+				this.xfer16x16x3H(data, x | (y + 16 & 0x1ff) << 8, src | 1);
 				break;
 			case 0x0b: // HV反転
-				this.xfer16x16x3HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
-				this.xfer16x16x3HV(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
+				this.xfer16x16x3HV(data, x | y << 8, src | 1);
+				this.xfer16x16x3HV(data, x | (y + 16 & 0x1ff) << 8, src & ~1);
 				break;
 			case 0x20: // ノーマル
-				this.xfer16x16x3(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
-				this.xfer16x16x3(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
+				this.xfer16x16x3(data, x | y << 8, src | 2);
+				this.xfer16x16x3(data, x + 16 & 0xff | y << 8, src & ~2);
 				break;
 			case 0x21: // V反転
-				this.xfer16x16x3V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
-				this.xfer16x16x3V(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
+				this.xfer16x16x3V(data, x | y << 8, src | 2);
+				this.xfer16x16x3V(data, x + 16 & 0xff | y << 8, src & ~2);
 				break;
 			case 0x22: // H反転
-				this.xfer16x16x3H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
-				this.xfer16x16x3H(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
+				this.xfer16x16x3H(data, x | y << 8, src & ~2);
+				this.xfer16x16x3H(data, x + 16 & 0xff | y << 8, src | 2);
 				break;
 			case 0x23: // HV反転
-				this.xfer16x16x3HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
-				this.xfer16x16x3HV(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
+				this.xfer16x16x3HV(data, x | y << 8, src & ~2);
+				this.xfer16x16x3HV(data, x + 16 & 0xff | y << 8, src | 2);
 				break;
 			case 0x28: // ノーマル
-				this.xfer16x16x3(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
-				this.xfer16x16x3(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
-				this.xfer16x16x3(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
-				this.xfer16x16x3(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
+				this.xfer16x16x3(data, x | y << 8, src & ~3 | 2);
+				this.xfer16x16x3(data, x | (y + 16 & 0x1ff) << 8, src | 3);
+				this.xfer16x16x3(data, x + 16 & 0xff | y << 8, src & ~3);
+				this.xfer16x16x3(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
 				break;
 			case 0x29: // V反転
-				this.xfer16x16x3V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
-				this.xfer16x16x3V(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
-				this.xfer16x16x3V(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
-				this.xfer16x16x3V(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
+				this.xfer16x16x3V(data, x | y << 8, src | 3);
+				this.xfer16x16x3V(data, x | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
+				this.xfer16x16x3V(data, x + 16 & 0xff | y << 8, src & ~3 | 1);
+				this.xfer16x16x3V(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3);
 				break;
 			case 0x2a: // H反転
-				this.xfer16x16x3H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
-				this.xfer16x16x3H(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
-				this.xfer16x16x3H(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
-				this.xfer16x16x3H(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
+				this.xfer16x16x3H(data, x | y << 8, src & ~3);
+				this.xfer16x16x3H(data, x | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
+				this.xfer16x16x3H(data, x + 16 & 0xff | y << 8, src & ~3 | 2);
+				this.xfer16x16x3H(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src | 3);
 				break;
 			case 0x2b: // HV反転
-				this.xfer16x16x3HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
-				this.xfer16x16x3HV(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
-				this.xfer16x16x3HV(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
-				this.xfer16x16x3HV(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
+				this.xfer16x16x3HV(data, x | y << 8, src & ~3 | 1);
+				this.xfer16x16x3HV(data, x | (y + 16 & 0x1ff) << 8, src & ~3);
+				this.xfer16x16x3HV(data, x + 16 & 0xff | y << 8, src | 3);
+				this.xfer16x16x3HV(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
 				break;
 			case 0x40: // ノーマル
 			case 0xc0:
-				this.xfer16x16x2(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x2(data, x | y << 8, src);
 				break;
 			case 0x41: // V反転
 			case 0xc1:
-				this.xfer16x16x2V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x2V(data, x | y << 8, src);
 				break;
 			case 0x42: // H反転
 			case 0xc2:
-				this.xfer16x16x2H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x2H(data, x | y << 8, src);
 				break;
 			case 0x43: // HV反転
 			case 0xc3:
-				this.xfer16x16x2HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x2HV(data, x | y << 8, src);
 				break;
 			case 0x48: // ノーマル
-				this.xfer16x16x2(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
-				this.xfer16x16x2(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
+				this.xfer16x16x2(data, x | y << 8, src & ~1);
+				this.xfer16x16x2(data, x | (y + 16 & 0x1ff) << 8, src | 1);
 				break;
 			case 0x49: // V反転
-				this.xfer16x16x2V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
-				this.xfer16x16x2V(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
+				this.xfer16x16x2V(data, x | y << 8, src | 1);
+				this.xfer16x16x2V(data, x | (y + 16 & 0x1ff) << 8, src & ~1);
 				break;
 			case 0x4a: // H反転
-				this.xfer16x16x2H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
-				this.xfer16x16x2H(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
+				this.xfer16x16x2H(data, x | y << 8, src & ~1);
+				this.xfer16x16x2H(data, x | (y + 16 & 0x1ff) << 8, src | 1);
 				break;
 			case 0x4b: // HV反転
-				this.xfer16x16x2HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 1);
-				this.xfer16x16x2HV(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~1);
+				this.xfer16x16x2HV(data, x | y << 8, src | 1);
+				this.xfer16x16x2HV(data, x | (y + 16 & 0x1ff) << 8, src & ~1);
 				break;
 			case 0x60: // ノーマル
-				this.xfer16x16x2(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
-				this.xfer16x16x2(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
+				this.xfer16x16x2(data, x | y << 8, src | 2);
+				this.xfer16x16x2(data, x + 16 & 0xff | y << 8, src & ~2);
 				break;
 			case 0x61: // V反転
-				this.xfer16x16x2V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
-				this.xfer16x16x2V(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
+				this.xfer16x16x2V(data, x | y << 8, src | 2);
+				this.xfer16x16x2V(data, x + 16 & 0xff | y << 8, src & ~2);
 				break;
 			case 0x62: // H反転
-				this.xfer16x16x2H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
-				this.xfer16x16x2H(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
+				this.xfer16x16x2H(data, x | y << 8, src & ~2);
+				this.xfer16x16x2H(data, x + 16 & 0xff | y << 8, src | 2);
 				break;
 			case 0x63: // HV反転
-				this.xfer16x16x2HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~2);
-				this.xfer16x16x2HV(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 2);
+				this.xfer16x16x2HV(data, x | y << 8, src & ~2);
+				this.xfer16x16x2HV(data, x + 16 & 0xff | y << 8, src | 2);
 				break;
 			case 0x68: // ノーマル
-				this.xfer16x16x2(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
-				this.xfer16x16x2(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
-				this.xfer16x16x2(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
-				this.xfer16x16x2(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
+				this.xfer16x16x2(data, x | y << 8, src & ~3 | 2);
+				this.xfer16x16x2(data, x | (y + 16 & 0x1ff) << 8, src | 3);
+				this.xfer16x16x2(data, x + 16 & 0xff | y << 8, src & ~3);
+				this.xfer16x16x2(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
 				break;
 			case 0x69: // V反転
-				this.xfer16x16x2V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
-				this.xfer16x16x2V(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
-				this.xfer16x16x2V(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
-				this.xfer16x16x2V(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
+				this.xfer16x16x2V(data, x | y << 8, src | 3);
+				this.xfer16x16x2V(data, x | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
+				this.xfer16x16x2V(data, x + 16 & 0xff | y << 8, src & ~3 | 1);
+				this.xfer16x16x2V(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3);
 				break;
 			case 0x6a: // H反転
-				this.xfer16x16x2H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
-				this.xfer16x16x2H(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
-				this.xfer16x16x2H(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
-				this.xfer16x16x2H(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
+				this.xfer16x16x2H(data, x | y << 8, src & ~3);
+				this.xfer16x16x2H(data, x | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
+				this.xfer16x16x2H(data, x + 16 & 0xff | y << 8, src & ~3 | 2);
+				this.xfer16x16x2H(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src | 3);
 				break;
 			case 0x6b: // HV反転
-				this.xfer16x16x2HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 1);
-				this.xfer16x16x2HV(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3);
-				this.xfer16x16x2HV(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p] | 3);
-				this.xfer16x16x2HV(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p] & ~3 | 2);
+				this.xfer16x16x2HV(data, x | y << 8, src & ~3 | 1);
+				this.xfer16x16x2HV(data, x | (y + 16 & 0x1ff) << 8, src & ~3);
+				this.xfer16x16x2HV(data, x + 16 & 0xff | y << 8, src | 3);
+				this.xfer16x16x2HV(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
 				break;
 			case 0x88: // ノーマル
-				this.xfer16x16x3(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x3(data, x | y << 8, src);
+				this.xfer16x16x3(data, x | (y + 16 & 0x1ff) << 8, src);
 				break;
 			case 0x89: // V反転
-				this.xfer16x16x3V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3V(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x3V(data, x | y << 8, src);
+				this.xfer16x16x3V(data, x | (y + 16 & 0x1ff) << 8, src);
 				break;
 			case 0x8a: // H反転
-				this.xfer16x16x3H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3H(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x3H(data, x | y << 8, src);
+				this.xfer16x16x3H(data, x | (y + 16 & 0x1ff) << 8, src);
 				break;
 			case 0x8b: // HV反転
-				this.xfer16x16x3HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3HV(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x3HV(data, x | y << 8, src);
+				this.xfer16x16x3HV(data, x | (y + 16 & 0x1ff) << 8, src);
 				break;
 			case 0xa0: // ノーマル
-				this.xfer16x16x3(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x3(data, x | y << 8, src);
+				this.xfer16x16x3(data, x + 16 & 0xff | y << 8, src);
 				break;
 			case 0xa1: // V反転
-				this.xfer16x16x3V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3V(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x3V(data, x | y << 8, src);
+				this.xfer16x16x3V(data, x + 16 & 0xff | y << 8, src);
 				break;
 			case 0xa2: // H反転
-				this.xfer16x16x3H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3H(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x3H(data, x | y << 8, src);
+				this.xfer16x16x3H(data, x + 16 & 0xff | y << 8, src);
 				break;
 			case 0xa3: // HV反転
-				this.xfer16x16x3HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3HV(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x3HV(data, x | y << 8, src);
+				this.xfer16x16x3HV(data, x + 16 & 0xff | y << 8, src);
 				break;
 			case 0xa8: // ノーマル
-				this.xfer16x16x3(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x3(data, x | y << 8, src);
+				this.xfer16x16x3(data, x | (y + 16 & 0x1ff) << 8, src);
+				this.xfer16x16x3(data, x + 16 & 0xff | y << 8, src);
+				this.xfer16x16x3(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src);
 				break;
 			case 0xa9: // V反転
-				this.xfer16x16x3V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3V(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3V(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3V(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x3V(data, x | y << 8, src);
+				this.xfer16x16x3V(data, x | (y + 16 & 0x1ff) << 8, src);
+				this.xfer16x16x3V(data, x + 16 & 0xff | y << 8, src);
+				this.xfer16x16x3V(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src);
 				break;
 			case 0xaa: // H反転
-				this.xfer16x16x3H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3H(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3H(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3H(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x3H(data, x | y << 8, src);
+				this.xfer16x16x3H(data, x | (y + 16 & 0x1ff) << 8, src);
+				this.xfer16x16x3H(data, x + 16 & 0xff | y << 8, src);
+				this.xfer16x16x3H(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src);
 				break;
 			case 0xab: // HV反転
-				this.xfer16x16x3HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3HV(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3HV(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x3HV(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x3HV(data, x | y << 8, src);
+				this.xfer16x16x3HV(data, x | (y + 16 & 0x1ff) << 8, src);
+				this.xfer16x16x3HV(data, x + 16 & 0xff | y << 8, src);
+				this.xfer16x16x3HV(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src);
 				break;
 			case 0xc8: // ノーマル
-				this.xfer16x16x2(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x2(data, x | y << 8, src);
+				this.xfer16x16x2(data, x | (y + 16 & 0x1ff) << 8, src);
 				break;
 			case 0xc9: // V反転
-				this.xfer16x16x2V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2V(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x2V(data, x | y << 8, src);
+				this.xfer16x16x2V(data, x | (y + 16 & 0x1ff) << 8, src);
 				break;
 			case 0xca: // H反転
-				this.xfer16x16x2H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2H(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x2H(data, x | y << 8, src);
+				this.xfer16x16x2H(data, x | (y + 16 & 0x1ff) << 8, src);
 				break;
 			case 0xcb: // HV反転
-				this.xfer16x16x2HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2HV(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x2HV(data, x | y << 8, src);
+				this.xfer16x16x2HV(data, x | (y + 16 & 0x1ff) << 8, src);
 				break;
 			case 0xe0: // ノーマル
-				this.xfer16x16x2(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x2(data, x | y << 8, src);
+				this.xfer16x16x2(data, x + 16 & 0xff | y << 8, src);
 				break;
 			case 0xe1: // V反転
-				this.xfer16x16x2V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2V(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x2V(data, x | y << 8, src);
+				this.xfer16x16x2V(data, x + 16 & 0xff | y << 8, src);
 				break;
 			case 0xe2: // H反転
-				this.xfer16x16x2H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2H(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x2H(data, x | y << 8, src);
+				this.xfer16x16x2H(data, x + 16 & 0xff | y << 8, src);
 				break;
 			case 0xe3: // HV反転
-				this.xfer16x16x2HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2HV(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x2HV(data, x | y << 8, src);
+				this.xfer16x16x2HV(data, x + 16 & 0xff | y << 8, src);
 				break;
 			case 0xe8: // ノーマル
-				this.xfer16x16x2(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x2(data, x | y << 8, src);
+				this.xfer16x16x2(data, x | (y + 16 & 0x1ff) << 8, src);
+				this.xfer16x16x2(data, x + 16 & 0xff | y << 8, src);
+				this.xfer16x16x2(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src);
 				break;
 			case 0xe9: // V反転
-				this.xfer16x16x2V(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2V(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2V(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2V(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x2V(data, x | y << 8, src);
+				this.xfer16x16x2V(data, x | (y + 16 & 0x1ff) << 8, src);
+				this.xfer16x16x2V(data, x + 16 & 0xff | y << 8, src);
+				this.xfer16x16x2V(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src);
 				break;
 			case 0xea: // H反転
-				this.xfer16x16x2H(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2H(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2H(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2H(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x2H(data, x | y << 8, src);
+				this.xfer16x16x2H(data, x | (y + 16 & 0x1ff) << 8, src);
+				this.xfer16x16x2H(data, x + 16 & 0xff | y << 8, src);
+				this.xfer16x16x2H(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src);
 				break;
 			case 0xeb: // HV反転
-				this.xfer16x16x2HV(data, x | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2HV(data, x | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2HV(data, x + 16 & 0xff | y << 8, this.ram[p + 1] << 8 | this.ram[p]);
-				this.xfer16x16x2HV(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, this.ram[p + 1] << 8 | this.ram[p]);
+				this.xfer16x16x2HV(data, x | y << 8, src);
+				this.xfer16x16x2HV(data, x | (y + 16 & 0x1ff) << 8, src);
+				this.xfer16x16x2HV(data, x + 16 & 0xff | y << 8, src);
+				this.xfer16x16x2HV(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src);
 				break;
 			}
 		}
@@ -971,34 +972,31 @@ class Gaplus {
 
 		p = 256 * 16 + 16;
 
-		// star 1 描画
+		// star 1描画
 		for (let i = 0; i < 32 && this.stars1[i].color; i++) {
-			const y = this.stars1[i].y;
+			const x = this.stars1[i].x, y = this.stars1[i].y;
 			if ((this.starport[0] & 2) === 0 || y < 0x10 || y >= 0x110)
 				continue;
-			const x = this.stars1[i].x;
 			if (data[p + (x | y << 8)] === 0xff)
 				data[p + (x | y << 8)] = 0x100 | this.stars1[i].color;
 		}
 
-		// star 2 描画
+		// star 2描画
 		for (let i = 0; i < 64 && this.stars2[i].color; i++) {
-			const y = this.stars2[i].y;
+			const x = this.stars2[i].x, y = this.stars2[i].y;
 			if ((this.starport[0] & 8) === 0 || y < 0x10 || y >= 0x110)
 				continue;
-			const x = this.stars2[i].x;
 			if (this.starport[3] & 0x80 && this.stars2[i].blk === (this.dwCount >> 1 & 3))
 				continue;
 			if (data[p + (x | y << 8)] === 0xff)
 				data[p + (x | y << 8)] = 0x100 | this.stars2[i].color;
 		}
 
-		// star 0 描画
+		// star 0描画
 		for (let i = 0; i < 64 && this.stars0[i].color; i++) {
-			const y = this.stars0[i].y;
+			const x = this.stars0[i].x, y = this.stars0[i].y;
 			if ((this.starport[0] & 4) === 0 || y < 0x10 || y >= 0x110)
 				continue;
-			const x = this.stars0[i].x;
 			if (data[p + (x | y << 8)] === 0xff)
 				data[p + (x | y << 8)] = 0x100 | this.stars0[i].color;
 		}
@@ -1040,70 +1038,70 @@ class Gaplus {
 
 		if ((this.ram[k + 0x400] >> 6 & 1) !== pri)
 			return;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x00]]) !== 0xff) data[p + 0x000] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x01]]) !== 0xff) data[p + 0x001] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x02]]) !== 0xff) data[p + 0x002] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x03]]) !== 0xff) data[p + 0x003] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x04]]) !== 0xff) data[p + 0x004] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x05]]) !== 0xff) data[p + 0x005] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x06]]) !== 0xff) data[p + 0x006] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x07]]) !== 0xff) data[p + 0x007] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x08]]) !== 0xff) data[p + 0x100] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x09]]) !== 0xff) data[p + 0x101] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x0a]]) !== 0xff) data[p + 0x102] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x0b]]) !== 0xff) data[p + 0x103] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x0c]]) !== 0xff) data[p + 0x104] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x0d]]) !== 0xff) data[p + 0x105] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x0e]]) !== 0xff) data[p + 0x106] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x0f]]) !== 0xff) data[p + 0x107] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x10]]) !== 0xff) data[p + 0x200] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x11]]) !== 0xff) data[p + 0x201] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x12]]) !== 0xff) data[p + 0x202] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x13]]) !== 0xff) data[p + 0x203] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x14]]) !== 0xff) data[p + 0x204] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x15]]) !== 0xff) data[p + 0x205] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x16]]) !== 0xff) data[p + 0x206] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x17]]) !== 0xff) data[p + 0x207] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x18]]) !== 0xff) data[p + 0x300] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x19]]) !== 0xff) data[p + 0x301] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x1a]]) !== 0xff) data[p + 0x302] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x1b]]) !== 0xff) data[p + 0x303] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x1c]]) !== 0xff) data[p + 0x304] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x1d]]) !== 0xff) data[p + 0x305] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x1e]]) !== 0xff) data[p + 0x306] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x1f]]) !== 0xff) data[p + 0x307] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x20]]) !== 0xff) data[p + 0x400] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x21]]) !== 0xff) data[p + 0x401] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x22]]) !== 0xff) data[p + 0x402] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x23]]) !== 0xff) data[p + 0x403] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x24]]) !== 0xff) data[p + 0x404] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x25]]) !== 0xff) data[p + 0x405] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x26]]) !== 0xff) data[p + 0x406] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x27]]) !== 0xff) data[p + 0x407] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x28]]) !== 0xff) data[p + 0x500] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x29]]) !== 0xff) data[p + 0x501] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x2a]]) !== 0xff) data[p + 0x502] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x2b]]) !== 0xff) data[p + 0x503] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x2c]]) !== 0xff) data[p + 0x504] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x2d]]) !== 0xff) data[p + 0x505] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x2e]]) !== 0xff) data[p + 0x506] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x2f]]) !== 0xff) data[p + 0x507] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x30]]) !== 0xff) data[p + 0x600] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x31]]) !== 0xff) data[p + 0x601] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x32]]) !== 0xff) data[p + 0x602] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x33]]) !== 0xff) data[p + 0x603] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x34]]) !== 0xff) data[p + 0x604] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x35]]) !== 0xff) data[p + 0x605] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x36]]) !== 0xff) data[p + 0x606] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x37]]) !== 0xff) data[p + 0x607] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x38]]) !== 0xff) data[p + 0x700] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x39]]) !== 0xff) data[p + 0x701] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x3a]]) !== 0xff) data[p + 0x702] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x3b]]) !== 0xff) data[p + 0x703] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x3c]]) !== 0xff) data[p + 0x704] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x3d]]) !== 0xff) data[p + 0x705] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x3e]]) !== 0xff) data[p + 0x706] = px;
-		if ((px = this.bgcolor[idx | this.bg[q + 0x3f]]) !== 0xff) data[p + 0x707] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x00]]) !== 0xff) data[p + 0x000] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x01]]) !== 0xff) data[p + 0x001] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x02]]) !== 0xff) data[p + 0x002] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x03]]) !== 0xff) data[p + 0x003] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x04]]) !== 0xff) data[p + 0x004] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x05]]) !== 0xff) data[p + 0x005] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x06]]) !== 0xff) data[p + 0x006] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x07]]) !== 0xff) data[p + 0x007] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x08]]) !== 0xff) data[p + 0x100] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x09]]) !== 0xff) data[p + 0x101] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x0a]]) !== 0xff) data[p + 0x102] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x0b]]) !== 0xff) data[p + 0x103] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x0c]]) !== 0xff) data[p + 0x104] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x0d]]) !== 0xff) data[p + 0x105] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x0e]]) !== 0xff) data[p + 0x106] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x0f]]) !== 0xff) data[p + 0x107] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x10]]) !== 0xff) data[p + 0x200] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x11]]) !== 0xff) data[p + 0x201] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x12]]) !== 0xff) data[p + 0x202] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x13]]) !== 0xff) data[p + 0x203] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x14]]) !== 0xff) data[p + 0x204] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x15]]) !== 0xff) data[p + 0x205] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x16]]) !== 0xff) data[p + 0x206] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x17]]) !== 0xff) data[p + 0x207] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x18]]) !== 0xff) data[p + 0x300] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x19]]) !== 0xff) data[p + 0x301] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x1a]]) !== 0xff) data[p + 0x302] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x1b]]) !== 0xff) data[p + 0x303] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x1c]]) !== 0xff) data[p + 0x304] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x1d]]) !== 0xff) data[p + 0x305] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x1e]]) !== 0xff) data[p + 0x306] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x1f]]) !== 0xff) data[p + 0x307] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x20]]) !== 0xff) data[p + 0x400] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x21]]) !== 0xff) data[p + 0x401] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x22]]) !== 0xff) data[p + 0x402] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x23]]) !== 0xff) data[p + 0x403] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x24]]) !== 0xff) data[p + 0x404] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x25]]) !== 0xff) data[p + 0x405] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x26]]) !== 0xff) data[p + 0x406] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x27]]) !== 0xff) data[p + 0x407] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x28]]) !== 0xff) data[p + 0x500] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x29]]) !== 0xff) data[p + 0x501] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x2a]]) !== 0xff) data[p + 0x502] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x2b]]) !== 0xff) data[p + 0x503] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x2c]]) !== 0xff) data[p + 0x504] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x2d]]) !== 0xff) data[p + 0x505] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x2e]]) !== 0xff) data[p + 0x506] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x2f]]) !== 0xff) data[p + 0x507] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x30]]) !== 0xff) data[p + 0x600] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x31]]) !== 0xff) data[p + 0x601] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x32]]) !== 0xff) data[p + 0x602] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x33]]) !== 0xff) data[p + 0x603] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x34]]) !== 0xff) data[p + 0x604] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x35]]) !== 0xff) data[p + 0x605] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x36]]) !== 0xff) data[p + 0x606] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x37]]) !== 0xff) data[p + 0x607] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x38]]) !== 0xff) data[p + 0x700] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x39]]) !== 0xff) data[p + 0x701] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x3a]]) !== 0xff) data[p + 0x702] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x3b]]) !== 0xff) data[p + 0x703] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x3c]]) !== 0xff) data[p + 0x704] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x3d]]) !== 0xff) data[p + 0x705] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x3e]]) !== 0xff) data[p + 0x706] = px;
+		if ((px = this.bgcolor[idx | this.bg[q | 0x3f]]) !== 0xff) data[p + 0x707] = px;
 	}
 
 	xfer16x16x3(data, dst, src) {
@@ -1115,7 +1113,7 @@ class Gaplus {
 		src = src << 8 & 0xff00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx + this.obj8[src++]]) !== 0xff)
+				if ((px = this.objcolor[idx | this.obj8[src++]]) !== 0xff)
 					data[dst] = px;
 	}
 
@@ -1128,7 +1126,7 @@ class Gaplus {
 		src = (src << 8 & 0xff00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx + this.obj8[src++]]) !== 0xff)
+				if ((px = this.objcolor[idx | this.obj8[src++]]) !== 0xff)
 					data[dst] = px;
 	}
 
@@ -1141,7 +1139,7 @@ class Gaplus {
 		src = (src << 8 & 0xff00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx + this.obj8[--src]]) !== 0xff)
+				if ((px = this.objcolor[idx | this.obj8[--src]]) !== 0xff)
 					data[dst] = px;
 	}
 
@@ -1154,7 +1152,7 @@ class Gaplus {
 		src = (src << 8 & 0xff00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx + this.obj8[--src]]) !== 0xff)
+				if ((px = this.objcolor[idx | this.obj8[--src]]) !== 0xff)
 					data[dst] = px;
 	}
 
@@ -1167,7 +1165,7 @@ class Gaplus {
 		src = src << 8 & 0xff00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx + this.obj4[src++]]) !== 0xff)
+				if ((px = this.objcolor[idx | this.obj4[src++]]) !== 0xff)
 					data[dst] = px;
 	}
 
@@ -1180,7 +1178,7 @@ class Gaplus {
 		src = (src << 8 & 0xff00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx + this.obj4[src++]]) !== 0xff)
+				if ((px = this.objcolor[idx | this.obj4[src++]]) !== 0xff)
 					data[dst] = px;
 	}
 
@@ -1193,7 +1191,7 @@ class Gaplus {
 		src = (src << 8 & 0xff00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx + this.obj4[--src]]) !== 0xff)
+				if ((px = this.objcolor[idx | this.obj4[--src]]) !== 0xff)
 					data[dst] = px;
 	}
 
@@ -1206,7 +1204,7 @@ class Gaplus {
 		src = (src << 8 & 0xff00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx + this.obj4[--src]]) !== 0xff)
+				if ((px = this.objcolor[idx | this.obj4[--src]]) !== 0xff)
 					data[dst] = px;
 	}
 }

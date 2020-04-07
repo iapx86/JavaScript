@@ -144,7 +144,7 @@ class SoundTest {
 		this.cpu.write(0x4071, 1);
 		this.cpu.write(0x4076, 0);
 		this.cpu.write(0x4077, 0);
-		this.cpu.write(0x4076 + (this.nSound >>> 3), 0x80 >>> (this.nSound & 7));
+		this.cpu.write(0x4076 + (this.nSound >> 3), 0x80 >> (this.nSound & 7));
 		return this;
 	}
 
@@ -171,7 +171,7 @@ class SoundTest {
 			reg[i] = sound.read(0x3c0 + i);
 
 		for (let i = 0; i < 8; i++) {
-			const vol = reg[2 + i * 4] >>> 4 || reg[3 + i * 4] >>> 4 || reg[3 + i * 4] & 0x0f || reg[0x23 + i * 4] >>> 4;
+			const vol = reg[2 + i * 4] >> 4 || reg[3 + i * 4] >> 4 || reg[3 + i * 4] & 0x0f || reg[0x23 + i * 4] >> 4;
 			if (vol === 0)
 				continue;
 			const freq = reg[i * 4] << 1 | reg[1 + i * 4] << 9;

@@ -13,7 +13,7 @@ export default class GalaxianSound {
 		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => {
 			outputBuffer.getChannelData(0).forEach((e, i, data) => {
-				data[i] = this.snd[this.channel.voice << 5 | this.channel.phase >>> 21 & 31];
+				data[i] = this.snd[this.channel.voice << 5 | this.channel.phase >> 21 & 31];
 				this.channel.phase += this.channel.freq;
 			});
 		};

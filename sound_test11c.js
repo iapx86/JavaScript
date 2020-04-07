@@ -149,7 +149,7 @@ class SoundTest {
 			if (!this.fm.kon[i])
 				continue;
 			const kc = this.fm.reg[0x28 + i];
-			SoundTest.Xfer28x16(data, 28 * (kc >>> 4 & 7) + 256 * 16 * i, key[(kc >>> 2 & 3) * 3 + (kc & 3) + 1]);
+			SoundTest.Xfer28x16(data, 28 * (kc >> 4 & 7) + 256 * 16 * i, key[(kc >> 2 & 3) * 3 + (kc & 3) + 1]);
 		}
 
 		const reg = [];

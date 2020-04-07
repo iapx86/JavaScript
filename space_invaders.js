@@ -28,16 +28,19 @@ class SpaceInvaders {
 		this.ram = new Uint8Array(0x2000).addBase();
 		this.io = new Uint8Array(0x100);
 
+		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
+
 		this.cpu = new I8080(this);
-		for (let i = 0; i < 0x20; i++)
-			this.cpu.memorymap[0x80 + i].base = this.cpu.memorymap[i].base = PRG.base[i];
-		for (let i = 0; i < 0x20; i++) {
-			this.cpu.memorymap[0xe0 + i].base = this.cpu.memorymap[0xa0 + i].base = this.cpu.memorymap[0x60 + i].base = this.cpu.memorymap[0x20 + i].base = this.ram.base[i];
-			this.cpu.memorymap[0xe0 + i].write = this.cpu.memorymap[0xa0 + i].write = this.cpu.memorymap[0x60 + i].write = this.cpu.memorymap[0x20 + i].write = null;
-		}
-		for (let i = 0; i < 0x100; i++) {
-			this.cpu.iomap[i].base = this.io;
-			this.cpu.iomap[i].write = (addr, data) => {
+		for (let page = 0; page < 0x100; page++)
+			if (range(page, 0, 0x1f, 0x80))
+				this.cpu.memorymap[page].base = PRG.base[page & 0x1f];
+			else if (range(page, 0x20, 0x3f, 0xc0)) {
+				this.cpu.memorymap[page].base = this.ram.base[page & 0x1f];
+				this.cpu.memorymap[page].write = null;
+			}
+		for (let page = 0; page < 0x100; page++) {
+			this.cpu.iomap[page].base = this.io;
+			this.cpu.iomap[page].write = (addr, data) => {
 				switch (addr & 0xff) {
 				case 0x00:
 				case 0x01:
@@ -49,7 +52,7 @@ class SpaceInvaders {
 					this.screen_red = (data & 4) !== 0;
 					break;
 				case 0x04:
-					this.io[3] = (data << this.shifter.shift | this.shifter.reg >>> (8 - this.shifter.shift)) & 0xff;
+					this.io[3] = (data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift)) & 0xff;
 					this.shifter.reg = data;
 					break;
 				case 0x05:
@@ -197,9 +200,9 @@ class SpaceInvaders {
 			0xffffffff,	// white
 		);
 
-		for (let p = 256 * 8 * 31, k = 0x0400, i = 256 >>> 3; i !== 0; --i) {
-			for (let j = 224 >>> 2; j !== 0; k += 0x80, p += 4, --j) {
-				const color = rgb[this.screen_red ? 1 : MAP[k >>> 3 & 0x3e0 | k & 0x1f] & 7];
+		for (let p = 256 * 8 * 31, k = 0x0400, i = 256 >> 3; i !== 0; --i) {
+			for (let j = 224 >> 2; j !== 0; k += 0x80, p += 4, --j) {
+				const color = rgb[this.screen_red ? 1 : MAP[k >> 3 & 0x3e0 | k & 0x1f] & 7];
 				const back = rgb[0];
 				let a = this.ram[k];
 				data[p + 7 * 256] = (a & 1) !== 0 ? color : back;

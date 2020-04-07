@@ -439,7 +439,7 @@ class DigDug {
 	}
 
 	makeBitmap(data) {
-		// bg 描画
+		// bg描画
 		if (!this.fFlip) {
 			let p = 256 * 8 * 4 + 232;
 			let k = 0x40;
@@ -489,157 +489,161 @@ class DigDug {
 
 		// obj描画
 		if (!this.fFlip)
-			for (let p = 0xb80, i = 64; i !== 0; p += 2, --i) {
-				const y = (this.ram[p + 0x801] - 55 & 0xff) + 32;
-				const x = this.ram[p + 0x800] - 1 & 0xff;
-				if (this.ram[p] < 0x80)
-					switch (this.ram[p + 0x1000] & 3) {
+			for (let k = 0xb80, i = 64; i !== 0; k += 2, --i) {
+				const x = this.ram[k + 0x800] - 1 & 0xff;
+				const y = (this.ram[k + 0x801] - 55 & 0xff) + 32;
+				if (this.ram[k] < 0x80) {
+					const src = this.ram[k] | this.ram[k + 1] << 8;
+					switch (this.ram[k + 0x1000] & 3) {
 					case 0: // ノーマル
-						this.xfer16x16(data, x | y << 8, this.ram[p] | this.ram[p + 1] << 8);
+						this.xfer16x16(data, x | y << 8, src);
 						break;
 					case 1: // V反転
-						this.xfer16x16V(data, x | y << 8, this.ram[p] | this.ram[p + 1] << 8);
+						this.xfer16x16V(data, x | y << 8, src);
 						break;
 					case 2: // H反転
-						this.xfer16x16H(data, x | y << 8, this.ram[p] | this.ram[p + 1] << 8);
+						this.xfer16x16H(data, x | y << 8, src);
 						break;
 					case 3: // HV反転
-						this.xfer16x16HV(data, x | y << 8, this.ram[p] | this.ram[p + 1] << 8);
+						this.xfer16x16HV(data, x | y << 8, src);
 						break;
 					}
-				else if (this.ram[p] < 0xc0) {
-					const j = this.ram[p] << 2 & 0x3c | this.ram[p + 1] << 8;
-					switch (this.ram[p + 0x1000] & 3) {
+				}
+				else if (this.ram[k] < 0xc0) {
+					const src = this.ram[k] << 2 & 0x3c | this.ram[k + 1] << 8;
+					switch (this.ram[k + 0x1000] & 3) {
 					case 0: // ノーマル
-						this.xfer16x16(data, x | y << 8, j | 0x82);
-						this.xfer16x16(data, x | y + 16 << 8, j | 0x83);
-						this.xfer16x16(data, x + 16 & 0xff | y << 8, j | 0x80);
-						this.xfer16x16(data, x + 16 & 0xff | y + 16 << 8, j | 0x81);
+						this.xfer16x16(data, x | y << 8, src | 0x82);
+						this.xfer16x16(data, x | y + 16 << 8, src | 0x83);
+						this.xfer16x16(data, x + 16 & 0xff | y << 8, src | 0x80);
+						this.xfer16x16(data, x + 16 & 0xff | y + 16 << 8, src | 0x81);
 						break;
 					case 1: // V反転
-						this.xfer16x16V(data, x | y << 8, j | 0x83);
-						this.xfer16x16V(data, x | y + 16 << 8, j | 0x82);
-						this.xfer16x16V(data, x + 16 & 0xff | y << 8, j | 0x81);
-						this.xfer16x16V(data, x + 16 & 0xff | y + 16 << 8, j | 0x80);
+						this.xfer16x16V(data, x | y << 8, src | 0x83);
+						this.xfer16x16V(data, x | y + 16 << 8, src | 0x82);
+						this.xfer16x16V(data, x + 16 & 0xff | y << 8, src | 0x81);
+						this.xfer16x16V(data, x + 16 & 0xff | y + 16 << 8, src | 0x80);
 						break;
 					case 2: // H反転
-						this.xfer16x16H(data, x | y << 8, j | 0x80);
-						this.xfer16x16H(data, x | y + 16 << 8, j | 0x81);
-						this.xfer16x16H(data, x + 16 & 0xff | y << 8, j | 0x82);
-						this.xfer16x16H(data, x + 16 & 0xff | y + 16 << 8, j | 0x83);
+						this.xfer16x16H(data, x | y << 8, src | 0x80);
+						this.xfer16x16H(data, x | y + 16 << 8, src | 0x81);
+						this.xfer16x16H(data, x + 16 & 0xff | y << 8, src | 0x82);
+						this.xfer16x16H(data, x + 16 & 0xff | y + 16 << 8, src | 0x83);
 						break;
 					case 3: // HV反転
-						this.xfer16x16HV(data, x | y << 8, j | 0x81);
-						this.xfer16x16HV(data, x | y + 16 << 8, j | 0x80);
-						this.xfer16x16HV(data, x + 16 & 0xff | y << 8, j | 0x83);
-						this.xfer16x16HV(data, x + 16 & 0xff | y + 16 << 8, j | 0x82);
+						this.xfer16x16HV(data, x | y << 8, src | 0x81);
+						this.xfer16x16HV(data, x | y + 16 << 8, src | 0x80);
+						this.xfer16x16HV(data, x + 16 & 0xff | y << 8, src | 0x83);
+						this.xfer16x16HV(data, x + 16 & 0xff | y + 16 << 8, src | 0x82);
 						break;
 					}
 				}
 				else {
-					const j = this.ram[p] << 2 & 0x3c | this.ram[p + 1] << 8;
-					switch (this.ram[p + 0x1000] & 3) {
+					const src = this.ram[k] << 2 & 0x3c | this.ram[k + 1] << 8;
+					switch (this.ram[k + 0x1000] & 3) {
 					case 0: // ノーマル
-						this.xfer16x16(data, x | y << 8, j | 0xc2);
-						this.xfer16x16(data, x | y + 16 << 8, j | 0xc3);
-						this.xfer16x16(data, x + 16 & 0xff | y << 8, j | 0xc0);
-						this.xfer16x16(data, x + 16 & 0xff | y + 16 << 8, j | 0xc1);
+						this.xfer16x16(data, x | y << 8, src | 0xc2);
+						this.xfer16x16(data, x | y + 16 << 8, src | 0xc3);
+						this.xfer16x16(data, x + 16 & 0xff | y << 8, src | 0xc0);
+						this.xfer16x16(data, x + 16 & 0xff | y + 16 << 8, src | 0xc1);
 						break;
 					case 1: // V反転
-						this.xfer16x16V(data, x | y << 8, j | 0xc3);
-						this.xfer16x16V(data, x | y + 16 << 8, j | 0xc2);
-						this.xfer16x16V(data, x + 16 & 0xff | y << 8, j | 0xc1);
-						this.xfer16x16V(data, x + 16 & 0xff | y + 16 << 8, j | 0xc0);
+						this.xfer16x16V(data, x | y << 8, src | 0xc3);
+						this.xfer16x16V(data, x | y + 16 << 8, src | 0xc2);
+						this.xfer16x16V(data, x + 16 & 0xff | y << 8, src | 0xc1);
+						this.xfer16x16V(data, x + 16 & 0xff | y + 16 << 8, src | 0xc0);
 						break;
 					case 2: // H反転
-						this.xfer16x16H(data, x | y << 8, j | 0xc0);
-						this.xfer16x16H(data, x | y + 16 << 8, j | 0xc1);
-						this.xfer16x16H(data, x + 16 & 0xff | y << 8, j | 0xc2);
-						this.xfer16x16H(data, x + 16 & 0xff | y + 16 << 8, j | 0xc3);
+						this.xfer16x16H(data, x | y << 8, src | 0xc0);
+						this.xfer16x16H(data, x | y + 16 << 8, src | 0xc1);
+						this.xfer16x16H(data, x + 16 & 0xff | y << 8, src | 0xc2);
+						this.xfer16x16H(data, x + 16 & 0xff | y + 16 << 8, src | 0xc3);
 						break;
 					case 3: // HV反転
-						this.xfer16x16HV(data, x | y << 8, j | 0xc1);
-						this.xfer16x16HV(data, x | y + 16 << 8, j | 0xc0);
-						this.xfer16x16HV(data, x + 16 & 0xff | y << 8, j | 0xc3);
-						this.xfer16x16HV(data, x + 16 & 0xff | y + 16 << 8, j | 0xc2);
+						this.xfer16x16HV(data, x | y << 8, src | 0xc1);
+						this.xfer16x16HV(data, x | y + 16 << 8, src | 0xc0);
+						this.xfer16x16HV(data, x + 16 & 0xff | y << 8, src | 0xc3);
+						this.xfer16x16HV(data, x + 16 & 0xff | y + 16 << 8, src | 0xc2);
 						break;
 					}
 				}
 			}
 		else
-			for (let p = 0xb80, i = 64; i !== 0; p += 2, --i) {
-				const y = (this.ram[p + 0x801] - 55 & 0xff) + 32;
-				const x = this.ram[p + 0x800] - 1 & 0xff;
-				if (this.ram[p] < 0x80)
-					switch (this.ram[p + 0x1000] & 3) {
+			for (let k = 0xb80, i = 64; i !== 0; k += 2, --i) {
+				const x = this.ram[k + 0x800] - 1 & 0xff;
+				const y = (this.ram[k + 0x801] - 55 & 0xff) + 32;
+				if (this.ram[k] < 0x80) {
+					const src = this.ram[k] | this.ram[k + 1] << 8;
+					switch (this.ram[k + 0x1000] & 3) {
 					case 0: // ノーマル
-						this.xfer16x16HV(data, x | y << 8, this.ram[p] | this.ram[p + 1] << 8);
+						this.xfer16x16HV(data, x | y << 8, src);
 						break;
 					case 1: // V反転
-						this.xfer16x16H(data, x | y << 8, this.ram[p] | this.ram[p + 1] << 8);
+						this.xfer16x16H(data, x | y << 8, src);
 						break;
 					case 2: // H反転
-						this.xfer16x16V(data, x | y << 8, this.ram[p] | this.ram[p + 1] << 8);
+						this.xfer16x16V(data, x | y << 8, src);
 						break;
 					case 3: // HV反転
-						this.xfer16x16(data, x | y << 8, this.ram[p] | this.ram[p + 1] << 8);
+						this.xfer16x16(data, x | y << 8, src);
 						break;
 					}
-				else if (this.ram[p] < 0xc0) {
-					const j = this.ram[p] << 2 & 0x3c | this.ram[p + 1] << 8;
-					switch (this.ram[p + 0x1000] & 3) {
+				}
+				else if (this.ram[k] < 0xc0) {
+					const src = this.ram[k] << 2 & 0x3c | this.ram[k + 1] << 8;
+					switch (this.ram[k + 0x1000] & 3) {
 					case 0: // ノーマル
-						this.xfer16x16HV(data, x | y << 8, j | 0x81);
-						this.xfer16x16HV(data, x | y + 16 << 8, j | 0x80);
-						this.xfer16x16HV(data, x + 16 & 0xff | y << 8, j | 0x83);
-						this.xfer16x16HV(data, x + 16 & 0xff | y + 16 << 8, j | 0x82);
+						this.xfer16x16HV(data, x | y << 8, src | 0x81);
+						this.xfer16x16HV(data, x | y + 16 << 8, src | 0x80);
+						this.xfer16x16HV(data, x + 16 & 0xff | y << 8, src | 0x83);
+						this.xfer16x16HV(data, x + 16 & 0xff | y + 16 << 8, src | 0x82);
 						break;
 					case 1: // V反転
-						this.xfer16x16H(data, x | y << 8, j | 0x80);
-						this.xfer16x16H(data, x | y + 16 << 8, j | 0x81);
-						this.xfer16x16H(data, x + 16 & 0xff | y << 8, j | 0x82);
-						this.xfer16x16H(data, x + 16 & 0xff | y + 16 << 8, j | 0x83);
+						this.xfer16x16H(data, x | y << 8, src | 0x80);
+						this.xfer16x16H(data, x | y + 16 << 8, src | 0x81);
+						this.xfer16x16H(data, x + 16 & 0xff | y << 8, src | 0x82);
+						this.xfer16x16H(data, x + 16 & 0xff | y + 16 << 8, src | 0x83);
 						break;
 					case 2: // H反転
-						this.xfer16x16V(data, x | y << 8, j | 0x83);
-						this.xfer16x16V(data, x | y + 16 << 8, j | 0x82);
-						this.xfer16x16V(data, x + 16 & 0xff | y << 8, j | 0x81);
-						this.xfer16x16V(data, x + 16 & 0xff | y + 16 << 8, j | 0x80);
+						this.xfer16x16V(data, x | y << 8, src | 0x83);
+						this.xfer16x16V(data, x | y + 16 << 8, src | 0x82);
+						this.xfer16x16V(data, x + 16 & 0xff | y << 8, src | 0x81);
+						this.xfer16x16V(data, x + 16 & 0xff | y + 16 << 8, src | 0x80);
 						break;
 					case 3: // HV反転
-						this.xfer16x16(data, x | y << 8, j | 0x82);
-						this.xfer16x16(data, x | y + 16 << 8, j | 0x83);
-						this.xfer16x16(data, x + 16 & 0xff | y << 8, j | 0x80);
-						this.xfer16x16(data, x + 16 & 0xff | y + 16 << 8, j | 0x81);
+						this.xfer16x16(data, x | y << 8, src | 0x82);
+						this.xfer16x16(data, x | y + 16 << 8, src | 0x83);
+						this.xfer16x16(data, x + 16 & 0xff | y << 8, src | 0x80);
+						this.xfer16x16(data, x + 16 & 0xff | y + 16 << 8, src | 0x81);
 						break;
 					}
 				}
 				else {
-					const j = this.ram[p] << 2 & 0x3c | this.ram[p + 1] << 8;
-					switch (this.ram[p + 0x1000] & 3) {
+					const src = this.ram[k] << 2 & 0x3c | this.ram[k + 1] << 8;
+					switch (this.ram[k + 0x1000] & 3) {
 					case 0: // ノーマル
-						this.xfer16x16HV(data, x | y << 8, j | 0xc1);
-						this.xfer16x16HV(data, x | y + 16 << 8, j | 0xc0);
-						this.xfer16x16HV(data, x + 16 & 0xff | y << 8, j | 0xc3);
-						this.xfer16x16HV(data, x + 16 & 0xff | y + 16 << 8, j | 0xc2);
+						this.xfer16x16HV(data, x | y << 8, src | 0xc1);
+						this.xfer16x16HV(data, x | y + 16 << 8, src | 0xc0);
+						this.xfer16x16HV(data, x + 16 & 0xff | y << 8, src | 0xc3);
+						this.xfer16x16HV(data, x + 16 & 0xff | y + 16 << 8, src | 0xc2);
 						break;
 					case 1: // V反転
-						this.xfer16x16H(data, x | y << 8, j | 0xc0);
-						this.xfer16x16H(data, x | y + 16 << 8, j | 0xc1);
-						this.xfer16x16H(data, x + 16 & 0xff | y << 8, j | 0xc2);
-						this.xfer16x16H(data, x + 16 & 0xff | y + 16 << 8, j | 0xc3);
+						this.xfer16x16H(data, x | y << 8, src | 0xc0);
+						this.xfer16x16H(data, x | y + 16 << 8, src | 0xc1);
+						this.xfer16x16H(data, x + 16 & 0xff | y << 8, src | 0xc2);
+						this.xfer16x16H(data, x + 16 & 0xff | y + 16 << 8, src | 0xc3);
 						break;
 					case 2: // H反転
-						this.xfer16x16V(data, x | y << 8, j | 0xc3);
-						this.xfer16x16V(data, x | y + 16 << 8, j | 0xc2);
-						this.xfer16x16V(data, x + 16 & 0xff | y << 8, j | 0xc1);
-						this.xfer16x16V(data, x + 16 & 0xff | y + 16 << 8, j | 0xc0);
+						this.xfer16x16V(data, x | y << 8, src | 0xc3);
+						this.xfer16x16V(data, x | y + 16 << 8, src | 0xc2);
+						this.xfer16x16V(data, x + 16 & 0xff | y << 8, src | 0xc1);
+						this.xfer16x16V(data, x + 16 & 0xff | y + 16 << 8, src | 0xc0);
 						break;
 					case 3: // HV反転
-						this.xfer16x16(data, x | y << 8, j | 0xc2);
-						this.xfer16x16(data, x | y + 16 << 8, j | 0xc3);
-						this.xfer16x16(data, x + 16 & 0xff | y << 8, j | 0xc0);
-						this.xfer16x16(data, x + 16 & 0xff | y + 16 << 8, j | 0xc1);
+						this.xfer16x16(data, x | y << 8, src | 0xc2);
+						this.xfer16x16(data, x | y + 16 << 8, src | 0xc3);
+						this.xfer16x16(data, x + 16 & 0xff | y << 8, src | 0xc0);
+						this.xfer16x16(data, x + 16 & 0xff | y + 16 << 8, src | 0xc1);
 						break;
 					}
 				}
@@ -657,136 +661,136 @@ class DigDug {
 		const q = this.ram[k] << 6 & 0x1fc0, r = MAPDATA[k | this.dwBG4Select << 10] << 6, idx = MAPDATA[k | this.dwBG4Select << 10] >> 2 & 0x3c | this.dwBG4Color << 6;
 
 		if (this.fBG4Disable) {
-			data[p + 0x000] = this.bg2[q + 0x00] * color;
-			data[p + 0x001] = this.bg2[q + 0x01] * color;
-			data[p + 0x002] = this.bg2[q + 0x02] * color;
-			data[p + 0x003] = this.bg2[q + 0x03] * color;
-			data[p + 0x004] = this.bg2[q + 0x04] * color;
-			data[p + 0x005] = this.bg2[q + 0x05] * color;
-			data[p + 0x006] = this.bg2[q + 0x06] * color;
-			data[p + 0x007] = this.bg2[q + 0x07] * color;
-			data[p + 0x100] = this.bg2[q + 0x08] * color;
-			data[p + 0x101] = this.bg2[q + 0x09] * color;
-			data[p + 0x102] = this.bg2[q + 0x0a] * color;
-			data[p + 0x103] = this.bg2[q + 0x0b] * color;
-			data[p + 0x104] = this.bg2[q + 0x0c] * color;
-			data[p + 0x105] = this.bg2[q + 0x0d] * color;
-			data[p + 0x106] = this.bg2[q + 0x0e] * color;
-			data[p + 0x107] = this.bg2[q + 0x0f] * color;
-			data[p + 0x200] = this.bg2[q + 0x10] * color;
-			data[p + 0x201] = this.bg2[q + 0x11] * color;
-			data[p + 0x202] = this.bg2[q + 0x12] * color;
-			data[p + 0x203] = this.bg2[q + 0x13] * color;
-			data[p + 0x204] = this.bg2[q + 0x14] * color;
-			data[p + 0x205] = this.bg2[q + 0x15] * color;
-			data[p + 0x206] = this.bg2[q + 0x16] * color;
-			data[p + 0x207] = this.bg2[q + 0x17] * color;
-			data[p + 0x300] = this.bg2[q + 0x18] * color;
-			data[p + 0x301] = this.bg2[q + 0x19] * color;
-			data[p + 0x302] = this.bg2[q + 0x1a] * color;
-			data[p + 0x303] = this.bg2[q + 0x1b] * color;
-			data[p + 0x304] = this.bg2[q + 0x1c] * color;
-			data[p + 0x305] = this.bg2[q + 0x1d] * color;
-			data[p + 0x306] = this.bg2[q + 0x1e] * color;
-			data[p + 0x307] = this.bg2[q + 0x1f] * color;
-			data[p + 0x400] = this.bg2[q + 0x20] * color;
-			data[p + 0x401] = this.bg2[q + 0x21] * color;
-			data[p + 0x402] = this.bg2[q + 0x22] * color;
-			data[p + 0x403] = this.bg2[q + 0x23] * color;
-			data[p + 0x404] = this.bg2[q + 0x24] * color;
-			data[p + 0x405] = this.bg2[q + 0x25] * color;
-			data[p + 0x406] = this.bg2[q + 0x26] * color;
-			data[p + 0x407] = this.bg2[q + 0x27] * color;
-			data[p + 0x500] = this.bg2[q + 0x28] * color;
-			data[p + 0x501] = this.bg2[q + 0x29] * color;
-			data[p + 0x502] = this.bg2[q + 0x2a] * color;
-			data[p + 0x503] = this.bg2[q + 0x2b] * color;
-			data[p + 0x504] = this.bg2[q + 0x2c] * color;
-			data[p + 0x505] = this.bg2[q + 0x2d] * color;
-			data[p + 0x506] = this.bg2[q + 0x2e] * color;
-			data[p + 0x507] = this.bg2[q + 0x2f] * color;
-			data[p + 0x600] = this.bg2[q + 0x30] * color;
-			data[p + 0x601] = this.bg2[q + 0x31] * color;
-			data[p + 0x602] = this.bg2[q + 0x32] * color;
-			data[p + 0x603] = this.bg2[q + 0x33] * color;
-			data[p + 0x604] = this.bg2[q + 0x34] * color;
-			data[p + 0x605] = this.bg2[q + 0x35] * color;
-			data[p + 0x606] = this.bg2[q + 0x36] * color;
-			data[p + 0x607] = this.bg2[q + 0x37] * color;
-			data[p + 0x700] = this.bg2[q + 0x38] * color;
-			data[p + 0x701] = this.bg2[q + 0x39] * color;
-			data[p + 0x702] = this.bg2[q + 0x3a] * color;
-			data[p + 0x703] = this.bg2[q + 0x3b] * color;
-			data[p + 0x704] = this.bg2[q + 0x3c] * color;
-			data[p + 0x705] = this.bg2[q + 0x3d] * color;
-			data[p + 0x706] = this.bg2[q + 0x3e] * color;
-			data[p + 0x707] = this.bg2[q + 0x3f] * color;
+			data[p + 0x000] = this.bg2[q | 0x00] * color;
+			data[p + 0x001] = this.bg2[q | 0x01] * color;
+			data[p + 0x002] = this.bg2[q | 0x02] * color;
+			data[p + 0x003] = this.bg2[q | 0x03] * color;
+			data[p + 0x004] = this.bg2[q | 0x04] * color;
+			data[p + 0x005] = this.bg2[q | 0x05] * color;
+			data[p + 0x006] = this.bg2[q | 0x06] * color;
+			data[p + 0x007] = this.bg2[q | 0x07] * color;
+			data[p + 0x100] = this.bg2[q | 0x08] * color;
+			data[p + 0x101] = this.bg2[q | 0x09] * color;
+			data[p + 0x102] = this.bg2[q | 0x0a] * color;
+			data[p + 0x103] = this.bg2[q | 0x0b] * color;
+			data[p + 0x104] = this.bg2[q | 0x0c] * color;
+			data[p + 0x105] = this.bg2[q | 0x0d] * color;
+			data[p + 0x106] = this.bg2[q | 0x0e] * color;
+			data[p + 0x107] = this.bg2[q | 0x0f] * color;
+			data[p + 0x200] = this.bg2[q | 0x10] * color;
+			data[p + 0x201] = this.bg2[q | 0x11] * color;
+			data[p + 0x202] = this.bg2[q | 0x12] * color;
+			data[p + 0x203] = this.bg2[q | 0x13] * color;
+			data[p + 0x204] = this.bg2[q | 0x14] * color;
+			data[p + 0x205] = this.bg2[q | 0x15] * color;
+			data[p + 0x206] = this.bg2[q | 0x16] * color;
+			data[p + 0x207] = this.bg2[q | 0x17] * color;
+			data[p + 0x300] = this.bg2[q | 0x18] * color;
+			data[p + 0x301] = this.bg2[q | 0x19] * color;
+			data[p + 0x302] = this.bg2[q | 0x1a] * color;
+			data[p + 0x303] = this.bg2[q | 0x1b] * color;
+			data[p + 0x304] = this.bg2[q | 0x1c] * color;
+			data[p + 0x305] = this.bg2[q | 0x1d] * color;
+			data[p + 0x306] = this.bg2[q | 0x1e] * color;
+			data[p + 0x307] = this.bg2[q | 0x1f] * color;
+			data[p + 0x400] = this.bg2[q | 0x20] * color;
+			data[p + 0x401] = this.bg2[q | 0x21] * color;
+			data[p + 0x402] = this.bg2[q | 0x22] * color;
+			data[p + 0x403] = this.bg2[q | 0x23] * color;
+			data[p + 0x404] = this.bg2[q | 0x24] * color;
+			data[p + 0x405] = this.bg2[q | 0x25] * color;
+			data[p + 0x406] = this.bg2[q | 0x26] * color;
+			data[p + 0x407] = this.bg2[q | 0x27] * color;
+			data[p + 0x500] = this.bg2[q | 0x28] * color;
+			data[p + 0x501] = this.bg2[q | 0x29] * color;
+			data[p + 0x502] = this.bg2[q | 0x2a] * color;
+			data[p + 0x503] = this.bg2[q | 0x2b] * color;
+			data[p + 0x504] = this.bg2[q | 0x2c] * color;
+			data[p + 0x505] = this.bg2[q | 0x2d] * color;
+			data[p + 0x506] = this.bg2[q | 0x2e] * color;
+			data[p + 0x507] = this.bg2[q | 0x2f] * color;
+			data[p + 0x600] = this.bg2[q | 0x30] * color;
+			data[p + 0x601] = this.bg2[q | 0x31] * color;
+			data[p + 0x602] = this.bg2[q | 0x32] * color;
+			data[p + 0x603] = this.bg2[q | 0x33] * color;
+			data[p + 0x604] = this.bg2[q | 0x34] * color;
+			data[p + 0x605] = this.bg2[q | 0x35] * color;
+			data[p + 0x606] = this.bg2[q | 0x36] * color;
+			data[p + 0x607] = this.bg2[q | 0x37] * color;
+			data[p + 0x700] = this.bg2[q | 0x38] * color;
+			data[p + 0x701] = this.bg2[q | 0x39] * color;
+			data[p + 0x702] = this.bg2[q | 0x3a] * color;
+			data[p + 0x703] = this.bg2[q | 0x3b] * color;
+			data[p + 0x704] = this.bg2[q | 0x3c] * color;
+			data[p + 0x705] = this.bg2[q | 0x3d] * color;
+			data[p + 0x706] = this.bg2[q | 0x3e] * color;
+			data[p + 0x707] = this.bg2[q | 0x3f] * color;
 		}
 		else {
-			data[p + 0x000] = this.bg2[q + 0x00] ? color : this.bgcolor[idx | this.bg4[r + 0x00]];
-			data[p + 0x001] = this.bg2[q + 0x01] ? color : this.bgcolor[idx | this.bg4[r + 0x01]];
-			data[p + 0x002] = this.bg2[q + 0x02] ? color : this.bgcolor[idx | this.bg4[r + 0x02]];
-			data[p + 0x003] = this.bg2[q + 0x03] ? color : this.bgcolor[idx | this.bg4[r + 0x03]];
-			data[p + 0x004] = this.bg2[q + 0x04] ? color : this.bgcolor[idx | this.bg4[r + 0x04]];
-			data[p + 0x005] = this.bg2[q + 0x05] ? color : this.bgcolor[idx | this.bg4[r + 0x05]];
-			data[p + 0x006] = this.bg2[q + 0x06] ? color : this.bgcolor[idx | this.bg4[r + 0x06]];
-			data[p + 0x007] = this.bg2[q + 0x07] ? color : this.bgcolor[idx | this.bg4[r + 0x07]];
-			data[p + 0x100] = this.bg2[q + 0x08] ? color : this.bgcolor[idx | this.bg4[r + 0x08]];
-			data[p + 0x101] = this.bg2[q + 0x09] ? color : this.bgcolor[idx | this.bg4[r + 0x09]];
-			data[p + 0x102] = this.bg2[q + 0x0a] ? color : this.bgcolor[idx | this.bg4[r + 0x0a]];
-			data[p + 0x103] = this.bg2[q + 0x0b] ? color : this.bgcolor[idx | this.bg4[r + 0x0b]];
-			data[p + 0x104] = this.bg2[q + 0x0c] ? color : this.bgcolor[idx | this.bg4[r + 0x0c]];
-			data[p + 0x105] = this.bg2[q + 0x0d] ? color : this.bgcolor[idx | this.bg4[r + 0x0d]];
-			data[p + 0x106] = this.bg2[q + 0x0e] ? color : this.bgcolor[idx | this.bg4[r + 0x0e]];
-			data[p + 0x107] = this.bg2[q + 0x0f] ? color : this.bgcolor[idx | this.bg4[r + 0x0f]];
-			data[p + 0x200] = this.bg2[q + 0x10] ? color : this.bgcolor[idx | this.bg4[r + 0x10]];
-			data[p + 0x201] = this.bg2[q + 0x11] ? color : this.bgcolor[idx | this.bg4[r + 0x11]];
-			data[p + 0x202] = this.bg2[q + 0x12] ? color : this.bgcolor[idx | this.bg4[r + 0x12]];
-			data[p + 0x203] = this.bg2[q + 0x13] ? color : this.bgcolor[idx | this.bg4[r + 0x13]];
-			data[p + 0x204] = this.bg2[q + 0x14] ? color : this.bgcolor[idx | this.bg4[r + 0x14]];
-			data[p + 0x205] = this.bg2[q + 0x15] ? color : this.bgcolor[idx | this.bg4[r + 0x15]];
-			data[p + 0x206] = this.bg2[q + 0x16] ? color : this.bgcolor[idx | this.bg4[r + 0x16]];
-			data[p + 0x207] = this.bg2[q + 0x17] ? color : this.bgcolor[idx | this.bg4[r + 0x17]];
-			data[p + 0x300] = this.bg2[q + 0x18] ? color : this.bgcolor[idx | this.bg4[r + 0x18]];
-			data[p + 0x301] = this.bg2[q + 0x19] ? color : this.bgcolor[idx | this.bg4[r + 0x19]];
-			data[p + 0x302] = this.bg2[q + 0x1a] ? color : this.bgcolor[idx | this.bg4[r + 0x1a]];
-			data[p + 0x303] = this.bg2[q + 0x1b] ? color : this.bgcolor[idx | this.bg4[r + 0x1b]];
-			data[p + 0x304] = this.bg2[q + 0x1c] ? color : this.bgcolor[idx | this.bg4[r + 0x1c]];
-			data[p + 0x305] = this.bg2[q + 0x1d] ? color : this.bgcolor[idx | this.bg4[r + 0x1d]];
-			data[p + 0x306] = this.bg2[q + 0x1e] ? color : this.bgcolor[idx | this.bg4[r + 0x1e]];
-			data[p + 0x307] = this.bg2[q + 0x1f] ? color : this.bgcolor[idx | this.bg4[r + 0x1f]];
-			data[p + 0x400] = this.bg2[q + 0x20] ? color : this.bgcolor[idx | this.bg4[r + 0x20]];
-			data[p + 0x401] = this.bg2[q + 0x21] ? color : this.bgcolor[idx | this.bg4[r + 0x21]];
-			data[p + 0x402] = this.bg2[q + 0x22] ? color : this.bgcolor[idx | this.bg4[r + 0x22]];
-			data[p + 0x403] = this.bg2[q + 0x23] ? color : this.bgcolor[idx | this.bg4[r + 0x23]];
-			data[p + 0x404] = this.bg2[q + 0x24] ? color : this.bgcolor[idx | this.bg4[r + 0x24]];
-			data[p + 0x405] = this.bg2[q + 0x25] ? color : this.bgcolor[idx | this.bg4[r + 0x25]];
-			data[p + 0x406] = this.bg2[q + 0x26] ? color : this.bgcolor[idx | this.bg4[r + 0x26]];
-			data[p + 0x407] = this.bg2[q + 0x27] ? color : this.bgcolor[idx | this.bg4[r + 0x27]];
-			data[p + 0x500] = this.bg2[q + 0x28] ? color : this.bgcolor[idx | this.bg4[r + 0x28]];
-			data[p + 0x501] = this.bg2[q + 0x29] ? color : this.bgcolor[idx | this.bg4[r + 0x29]];
-			data[p + 0x502] = this.bg2[q + 0x2a] ? color : this.bgcolor[idx | this.bg4[r + 0x2a]];
-			data[p + 0x503] = this.bg2[q + 0x2b] ? color : this.bgcolor[idx | this.bg4[r + 0x2b]];
-			data[p + 0x504] = this.bg2[q + 0x2c] ? color : this.bgcolor[idx | this.bg4[r + 0x2c]];
-			data[p + 0x505] = this.bg2[q + 0x2d] ? color : this.bgcolor[idx | this.bg4[r + 0x2d]];
-			data[p + 0x506] = this.bg2[q + 0x2e] ? color : this.bgcolor[idx | this.bg4[r + 0x2e]];
-			data[p + 0x507] = this.bg2[q + 0x2f] ? color : this.bgcolor[idx | this.bg4[r + 0x2f]];
-			data[p + 0x600] = this.bg2[q + 0x30] ? color : this.bgcolor[idx | this.bg4[r + 0x30]];
-			data[p + 0x601] = this.bg2[q + 0x31] ? color : this.bgcolor[idx | this.bg4[r + 0x31]];
-			data[p + 0x602] = this.bg2[q + 0x32] ? color : this.bgcolor[idx | this.bg4[r + 0x32]];
-			data[p + 0x603] = this.bg2[q + 0x33] ? color : this.bgcolor[idx | this.bg4[r + 0x33]];
-			data[p + 0x604] = this.bg2[q + 0x34] ? color : this.bgcolor[idx | this.bg4[r + 0x34]];
-			data[p + 0x605] = this.bg2[q + 0x35] ? color : this.bgcolor[idx | this.bg4[r + 0x35]];
-			data[p + 0x606] = this.bg2[q + 0x36] ? color : this.bgcolor[idx | this.bg4[r + 0x36]];
-			data[p + 0x607] = this.bg2[q + 0x37] ? color : this.bgcolor[idx | this.bg4[r + 0x37]];
-			data[p + 0x700] = this.bg2[q + 0x38] ? color : this.bgcolor[idx | this.bg4[r + 0x38]];
-			data[p + 0x701] = this.bg2[q + 0x39] ? color : this.bgcolor[idx | this.bg4[r + 0x39]];
-			data[p + 0x702] = this.bg2[q + 0x3a] ? color : this.bgcolor[idx | this.bg4[r + 0x3a]];
-			data[p + 0x703] = this.bg2[q + 0x3b] ? color : this.bgcolor[idx | this.bg4[r + 0x3b]];
-			data[p + 0x704] = this.bg2[q + 0x3c] ? color : this.bgcolor[idx | this.bg4[r + 0x3c]];
-			data[p + 0x705] = this.bg2[q + 0x3d] ? color : this.bgcolor[idx | this.bg4[r + 0x3d]];
-			data[p + 0x706] = this.bg2[q + 0x3e] ? color : this.bgcolor[idx | this.bg4[r + 0x3e]];
-			data[p + 0x707] = this.bg2[q + 0x3f] ? color : this.bgcolor[idx | this.bg4[r + 0x3f]];
+			data[p + 0x000] = this.bg2[q | 0x00] ? color : this.bgcolor[idx | this.bg4[r + 0x00]];
+			data[p + 0x001] = this.bg2[q | 0x01] ? color : this.bgcolor[idx | this.bg4[r + 0x01]];
+			data[p + 0x002] = this.bg2[q | 0x02] ? color : this.bgcolor[idx | this.bg4[r + 0x02]];
+			data[p + 0x003] = this.bg2[q | 0x03] ? color : this.bgcolor[idx | this.bg4[r + 0x03]];
+			data[p + 0x004] = this.bg2[q | 0x04] ? color : this.bgcolor[idx | this.bg4[r + 0x04]];
+			data[p + 0x005] = this.bg2[q | 0x05] ? color : this.bgcolor[idx | this.bg4[r + 0x05]];
+			data[p + 0x006] = this.bg2[q | 0x06] ? color : this.bgcolor[idx | this.bg4[r + 0x06]];
+			data[p + 0x007] = this.bg2[q | 0x07] ? color : this.bgcolor[idx | this.bg4[r + 0x07]];
+			data[p + 0x100] = this.bg2[q | 0x08] ? color : this.bgcolor[idx | this.bg4[r + 0x08]];
+			data[p + 0x101] = this.bg2[q | 0x09] ? color : this.bgcolor[idx | this.bg4[r + 0x09]];
+			data[p + 0x102] = this.bg2[q | 0x0a] ? color : this.bgcolor[idx | this.bg4[r + 0x0a]];
+			data[p + 0x103] = this.bg2[q | 0x0b] ? color : this.bgcolor[idx | this.bg4[r + 0x0b]];
+			data[p + 0x104] = this.bg2[q | 0x0c] ? color : this.bgcolor[idx | this.bg4[r + 0x0c]];
+			data[p + 0x105] = this.bg2[q | 0x0d] ? color : this.bgcolor[idx | this.bg4[r + 0x0d]];
+			data[p + 0x106] = this.bg2[q | 0x0e] ? color : this.bgcolor[idx | this.bg4[r + 0x0e]];
+			data[p + 0x107] = this.bg2[q | 0x0f] ? color : this.bgcolor[idx | this.bg4[r + 0x0f]];
+			data[p + 0x200] = this.bg2[q | 0x10] ? color : this.bgcolor[idx | this.bg4[r + 0x10]];
+			data[p + 0x201] = this.bg2[q | 0x11] ? color : this.bgcolor[idx | this.bg4[r + 0x11]];
+			data[p + 0x202] = this.bg2[q | 0x12] ? color : this.bgcolor[idx | this.bg4[r + 0x12]];
+			data[p + 0x203] = this.bg2[q | 0x13] ? color : this.bgcolor[idx | this.bg4[r + 0x13]];
+			data[p + 0x204] = this.bg2[q | 0x14] ? color : this.bgcolor[idx | this.bg4[r + 0x14]];
+			data[p + 0x205] = this.bg2[q | 0x15] ? color : this.bgcolor[idx | this.bg4[r + 0x15]];
+			data[p + 0x206] = this.bg2[q | 0x16] ? color : this.bgcolor[idx | this.bg4[r + 0x16]];
+			data[p + 0x207] = this.bg2[q | 0x17] ? color : this.bgcolor[idx | this.bg4[r + 0x17]];
+			data[p + 0x300] = this.bg2[q | 0x18] ? color : this.bgcolor[idx | this.bg4[r + 0x18]];
+			data[p + 0x301] = this.bg2[q | 0x19] ? color : this.bgcolor[idx | this.bg4[r + 0x19]];
+			data[p + 0x302] = this.bg2[q | 0x1a] ? color : this.bgcolor[idx | this.bg4[r + 0x1a]];
+			data[p + 0x303] = this.bg2[q | 0x1b] ? color : this.bgcolor[idx | this.bg4[r + 0x1b]];
+			data[p + 0x304] = this.bg2[q | 0x1c] ? color : this.bgcolor[idx | this.bg4[r + 0x1c]];
+			data[p + 0x305] = this.bg2[q | 0x1d] ? color : this.bgcolor[idx | this.bg4[r + 0x1d]];
+			data[p + 0x306] = this.bg2[q | 0x1e] ? color : this.bgcolor[idx | this.bg4[r + 0x1e]];
+			data[p + 0x307] = this.bg2[q | 0x1f] ? color : this.bgcolor[idx | this.bg4[r + 0x1f]];
+			data[p + 0x400] = this.bg2[q | 0x20] ? color : this.bgcolor[idx | this.bg4[r + 0x20]];
+			data[p + 0x401] = this.bg2[q | 0x21] ? color : this.bgcolor[idx | this.bg4[r + 0x21]];
+			data[p + 0x402] = this.bg2[q | 0x22] ? color : this.bgcolor[idx | this.bg4[r + 0x22]];
+			data[p + 0x403] = this.bg2[q | 0x23] ? color : this.bgcolor[idx | this.bg4[r + 0x23]];
+			data[p + 0x404] = this.bg2[q | 0x24] ? color : this.bgcolor[idx | this.bg4[r + 0x24]];
+			data[p + 0x405] = this.bg2[q | 0x25] ? color : this.bgcolor[idx | this.bg4[r + 0x25]];
+			data[p + 0x406] = this.bg2[q | 0x26] ? color : this.bgcolor[idx | this.bg4[r + 0x26]];
+			data[p + 0x407] = this.bg2[q | 0x27] ? color : this.bgcolor[idx | this.bg4[r + 0x27]];
+			data[p + 0x500] = this.bg2[q | 0x28] ? color : this.bgcolor[idx | this.bg4[r + 0x28]];
+			data[p + 0x501] = this.bg2[q | 0x29] ? color : this.bgcolor[idx | this.bg4[r + 0x29]];
+			data[p + 0x502] = this.bg2[q | 0x2a] ? color : this.bgcolor[idx | this.bg4[r + 0x2a]];
+			data[p + 0x503] = this.bg2[q | 0x2b] ? color : this.bgcolor[idx | this.bg4[r + 0x2b]];
+			data[p + 0x504] = this.bg2[q | 0x2c] ? color : this.bgcolor[idx | this.bg4[r + 0x2c]];
+			data[p + 0x505] = this.bg2[q | 0x2d] ? color : this.bgcolor[idx | this.bg4[r + 0x2d]];
+			data[p + 0x506] = this.bg2[q | 0x2e] ? color : this.bgcolor[idx | this.bg4[r + 0x2e]];
+			data[p + 0x507] = this.bg2[q | 0x2f] ? color : this.bgcolor[idx | this.bg4[r + 0x2f]];
+			data[p + 0x600] = this.bg2[q | 0x30] ? color : this.bgcolor[idx | this.bg4[r + 0x30]];
+			data[p + 0x601] = this.bg2[q | 0x31] ? color : this.bgcolor[idx | this.bg4[r + 0x31]];
+			data[p + 0x602] = this.bg2[q | 0x32] ? color : this.bgcolor[idx | this.bg4[r + 0x32]];
+			data[p + 0x603] = this.bg2[q | 0x33] ? color : this.bgcolor[idx | this.bg4[r + 0x33]];
+			data[p + 0x604] = this.bg2[q | 0x34] ? color : this.bgcolor[idx | this.bg4[r + 0x34]];
+			data[p + 0x605] = this.bg2[q | 0x35] ? color : this.bgcolor[idx | this.bg4[r + 0x35]];
+			data[p + 0x606] = this.bg2[q | 0x36] ? color : this.bgcolor[idx | this.bg4[r + 0x36]];
+			data[p + 0x607] = this.bg2[q | 0x37] ? color : this.bgcolor[idx | this.bg4[r + 0x37]];
+			data[p + 0x700] = this.bg2[q | 0x38] ? color : this.bgcolor[idx | this.bg4[r + 0x38]];
+			data[p + 0x701] = this.bg2[q | 0x39] ? color : this.bgcolor[idx | this.bg4[r + 0x39]];
+			data[p + 0x702] = this.bg2[q | 0x3a] ? color : this.bgcolor[idx | this.bg4[r + 0x3a]];
+			data[p + 0x703] = this.bg2[q | 0x3b] ? color : this.bgcolor[idx | this.bg4[r + 0x3b]];
+			data[p + 0x704] = this.bg2[q | 0x3c] ? color : this.bgcolor[idx | this.bg4[r + 0x3c]];
+			data[p + 0x705] = this.bg2[q | 0x3d] ? color : this.bgcolor[idx | this.bg4[r + 0x3d]];
+			data[p + 0x706] = this.bg2[q | 0x3e] ? color : this.bgcolor[idx | this.bg4[r + 0x3e]];
+			data[p + 0x707] = this.bg2[q | 0x3f] ? color : this.bgcolor[idx | this.bg4[r + 0x3f]];
 		}
 	}
 
@@ -795,136 +799,136 @@ class DigDug {
 		const q = this.ram[k] << 6 & 0x1fc0, r = MAPDATA[k | this.dwBG4Select << 10] << 6, idx = MAPDATA[k | this.dwBG4Select << 10] >> 2 & 0x3c | this.dwBG4Color << 6;
 
 		if (this.fBG4Disable) {
-			data[p + 0x000] = this.bg2[q + 0x3f] * color;
-			data[p + 0x001] = this.bg2[q + 0x3e] * color;
-			data[p + 0x002] = this.bg2[q + 0x3d] * color;
-			data[p + 0x003] = this.bg2[q + 0x3c] * color;
-			data[p + 0x004] = this.bg2[q + 0x3b] * color;
-			data[p + 0x005] = this.bg2[q + 0x3a] * color;
-			data[p + 0x006] = this.bg2[q + 0x39] * color;
-			data[p + 0x007] = this.bg2[q + 0x38] * color;
-			data[p + 0x100] = this.bg2[q + 0x37] * color;
-			data[p + 0x101] = this.bg2[q + 0x36] * color;
-			data[p + 0x102] = this.bg2[q + 0x35] * color;
-			data[p + 0x103] = this.bg2[q + 0x34] * color;
-			data[p + 0x104] = this.bg2[q + 0x33] * color;
-			data[p + 0x105] = this.bg2[q + 0x32] * color;
-			data[p + 0x106] = this.bg2[q + 0x31] * color;
-			data[p + 0x107] = this.bg2[q + 0x30] * color;
-			data[p + 0x200] = this.bg2[q + 0x2f] * color;
-			data[p + 0x201] = this.bg2[q + 0x2e] * color;
-			data[p + 0x202] = this.bg2[q + 0x2d] * color;
-			data[p + 0x203] = this.bg2[q + 0x2c] * color;
-			data[p + 0x204] = this.bg2[q + 0x2b] * color;
-			data[p + 0x205] = this.bg2[q + 0x2a] * color;
-			data[p + 0x206] = this.bg2[q + 0x29] * color;
-			data[p + 0x207] = this.bg2[q + 0x28] * color;
-			data[p + 0x300] = this.bg2[q + 0x27] * color;
-			data[p + 0x301] = this.bg2[q + 0x26] * color;
-			data[p + 0x302] = this.bg2[q + 0x25] * color;
-			data[p + 0x303] = this.bg2[q + 0x24] * color;
-			data[p + 0x304] = this.bg2[q + 0x23] * color;
-			data[p + 0x305] = this.bg2[q + 0x22] * color;
-			data[p + 0x306] = this.bg2[q + 0x21] * color;
-			data[p + 0x307] = this.bg2[q + 0x20] * color;
-			data[p + 0x400] = this.bg2[q + 0x1f] * color;
-			data[p + 0x401] = this.bg2[q + 0x1e] * color;
-			data[p + 0x402] = this.bg2[q + 0x1d] * color;
-			data[p + 0x403] = this.bg2[q + 0x1c] * color;
-			data[p + 0x404] = this.bg2[q + 0x1b] * color;
-			data[p + 0x405] = this.bg2[q + 0x1a] * color;
-			data[p + 0x406] = this.bg2[q + 0x19] * color;
-			data[p + 0x407] = this.bg2[q + 0x18] * color;
-			data[p + 0x500] = this.bg2[q + 0x17] * color;
-			data[p + 0x501] = this.bg2[q + 0x16] * color;
-			data[p + 0x502] = this.bg2[q + 0x15] * color;
-			data[p + 0x503] = this.bg2[q + 0x14] * color;
-			data[p + 0x504] = this.bg2[q + 0x13] * color;
-			data[p + 0x505] = this.bg2[q + 0x12] * color;
-			data[p + 0x506] = this.bg2[q + 0x11] * color;
-			data[p + 0x507] = this.bg2[q + 0x10] * color;
-			data[p + 0x600] = this.bg2[q + 0x0f] * color;
-			data[p + 0x601] = this.bg2[q + 0x0e] * color;
-			data[p + 0x602] = this.bg2[q + 0x0d] * color;
-			data[p + 0x603] = this.bg2[q + 0x0c] * color;
-			data[p + 0x604] = this.bg2[q + 0x0b] * color;
-			data[p + 0x605] = this.bg2[q + 0x0a] * color;
-			data[p + 0x606] = this.bg2[q + 0x09] * color;
-			data[p + 0x607] = this.bg2[q + 0x08] * color;
-			data[p + 0x700] = this.bg2[q + 0x07] * color;
-			data[p + 0x701] = this.bg2[q + 0x06] * color;
-			data[p + 0x702] = this.bg2[q + 0x05] * color;
-			data[p + 0x703] = this.bg2[q + 0x04] * color;
-			data[p + 0x704] = this.bg2[q + 0x03] * color;
-			data[p + 0x705] = this.bg2[q + 0x02] * color;
-			data[p + 0x706] = this.bg2[q + 0x01] * color;
-			data[p + 0x707] = this.bg2[q + 0x00] * color;
+			data[p + 0x000] = this.bg2[q | 0x3f] * color;
+			data[p + 0x001] = this.bg2[q | 0x3e] * color;
+			data[p + 0x002] = this.bg2[q | 0x3d] * color;
+			data[p + 0x003] = this.bg2[q | 0x3c] * color;
+			data[p + 0x004] = this.bg2[q | 0x3b] * color;
+			data[p + 0x005] = this.bg2[q | 0x3a] * color;
+			data[p + 0x006] = this.bg2[q | 0x39] * color;
+			data[p + 0x007] = this.bg2[q | 0x38] * color;
+			data[p + 0x100] = this.bg2[q | 0x37] * color;
+			data[p + 0x101] = this.bg2[q | 0x36] * color;
+			data[p + 0x102] = this.bg2[q | 0x35] * color;
+			data[p + 0x103] = this.bg2[q | 0x34] * color;
+			data[p + 0x104] = this.bg2[q | 0x33] * color;
+			data[p + 0x105] = this.bg2[q | 0x32] * color;
+			data[p + 0x106] = this.bg2[q | 0x31] * color;
+			data[p + 0x107] = this.bg2[q | 0x30] * color;
+			data[p + 0x200] = this.bg2[q | 0x2f] * color;
+			data[p + 0x201] = this.bg2[q | 0x2e] * color;
+			data[p + 0x202] = this.bg2[q | 0x2d] * color;
+			data[p + 0x203] = this.bg2[q | 0x2c] * color;
+			data[p + 0x204] = this.bg2[q | 0x2b] * color;
+			data[p + 0x205] = this.bg2[q | 0x2a] * color;
+			data[p + 0x206] = this.bg2[q | 0x29] * color;
+			data[p + 0x207] = this.bg2[q | 0x28] * color;
+			data[p + 0x300] = this.bg2[q | 0x27] * color;
+			data[p + 0x301] = this.bg2[q | 0x26] * color;
+			data[p + 0x302] = this.bg2[q | 0x25] * color;
+			data[p + 0x303] = this.bg2[q | 0x24] * color;
+			data[p + 0x304] = this.bg2[q | 0x23] * color;
+			data[p + 0x305] = this.bg2[q | 0x22] * color;
+			data[p + 0x306] = this.bg2[q | 0x21] * color;
+			data[p + 0x307] = this.bg2[q | 0x20] * color;
+			data[p + 0x400] = this.bg2[q | 0x1f] * color;
+			data[p + 0x401] = this.bg2[q | 0x1e] * color;
+			data[p + 0x402] = this.bg2[q | 0x1d] * color;
+			data[p + 0x403] = this.bg2[q | 0x1c] * color;
+			data[p + 0x404] = this.bg2[q | 0x1b] * color;
+			data[p + 0x405] = this.bg2[q | 0x1a] * color;
+			data[p + 0x406] = this.bg2[q | 0x19] * color;
+			data[p + 0x407] = this.bg2[q | 0x18] * color;
+			data[p + 0x500] = this.bg2[q | 0x17] * color;
+			data[p + 0x501] = this.bg2[q | 0x16] * color;
+			data[p + 0x502] = this.bg2[q | 0x15] * color;
+			data[p + 0x503] = this.bg2[q | 0x14] * color;
+			data[p + 0x504] = this.bg2[q | 0x13] * color;
+			data[p + 0x505] = this.bg2[q | 0x12] * color;
+			data[p + 0x506] = this.bg2[q | 0x11] * color;
+			data[p + 0x507] = this.bg2[q | 0x10] * color;
+			data[p + 0x600] = this.bg2[q | 0x0f] * color;
+			data[p + 0x601] = this.bg2[q | 0x0e] * color;
+			data[p + 0x602] = this.bg2[q | 0x0d] * color;
+			data[p + 0x603] = this.bg2[q | 0x0c] * color;
+			data[p + 0x604] = this.bg2[q | 0x0b] * color;
+			data[p + 0x605] = this.bg2[q | 0x0a] * color;
+			data[p + 0x606] = this.bg2[q | 0x09] * color;
+			data[p + 0x607] = this.bg2[q | 0x08] * color;
+			data[p + 0x700] = this.bg2[q | 0x07] * color;
+			data[p + 0x701] = this.bg2[q | 0x06] * color;
+			data[p + 0x702] = this.bg2[q | 0x05] * color;
+			data[p + 0x703] = this.bg2[q | 0x04] * color;
+			data[p + 0x704] = this.bg2[q | 0x03] * color;
+			data[p + 0x705] = this.bg2[q | 0x02] * color;
+			data[p + 0x706] = this.bg2[q | 0x01] * color;
+			data[p + 0x707] = this.bg2[q | 0x00] * color;
 		}
 		else {
-			data[p + 0x000] = this.bg2[q + 0x3f] ? color : this.bgcolor[idx | this.bg4[r + 0x3f]];
-			data[p + 0x001] = this.bg2[q + 0x3e] ? color : this.bgcolor[idx | this.bg4[r + 0x3e]];
-			data[p + 0x002] = this.bg2[q + 0x3d] ? color : this.bgcolor[idx | this.bg4[r + 0x3d]];
-			data[p + 0x003] = this.bg2[q + 0x3c] ? color : this.bgcolor[idx | this.bg4[r + 0x3c]];
-			data[p + 0x004] = this.bg2[q + 0x3b] ? color : this.bgcolor[idx | this.bg4[r + 0x3b]];
-			data[p + 0x005] = this.bg2[q + 0x3a] ? color : this.bgcolor[idx | this.bg4[r + 0x3a]];
-			data[p + 0x006] = this.bg2[q + 0x39] ? color : this.bgcolor[idx | this.bg4[r + 0x39]];
-			data[p + 0x007] = this.bg2[q + 0x38] ? color : this.bgcolor[idx | this.bg4[r + 0x38]];
-			data[p + 0x100] = this.bg2[q + 0x37] ? color : this.bgcolor[idx | this.bg4[r + 0x37]];
-			data[p + 0x101] = this.bg2[q + 0x36] ? color : this.bgcolor[idx | this.bg4[r + 0x36]];
-			data[p + 0x102] = this.bg2[q + 0x35] ? color : this.bgcolor[idx | this.bg4[r + 0x35]];
-			data[p + 0x103] = this.bg2[q + 0x34] ? color : this.bgcolor[idx | this.bg4[r + 0x34]];
-			data[p + 0x104] = this.bg2[q + 0x33] ? color : this.bgcolor[idx | this.bg4[r + 0x33]];
-			data[p + 0x105] = this.bg2[q + 0x32] ? color : this.bgcolor[idx | this.bg4[r + 0x32]];
-			data[p + 0x106] = this.bg2[q + 0x31] ? color : this.bgcolor[idx | this.bg4[r + 0x31]];
-			data[p + 0x107] = this.bg2[q + 0x30] ? color : this.bgcolor[idx | this.bg4[r + 0x30]];
-			data[p + 0x200] = this.bg2[q + 0x2f] ? color : this.bgcolor[idx | this.bg4[r + 0x2f]];
-			data[p + 0x201] = this.bg2[q + 0x2e] ? color : this.bgcolor[idx | this.bg4[r + 0x2e]];
-			data[p + 0x202] = this.bg2[q + 0x2d] ? color : this.bgcolor[idx | this.bg4[r + 0x2d]];
-			data[p + 0x203] = this.bg2[q + 0x2c] ? color : this.bgcolor[idx | this.bg4[r + 0x2c]];
-			data[p + 0x204] = this.bg2[q + 0x2b] ? color : this.bgcolor[idx | this.bg4[r + 0x2b]];
-			data[p + 0x205] = this.bg2[q + 0x2a] ? color : this.bgcolor[idx | this.bg4[r + 0x2a]];
-			data[p + 0x206] = this.bg2[q + 0x29] ? color : this.bgcolor[idx | this.bg4[r + 0x29]];
-			data[p + 0x207] = this.bg2[q + 0x28] ? color : this.bgcolor[idx | this.bg4[r + 0x28]];
-			data[p + 0x300] = this.bg2[q + 0x27] ? color : this.bgcolor[idx | this.bg4[r + 0x27]];
-			data[p + 0x301] = this.bg2[q + 0x26] ? color : this.bgcolor[idx | this.bg4[r + 0x26]];
-			data[p + 0x302] = this.bg2[q + 0x25] ? color : this.bgcolor[idx | this.bg4[r + 0x25]];
-			data[p + 0x303] = this.bg2[q + 0x24] ? color : this.bgcolor[idx | this.bg4[r + 0x24]];
-			data[p + 0x304] = this.bg2[q + 0x23] ? color : this.bgcolor[idx | this.bg4[r + 0x23]];
-			data[p + 0x305] = this.bg2[q + 0x22] ? color : this.bgcolor[idx | this.bg4[r + 0x22]];
-			data[p + 0x306] = this.bg2[q + 0x21] ? color : this.bgcolor[idx | this.bg4[r + 0x21]];
-			data[p + 0x307] = this.bg2[q + 0x20] ? color : this.bgcolor[idx | this.bg4[r + 0x20]];
-			data[p + 0x400] = this.bg2[q + 0x1f] ? color : this.bgcolor[idx | this.bg4[r + 0x1f]];
-			data[p + 0x401] = this.bg2[q + 0x1e] ? color : this.bgcolor[idx | this.bg4[r + 0x1e]];
-			data[p + 0x402] = this.bg2[q + 0x1d] ? color : this.bgcolor[idx | this.bg4[r + 0x1d]];
-			data[p + 0x403] = this.bg2[q + 0x1c] ? color : this.bgcolor[idx | this.bg4[r + 0x1c]];
-			data[p + 0x404] = this.bg2[q + 0x1b] ? color : this.bgcolor[idx | this.bg4[r + 0x1b]];
-			data[p + 0x405] = this.bg2[q + 0x1a] ? color : this.bgcolor[idx | this.bg4[r + 0x1a]];
-			data[p + 0x406] = this.bg2[q + 0x19] ? color : this.bgcolor[idx | this.bg4[r + 0x19]];
-			data[p + 0x407] = this.bg2[q + 0x18] ? color : this.bgcolor[idx | this.bg4[r + 0x18]];
-			data[p + 0x500] = this.bg2[q + 0x17] ? color : this.bgcolor[idx | this.bg4[r + 0x17]];
-			data[p + 0x501] = this.bg2[q + 0x16] ? color : this.bgcolor[idx | this.bg4[r + 0x16]];
-			data[p + 0x502] = this.bg2[q + 0x15] ? color : this.bgcolor[idx | this.bg4[r + 0x15]];
-			data[p + 0x503] = this.bg2[q + 0x14] ? color : this.bgcolor[idx | this.bg4[r + 0x14]];
-			data[p + 0x504] = this.bg2[q + 0x13] ? color : this.bgcolor[idx | this.bg4[r + 0x13]];
-			data[p + 0x505] = this.bg2[q + 0x12] ? color : this.bgcolor[idx | this.bg4[r + 0x12]];
-			data[p + 0x506] = this.bg2[q + 0x11] ? color : this.bgcolor[idx | this.bg4[r + 0x11]];
-			data[p + 0x507] = this.bg2[q + 0x10] ? color : this.bgcolor[idx | this.bg4[r + 0x10]];
-			data[p + 0x600] = this.bg2[q + 0x0f] ? color : this.bgcolor[idx | this.bg4[r + 0x0f]];
-			data[p + 0x601] = this.bg2[q + 0x0e] ? color : this.bgcolor[idx | this.bg4[r + 0x0e]];
-			data[p + 0x602] = this.bg2[q + 0x0d] ? color : this.bgcolor[idx | this.bg4[r + 0x0d]];
-			data[p + 0x603] = this.bg2[q + 0x0c] ? color : this.bgcolor[idx | this.bg4[r + 0x0c]];
-			data[p + 0x604] = this.bg2[q + 0x0b] ? color : this.bgcolor[idx | this.bg4[r + 0x0b]];
-			data[p + 0x605] = this.bg2[q + 0x0a] ? color : this.bgcolor[idx | this.bg4[r + 0x0a]];
-			data[p + 0x606] = this.bg2[q + 0x09] ? color : this.bgcolor[idx | this.bg4[r + 0x09]];
-			data[p + 0x607] = this.bg2[q + 0x08] ? color : this.bgcolor[idx | this.bg4[r + 0x08]];
-			data[p + 0x700] = this.bg2[q + 0x07] ? color : this.bgcolor[idx | this.bg4[r + 0x07]];
-			data[p + 0x701] = this.bg2[q + 0x06] ? color : this.bgcolor[idx | this.bg4[r + 0x06]];
-			data[p + 0x702] = this.bg2[q + 0x05] ? color : this.bgcolor[idx | this.bg4[r + 0x05]];
-			data[p + 0x703] = this.bg2[q + 0x04] ? color : this.bgcolor[idx | this.bg4[r + 0x04]];
-			data[p + 0x704] = this.bg2[q + 0x03] ? color : this.bgcolor[idx | this.bg4[r + 0x03]];
-			data[p + 0x705] = this.bg2[q + 0x02] ? color : this.bgcolor[idx | this.bg4[r + 0x02]];
-			data[p + 0x706] = this.bg2[q + 0x01] ? color : this.bgcolor[idx | this.bg4[r + 0x01]];
-			data[p + 0x707] = this.bg2[q + 0x00] ? color : this.bgcolor[idx | this.bg4[r + 0x00]];
+			data[p + 0x000] = this.bg2[q | 0x3f] ? color : this.bgcolor[idx | this.bg4[r + 0x3f]];
+			data[p + 0x001] = this.bg2[q | 0x3e] ? color : this.bgcolor[idx | this.bg4[r + 0x3e]];
+			data[p + 0x002] = this.bg2[q | 0x3d] ? color : this.bgcolor[idx | this.bg4[r + 0x3d]];
+			data[p + 0x003] = this.bg2[q | 0x3c] ? color : this.bgcolor[idx | this.bg4[r + 0x3c]];
+			data[p + 0x004] = this.bg2[q | 0x3b] ? color : this.bgcolor[idx | this.bg4[r + 0x3b]];
+			data[p + 0x005] = this.bg2[q | 0x3a] ? color : this.bgcolor[idx | this.bg4[r + 0x3a]];
+			data[p + 0x006] = this.bg2[q | 0x39] ? color : this.bgcolor[idx | this.bg4[r + 0x39]];
+			data[p + 0x007] = this.bg2[q | 0x38] ? color : this.bgcolor[idx | this.bg4[r + 0x38]];
+			data[p + 0x100] = this.bg2[q | 0x37] ? color : this.bgcolor[idx | this.bg4[r + 0x37]];
+			data[p + 0x101] = this.bg2[q | 0x36] ? color : this.bgcolor[idx | this.bg4[r + 0x36]];
+			data[p + 0x102] = this.bg2[q | 0x35] ? color : this.bgcolor[idx | this.bg4[r + 0x35]];
+			data[p + 0x103] = this.bg2[q | 0x34] ? color : this.bgcolor[idx | this.bg4[r + 0x34]];
+			data[p + 0x104] = this.bg2[q | 0x33] ? color : this.bgcolor[idx | this.bg4[r + 0x33]];
+			data[p + 0x105] = this.bg2[q | 0x32] ? color : this.bgcolor[idx | this.bg4[r + 0x32]];
+			data[p + 0x106] = this.bg2[q | 0x31] ? color : this.bgcolor[idx | this.bg4[r + 0x31]];
+			data[p + 0x107] = this.bg2[q | 0x30] ? color : this.bgcolor[idx | this.bg4[r + 0x30]];
+			data[p + 0x200] = this.bg2[q | 0x2f] ? color : this.bgcolor[idx | this.bg4[r + 0x2f]];
+			data[p + 0x201] = this.bg2[q | 0x2e] ? color : this.bgcolor[idx | this.bg4[r + 0x2e]];
+			data[p + 0x202] = this.bg2[q | 0x2d] ? color : this.bgcolor[idx | this.bg4[r + 0x2d]];
+			data[p + 0x203] = this.bg2[q | 0x2c] ? color : this.bgcolor[idx | this.bg4[r + 0x2c]];
+			data[p + 0x204] = this.bg2[q | 0x2b] ? color : this.bgcolor[idx | this.bg4[r + 0x2b]];
+			data[p + 0x205] = this.bg2[q | 0x2a] ? color : this.bgcolor[idx | this.bg4[r + 0x2a]];
+			data[p + 0x206] = this.bg2[q | 0x29] ? color : this.bgcolor[idx | this.bg4[r + 0x29]];
+			data[p + 0x207] = this.bg2[q | 0x28] ? color : this.bgcolor[idx | this.bg4[r + 0x28]];
+			data[p + 0x300] = this.bg2[q | 0x27] ? color : this.bgcolor[idx | this.bg4[r + 0x27]];
+			data[p + 0x301] = this.bg2[q | 0x26] ? color : this.bgcolor[idx | this.bg4[r + 0x26]];
+			data[p + 0x302] = this.bg2[q | 0x25] ? color : this.bgcolor[idx | this.bg4[r + 0x25]];
+			data[p + 0x303] = this.bg2[q | 0x24] ? color : this.bgcolor[idx | this.bg4[r + 0x24]];
+			data[p + 0x304] = this.bg2[q | 0x23] ? color : this.bgcolor[idx | this.bg4[r + 0x23]];
+			data[p + 0x305] = this.bg2[q | 0x22] ? color : this.bgcolor[idx | this.bg4[r + 0x22]];
+			data[p + 0x306] = this.bg2[q | 0x21] ? color : this.bgcolor[idx | this.bg4[r + 0x21]];
+			data[p + 0x307] = this.bg2[q | 0x20] ? color : this.bgcolor[idx | this.bg4[r + 0x20]];
+			data[p + 0x400] = this.bg2[q | 0x1f] ? color : this.bgcolor[idx | this.bg4[r + 0x1f]];
+			data[p + 0x401] = this.bg2[q | 0x1e] ? color : this.bgcolor[idx | this.bg4[r + 0x1e]];
+			data[p + 0x402] = this.bg2[q | 0x1d] ? color : this.bgcolor[idx | this.bg4[r + 0x1d]];
+			data[p + 0x403] = this.bg2[q | 0x1c] ? color : this.bgcolor[idx | this.bg4[r + 0x1c]];
+			data[p + 0x404] = this.bg2[q | 0x1b] ? color : this.bgcolor[idx | this.bg4[r + 0x1b]];
+			data[p + 0x405] = this.bg2[q | 0x1a] ? color : this.bgcolor[idx | this.bg4[r + 0x1a]];
+			data[p + 0x406] = this.bg2[q | 0x19] ? color : this.bgcolor[idx | this.bg4[r + 0x19]];
+			data[p + 0x407] = this.bg2[q | 0x18] ? color : this.bgcolor[idx | this.bg4[r + 0x18]];
+			data[p + 0x500] = this.bg2[q | 0x17] ? color : this.bgcolor[idx | this.bg4[r + 0x17]];
+			data[p + 0x501] = this.bg2[q | 0x16] ? color : this.bgcolor[idx | this.bg4[r + 0x16]];
+			data[p + 0x502] = this.bg2[q | 0x15] ? color : this.bgcolor[idx | this.bg4[r + 0x15]];
+			data[p + 0x503] = this.bg2[q | 0x14] ? color : this.bgcolor[idx | this.bg4[r + 0x14]];
+			data[p + 0x504] = this.bg2[q | 0x13] ? color : this.bgcolor[idx | this.bg4[r + 0x13]];
+			data[p + 0x505] = this.bg2[q | 0x12] ? color : this.bgcolor[idx | this.bg4[r + 0x12]];
+			data[p + 0x506] = this.bg2[q | 0x11] ? color : this.bgcolor[idx | this.bg4[r + 0x11]];
+			data[p + 0x507] = this.bg2[q | 0x10] ? color : this.bgcolor[idx | this.bg4[r + 0x10]];
+			data[p + 0x600] = this.bg2[q | 0x0f] ? color : this.bgcolor[idx | this.bg4[r + 0x0f]];
+			data[p + 0x601] = this.bg2[q | 0x0e] ? color : this.bgcolor[idx | this.bg4[r + 0x0e]];
+			data[p + 0x602] = this.bg2[q | 0x0d] ? color : this.bgcolor[idx | this.bg4[r + 0x0d]];
+			data[p + 0x603] = this.bg2[q | 0x0c] ? color : this.bgcolor[idx | this.bg4[r + 0x0c]];
+			data[p + 0x604] = this.bg2[q | 0x0b] ? color : this.bgcolor[idx | this.bg4[r + 0x0b]];
+			data[p + 0x605] = this.bg2[q | 0x0a] ? color : this.bgcolor[idx | this.bg4[r + 0x0a]];
+			data[p + 0x606] = this.bg2[q | 0x09] ? color : this.bgcolor[idx | this.bg4[r + 0x09]];
+			data[p + 0x607] = this.bg2[q | 0x08] ? color : this.bgcolor[idx | this.bg4[r + 0x08]];
+			data[p + 0x700] = this.bg2[q | 0x07] ? color : this.bgcolor[idx | this.bg4[r + 0x07]];
+			data[p + 0x701] = this.bg2[q | 0x06] ? color : this.bgcolor[idx | this.bg4[r + 0x06]];
+			data[p + 0x702] = this.bg2[q | 0x05] ? color : this.bgcolor[idx | this.bg4[r + 0x05]];
+			data[p + 0x703] = this.bg2[q | 0x04] ? color : this.bgcolor[idx | this.bg4[r + 0x04]];
+			data[p + 0x704] = this.bg2[q | 0x03] ? color : this.bgcolor[idx | this.bg4[r + 0x03]];
+			data[p + 0x705] = this.bg2[q | 0x02] ? color : this.bgcolor[idx | this.bg4[r + 0x02]];
+			data[p + 0x706] = this.bg2[q | 0x01] ? color : this.bgcolor[idx | this.bg4[r + 0x01]];
+			data[p + 0x707] = this.bg2[q | 0x00] ? color : this.bgcolor[idx | this.bg4[r + 0x00]];
 		}
 	}
 

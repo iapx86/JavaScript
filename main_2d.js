@@ -194,6 +194,14 @@ if (!Uint8Array.prototype.fill)
 if (!Uint8Array.of)
 	Uint8Array.of = function () {return new Uint8Array(arguments);};
 
+if (!Uint8Array.from)
+	Uint8Array.from = function (obj, func, thisObj) {
+		let typed_array = new this(obj.length);
+		for (let i = 0; i < typed_array.length; i++)
+			typed_array[i] = func.call(thisObj, obj[i], i, typed_array);
+		return typed_array;
+	};
+
 if (!Uint32Array.prototype.copyWithin)
 	Uint32Array.prototype.copyWithin = function (target, start, end) {
 		if (end === undefined)

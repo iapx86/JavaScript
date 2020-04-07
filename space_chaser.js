@@ -54,7 +54,7 @@ class SpaceChaser {
 					this.background_select = (data & 0x10) !== 0;
 					break;
 				case 0x04:
-					this.io[3] = (data << this.shifter.shift | this.shifter.reg >>> (8 - this.shifter.shift)) & 0xff;
+					this.io[3] = (data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift)) & 0xff;
 					this.shifter.reg = data;
 					break;
 				case 0x05:
@@ -208,10 +208,10 @@ class SpaceChaser {
 			0xffffffff, // white
 		);
 
-		for (let p = 256 * 8 * 31, k = 0x0400, i = 256 >>> 3; i !== 0; --i) {
-			for (let j = 224 >>> 2; j !== 0; k += 0x80, p += 4, --j) {
+		for (let p = 256 * 8 * 31, k = 0x0400, i = 256 >> 3; i !== 0; --i) {
+			for (let j = 224 >> 2; j !== 0; k += 0x80, p += 4, --j) {
 				const color = rgb[this.ram[k & 0x1f9f | 0x2000] & 7];
-				const map_data = MAP[k >>> 3 & 0x3e0 | k & 0x1f] & 0x0c;
+				const map_data = MAP[k >> 3 & 0x3e0 | k & 0x1f] & 0x0c;
 				const back = rgb[this.background_disable ? 0 : this.background_select && map_data === 0x0c ? 4 : 2];
 				let a = this.ram[k];
 				data[p + 7 * 256] = (a & 1) !== 0 ? color : back;

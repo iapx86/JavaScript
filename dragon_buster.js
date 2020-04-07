@@ -56,13 +56,13 @@ class DragonBuster {
 			this.cpu.memorymap[0x68 + i].read = addr => sound.read(addr);
 			this.cpu.memorymap[0x68 + i].write = (addr, data) => sound.write(addr, data);
 		}
-		for (let i = 0; i < 0x0f; i++)
+		for (let i = 0; i < 0x10; i++)
 			this.cpu.memorymap[0x70 + i].write = addr => this.fInterruptEnable0 = (addr & 0x800) === 0;
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[0x80 + i].base = PRG1.base[i];
-		for (let i = 0; i < 0x0f; i++)
+		for (let i = 0; i < 0x10; i++)
 			this.cpu.memorymap[0x80 + i].write = addr => (addr & 0x800) === 0 ? this.mcu.enable() : this.mcu.disable();
-		for (let i = 0; i < 0x0f; i++)
+		for (let i = 0; i < 0x10; i++)
 			this.cpu.memorymap[0x90 + i].write = addr => {
 				const bank = ~addr >> 6 & 0x20 | 0x80;
 				if (bank === this.bank)
@@ -250,10 +250,10 @@ class DragonBuster {
 
 	convertRGB() {
 		for (let i = 0; i < 0x100; i++)
-			this.rgb[i] = (RED[i] & 0x0f) * 255 / 15	// Red
-				| (GREEN[i] & 0x0f) * 255 / 15 << 8		// Green
-				| (BLUE[i] & 0x0f) * 255 / 15 << 16		// Blue
-				| 0xff000000;							// Alpha
+			this.rgb[i] = (RED[i] & 0xf) * 255 / 15	// Red
+				| (GREEN[i] & 0xf) * 255 / 15 << 8	// Green
+				| (BLUE[i] & 0xf) * 255 / 15 << 16	// Blue
+				| 0xff000000;						// Alpha
 	}
 
 	convertFG() {
@@ -400,11 +400,11 @@ class DragonBuster {
 
 		// obj描画
 		if (this.fFlip) {
-			for (let p = 0x1f80, i = 64; i !== 0; p += 2, --i) {
-				const y = 0x169 - this.ram[p + 0x801] - this.ram[p + 0x1001] * 0x100 & 0x1ff;
-				const x = 0xe9 - this.ram[p + 0x800] & 0xff;
-				const src = this.ram[p + 1] << 9 | this.ram[p + 0x1000] << 1 & 0x100 | this.ram[p];
-				switch (this.ram[p + 0x1000] & 0x0f) {
+			for (let k = 0x1f80, i = 64; i !== 0; k += 2, --i) {
+				const x = 0xe9 - this.ram[k + 0x800] & 0xff;
+				const y = 0x169 - this.ram[k + 0x801] - this.ram[k + 0x1001] * 0x100 & 0x1ff;
+				const src = this.ram[k] | this.ram[k + 0x1000] << 1 & 0x100 | this.ram[k + 1] << 9;
+				switch (this.ram[k + 0x1000] & 0x0f) {
 				case 0x00: // ノーマル
 					this.xfer16x16(data, x | y << 8, src);
 					break;
@@ -477,11 +477,11 @@ class DragonBuster {
 			}
 		}
 		else {
-			for (let p = 0x1f80, i = 64; i !== 0; p += 2, --i) {
-				const y = (this.ram[p + 0x801] | this.ram[p + 0x1001] << 8) - 55 & 0x1ff;
-				const x = this.ram[p + 0x800] + 7 & 0xff;
-				const src = this.ram[p + 1] << 9 | this.ram[p + 0x1000] << 1 & 0x100 | this.ram[p];
-				switch (this.ram[p + 0x1000] & 0x0f) {
+			for (let k = 0x1f80, i = 64; i !== 0; k += 2, --i) {
+				const x = this.ram[k + 0x800] + 7 & 0xff;
+				const y = (this.ram[k + 0x801] | this.ram[k + 0x1001] << 8) - 55 & 0x1ff;
+				const src = this.ram[k] | this.ram[k + 0x1000] << 1 & 0x100 | this.ram[k + 1] << 9;
+				switch (this.ram[k + 0x1000] & 0x0f) {
 				case 0x00: // ノーマル
 					this.xfer16x16(data, x | y << 8, src);
 					break;

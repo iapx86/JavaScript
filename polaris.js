@@ -48,7 +48,7 @@ class Polaris {
 					this.shifter.shift = data & 7;
 					break;
 				case 0x03:
-					this.io[3] = (data << this.shifter.shift | this.shifter.reg >>> (8 - this.shifter.shift)) & 0xff;
+					this.io[3] = (data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift)) & 0xff;
 					this.shifter.reg = data;
 					break;
 				default:
@@ -192,10 +192,10 @@ class Polaris {
 			0xffffffff, // white
 		);
 
-		for (let p = 256 * 8 * 31, k = 0x0400, i = 256 >>> 3; i !== 0; --i) {
+		for (let p = 256 * 8 * 31, k = 0x0400, i = 256 >> 3; i !== 0; --i) {
 			for (let j = 224 >> 2; j !== 0; k += 0x80, p += 4, --j) {
 				const color = rgb[~this.ram[k & 0x1f9f | 0x2000] & 7];
-				const back = rgb[(MAP[k >>> 3 & 0x3e0 | k & 0x1f] & 1) !== 0 ? 6 : 2];
+				const back = rgb[(MAP[k >> 3 & 0x3e0 | k & 0x1f] & 1) !== 0 ? 6 : 2];
 				let a = this.ram[k];
 				data[p + 7 * 256] = (a & 1) !== 0 ? color : back;
 				data[p + 6 * 256] = (a & 2) !== 0 ? color : back;
