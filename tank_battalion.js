@@ -31,19 +31,64 @@ class TankBattalion {
 		this.rport = new Uint8Array(0x100).fill(0xff);
 		this.wport = new Uint8Array(0x100);
 
+		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
+
 		this.cpu = new MCS6502(this);
-		for (let i = 0; i < 8; i++) {
-			this.cpu.memorymap[0x80 + i].base = this.cpu.memorymap[i].base = this.ram.base[i];
-			this.cpu.memorymap[0x80 + i].write = this.cpu.memorymap[i].write = null;
-		}
-		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x88 + i].base = this.cpu.memorymap[0x08 + i].base = this.ram.base[8 + i];
-			this.cpu.memorymap[0x88 + i].write = this.cpu.memorymap[0x08 + i].write = null;
-		}
-		this.cpu.memorymap[0x8c].base = this.cpu.memorymap[0x0c].base = this.rport;
-		this.cpu.memorymap[0x8c].write = this.cpu.memorymap[0x0c].write = systemcontrolarea;
-		for (let i = 0; i < 0x20; i++)
-			this.cpu.memorymap[0xe0 + i].base = this.cpu.memorymap[0x60 + i].base = PRG.base[i];
+		for (let page = 0; page < 0x100; page++)
+			if (range(page, 0, 0xb, 0x80)) {
+				this.cpu.memorymap[page].base = this.ram.base[page & 0xf];
+				this.cpu.memorymap[page].write = null;
+			}
+			else if (range(page, 0xc, 0xc, 0x80)) {
+				this.cpu.memorymap[page].base = this.rport;
+				this.cpu.memorymap[page].write = (addr, data) => {
+					this.wport[addr & 0xff] = data;
+					switch (addr & 0xff) {
+					case 0x02: // SOUND
+						if (!data)
+							this.se[2].stop = this.se[3].stop = true;
+						break;
+					case 0x08: // COIN
+						this.se[5].stop = true;
+						if (data)
+							this.se[5].start = true; // XXX 7 times
+						break;
+					case 0x09: // BONUS
+						this.se[4].stop = true;
+						if (data)
+							this.se[4].start = true; // XXX 7 times
+						break;
+					case 0x0a: // ENGINE(IDLE)
+						if (!this.wport[0x02])
+							break;
+						if (data)
+							this.se[2].stop = this.se[3].stop = true;
+						else if (!this.wport[0x0b])
+							this.se[3].start = true;
+						else
+							this.se[2].start = true;
+						break;
+					case 0x0b: // ENGINE(RUN)
+						if (!this.wport[0x02] || this.wport[0x0a])
+							break;
+						if (!data)
+							this.se[3].start = this.se[2].stop = true;
+						else
+							this.se[2].start = this.se[3].stop = true;
+						break;
+					case 0x0c: // FIRE
+						if (data === 0x11)
+							this.se[1].start = this.se[1].stop = true;
+						break;
+					case 0x0d: // EXPLOSION
+						if (data === 0x1f)
+							this.se[0].start = this.se[0].stop = true;
+						break;
+					}
+				};
+			}
+			else if (range(page, 0x60, 0x7f, 0x80))
+				this.cpu.memorymap[page].base = PRG.base[page & 0x1f];
 		this.rport[0x1b] = 0x7f;
 		this.rport[0x1c] = 0x7f;
 		this.rport[0x1d] = 0x7f;
@@ -57,53 +102,6 @@ class TankBattalion {
 		// 効果音の初期化
 		this.se = [BANG, FIRE, ENG2, ENG1, BONUS, COIN].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
 		this.se[2].loop = this.se[3].loop = true;
-
-		// ライトハンドラ
-		function systemcontrolarea(addr, data, game) {
-			game.wport[addr & 0xff] = data;
-			switch (addr & 0xff) {
-			case 0x02: /* SOUND */
-				if (!data)
-					game.se[2].stop = game.se[3].stop = true;
-				break;
-			case 0x08: /* COIN */
-				game.se[5].stop = true;
-				if (data)
-					game.se[5].start = true; // XXX 7 times
-				break;
-			case 0x09: /* BONUS */
-				game.se[4].stop = true;
-				if (data)
-					game.se[4].start = true; // XXX 7 times
-				break;
-			case 0x0a: /* ENGINE(IDLE) */
-				if (!game.wport[0x02])
-					break;
-				if (data)
-					game.se[2].stop = game.se[3].stop = true;
-				else if (!game.wport[0x0b])
-					game.se[3].start = true;
-				else
-					game.se[2].start = true;
-				break;
-			case 0x0b: /* ENGINE(RUN) */
-				if (!game.wport[0x02] || game.wport[0x0a])
-					break;
-				if (!data)
-					game.se[3].start = game.se[2].stop = true;
-				else
-					game.se[2].start = game.se[3].stop = true;
-				break;
-			case 0x0c: /* FIRE */
-				if (data === 0x11)
-					game.se[1].start = game.se[1].stop = true;
-				break;
-			case 0x0d: /* EXPLOSION */
-				if (data === 0x1f)
-					game.se[0].start = game.se[0].stop = true;
-				break;
-			}
-		}
 	}
 
 	execute() {
@@ -260,7 +258,7 @@ class TankBattalion {
 		for (let p = 0, q = 0, i = 0; i < 0x100; q += 8, i++)
 			for (let j = 7; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = (BG[q + k] >>> j & 1) * RGB[i | 1] & 0xf;
+					this.bg[p++] = (BG[q + k] >> j & 1) * RGB[i | 1] & 0xf;
 	}
 
 	makeBitmap(data) {
@@ -3370,7 +3368,7 @@ function success(zip) {
 	RGB = new Uint8Array(zip.files['bct1-1.l3'].inflate().split('').map(c => c.charCodeAt(0)));
 	init({
 		game: game = new TankBattalion(),
-		sound: new SoundEffect({se: game.se, freq: 22050}),
+		sound: new SoundEffect({se: game.se, freq: 22050, gain: 0.5}),
 	});
 	loop();
 }

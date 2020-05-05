@@ -49,7 +49,31 @@ class WarpAndWarp {
 			this.cpu.memorymap[0x80 + i].write = null;
 		}
 		this.cpu.memorymap[0xc0].base = this.ram.base[0x0c];
-		this.cpu.memorymap[0xc0].write = ioarea;
+		this.cpu.memorymap[0xc0].write = (addr, data) => {
+			switch (addr & 0xff) {
+			case 0x02:
+				switch (data) {
+				case 0x00:
+					this.se[2].start = this.se[2].stop = true;
+					break;
+				case 0x04:
+					this.se[1].start = this.se[1].stop = true;
+					break;
+				case 0x07:
+					this.se[3].start = this.se[3].stop = true;
+					break;
+				case 0x09:
+					this.se[4].start = this.se[4].stop = true;
+					break;
+				}
+				break;
+			case 0x20:
+				if (data === 0x2d && this.ram[0xd20] !== 0x2d)
+					this.se[0].start = this.se[0].stop = true;
+				break;
+			}
+			this.ram[0xd00 | addr & 0xff] = data;
+		};
 
 		// Videoの初期化
 		this.bg = new Uint8Array(0x4000);
@@ -59,34 +83,6 @@ class WarpAndWarp {
 
 		// 効果音の初期化
 		this.se = [WAVE02, WAVE10, WAVE11, WAVE14, WAVE16].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
-
-		// ライトハンドラ
-		function ioarea(addr, data, game) {
-			switch (addr & 0xff) {
-			case 0x02:
-				switch (data) {
-				case 0x00:
-					game.se[2].start = game.se[2].stop = true;
-					break;
-				case 0x04:
-					game.se[1].start = game.se[1].stop = true;
-					break;
-				case 0x07:
-					game.se[3].start = game.se[3].stop = true;
-					break;
-				case 0x09:
-					game.se[4].start = game.se[4].stop = true;
-					break;
-				}
-				break;
-			case 0x20:
-				if (data === 0x2d && game.ram[0xd20] !== 0x2d) {
-					game.se[0].start = game.se[0].stop = true;
-				}
-				break;
-			}
-			game.ram[0xd00 | addr & 0xff] = data;
-		}
 	}
 
 	execute() {
@@ -283,7 +279,7 @@ class WarpAndWarp {
 			this.xfer8x8(data, p, k);
 
 		// 弾描画
-		p = 256 * 8 * 3 + (0xfc - this.ram[0xd00] & 0xff) * 256 + this.ram[0xd01];
+		p = 256 * 8 * 3 + (0xfc - this.ram[0xd00]) * 256 + this.ram[0xd01];
 		for (let i = 0; i < 4; i++) {
 			data[p] = data[p + 1] = data[p + 2] = data[p + 3] = 0xf6;
 			p += 256;
@@ -3604,7 +3600,7 @@ function success(zip) {
 		game: game = new WarpAndWarp(),
 		sound: [
 			new WarpAndWarpSound(),
-			new SoundEffect({se: game.se, freq: 22050}),
+			new SoundEffect({se: game.se, freq: 22050, gain:0.5}),
 		],
 	});
 	loop();

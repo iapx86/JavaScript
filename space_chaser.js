@@ -41,31 +41,29 @@ class SpaceChaser {
 			this.cpu.memorymap[0xc0 + i].base = this.ram.base[0x20 + i];
 			this.cpu.memorymap[0xc0 + i].write = (addr, data) => this.ram[0x2000 + (addr & 0x1f9f)] = data;
 		}
-		for (let i = 0; i < 0x100; i++) {
-			this.cpu.iomap[i].base = this.io;
-			this.cpu.iomap[i].write = (addr, data) => {
-				switch (addr & 0xff) {
-				case 0x02:
-					this.shifter.shift = data & 7;
-					break;
-				case 0x03:
-//					check_sound3(this, data);
-					this.background_disable = (data & 8) !== 0;
-					this.background_select = (data & 0x10) !== 0;
-					break;
-				case 0x04:
-					this.io[3] = (data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift)) & 0xff;
-					this.shifter.reg = data;
-					break;
-				case 0x05:
-//					check_sound5(this, data);
-					break;
-				default:
-					this.io[addr & 0xff] = data;
-					break;
-				}
-			};
-		}
+		this.cpu.iomap.base = this.io;
+		this.cpu.iomap.write = (addr, data) => {
+			switch (addr) {
+			case 0x02:
+				this.shifter.shift = data & 7;
+				break;
+			case 0x03:
+//				check_sound3(this, data);
+				this.background_disable = (data & 8) !== 0;
+				this.background_select = (data & 0x10) !== 0;
+				break;
+			case 0x04:
+				this.io[3] = (data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift)) & 0xff;
+				this.shifter.reg = data;
+				break;
+			case 0x05:
+//				check_sound5(this, data);
+				break;
+			default:
+				this.io[addr] = data;
+				break;
+			}
+		};
 
 		// Videoの初期化
 		this.shifter = {shift: 0, reg: 0};

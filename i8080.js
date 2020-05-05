@@ -18,11 +18,8 @@ export default class I8080 extends Cpu {
 		this.a = 0;
 		this.f = 0; // f:sz-a-p-c
 		this.iff = 0;
-		this.r = 0;
 		this.sp = 0;
-		this.iomap = [];
-		for (let i = 0; i < 0x100; i++)
-			this.iomap.push({base: dummypage, read: null, write: () => {}});
+		this.iomap = {base: dummypage, read: null, write: () => {}};
 	}
 
 	reset() {
@@ -130,7 +127,7 @@ export default class I8080 extends Cpu {
 		case 0x21: // LXI H,data16
 			return void([this.l, this.h] = [this.fetch(), this.fetch()]);
 		case 0x22: // SHLD addr
-			return this.write16(this.fetch() | this.fetch() << 8, this.l | this.h << 8);
+			return this.write16(this.fetch16(), this.l | this.h << 8);
 		case 0x23: // INX H
 			return void([this.l, this.h] = this.split((this.l | this.h << 8) + 1 & 0xffff));
 		case 0x24: // INR H
@@ -144,7 +141,7 @@ export default class I8080 extends Cpu {
 		case 0x29: // DAD H
 			return void([this.l, this.h] = this.split(this.add16(this.l | this.h << 8, this.l | this.h << 8)));
 		case 0x2a: // LHLD addr
-			return void([this.l, this.h] = this.split(this.read16(this.fetch() | this.fetch() << 8)));
+			return void([this.l, this.h] = this.split(this.read16(this.fetch16())));
 		case 0x2b: // DCX H
 			return void([this.l, this.h] = this.split((this.l | this.h << 8) - 1 & 0xffff));
 		case 0x2c: // INR L
@@ -156,9 +153,9 @@ export default class I8080 extends Cpu {
 		case 0x2f: // CMA
 			return void(this.a = ~this.a & 0xff);
 		case 0x31: // LXI SP,data16
-			return void(this.sp = this.fetch() | this.fetch() << 8);
+			return void(this.sp = this.fetch16());
 		case 0x32: // STA addr
-			return this.write(this.fetch() | this.fetch() << 8, this.a);
+			return this.write(this.fetch16(), this.a);
 		case 0x33: // INX SP
 			return void(this.sp = this.sp + 1 & 0xffff);
 		case 0x34: // INR M
@@ -172,7 +169,7 @@ export default class I8080 extends Cpu {
 		case 0x39: // DAD SP
 			return void([this.l, this.h] = this.split(this.add16(this.l | this.h << 8, this.sp)));
 		case 0x3a: // LDA addr
-			return void(this.a = this.read(this.fetch() | this.fetch() << 8));
+			return void(this.a = this.read(this.fetch16()));
 		case 0x3b: // DCX SP
 			return void(this.sp = this.sp - 1 & 0xffff);
 		case 0x3c: // INR A
@@ -442,7 +439,7 @@ export default class I8080 extends Cpu {
 		case 0xc0: // RNZ
 			return this.ret((this.f & 0x40) === 0);
 		case 0xc1: // POP B
-			return void([this.c, this.b] = [this.pop(), this.pop()]);
+			return void([this.c, this.b] = this.split(this.pop16()));
 		case 0xc2: // JNZ addr
 			return this.jp((this.f & 0x40) === 0);
 		case 0xc3: // JMP addr
@@ -450,7 +447,7 @@ export default class I8080 extends Cpu {
 		case 0xc4: // CNZ addr
 			return this.call((this.f & 0x40) === 0);
 		case 0xc5: // PUSH B
-			return this.push(this.b, this.c);
+			return this.push16(this.c | this.b << 8);
 		case 0xc6: // ADI data
 			return void(this.a = this.add8(this.a, this.fetch()));
 		case 0xc7: // RST 00h
@@ -472,15 +469,15 @@ export default class I8080 extends Cpu {
 		case 0xd0: // RNC
 			return this.ret((this.f & 1) === 0);
 		case 0xd1: // POP D
-			return void([this.e, this.d] = [this.pop(), this.pop()]);
+			return void([this.e, this.d] = this.split(this.pop16()));
 		case 0xd2: // JNC addr
 			return this.jp((this.f & 1) === 0);
 		case 0xd3: // OUT port
-			return this.iowrite(this.a, this.fetch(), this.a);
+			return this.iowrite(this.fetch(), this.a);
 		case 0xd4: // CNC addr
 			return this.call((this.f & 1) === 0);
 		case 0xd5: // PUSH D
-			return this.push(this.d, this.e);
+			return this.push16(this.e | this.d << 8);
 		case 0xd6: // SUI data
 			return void(this.a = this.sub8(this.a, this.fetch()));
 		case 0xd7: // RST 10h
@@ -490,7 +487,7 @@ export default class I8080 extends Cpu {
 		case 0xda: // JC addr
 			return this.jp((this.f & 1) !== 0);
 		case 0xdb: // IN port
-			return void(this.a = this.ioread(this.a, this.fetch()));
+			return void(this.a = this.ioread(this.fetch()));
 		case 0xdc: // CC addr
 			return this.call((this.f & 1) !== 0);
 		case 0xde: // SBI data
@@ -500,16 +497,16 @@ export default class I8080 extends Cpu {
 		case 0xe0: // RPO
 			return this.ret((this.f & 4) === 0);
 		case 0xe1: // POP H
-			return void([this.l, this.h] = [this.pop(), this.pop()]);
+			return void([this.l, this.h] = this.split(this.pop16()));
 		case 0xe2: // JPO addr
 			return this.jp((this.f & 4) === 0);
 		case 0xe3: // XTHL
-			[v, this.l, this.h] = [this.l | this.h << 8, this.pop(), this.pop()];
+			[v, this.l, this.h] = [this.l | this.h << 8, ...this.split(this.pop16())];
 			return this.push16(v);
 		case 0xe4: // CPO addr
 			return this.call((this.f & 4) === 0);
 		case 0xe5: // PUSH H
-			return this.push(this.h, this.l);
+			return this.push16(this.l | this.h << 8);
 		case 0xe6: // ANI data
 			return void(this.a = this.and8(this.a, this.fetch()));
 		case 0xe7: // RST 20h
@@ -531,7 +528,7 @@ export default class I8080 extends Cpu {
 		case 0xf0: // RP
 			return this.ret((this.f & 0x80) === 0);
 		case 0xf1: // POP PSW
-			return void([this.f, this.a] = [this.pop(), this.pop()]);
+			return void([this.f, this.a] = this.split(this.pop16()));
 		case 0xf2: // JP addr
 			return this.jp((this.f & 0x80) === 0);
 		case 0xf3: // DI
@@ -539,7 +536,7 @@ export default class I8080 extends Cpu {
 		case 0xf4: // CP addr
 			return this.call((this.f & 0x80) === 0);
 		case 0xf5: // PUSH PSW
-			return this.push(this.a, this.f);
+			return this.push16(this.f | this.a << 8);
 		case 0xf6: // ORI data
 			return void(this.a = this.or8(this.a, this.fetch()));
 		case 0xf7: // RST 30h
@@ -567,16 +564,16 @@ export default class I8080 extends Cpu {
 	}
 
 	ret(cond) {
-		if (cond) this.pc = this.pop() | this.pop() << 8;
+		if (cond) this.pc = this.pop16();
 	}
 
 	jp(cond) {
-		const addr = this.fetch() | this.fetch() << 8;
+		const addr = this.fetch16();
 		if (cond) this.pc = addr;
 	}
 
 	call(cond) {
-		const addr = this.fetch() | this.fetch() << 8;
+		const addr = this.fetch16();
 		if (cond) this.rst(addr);
 	}
 
@@ -585,17 +582,14 @@ export default class I8080 extends Cpu {
 		this.pc = addr;
 	}
 
-	push(...args) {
-		args.forEach(e => this.write(this.sp = this.sp - 1 & 0xffff, e));
-	}
-
 	push16(r) {
-		this.write16(this.sp = this.sp - 2 & 0xffff, r);
+		this.write(this.sp = this.sp - 1 & 0xffff, r >> 8);
+		this.write(this.sp = this.sp - 1 & 0xffff, r & 0xff);
 	}
 
-	pop() {
-		const r = this.read(this.sp);
-		this.sp = this.sp + 1 & 0xffff;
+	pop16() {
+		const r = this.read16(this.sp);
+		this.sp = this.sp + 2 & 0xffff;
 		return r;
 	}
 
@@ -666,7 +660,7 @@ export default class I8080 extends Cpu {
 				this.f |= 1;
 			this.f |= 0x10;
 		}
-		if ((this.f & 1) !== 0  || (r & 0xf0) > 0x90) {
+		if ((this.f & 1) !== 0 || (r & 0xf0) > 0x90) {
 			r += 0x60;
 			this.f |= 1;
 		}
@@ -674,26 +668,30 @@ export default class I8080 extends Cpu {
 		this.f = this.f & ~0xc4 | I8080.fLogic[r];
 	}
 
-	ioread(h, l) {
-		const page = this.iomap[h];
-		return !page.read ? page.base[l] : page.read(l | h << 8, this.arg);
+	ioread(addr) {
+		return !this.iomap.read ? this.iomap.base[addr] : this.iomap.read(addr, this.arg);
 	}
 
-	iowrite(h, l, data) {
-		const page = this.iomap[h];
-		!page.write ? void(page.base[l] = data) : page.write(l | h << 8, data, this.arg);
+	iowrite(addr, data) {
+		!this.iomap.write ? void(this.iomap.base[addr] = data) : this.iomap.write(addr, data, this.arg);
 	}
 
 	split(v) {
 		return [v & 0xff, v >> 8];
 	}
 
+	fetch16() {
+		const data = this.fetch();
+		return data | this.fetch() << 8;
+	}
+
 	read16(addr) {
-		return this.read(addr) | this.read(addr + 1 & 0xffff) << 8;
+		const data = this.read(addr);
+		return data | this.read(addr + 1 & 0xffff) << 8;
 	}
 
 	write16(addr, data) {
-		this.write(addr, data);
+		this.write(addr, data & 0xff);
 		this.write(addr + 1 & 0xffff, data >> 8);
 	}
 }

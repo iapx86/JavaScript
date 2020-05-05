@@ -218,7 +218,7 @@ class Bosconian {
 			case 0x68:
 			case 0x70:
 			case 0x78:
-			case 0x80: 
+			case 0x80:
 				/* 7000h -> 8be0h */
 				game.cpu[0].memorymap[0x70].base = game.ioport;
 				break;

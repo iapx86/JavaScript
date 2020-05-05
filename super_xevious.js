@@ -41,6 +41,7 @@ class SuperXevious {
 		this.mmo = new Uint8Array(0x100);
 		this.count = 0;
 		this.mapreg = new Uint8Array(0x100);
+		this.mapaddr = 0;
 		this.dmaport = new Uint8Array(0x100);
 		this.ioport = new Uint8Array(0x100);
 		this.keyport = 0;
@@ -244,36 +245,28 @@ class SuperXevious {
 		}
 
 		function maparea(addr, data, game) {
-			let v, w, x;
-
-			this.base[addr & 0xff] = data;
-			if ((addr & 0xff) === 0x01) {
-				v = game.maptbl[w = (this.base[0] | this.base[1] << 8) & 0x7fff];
-				switch (MAPDATA[v] & 0xc0) {
-				case 0x00:
-					x = game.mapatr[w] ^ 0x00;
-					break;
-				case 0x40:
-					x = game.mapatr[w] ^ 0x80;
-					break;
-				case 0x80:
-					x = game.mapatr[w] ^ 0x40;
-					break;
-				case 0xc0:
-					x = game.mapatr[w] ^ 0xc0;
-					break;
-				}
-				this.base[0] = MAPDATA[v] & 0x3f | x;
-				this.base[1] = MAPDATA[0x800 + v];
+			switch (addr & 0xff) {
+			case 0:
+				game.mapaddr = game.mapaddr & 0x7f00 | data;
+				break;
+			case 1:
+				game.mapaddr = game.mapaddr & 0xff | data << 8 & 0x7f00;
+				break;
+			default:
+				return;
 			}
+			let ptr = game.maptbl[game.mapaddr], x = game.mapatr[game.mapaddr];
+			x ^= MAPDATA[ptr] >> 1 & 0x40 | MAPDATA[ptr] << 1 & 0x80;
+			game.mapreg[0] = MAPDATA[ptr] & 0x3f | x;
+			game.mapreg[1] = MAPDATA[0x800 + ptr];
 		}
 
 		function scrollregister(addr, data, game) {
 			switch (addr & 0xff) {
-			case 0x00:
+			case 0:
 				game.dwScroll = data;
 				break;
-			case 0x01:
+			case 1:
 				game.dwScroll = data | 0x100;
 				break;
 			}
@@ -517,10 +510,10 @@ class SuperXevious {
 
 	convertRGB() {
 		for (let i = 0; i < 0x100; i++)
-			this.rgb[i] = (RED[i] & 0x0f) * 255 / 15	// Red
-				| (GREEN[i] & 0x0f) * 255 / 15 << 8		// Green
-				| (BLUE[i] & 0x0f) * 255 / 15 << 16		// Blue
-				| 0xff000000;							// Alpha
+			this.rgb[i] = (RED[i] & 0xf) * 255 / 15	// Red
+				| (GREEN[i] & 0xf) * 255 / 15 << 8	// Green
+				| (BLUE[i] & 0xf) * 255 / 15 << 16	// Blue
+				| 0xff000000;						// Alpha
 	}
 
 	convertBG() {
@@ -617,7 +610,7 @@ class SuperXevious {
 	}
 
 	makeBitmap(data) {
-		// bg4 描画
+		// bg4描画
 		let p = 256 * (16 - (this.dwScroll + 4 & 7)) + 232;
 		let k = 0x80 + ((this.dwScroll + 4 >> 3) + 2 & 0x3f);
 		for (let i = 0; i < 28; k = k + 27 & 0x3f | k + 0x40 & 0x7c0, p -= 256 * 8 * 37 + 8, i++)
@@ -773,7 +766,7 @@ class SuperXevious {
 				}
 		}
 
-		// bg2 描画
+		// bg2描画
 		p = 256 * 8 * 2 + 234;
 		k = 0x2084;
 		for (let i = 0; i < 29; k += 28, p -= 256 * 8 * 36 + 8, i++)

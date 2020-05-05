@@ -23,7 +23,7 @@ export default class MC6809 extends Cpu {
 		super.reset();
 		this.ccr = 0x50;
 		this.dp = 0;
-		this.pc = this.read(0xfffe) << 8 | this.read(0xffff);
+		this.pc = this.read16(0xfffe);
 	}
 /*
  *	fast_interrupt() {
@@ -32,7 +32,7 @@ export default class MC6809 extends Cpu {
  *		this.pshs16(this.pc);
  *		this.pshs(this.ccr &= ~0x80);
  *		this.ccr |= 0x50;
- *		this.pc = this.read(0xfff6) << 8 | this.read(0xfff7);
+ *		this.pc = this.read16(0xfff6);
  *		return true;
  *	}
  */
@@ -42,7 +42,7 @@ export default class MC6809 extends Cpu {
 		this.pshs16(this.pc, this.u, this.y, this.x);
 		this.pshs(this.dp, this.b, this.a, this.ccr |= 0x80);
 		this.ccr |= 0x10;
-		this.pc = this.read(0xfff8) << 8 | this.read(0xfff9);
+		this.pc = this.read16(0xfff8);
 		return true;
 	}
 
@@ -52,7 +52,7 @@ export default class MC6809 extends Cpu {
 		this.pshs16(this.pc, this.u, this.y, this.x);
 		this.pshs(this.dp, this.b, this.a, this.ccr |= 0x80);
 		this.ccr |= 0x50;
-		this.pc = this.read(0xfffc) << 8 | this.read(0xfffd);
+		this.pc = this.read16(0xfffc);
 		return true;
 	}
 
@@ -119,13 +119,13 @@ export default class MC6809 extends Cpu {
 			case 0x3f: // SWI2
 				this.pshs16(this.pc, this.u, this.y, this.x);
 				this.pshs(this.dp, this.b, this.a, this.ccr |= 0x80);
-				return void(this.pc = this.read(0xfff4) << 8 | this.read(0xfff5));
+				return void(this.pc = this.read16(0xfff4));
 			case 0x83: // CMPD #nn
-				return void(this.sub16(this.fetch() << 8 | this.fetch(), this.a << 8 | this.b));
+				return void(this.sub16(this.fetch16(), this.a << 8 | this.b));
 			case 0x8c: // CMPY #nn
-				return void(this.sub16(this.fetch() << 8 | this.fetch(), this.y));
+				return void(this.sub16(this.fetch16(), this.y));
 			case 0x8e: // LDY #nn
-				return void(this.y = this.mov16(this.fetch() << 8 | this.fetch()));
+				return void(this.y = this.mov16(this.fetch16()));
 			case 0x93: // CMPD <n
 				return void(this.sub16(this.read16(this.dp << 8 | this.fetch()), this.a << 8 | this.b));
 			case 0x9c: // CMPY <n
@@ -143,15 +143,15 @@ export default class MC6809 extends Cpu {
 			case 0xaf: // STY ,r
 				return this.write16(this.mov16(this.y), this.index());
 			case 0xb3: // CMPD >nn
-				return void(this.sub16(this.read16(this.fetch() << 8 | this.fetch()), this.a << 8 | this.b));
+				return void(this.sub16(this.read16(this.fetch16()), this.a << 8 | this.b));
 			case 0xbc: // CMPY >nn
-				return void(this.sub16(this.read16(this.fetch() << 8 | this.fetch()), this.y));
+				return void(this.sub16(this.read16(this.fetch16()), this.y));
 			case 0xbe: // LDY >nn
-				return void(this.y = this.mov16(this.read16(this.fetch() << 8 | this.fetch())));
+				return void(this.y = this.mov16(this.read16(this.fetch16())));
 			case 0xbf: // STY >nn
-				return this.write16(this.mov16(this.y), this.fetch() << 8 | this.fetch());
+				return this.write16(this.mov16(this.y), this.fetch16());
 			case 0xce: // LDS #nn
-				return void(this.s = this.mov16(this.fetch() << 8 | this.fetch()));
+				return void(this.s = this.mov16(this.fetch16()));
 			case 0xde: // LDS <n
 				return void(this.s = this.mov16(this.read16(this.dp << 8 | this.fetch())));
 			case 0xdf: // STS <n
@@ -161,9 +161,9 @@ export default class MC6809 extends Cpu {
 			case 0xef: // STS ,r
 				return this.write16(this.mov16(this.s), this.index());
 			case 0xfe: // LDS >nn
-				return void(this.s = this.mov16(this.read16(this.fetch() << 8 | this.fetch())));
+				return void(this.s = this.mov16(this.read16(this.fetch16())));
 			case 0xff: // STS >nn
-				return this.write16(this.mov16(this.s), this.fetch() << 8 | this.fetch());
+				return this.write16(this.mov16(this.s), this.fetch16());
 			default:
 				this.undefsize = 2;
 				if (this.undef)
@@ -175,11 +175,11 @@ export default class MC6809 extends Cpu {
 			case 0x3f: // SWI3
 				this.pshs16(this.pc, this.u, this.y, this.x);
 				this.pshs(this.dp, this.b, this.a, this.ccr |= 0x80);
-				return void(this.pc = this.read(0xfff2) << 8 | this.read(0xfff3));
+				return void(this.pc = this.read16(0xfff2));
 			case 0x83: // CMPU #nn
-				return void(this.sub16(this.fetch() << 8 | this.fetch(), this.u));
+				return void(this.sub16(this.fetch16(), this.u));
 			case 0x8c: // CMPS #nn
-				return void(this.sub16(this.fetch() << 8 | this.fetch(), this.s));
+				return void(this.sub16(this.fetch16(), this.s));
 			case 0x93: // CMPU <n
 				return void(this.sub16(this.read16(this.dp << 8 | this.fetch()), this.u));
 			case 0x9c: // CMPS <n
@@ -189,9 +189,9 @@ export default class MC6809 extends Cpu {
 			case 0xac: // CMPS ,r
 				return void(this.sub16(this.read16(this.index()), this.s));
 			case 0xb3: // CMPU >nn
-				return void(this.sub16(this.read16(this.fetch() << 8 | this.fetch()), this.u));
+				return void(this.sub16(this.read16(this.fetch16()), this.u));
 			case 0xbc: // CMPS >nn
-				return void(this.sub16(this.read16(this.fetch() << 8 | this.fetch()), this.s));
+				return void(this.sub16(this.read16(this.fetch16()), this.s));
 			default:
 				this.undefsize = 2;
 				if (this.undef)
@@ -497,7 +497,7 @@ export default class MC6809 extends Cpu {
 			this.pshs16(this.pc, this.u, this.y, this.x);
 			this.pshs(this.dp, this.b, this.a, this.ccr |= 0x80);
 			this.ccr |= 0x50;
-			return void(this.pc = this.read(0xfffa) << 8 | this.read(0xfffb));
+			return void(this.pc = this.read16(0xfffa));
 		case 0x40: // NEGA
 			return void(this.a = this.neg8(this.a));
 		case 0x43: // COMA
@@ -567,29 +567,29 @@ export default class MC6809 extends Cpu {
 		case 0x6f: // CLR ,r
 			return this.write8(this.clr8(), this.index());
 		case 0x70: // NEG >nn
-			return this.write8(this.neg8(this.read(ea = this.fetch() << 8 | this.fetch())), ea);
+			return this.write8(this.neg8(this.read(ea = this.fetch16())), ea);
 		case 0x73: // COM >nn
-			return this.write8(this.com8(this.read(ea = this.fetch() << 8 | this.fetch())), ea);
+			return this.write8(this.com8(this.read(ea = this.fetch16())), ea);
 		case 0x74: // LSR >nn
-			return this.write8(this.lsr8(this.read(ea = this.fetch() << 8 | this.fetch())), ea);
+			return this.write8(this.lsr8(this.read(ea = this.fetch16())), ea);
 		case 0x76: // ROR >nn
-			return this.write8(this.ror8(this.read(ea = this.fetch() << 8 | this.fetch())), ea);
+			return this.write8(this.ror8(this.read(ea = this.fetch16())), ea);
 		case 0x77: // ASR >nn
-			return this.write8(this.asr8(this.read(ea = this.fetch() << 8 | this.fetch())), ea);
+			return this.write8(this.asr8(this.read(ea = this.fetch16())), ea);
 		case 0x78: // LSL >nn
-			return this.write8(this.lsl8(this.read(ea = this.fetch() << 8 | this.fetch())), ea);
+			return this.write8(this.lsl8(this.read(ea = this.fetch16())), ea);
 		case 0x79: // ROL >nn
-			return this.write8(this.rol8(this.read(ea = this.fetch() << 8 | this.fetch())), ea);
+			return this.write8(this.rol8(this.read(ea = this.fetch16())), ea);
 		case 0x7a: // DEC >nn
-			return this.write8(this.dec8(this.read(ea = this.fetch() << 8 | this.fetch())), ea);
+			return this.write8(this.dec8(this.read(ea = this.fetch16())), ea);
 		case 0x7c: // INC >nn
-			return this.write8(this.inc8(this.read(ea = this.fetch() << 8 | this.fetch())), ea);
+			return this.write8(this.inc8(this.read(ea = this.fetch16())), ea);
 		case 0x7d: // TST >nn
-			return void(this.mov8(this.read(this.fetch() << 8 | this.fetch())));
+			return void(this.mov8(this.read(this.fetch16())));
 		case 0x7e: // JMP >nn
-			return void(this.pc = this.fetch() << 8 | this.fetch());
+			return void(this.pc = this.fetch16());
 		case 0x7f: // CLR >nn
-			return this.write8(this.clr8(), this.fetch() << 8 | this.fetch());
+			return this.write8(this.clr8(), this.fetch16());
 		case 0x80: // SUBA #n
 			return void(this.a = this.sub8(this.fetch(), this.a));
 		case 0x81: // CMPA #n
@@ -597,7 +597,7 @@ export default class MC6809 extends Cpu {
 		case 0x82: // SBCA #n
 			return void(this.a = this.sbc8(this.fetch(), this.a));
 		case 0x83: // SUBD #nn
-			return void([this.a, this.b] = this.split(this.sub16(this.fetch() << 8 | this.fetch(), this.a << 8 | this.b)));
+			return void([this.a, this.b] = this.split(this.sub16(this.fetch16(), this.a << 8 | this.b)));
 		case 0x84: // ANDA #n
 			return void(this.a = this.mov8(this.a & this.fetch()));
 		case 0x85: // BITA #n
@@ -613,11 +613,11 @@ export default class MC6809 extends Cpu {
 		case 0x8b: // ADDA #n
 			return void(this.a = this.add8(this.fetch(), this.a));
 		case 0x8c: // CMPX #nn
-			return void(this.sub16(this.fetch() << 8 | this.fetch(), this.x));
+			return void(this.sub16(this.fetch16(), this.x));
 		case 0x8d: // BSR
 			return this.bsr();
 		case 0x8e: // LDX #nn
-			return void(this.x = this.mov16(this.fetch() << 8 | this.fetch()));
+			return void(this.x = this.mov16(this.fetch16()));
 		case 0x90: // SUBA <n
 			return void(this.a = this.sub8(this.read(this.dp << 8 | this.fetch()), this.a));
 		case 0x91: // CMPA <n
@@ -683,37 +683,37 @@ export default class MC6809 extends Cpu {
 		case 0xaf: // STX ,r
 			return this.write16(this.mov16(this.x), this.index());
 		case 0xb0: // SUBA >nn
-			return void(this.a = this.sub8(this.read(this.fetch() << 8 | this.fetch()), this.a));
+			return void(this.a = this.sub8(this.read(this.fetch16()), this.a));
 		case 0xb1: // CMPA >nn
-			return void(this.sub8(this.read(this.fetch() << 8 | this.fetch()), this.a));
+			return void(this.sub8(this.read(this.fetch16()), this.a));
 		case 0xb2: // SBCA >nn
-			return void(this.a = this.sbc8(this.read(this.fetch() << 8 | this.fetch()), this.a));
+			return void(this.a = this.sbc8(this.read(this.fetch16()), this.a));
 		case 0xb3: // SUBD >nn
-			return void([this.a, this.b] = this.split(this.sub16(this.read16(this.fetch() << 8 | this.fetch()), this.a << 8 | this.b)));
+			return void([this.a, this.b] = this.split(this.sub16(this.read16(this.fetch16()), this.a << 8 | this.b)));
 		case 0xb4: // ANDA >nn
-			return void(this.a = this.mov8(this.a & this.read(this.fetch() << 8 | this.fetch())));
+			return void(this.a = this.mov8(this.a & this.read(this.fetch16())));
 		case 0xb5: // BITA >nn
-			return void(this.mov8(this.a & this.read(this.fetch() << 8 | this.fetch())));
+			return void(this.mov8(this.a & this.read(this.fetch16())));
 		case 0xb6: // LDA >nn
-			return void(this.a = this.mov8(this.read(this.fetch() << 8 | this.fetch())));
+			return void(this.a = this.mov8(this.read(this.fetch16())));
 		case 0xb7: // STA >nn
-			return this.write8(this.mov8(this.a), this.fetch() << 8 | this.fetch());
+			return this.write8(this.mov8(this.a), this.fetch16());
 		case 0xb8: // EORA >nn
-			return void(this.a = this.mov8(this.a ^ this.read(this.fetch() << 8 | this.fetch())));
+			return void(this.a = this.mov8(this.a ^ this.read(this.fetch16())));
 		case 0xb9: // ADCA >nn
-			return void(this.a = this.adc8(this.read(this.fetch() << 8 | this.fetch()), this.a));
+			return void(this.a = this.adc8(this.read(this.fetch16()), this.a));
 		case 0xba: // ORA >nn
-			return void(this.a = this.mov8(this.a | this.read(this.fetch() << 8 | this.fetch())));
+			return void(this.a = this.mov8(this.a | this.read(this.fetch16())));
 		case 0xbb: // ADDA >nn
-			return void(this.a = this.add8(this.read(this.fetch() << 8 | this.fetch()), this.a));
+			return void(this.a = this.add8(this.read(this.fetch16()), this.a));
 		case 0xbc: // CMPX >nn
-			return void(this.sub16(this.read16(this.fetch() << 8 | this.fetch()), this.x));
+			return void(this.sub16(this.read16(this.fetch16()), this.x));
 		case 0xbd: // JSR >nn
-			return this.jsr(this.fetch() << 8 | this.fetch());
+			return this.jsr(this.fetch16());
 		case 0xbe: // LDX >nn
-			return void(this.x = this.mov16(this.read16(this.fetch() << 8 | this.fetch())));
+			return void(this.x = this.mov16(this.read16(this.fetch16())));
 		case 0xbf: // STX >nn
-			return this.write16(this.mov16(this.x), this.fetch() << 8 | this.fetch());
+			return this.write16(this.mov16(this.x), this.fetch16());
 		case 0xc0: // SUBB #n
 			return void(this.b = this.sub8(this.fetch(), this.b));
 		case 0xc1: // CMPB #n
@@ -721,7 +721,7 @@ export default class MC6809 extends Cpu {
 		case 0xc2: // SBCB #n
 			return void(this.b = this.sbc8(this.fetch(), this.b));
 		case 0xc3: // ADDD #nn
-			return void([this.a, this.b] = this.split(this.add16(this.fetch() << 8 | this.fetch(), this.a << 8 | this.b)));
+			return void([this.a, this.b] = this.split(this.add16(this.fetch16(), this.a << 8 | this.b)));
 		case 0xc4: // ANDB #n
 			return void(this.b = this.mov8(this.b & this.fetch()));
 		case 0xc5: // BITB #n
@@ -737,9 +737,9 @@ export default class MC6809 extends Cpu {
 		case 0xcb: // ADDB #n
 			return void(this.b = this.add8(this.fetch(), this.b));
 		case 0xcc: // LDD #nn
-			return void([this.a, this.b] = this.split(this.mov16(this.fetch() << 8 | this.fetch())));
+			return void([this.a, this.b] = this.split(this.mov16(this.fetch16())));
 		case 0xce: // LDU #nn
-			return void(this.u = this.mov16(this.fetch() << 8 | this.fetch()));
+			return void(this.u = this.mov16(this.fetch16()));
 		case 0xd0: // SUBB <n
 			return void(this.b = this.sub8(this.read(this.dp << 8 | this.fetch()), this.b));
 		case 0xd1: // CMPB <n
@@ -805,37 +805,37 @@ export default class MC6809 extends Cpu {
 		case 0xef: // STU ,r
 			return this.write16(this.mov16(this.u), this.index());
 		case 0xf0: // SUBB >nn
-			return void(this.b = this.sub8(this.read(this.fetch() << 8 | this.fetch()), this.b));
+			return void(this.b = this.sub8(this.read(this.fetch16()), this.b));
 		case 0xf1: // CMPB >nn
-			return void(this.sub8(this.read(this.fetch() << 8 | this.fetch()), this.b));
+			return void(this.sub8(this.read(this.fetch16()), this.b));
 		case 0xf2: // SBCB >nn
-			return void(this.b = this.sbc8(this.read(this.fetch() << 8 | this.fetch()), this.b));
+			return void(this.b = this.sbc8(this.read(this.fetch16()), this.b));
 		case 0xf3: // ADDD >nn
-			return void([this.a, this.b] = this.split(this.add16(this.read16(this.fetch() << 8 | this.fetch()), this.a << 8 | this.b)));
+			return void([this.a, this.b] = this.split(this.add16(this.read16(this.fetch16()), this.a << 8 | this.b)));
 		case 0xf4: // ANDB >nn
-			return void(this.b = this.mov8(this.b & this.read(this.fetch() << 8 | this.fetch())));
+			return void(this.b = this.mov8(this.b & this.read(this.fetch16())));
 		case 0xf5: // BITB >nn
-			return void(this.mov8(this.b & this.read(this.fetch() << 8 | this.fetch())));
+			return void(this.mov8(this.b & this.read(this.fetch16())));
 		case 0xf6: // LDB >nn
-			return void(this.b = this.mov8(this.read(this.fetch() << 8 | this.fetch())));
+			return void(this.b = this.mov8(this.read(this.fetch16())));
 		case 0xf7: // STB >nn
-			return this.write8(this.mov8(this.b), this.fetch() << 8 | this.fetch());
+			return this.write8(this.mov8(this.b), this.fetch16());
 		case 0xf8: // EORB >nn
-			return void(this.b = this.mov8(this.b ^ this.read(this.fetch() << 8 | this.fetch())));
+			return void(this.b = this.mov8(this.b ^ this.read(this.fetch16())));
 		case 0xf9: // ADCB >nn
-			return void(this.b = this.adc8(this.read(this.fetch() << 8 | this.fetch()), this.b));
+			return void(this.b = this.adc8(this.read(this.fetch16()), this.b));
 		case 0xfa: // ORB >nn
-			return void(this.b = this.mov8(this.b | this.read(this.fetch() << 8 | this.fetch())));
+			return void(this.b = this.mov8(this.b | this.read(this.fetch16())));
 		case 0xfb: // ADDB >nn
-			return void(this.b = this.add8(this.read(this.fetch() << 8 | this.fetch()), this.b));
+			return void(this.b = this.add8(this.read(this.fetch16()), this.b));
 		case 0xfc: // LDD >nn
-			return void([this.a, this.b] = this.split(this.mov16(this.read16(this.fetch() << 8 | this.fetch()))));
+			return void([this.a, this.b] = this.split(this.mov16(this.read16(this.fetch16()))));
 		case 0xfd: // STD >nn
-			return this.write16(this.mov16(this.a << 8 | this.b), this.fetch() << 8 | this.fetch());
+			return this.write16(this.mov16(this.a << 8 | this.b), this.fetch16());
 		case 0xfe: // LDU >nn
-			return void(this.u = this.mov16(this.read16(this.fetch() << 8 | this.fetch())));
+			return void(this.u = this.mov16(this.read16(this.fetch16())));
 		case 0xff: // STU >nn
-			return this.write16(this.mov16(this.u), this.fetch() << 8 | this.fetch());
+			return this.write16(this.mov16(this.u), this.fetch16());
 		default:
 			this.undefsize = 1;
 			if (this.undef)
@@ -1123,12 +1123,12 @@ export default class MC6809 extends Cpu {
 		case 0x88: // n,X
 			return this.x + (this.fetch() << 24 >> 24) & 0xffff;
 		case 0x89: // nn,X
-			return this.x + (this.fetch() << 8 | this.fetch()) & 0xffff;
+			return this.x + this.fetch16() & 0xffff;
 		case 0x8b: // D,X
 			return this.x + (this.a << 8 | this.b) & 0xffff;
 		case 0x91: // [,X++]
-			[v, this.x] = [this.x, this.x + 2 & 0xffff];
-			return this.read16(v);
+			[v, this.x] = [this.read16(this.x), this.x + 2 & 0xffff];
+			return v;
 		case 0x93: // [,--X]
 			return this.read16(this.x = this.x - 2 & 0xffff);
 		case 0x94: // [,X]
@@ -1140,7 +1140,7 @@ export default class MC6809 extends Cpu {
 		case 0x98: // [n,X]
 			return this.read16(this.x + (this.fetch() << 24 >> 24) & 0xffff);
 		case 0x99: // [nn,X]
-			return this.read16(this.x + (this.fetch() << 8 | this.fetch()) & 0xffff);
+			return this.read16(this.x + this.fetch16() & 0xffff);
 		case 0x9b: // [D,X]
 			return this.read16(this.x + (this.a << 8 | this.b) & 0xffff);
 		case 0xa0: // ,Y+
@@ -1162,12 +1162,12 @@ export default class MC6809 extends Cpu {
 		case 0xa8: // n,Y
 			return this.y + (this.fetch() << 24 >> 24) & 0xffff;
 		case 0xa9: // nn,Y
-			return this.y + (this.fetch() << 8 | this.fetch()) & 0xffff;
+			return this.y + this.fetch16() & 0xffff;
 		case 0xab: // D,Y
 			return this.y + (this.a << 8 | this.b) & 0xffff;
 		case 0xb1: // [,Y++]
-			[v, this.y] = [this.y, this.y + 2 & 0xffff];
-			return this.read16(v);
+			[v, this.y] = [this.read16(this.y), this.y + 2 & 0xffff];
+			return v;
 		case 0xb3: // [,--Y]
 			return this.read16(this.y = this.y - 2 & 0xffff);
 		case 0xb4: // [,Y]
@@ -1179,7 +1179,7 @@ export default class MC6809 extends Cpu {
 		case 0xb8: // [n,Y]
 			return this.read16(this.y + (this.fetch() << 24 >> 24) & 0xffff);
 		case 0xb9: // [nn,Y]
-			return this.read16(this.y + (this.fetch() << 8 | this.fetch()) & 0xffff);
+			return this.read16(this.y + this.fetch16() & 0xffff);
 		case 0xbb: // [D,Y]
 			return this.read16(this.y + (this.a << 8 | this.b) & 0xffff);
 		case 0xc0: // ,U+
@@ -1201,12 +1201,12 @@ export default class MC6809 extends Cpu {
 		case 0xc8: // n,U
 			return this.u + (this.fetch() << 24 >> 24) & 0xffff;
 		case 0xc9: // nn,U
-			return this.u + (this.fetch() << 8 | this.fetch()) & 0xffff;
+			return this.u + this.fetch16() & 0xffff;
 		case 0xcb: // D,U
 			return this.u + (this.a << 8 | this.b) & 0xffff;
 		case 0xd1: // [,U++]
-			[v, this.u] = [this.u, this.u + 2 & 0xffff];
-			return this.read16(v);
+			[v, this.u] = [this.read16(this.u), this.u + 2 & 0xffff];
+			return v;
 		case 0xd3: // [,--U]
 			return this.read16(this.u = this.u - 2 & 0xffff);
 		case 0xd4: // [,U]
@@ -1218,7 +1218,7 @@ export default class MC6809 extends Cpu {
 		case 0xd8: // [n,U]
 			return this.read16(this.u + (this.fetch() << 24 >> 24) & 0xffff);
 		case 0xd9: // [nn,U]
-			return this.read16(this.u + (this.fetch() << 8 | this.fetch()) & 0xffff);
+			return this.read16(this.u + this.fetch16() & 0xffff);
 		case 0xdb: // [D,U]
 			return this.read16(this.u + (this.a << 8 | this.b) & 0xffff);
 		case 0xe0: // ,S+
@@ -1240,12 +1240,12 @@ export default class MC6809 extends Cpu {
 		case 0xe8: // n,S
 			return this.s + (this.fetch() << 24 >> 24) & 0xffff;
 		case 0xe9: // nn,S
-			return this.s + (this.fetch() << 8 | this.fetch()) & 0xffff;
+			return this.s + this.fetch16() & 0xffff;
 		case 0xeb: // D,S
 			return this.s + (this.a << 8 | this.b) & 0xffff;
 		case 0xf1: // [,S++]
-			[v, this.s] = [this.s, this.s + 2 & 0xffff];
-			return this.read16(v);
+			[v, this.s] = [this.read16(this.s), this.s + 2 & 0xffff];
+			return v;
 		case 0xf3: // [,--S]
 			return this.read16(this.s = this.s - 2 & 0xffff);
 		case 0xf4: // [,S]
@@ -1257,7 +1257,7 @@ export default class MC6809 extends Cpu {
 		case 0xf8: // [n,S]
 			return this.read16(this.s + (this.fetch() << 24 >> 24) & 0xffff);
 		case 0xf9: // [nn,S]
-			return this.read16(this.s + (this.fetch() << 8 | this.fetch()) & 0xffff);
+			return this.read16(this.s + this.fetch16() & 0xffff);
 		case 0xfb: // [D,S]
 			return this.read16(this.s + (this.a << 8 | this.b) & 0xffff);
 		case 0x8c: // n,PC
@@ -1270,7 +1270,7 @@ export default class MC6809 extends Cpu {
 		case 0xad:
 		case 0xcd:
 		case 0xed:
-			v = this.fetch() << 8 | this.fetch();
+			v = this.fetch16();
 			return this.pc + v & 0xffff;
 		case 0x9c: // [n,PC]
 		case 0xbc:
@@ -1282,25 +1282,25 @@ export default class MC6809 extends Cpu {
 		case 0xbd:
 		case 0xdd:
 		case 0xfd:
-			v = this.fetch() << 8 | this.fetch();
+			v = this.fetch16();
 			return this.read16(this.pc + v & 0xffff);
 		case 0x9f: // [nn]
 		case 0xbf:
 		case 0xdf:
 		case 0xff:
-			return this.read16(this.fetch() << 8 | this.fetch());
+			return this.read16(this.fetch16());
 		default:
 			return 0xffffffff;
 		}
 	}
 
 	lbcc(cond) {
-		const nn = this.fetch() << 8 | this.fetch();
+		const nn = this.fetch16();
 		if (cond) this.pc = this.pc + nn & 0xffff;
 	}
 
 	lbsr() {
-		const nn = this.fetch() << 8 | this.fetch();
+		const nn = this.fetch16();
 		this.pshs16(this.pc);
 		this.pc = this.pc + nn & 0xffff;
 	}
@@ -1442,8 +1442,8 @@ export default class MC6809 extends Cpu {
 		args.forEach(e => this.write8(e, this.s = this.s - 1 & 0xffff));
 	}
 
-	pshu(r) {
-		this.write8(r, this.u = this.u - 1 & 0xffff);
+	pshu(...args) {
+		args.forEach(e => this.write8(e, this.u = this.u - 1 & 0xffff));
 	}
 
 	puls() {
@@ -1459,31 +1459,35 @@ export default class MC6809 extends Cpu {
 	}
 
 	pshs16(...args) {
-		args.forEach(e => this.write16(e, this.s = this.s - 2 & 0xffff));
+		args.forEach(e => this.pshs(e & 0xff, e >> 8));
 	}
 
 	pshu16(r) {
-		this.write16(r, this.u = this.u - 2 & 0xffff);
+		this.pshu(r & 0xff, r >> 8);
 	}
 
 	puls16() {
-		const r = this.read16(this.s);
-		this.s = this.s + 2 & 0xffff;
-		return r;
+		const r = this.puls() << 8;
+		return r | this.puls();
 	}
 
 	pulu16() {
-		const r = this.read16(this.u);
-		this.u = this.u + 2 & 0xffff;
-		return r;
+		const r = this.pulu() << 8;
+		return r | this.pulu();
 	}
 
 	split(v) {
 		return [v >> 8, v & 0xff];
 	}
 
+	fetch16() {
+		const data = this.fetch() << 8;
+		return data | this.fetch();
+	}
+
 	read16(addr) {
-		return this.read(addr) << 8 | this.read(addr + 1 & 0xffff);
+		const data = this.read(addr) << 8;
+		return data | this.read(addr + 1 & 0xffff);
 	}
 
 	write8(data, addr) {
@@ -1493,7 +1497,7 @@ export default class MC6809 extends Cpu {
 
 	write16(data, addr) {
 		this.write8(data >> 8, addr);
-		this.write8(data, addr + 1 & 0xffff);
+		this.write8(data & 0xff, addr + 1 & 0xffff);
 	}
 }
 

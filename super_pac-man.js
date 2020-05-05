@@ -122,16 +122,16 @@ class SuperPacMan {
 			this.fDIPSwitchChanged = false;
 			switch (this.nPacman) {
 			case 1:
-				this.port[0x11] = this.port[0x11] & ~0x0c | 4;
+				this.port[0x11] = this.port[0x11] & ~0xc | 4;
 				break;
 			case 2:
-				this.port[0x11] = this.port[0x11] & ~0x0c | 8;
+				this.port[0x11] = this.port[0x11] & ~0xc | 8;
 				break;
 			case 3:
-				this.port[0x11] &= ~0x0c;
+				this.port[0x11] &= ~0xc;
 				break;
 			case 5:
-				this.port[0x11] |= 0x0c;
+				this.port[0x11] |= 0xc;
 				break;
 			}
 			switch (this.nRank) {
@@ -166,22 +166,22 @@ class SuperPacMan {
 				this.port[0x13] = 9;
 				break;
 			case 'A':
-				this.port[0x13] = 0x0a;
+				this.port[0x13] = 0xa;
 				break;
 			case 'B':
-				this.port[0x13] = 0x0b;
+				this.port[0x13] = 0xb;
 				break;
 			case 'C':
-				this.port[0x13] = 0x0c;
+				this.port[0x13] = 0xc;
 				break;
 			case 'D':
-				this.port[0x13] = 0x0d;
+				this.port[0x13] = 0xd;
 				break;
 			case 'E':
-				this.port[0x13] = 0x0e;
+				this.port[0x13] = 0xe;
 				break;
 			case 'F':
-				this.port[0x13] = 0x0f;
+				this.port[0x13] = 0xf;
 				break;
 			}
 			switch (this.nBonus) {

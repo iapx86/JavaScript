@@ -34,29 +34,25 @@ class Gaplus {
 		this.fInterruptEnable1 = false;
 		this.fInterruptEnable2 = false;
 
-		this.ram = new Uint8Array(0x2500).addBase();
+		this.ram = new Uint8Array(0x2100).addBase();
 		this.port = new Uint8Array(0x40);
 		this.starport = new Uint8Array(0x100);
 		this.port[0x20] = 4; // UPRIGHT
 
 		this.cpu = new MC6809(this);
-		for (let i = 0; i < 0x08; i++) {
+		for (let i = 0; i < 0x20; i++) {
 			this.cpu.memorymap[i].base = this.ram.base[i];
 			this.cpu.memorymap[i].write = null;
-		}
-		for (let i = 0; i < 0x18; i++) {
-			this.cpu.memorymap[0x08 + i].base = this.ram.base[8 + i];
-			this.cpu.memorymap[0x08 + i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
 			this.cpu.memorymap[0x60 + i].read = addr => sound[0].read(addr);
 			this.cpu.memorymap[0x60 + i].write = (addr, data) => sound[0].write(addr, data);
 		}
-		this.cpu.memorymap[0x68].base = this.ram.base[0x24];
+		this.cpu.memorymap[0x68].base = this.ram.base[0x20];
 		this.cpu.memorymap[0x68].write = (addr, data) => {
-			if (addr === 0x682a && this.ram[0x2428] !== 4 && (data - this.ram[0x2429] - 1 & 0x0f) === 0)
+			if (addr === 0x682a && this.ram[0x2028] !== 4 && (data - this.ram[0x2029] - 1 & 0x0f) === 0)
 				this.se[0].start = this.se[0].stop = true;
-			this.ram[0x2400 | addr & 0xff] = data;
+			this.ram[0x2000 | addr & 0xff] = data;
 		};
 		this.cpu.memorymap[0x74].write = () => this.fInterruptEnable0 = true;
 		this.cpu.memorymap[0x7c].write = () => this.fInterruptEnable0 = false;
@@ -73,25 +69,18 @@ class Gaplus {
 		this.cpu.memorymap[0xa0].write = (addr, data) => this.starport[addr & 0xff] = data;
 
 		this.cpu2 = new MC6809(this);
-		for (let i = 0; i < 0x08; i++) {
+		for (let i = 0; i < 0x20; i++) {
 			this.cpu2.memorymap[i].base = this.ram.base[i];
 			this.cpu2.memorymap[i].write = null;
-		}
-		for (let i = 0; i < 0x18; i++) {
-			this.cpu2.memorymap[0x08 + i].base = this.ram.base[8 + i];
-			this.cpu2.memorymap[0x08 + i].write = null;
 		}
 		this.cpu2.memorymap[0x60].write = addr => {
 			switch (addr & 0xff) {
 			case 0x01: // INTERRUPT START
-				this.fInterruptEnable1 = true;
-				break;
+				return void(this.fInterruptEnable1 = true);
 			case 0x80: // INTERRUPT STOP
-				this.fInterruptEnable1 = false;
-				break;
+				return void(this.fInterruptEnable1 = false);
 			case 0x81: // INTERRUPT START
-				this.fInterruptEnable1 = true;
-				break;
+				return void(this.fInterruptEnable1 = true);
 			}
 		};
 		for (let i = 0; i < 0x60; i++)
@@ -129,8 +118,7 @@ class Gaplus {
 		this.dwCount = 0;
 		this.convertRGB();
 		this.convertBG();
-		this.convertOBJ4();
-		this.convertOBJ8();
+		this.convertOBJ();
 		this.initializeStar();
 
 		// 効果音の初期化
@@ -159,16 +147,16 @@ class Gaplus {
 			this.fDIPSwitchChanged = false;
 			switch (this.nMyShip) {
 			case 3:
-				this.port[0x11] &= ~0x0c;
+				this.port[0x11] &= ~0xc;
 				break;
 			case 2:
-				this.port[0x11] = this.port[0x11] & ~0x0c | 4;
+				this.port[0x11] = this.port[0x11] & ~0xc | 4;
 				break;
 			case 4:
-				this.port[0x11] = this.port[0x11] & ~0x0c | 8;
+				this.port[0x11] = this.port[0x11] & ~0xc | 8;
 				break;
 			case 5:
-				this.port[0x11] |= 0x0c;
+				this.port[0x11] |= 0xc;
 				break;
 			}
 			switch (this.nRank) {
@@ -244,7 +232,7 @@ class Gaplus {
 		if (this.fReset) {
 			this.fReset = false;
 			this.se[0].stop = true;
-			this.ram.fill(0, 0x2400, 0x2500);
+			this.ram.fill(0, 0x2000, 0x2100);
 			this.cpu.reset();
 		}
 		return this;
@@ -256,27 +244,27 @@ class Gaplus {
 		// クレジット/スタートボタン処理
 		if (this.fCoin) {
 			this.port[3] |= 4;
-			switch (this.ram[0x2408]) {
+			switch (this.ram[0x2008]) {
 			case 3:
-				this.ram[0x2400]++;
-				i = (this.ram[0x2402] & 0x0f) * 10 + (this.ram[0x2403] & 0x0f);
+				this.ram[0x2000]++;
+				i = (this.ram[0x2002] & 0x0f) * 10 + (this.ram[0x2003] & 0x0f);
 				if (i < 150) {
 					i++;
 					if (i > 99)
 						i = 99;
-					this.ram[0x2402] = i / 10;
-					this.ram[0x2403] = i % 10;
+					this.ram[0x2002] = i / 10;
+					this.ram[0x2003] = i % 10;
 				}
 				break;
 			case 4:
-				this.ram[0x2402]++;
-				i = (this.ram[0x2400] & 0x0f) * 10 + (this.ram[0x2401] & 0x0f);
+				this.ram[0x2002]++;
+				i = (this.ram[0x2000] & 0x0f) * 10 + (this.ram[0x2001] & 0x0f);
 				if (i < 150) {
 					i++;
 					if (i > 99)
 						i = 99;
-					this.ram[0x2400] = i / 10;
-					this.ram[0x2401] = i % 10;
+					this.ram[0x2000] = i / 10;
+					this.ram[0x2001] = i % 10;
 				}
 				break;
 			}
@@ -285,24 +273,24 @@ class Gaplus {
 			this.port[3] &= ~4;
 		if (this.fStart1P) {
 			this.port[5] |= 4;
-			if (!this.ram[0x2409]) {
-				switch (this.ram[0x2408]) {
+			if (!this.ram[0x2009]) {
+				switch (this.ram[0x2008]) {
 				case 3:
-					i = (this.ram[0x2402] & 0x0f) * 10 + (this.ram[0x2403] & 0x0f);
+					i = (this.ram[0x2002] & 0x0f) * 10 + (this.ram[0x2003] & 0x0f);
 					if (i > 0) {
-						this.ram[0x2401] = 1;
+						this.ram[0x2001] = 1;
 						--i;
-						this.ram[0x2402] = i / 10;
-						this.ram[0x2403] = i % 10;
+						this.ram[0x2002] = i / 10;
+						this.ram[0x2003] = i % 10;
 					}
 					break;
 				case 4:
-					i = (this.ram[0x2400] & 0x0f) * 10 + (this.ram[0x2401] & 0x0f);
+					i = (this.ram[0x2000] & 0x0f) * 10 + (this.ram[0x2001] & 0x0f);
 					if (i > 0) {
-						this.ram[0x2403] = 1;
+						this.ram[0x2003] = 1;
 						--i;
-						this.ram[0x2400] = i / 10;
-						this.ram[0x2401] = i % 10;
+						this.ram[0x2000] = i / 10;
+						this.ram[0x2001] = i % 10;
 					}
 					break;
 				}
@@ -312,24 +300,24 @@ class Gaplus {
 			this.port[5] &= ~4;
 		if (this.fStart2P) {
 			this.port[5] |= 8;
-			if (!this.ram[0x2409]) {
-				switch (this.ram[0x2408]) {
+			if (!this.ram[0x2009]) {
+				switch (this.ram[0x2008]) {
 				case 3:
-					i = (this.ram[0x2402] & 0x0f) * 10 + (this.ram[0x2403] & 0x0f);
+					i = (this.ram[0x2002] & 0x0f) * 10 + (this.ram[0x2003] & 0x0f);
 					if (i > 1) {
-						this.ram[0x2401] = 2;
+						this.ram[0x2001] = 2;
 						i -= 2;
-						this.ram[0x2402] = i / 10;
-						this.ram[0x2403] = i % 10;
+						this.ram[0x2002] = i / 10;
+						this.ram[0x2003] = i % 10;
 					}
 					break;
 				case 4:
-					i = (this.ram[0x2400] & 0x0f) * 10 + (this.ram[0x2401] & 0x0f);
+					i = (this.ram[0x2000] & 0x0f) * 10 + (this.ram[0x2001] & 0x0f);
 					if (i > 1) {
-						this.ram[0x2403] = 2;
+						this.ram[0x2003] = 2;
 						i -= 2;
-						this.ram[0x2400] = i / 10;
-						this.ram[0x2401] = i % 10;
+						this.ram[0x2000] = i / 10;
+						this.ram[0x2001] = i % 10;
 					}
 					break;
 				}
@@ -339,63 +327,63 @@ class Gaplus {
 			this.port[5] &= ~8;
 		this.fCoin = this.fStart1P = this.fStart2P = false;
 
-		switch (this.ram[0x2408]) {
+		switch (this.ram[0x2008]) {
 		case 0x01:
-			this.ram[0x2400] = this.port[3];
-			this.ram[0x2401] = this.port[4];
-			this.ram[0x2403] = this.port[5];
-			this.ram[0x2405] = this.port[3];
-			this.ram[0x2406] = this.port[4];
-			this.ram[0x2407] = this.port[5];
+			this.ram[0x2000] = this.port[3];
+			this.ram[0x2001] = this.port[4];
+			this.ram[0x2003] = this.port[5];
+			this.ram[0x2005] = this.port[3];
+			this.ram[0x2006] = this.port[4];
+			this.ram[0x2007] = this.port[5];
 			break;
 		case 0x03:
 		case 0x04:
-			this.ram[0x2404] = this.port[4];
-			this.ram[0x2405] = this.port[5];
+			this.ram[0x2004] = this.port[4];
+			this.ram[0x2005] = this.port[5];
 			break;
 		case 0x05:
-			this.ram[0x2400] = 0x0f;
-			this.ram[0x2401] = 0x0f;
+			this.ram[0x2000] = 0x0f;
+			this.ram[0x2001] = 0x0f;
 			break;
 		case 0x08:
-			this.ram[0x2400] = 6;
-			this.ram[0x2401] = 9;
+			this.ram[0x2000] = 6;
+			this.ram[0x2001] = 9;
 			break;
 		}
-		switch (this.ram[0x2418]) {
+		switch (this.ram[0x2018]) {
 		case 0x01:
-			this.ram[0x2410] = this.port[0x11];
-			this.ram[0x2411] = this.port[0x12];
-			this.ram[0x2412] = this.port[0x14];
-			this.ram[0x2413] = this.port[0x17];
+			this.ram[0x2010] = this.port[0x11];
+			this.ram[0x2011] = this.port[0x12];
+			this.ram[0x2012] = this.port[0x14];
+			this.ram[0x2013] = this.port[0x17];
 			break;
 		case 0x04:
-			this.ram[0x2411] = this.port[0x11];
-			this.ram[0x2412] = this.port[0x12];
-			this.ram[0x2414] = this.port[0x14];
-			this.ram[0x2417] = this.port[0x17];
+			this.ram[0x2011] = this.port[0x11];
+			this.ram[0x2012] = this.port[0x12];
+			this.ram[0x2014] = this.port[0x14];
+			this.ram[0x2017] = this.port[0x17];
 			break;
 		case 0x05:
-			this.ram[0x2410] = 0x0f;
-			this.ram[0x2411] = 0x0f;
+			this.ram[0x2010] = 0x0f;
+			this.ram[0x2011] = 0x0f;
 			break;
 		case 0x08:
-			this.ram[0x2410] = 6;
-			this.ram[0x2411] = 9;
+			this.ram[0x2010] = 6;
+			this.ram[0x2011] = 9;
 			break;
 		}
-		switch (this.ram[0x2428]) {
+		switch (this.ram[0x2028]) {
 		case 0x01:
-			this.ram[0x2421] = 0x0f;
+			this.ram[0x2021] = 0x0f;
 			break;
 		case 0x02:
-			this.ram[0x2422] = 0x0f;
+			this.ram[0x2022] = 0x0f;
 			break;
 		case 0x04:
-			this.ram[0x2420] = this.port[0x20];
-			this.ram[0x2421] = 0x0f;
-			this.ram[0x2422] = 0x0e;
-			this.ram[0x2423] = 1;
+			this.ram[0x2020] = this.port[0x20];
+			this.ram[0x2021] = 0x0f;
+			this.ram[0x2022] = 0x0e;
+			this.ram[0x2023] = 1;
 			break;
 		}
 		return this;
@@ -460,7 +448,7 @@ class Gaplus {
 		for (let i = 0; i < 0x40; i++)
 			this.rgb[0x100 | i] = (i << 1 & 6) * 255 / 7	// Red
 				| (i >> 1 & 6) * 255 / 7 << 8				// Green
-				| (i >> 3 & 6) * 255 / 7 << 16				// Blue
+				| (i >> 4) * 255 / 3 << 16					// Blue
 				| 0xff000000;								// Alpha
 	}
 
@@ -503,7 +491,7 @@ class Gaplus {
 		}
 	}
 
-	convertOBJ4() {
+	convertOBJ() {
 		this.obj4.fill(3);
 		for (let p = 0, q = 0, i = 128; i !== 0; q += 64, --i) {
 			for (let j = 3; j >= 0; --j) {
@@ -531,9 +519,6 @@ class Gaplus {
 					this.obj4[p++] = OBJ4[q + k + 24] >> j & 1 | OBJ4[q + k + 24] >> (j + 3) & 2;
 			}
 		}
-	}
-
-	convertOBJ8() {
 		for (let p = 0, q = 0, i = 128; i !== 0; q += 64, --i) {
 			for (let j = 3; j >= 0; --j) {
 				for (let k = 7; k >= 0; --k)

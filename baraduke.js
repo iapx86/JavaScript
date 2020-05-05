@@ -343,30 +343,30 @@ class Baraduke {
 
 	convertOBJ() {
 		for (let p = 0, q = 0, i = 512; i !== 0; q += 128, --i) {
-			for (let k = 4; k >= 0; k -= 4)
-				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l] >> k & 0xf;
-			for (let k = 4; k >= 0; k -= 4)
-				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 1] >> k & 0xf;
-			for (let k = 4; k >= 0; k -= 4)
-				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 2] >> k & 0xf;
-			for (let k = 4; k >= 0; k -= 4)
-				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 3] >> k & 0xf;
-			for (let k = 4; k >= 0; k -= 4)
-				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 4] >> k & 0xf;
-			for (let k = 4; k >= 0; k -= 4)
-				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 5] >> k & 0xf;
-			for (let k = 4; k >= 0; k -= 4)
-				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 6] >> k & 0xf;
-			for (let k = 4; k >= 0; k -= 4)
-				for (let l = 120; l >= 0; l -= 8)
-					this.obj[p++] = OBJ[q + l + 7] >> k & 0xf;
+			for (let j = 4; j >= 0; j -= 4)
+				for (let k = 120; k >= 0; k -= 8)
+					this.obj[p++] = OBJ[q + k] >> j & 0xf;
+			for (let j = 4; j >= 0; j -= 4)
+				for (let k = 120; k >= 0; k -= 8)
+					this.obj[p++] = OBJ[q + k + 1] >> j & 0xf;
+			for (let j = 4; j >= 0; j -= 4)
+				for (let k = 120; k >= 0; k -= 8)
+					this.obj[p++] = OBJ[q + k + 2] >> j & 0xf;
+			for (let j = 4; j >= 0; j -= 4)
+				for (let k = 120; k >= 0; k -= 8)
+					this.obj[p++] = OBJ[q + k + 3] >> j & 0xf;
+			for (let j = 4; j >= 0; j -= 4)
+				for (let k = 120; k >= 0; k -= 8)
+					this.obj[p++] = OBJ[q + k + 4] >> j & 0xf;
+			for (let j = 4; j >= 0; j -= 4)
+				for (let k = 120; k >= 0; k -= 8)
+					this.obj[p++] = OBJ[q + k + 5] >> j & 0xf;
+			for (let j = 4; j >= 0; j -= 4)
+				for (let k = 120; k >= 0; k -= 8)
+					this.obj[p++] = OBJ[q + k + 6] >> j & 0xf;
+			for (let j = 4; j >= 0; j -= 4)
+				for (let k = 120; k >= 0; k -= 8)
+					this.obj[p++] = OBJ[q + k + 7] >> j & 0xf;
 		}
 	}
 

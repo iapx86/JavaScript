@@ -40,30 +40,28 @@ class GalaxyWars {
 			}
 			else if (range(page, 0x40, 0x47, 0x80))
 				this.cpu.memorymap[page].base = PRG2.base[page & 7];
-		for (let page = 0; page < 0x100; page++) {
-			this.cpu.iomap[page].base = this.io;
-			this.cpu.iomap[page].write = (addr, data) => {
-				switch (addr & 0xff) {
-				case 0x00:
-				case 0x01:
-				case 0x02:
-					this.shifter.shift = data & 7;
-					break;
-				case 0x03:
-//					check_sound3(this, data);
-//					this.screen_red = (data & 4) !== 0;
-					break;
-				case 0x04:
-					this.io[3] = (data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift)) & 0xff;
-					this.shifter.reg = data;
-					break;
-				case 0x05:
-//					check_sound5(this, data);
-					break;
-				default:
-					this.io[addr & 0xff] = data;
-					break;
-				}
+		this.cpu.iomap.base = this.io;
+		this.cpu.iomap.write = (addr, data) => {
+			switch (addr) {
+			case 0x00:
+			case 0x01:
+			case 0x02:
+				this.shifter.shift = data & 7;
+				break;
+			case 0x03:
+//				check_sound3(this, data);
+//				this.screen_red = (data & 4) !== 0;
+				break;
+			case 0x04:
+				this.io[3] = (data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift)) & 0xff;
+				this.shifter.reg = data;
+				break;
+			case 0x05:
+//				check_sound5(this, data);
+				break;
+			default:
+				this.io[addr] = data;
+				break;
 			}
 		}
 

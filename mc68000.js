@@ -900,11 +900,11 @@ export default class MC68000 extends Cpu {
 		case 0o054: // MOVE.B -(An),d(A0)
 		case 0o055: // MOVE.B d(An),d(A0)
 		case 0o056: // MOVE.B d(An,Xi),d(A0)
-			return this.write8(this.rop8(op, true), this.a0 + this.fetch16s() | 0);
+			return this.write8(this.rop8(op, true), this.disp(this.a0));
 		case 0o057: // MOVE.B Abs...,d(A0)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write8(this.rop8(op, true), this.a0 + this.fetch16s() | 0);
+			return this.write8(this.rop8(op, true), this.disp(this.a0));
 		case 0o060: // MOVE.B Dn,d(A0,Xi)
 		case 0o062: // MOVE.B (An),d(A0,Xi)
 		case 0o063: // MOVE.B (An)+,d(A0,Xi)
@@ -979,11 +979,11 @@ export default class MC68000 extends Cpu {
 		case 0o154: // MOVE.B -(An),d(A1)
 		case 0o155: // MOVE.B d(An),d(A1)
 		case 0o156: // MOVE.B d(An,Xi),d(A1)
-			return this.write8(this.rop8(op, true), this.a1 + this.fetch16s() | 0);
+			return this.write8(this.rop8(op, true), this.disp(this.a1));
 		case 0o157: // MOVE.B Abs...,d(A1)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write8(this.rop8(op, true), this.a1 + this.fetch16s() | 0);
+			return this.write8(this.rop8(op, true), this.disp(this.a1));
 		case 0o160: // MOVE.B Dn,d(A1,Xi)
 		case 0o162: // MOVE.B (An),d(A1,Xi)
 		case 0o163: // MOVE.B (An)+,d(A1,Xi)
@@ -1058,11 +1058,11 @@ export default class MC68000 extends Cpu {
 		case 0o254: // MOVE.B -(An),d(A2)
 		case 0o255: // MOVE.B d(An),d(A2)
 		case 0o256: // MOVE.B d(An,Xi),d(A2)
-			return this.write8(this.rop8(op, true), this.a2 + this.fetch16s() | 0);
+			return this.write8(this.rop8(op, true), this.disp(this.a2));
 		case 0o257: // MOVE.B Abs...,d(A2)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write8(this.rop8(op, true), this.a2 + this.fetch16s() | 0);
+			return this.write8(this.rop8(op, true), this.disp(this.a2));
 		case 0o260: // MOVE.B Dn,d(A2,Xi)
 		case 0o262: // MOVE.B (An),d(A2,Xi)
 		case 0o263: // MOVE.B (An)+,d(A2,Xi)
@@ -1126,11 +1126,11 @@ export default class MC68000 extends Cpu {
 		case 0o354: // MOVE.B -(An),d(A3)
 		case 0o355: // MOVE.B d(An),d(A3)
 		case 0o356: // MOVE.B d(An,Xi),d(A3)
-			return this.write8(this.rop8(op, true), this.a3 + this.fetch16s() | 0);
+			return this.write8(this.rop8(op, true), this.disp(this.a3));
 		case 0o357: // MOVE.B Abs...,d(A3)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write8(this.rop8(op, true), this.a3 + this.fetch16s() | 0);
+			return this.write8(this.rop8(op, true), this.disp(this.a3));
 		case 0o360: // MOVE.B Dn,d(A3,Xi)
 		case 0o362: // MOVE.B (An),d(A3,Xi)
 		case 0o363: // MOVE.B (An)+,d(A3,Xi)
@@ -1194,11 +1194,11 @@ export default class MC68000 extends Cpu {
 		case 0o454: // MOVE.B -(An),d(A4)
 		case 0o455: // MOVE.B d(An),d(A4)
 		case 0o456: // MOVE.B d(An,Xi),d(A4)
-			return this.write8(this.rop8(op, true), this.a4 + this.fetch16s() | 0);
+			return this.write8(this.rop8(op, true), this.disp(this.a4));
 		case 0o457: // MOVE.B Abs...,d(A4)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write8(this.rop8(op, true), this.a4 + this.fetch16s() | 0);
+			return this.write8(this.rop8(op, true), this.disp(this.a4));
 		case 0o460: // MOVE.B Dn,d(A4,Xi)
 		case 0o462: // MOVE.B (An),d(A4,Xi)
 		case 0o463: // MOVE.B (An)+,d(A4,Xi)
@@ -1262,11 +1262,11 @@ export default class MC68000 extends Cpu {
 		case 0o554: // MOVE.B -(An),d(A5)
 		case 0o555: // MOVE.B d(An),d(A5)
 		case 0o556: // MOVE.B d(An,Xi),d(A5)
-			return this.write8(this.rop8(op, true), this.a5 + this.fetch16s() | 0);
+			return this.write8(this.rop8(op, true), this.disp(this.a5));
 		case 0o557: // MOVE.B Abs...,d(A5)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write8(this.rop8(op, true), this.a5 + this.fetch16s() | 0);
+			return this.write8(this.rop8(op, true), this.disp(this.a5));
 		case 0o560: // MOVE.B Dn,d(A5,Xi)
 		case 0o562: // MOVE.B (An),d(A5,Xi)
 		case 0o563: // MOVE.B (An)+,d(A5,Xi)
@@ -1330,11 +1330,11 @@ export default class MC68000 extends Cpu {
 		case 0o654: // MOVE.B -(An),d(A6)
 		case 0o655: // MOVE.B d(An),d(A6)
 		case 0o656: // MOVE.B d(An,Xi),d(A6)
-			return this.write8(this.rop8(op, true), this.a6 + this.fetch16s() | 0);
+			return this.write8(this.rop8(op, true), this.disp(this.a6));
 		case 0o657: // MOVE.B Abs...,d(A6)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write8(this.rop8(op, true), this.a6 + this.fetch16s() | 0);
+			return this.write8(this.rop8(op, true), this.disp(this.a6));
 		case 0o660: // MOVE.B Dn,d(A6,Xi)
 		case 0o662: // MOVE.B (An),d(A6,Xi)
 		case 0o663: // MOVE.B (An)+,d(A6,Xi)
@@ -1398,11 +1398,11 @@ export default class MC68000 extends Cpu {
 		case 0o754: // MOVE.B -(An),d(A7)
 		case 0o755: // MOVE.B d(An),d(A7)
 		case 0o756: // MOVE.B d(An,Xi),d(A7)
-			return this.write8(this.rop8(op, true), this.a7 + this.fetch16s() | 0);
+			return this.write8(this.rop8(op, true), this.disp(this.a7));
 		case 0o757: // MOVE.B Abs...,d(A7)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write8(this.rop8(op, true), this.a7 + this.fetch16s() | 0);
+			return this.write8(this.rop8(op, true), this.disp(this.a7));
 		case 0o760: // MOVE.B Dn,d(A7,Xi)
 		case 0o762: // MOVE.B (An),d(A7,Xi)
 		case 0o763: // MOVE.B (An)+,d(A7,Xi)
@@ -1490,11 +1490,11 @@ export default class MC68000 extends Cpu {
 		case 0o054: // MOVE.L -(An),d(A0)
 		case 0o055: // MOVE.L d(An),d(A0)
 		case 0o056: // MOVE.L d(An,Xi),d(A0)
-			return this.write32(this.rop32(op, true), this.a0 + this.fetch16s() | 0);
+			return this.write32(this.rop32(op, true), this.disp(this.a0));
 		case 0o057: // MOVE.L Abs...,d(A0)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write32(this.rop32(op, true), this.a0 + this.fetch16s() | 0);
+			return this.write32(this.rop32(op, true), this.disp(this.a0));
 		case 0o060: // MOVE.L Dn,d(A0,Xi)
 		case 0o061: // MOVE.L An,d(A0,Xi)
 		case 0o062: // MOVE.L (An),d(A0,Xi)
@@ -1588,11 +1588,11 @@ export default class MC68000 extends Cpu {
 		case 0o154: // MOVE.L -(An),d(A1)
 		case 0o155: // MOVE.L d(An),d(A1)
 		case 0o156: // MOVE.L d(An,Xi),d(A1)
-			return this.write32(this.rop32(op, true), this.a1 + this.fetch16s() | 0);
+			return this.write32(this.rop32(op, true), this.disp(this.a1));
 		case 0o157: // MOVE.L Abs...,d(A1)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write32(this.rop32(op, true), this.a1 + this.fetch16s() | 0);
+			return this.write32(this.rop32(op, true), this.disp(this.a1));
 		case 0o160: // MOVE.L Dn,d(A1,Xi)
 		case 0o161: // MOVE.L An,d(A1,Xi)
 		case 0o162: // MOVE.L (An),d(A1,Xi)
@@ -1686,11 +1686,11 @@ export default class MC68000 extends Cpu {
 		case 0o254: // MOVE.L -(An),d(A2)
 		case 0o255: // MOVE.L d(An),d(A2)
 		case 0o256: // MOVE.L d(An,Xi),d(A2)
-			return this.write32(this.rop32(op, true), this.a2 + this.fetch16s() | 0);
+			return this.write32(this.rop32(op, true), this.disp(this.a2));
 		case 0o257: // MOVE.L Abs...,d(A2)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write32(this.rop32(op, true), this.a2 + this.fetch16s() | 0);
+			return this.write32(this.rop32(op, true), this.disp(this.a2));
 		case 0o260: // MOVE.L Dn,d(A2,Xi)
 		case 0o261: // MOVE.L An,d(A2,Xi)
 		case 0o262: // MOVE.L (An),d(A2,Xi)
@@ -1772,11 +1772,11 @@ export default class MC68000 extends Cpu {
 		case 0o354: // MOVE.L -(An),d(A3)
 		case 0o355: // MOVE.L d(An),d(A3)
 		case 0o356: // MOVE.L d(An,Xi),d(A3)
-			return this.write32(this.rop32(op, true), this.a3 + this.fetch16s() | 0);
+			return this.write32(this.rop32(op, true), this.disp(this.a3));
 		case 0o357: // MOVE.L Abs...,d(A3)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write32(this.rop32(op, true), this.a3 + this.fetch16s() | 0);
+			return this.write32(this.rop32(op, true), this.disp(this.a3));
 		case 0o360: // MOVE.L Dn,d(A3,Xi)
 		case 0o361: // MOVE.L An,d(A3,Xi)
 		case 0o362: // MOVE.L (An),d(A3,Xi)
@@ -1858,11 +1858,11 @@ export default class MC68000 extends Cpu {
 		case 0o454: // MOVE.L -(An),d(A4)
 		case 0o455: // MOVE.L d(An),d(A4)
 		case 0o456: // MOVE.L d(An,Xi),d(A4)
-			return this.write32(this.rop32(op, true), this.a4 + this.fetch16s() | 0);
+			return this.write32(this.rop32(op, true), this.disp(this.a4));
 		case 0o457: // MOVE.L Abs...,d(A4)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write32(this.rop32(op, true), this.a4 + this.fetch16s() | 0);
+			return this.write32(this.rop32(op, true), this.disp(this.a4));
 		case 0o460: // MOVE.L Dn,d(A4,Xi)
 		case 0o461: // MOVE.L An,d(A4,Xi)
 		case 0o462: // MOVE.L (An),d(A4,Xi)
@@ -1944,11 +1944,11 @@ export default class MC68000 extends Cpu {
 		case 0o554: // MOVE.L -(An),d(A5)
 		case 0o555: // MOVE.L d(An),d(A5)
 		case 0o556: // MOVE.L d(An,Xi),d(A5)
-			return this.write32(this.rop32(op, true), this.a5 + this.fetch16s() | 0);
+			return this.write32(this.rop32(op, true), this.disp(this.a5));
 		case 0o557: // MOVE.L Abs...,d(A5)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write32(this.rop32(op, true), this.a5 + this.fetch16s() | 0);
+			return this.write32(this.rop32(op, true), this.disp(this.a5));
 		case 0o560: // MOVE.L Dn,d(A5,Xi)
 		case 0o561: // MOVE.L An,d(A5,Xi)
 		case 0o562: // MOVE.L (An),d(A5,Xi)
@@ -2030,11 +2030,11 @@ export default class MC68000 extends Cpu {
 		case 0o654: // MOVE.L -(An),d(A6)
 		case 0o655: // MOVE.L d(An),d(A6)
 		case 0o656: // MOVE.L d(An,Xi),d(A6)
-			return this.write32(this.rop32(op, true), this.a6 + this.fetch16s() | 0);
+			return this.write32(this.rop32(op, true), this.disp(this.a6));
 		case 0o657: // MOVE.L Abs...,d(A6)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write32(this.rop32(op, true), this.a6 + this.fetch16s() | 0);
+			return this.write32(this.rop32(op, true), this.disp(this.a6));
 		case 0o660: // MOVE.L Dn,d(A6,Xi)
 		case 0o661: // MOVE.L An,d(A6,Xi)
 		case 0o662: // MOVE.L (An),d(A6,Xi)
@@ -2116,11 +2116,11 @@ export default class MC68000 extends Cpu {
 		case 0o754: // MOVE.L -(An),d(A7)
 		case 0o755: // MOVE.L d(An),d(A7)
 		case 0o756: // MOVE.L d(An,Xi),d(A7)
-			return this.write32(this.rop32(op, true), this.a7 + this.fetch16s() | 0);
+			return this.write32(this.rop32(op, true), this.disp(this.a7));
 		case 0o757: // MOVE.L Abs...,d(A7)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write32(this.rop32(op, true), this.a7 + this.fetch16s() | 0);
+			return this.write32(this.rop32(op, true), this.disp(this.a7));
 		case 0o760: // MOVE.L Dn,d(A7,Xi)
 		case 0o761: // MOVE.L An,d(A7,Xi)
 		case 0o762: // MOVE.L (An),d(A7,Xi)
@@ -2209,11 +2209,11 @@ export default class MC68000 extends Cpu {
 		case 0o054: // MOVE.W -(An),d(A0)
 		case 0o055: // MOVE.W d(An),d(A0)
 		case 0o056: // MOVE.W d(An,Xi),d(A0)
-			return this.write16(this.rop16(op, true), this.a0 + this.fetch16s() | 0);
+			return this.write16(this.rop16(op, true), this.disp(this.a0));
 		case 0o057: // MOVE.W Abs...,d(A0)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write16(this.rop16(op, true), this.a0 + this.fetch16s() | 0);
+			return this.write16(this.rop16(op, true), this.disp(this.a0));
 		case 0o060: // MOVE.W Dn,d(A0,Xi)
 		case 0o061: // MOVE.W An,d(A0,Xi)
 		case 0o062: // MOVE.W (An),d(A0,Xi)
@@ -2307,11 +2307,11 @@ export default class MC68000 extends Cpu {
 		case 0o154: // MOVE.W -(An),d(A1)
 		case 0o155: // MOVE.W d(An),d(A1)
 		case 0o156: // MOVE.W d(An,Xi),d(A1)
-			return this.write16(this.rop16(op, true), this.a1 + this.fetch16s() | 0);
+			return this.write16(this.rop16(op, true), this.disp(this.a1));
 		case 0o157: // MOVE.W Abs...,d(A1)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write16(this.rop16(op, true), this.a1 + this.fetch16s() | 0);
+			return this.write16(this.rop16(op, true), this.disp(this.a1));
 		case 0o160: // MOVE.W Dn,d(A1,Xi)
 		case 0o161: // MOVE.W An,d(A1,Xi)
 		case 0o162: // MOVE.W (An),d(A1,Xi)
@@ -2405,11 +2405,11 @@ export default class MC68000 extends Cpu {
 		case 0o254: // MOVE.W -(An),d(A2)
 		case 0o255: // MOVE.W d(An),d(A2)
 		case 0o256: // MOVE.W d(An,Xi),d(A2)
-			return this.write16(this.rop16(op, true), this.a2 + this.fetch16s() | 0);
+			return this.write16(this.rop16(op, true), this.disp(this.a2));
 		case 0o257: // MOVE.W Abs...,d(A2)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write16(this.rop16(op, true), this.a2 + this.fetch16s() | 0);
+			return this.write16(this.rop16(op, true), this.disp(this.a2));
 		case 0o260: // MOVE.W Dn,d(A2,Xi)
 		case 0o261: // MOVE.W An,d(A2,Xi)
 		case 0o262: // MOVE.W (An),d(A2,Xi)
@@ -2491,11 +2491,11 @@ export default class MC68000 extends Cpu {
 		case 0o354: // MOVE.W -(An),d(A3)
 		case 0o355: // MOVE.W d(An),d(A3)
 		case 0o356: // MOVE.W d(An,Xi),d(A3)
-			return this.write16(this.rop16(op, true), this.a3 + this.fetch16s() | 0);
+			return this.write16(this.rop16(op, true), this.disp(this.a3));
 		case 0o357: // MOVE.W Abs...,d(A3)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write16(this.rop16(op, true), this.a3 + this.fetch16s() | 0);
+			return this.write16(this.rop16(op, true), this.disp(this.a3));
 		case 0o360: // MOVE.W Dn,d(A3,Xi)
 		case 0o361: // MOVE.W An,d(A3,Xi)
 		case 0o362: // MOVE.W (An),d(A3,Xi)
@@ -2577,11 +2577,11 @@ export default class MC68000 extends Cpu {
 		case 0o454: // MOVE.W -(An),d(A4)
 		case 0o455: // MOVE.W d(An),d(A4)
 		case 0o456: // MOVE.W d(An,Xi),d(A4)
-			return this.write16(this.rop16(op, true), this.a4 + this.fetch16s() | 0);
+			return this.write16(this.rop16(op, true), this.disp(this.a4));
 		case 0o457: // MOVE.W Abs...,d(A4)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write16(this.rop16(op, true), this.a4 + this.fetch16s() | 0);
+			return this.write16(this.rop16(op, true), this.disp(this.a4));
 		case 0o460: // MOVE.W Dn,d(A4,Xi)
 		case 0o461: // MOVE.W An,d(A4,Xi)
 		case 0o462: // MOVE.W (An),d(A4,Xi)
@@ -2663,11 +2663,11 @@ export default class MC68000 extends Cpu {
 		case 0o554: // MOVE.W -(An),d(A5)
 		case 0o555: // MOVE.W d(An),d(A5)
 		case 0o556: // MOVE.W d(An,Xi),d(A5)
-			return this.write16(this.rop16(op, true), this.a5 + this.fetch16s() | 0);
+			return this.write16(this.rop16(op, true), this.disp(this.a5));
 		case 0o557: // MOVE.W Abs...,d(A5)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write16(this.rop16(op, true), this.a5 + this.fetch16s() | 0);
+			return this.write16(this.rop16(op, true), this.disp(this.a5));
 		case 0o560: // MOVE.W Dn,d(A5,Xi)
 		case 0o561: // MOVE.W An,d(A5,Xi)
 		case 0o562: // MOVE.W (An),d(A5,Xi)
@@ -2749,11 +2749,11 @@ export default class MC68000 extends Cpu {
 		case 0o654: // MOVE.W -(An),d(A6)
 		case 0o655: // MOVE.W d(An),d(A6)
 		case 0o656: // MOVE.W d(An,Xi),d(A6)
-			return this.write16(this.rop16(op, true), this.a6 + this.fetch16s() | 0);
+			return this.write16(this.rop16(op, true), this.disp(this.a6));
 		case 0o657: // MOVE.W Abs...,d(A6)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write16(this.rop16(op, true), this.a6 + this.fetch16s() | 0);
+			return this.write16(this.rop16(op, true), this.disp(this.a6));
 		case 0o660: // MOVE.W Dn,d(A6,Xi)
 		case 0o661: // MOVE.W An,d(A6,Xi)
 		case 0o662: // MOVE.W (An),d(A6,Xi)
@@ -2835,11 +2835,11 @@ export default class MC68000 extends Cpu {
 		case 0o754: // MOVE.W -(An),d(A7)
 		case 0o755: // MOVE.W d(An),d(A7)
 		case 0o756: // MOVE.W d(An,Xi),d(A7)
-			return this.write16(this.rop16(op, true), this.a7 + this.fetch16s() | 0);
+			return this.write16(this.rop16(op, true), this.disp(this.a7));
 		case 0o757: // MOVE.W Abs...,d(A7)
 			if ((op & 7) >= 5)
 				return this.exception(4);
-			return this.write16(this.rop16(op, true), this.a7 + this.fetch16s() | 0);
+			return this.write16(this.rop16(op, true), this.disp(this.a7));
 		case 0o760: // MOVE.W Dn,d(A7,Xi)
 		case 0o761: // MOVE.W An,d(A7,Xi)
 		case 0o762: // MOVE.W (An),d(A7,Xi)
@@ -2898,11 +2898,11 @@ export default class MC68000 extends Cpu {
 		case 0o034: // MOVE SR,-(An)
 		case 0o035: // MOVE SR,d(An)
 		case 0o036: // MOVE SR,d(An,Xi)
-			return this.rwop16(op, src => src, this.sr);
+			return this.rwop16(op, this.thru, this.sr);
 		case 0o037: // MOVE SR,Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop16(op, src => src, this.sr);
+			return this.rwop16(op, this.thru, this.sr);
 		case 0o060: // CHK Dn,D0
 		case 0o062: // CHK (An),D0
 		case 0o063: // CHK (An)+,D0
@@ -3291,7 +3291,7 @@ export default class MC68000 extends Cpu {
 		case 0o715: // MOVE USP,An
 			if ((this.sr & 0x2000) === 0)
 				return this.exception(8);
-			return this.rwop32(op & 7 | 0o10, src => src, this.usp);
+			return this.rwop32(op & 7 | 0o10, this.thru, this.usp);
 		case 0o716:
 			switch(op & 7) {
 			case 0: // RESET
@@ -3384,7 +3384,7 @@ export default class MC68000 extends Cpu {
 		case 0o010: // ADDQ.W #8,Dn
 			return this.rwop16(op, this.add16, 8);
 		case 0o011: // ADDQ.W #8,An
-			return this.rwop16(op, (src, dst) => dst + src | 0, 8);
+			return this.rwop16(op, this.adda32, 8);
 		case 0o012: // ADDQ.W #8,(An)
 		case 0o013: // ADDQ.W #8,(An)+
 		case 0o014: // ADDQ.W #8,-(An)
@@ -3398,7 +3398,7 @@ export default class MC68000 extends Cpu {
 		case 0o020: // ADDQ.L #8,Dn
 			return this.rwop32(op, this.add32, 8);
 		case 0o021: // ADDQ.L #8,An
-			return this.rwop32(op, (src, dst) => dst + src | 0, 8);
+			return this.rwop32(op, this.adda32, 8);
 		case 0o022: // ADDQ.L #8,(An)
 		case 0o023: // ADDQ.L #8,(An)+
 		case 0o024: // ADDQ.L #8,-(An)
@@ -3410,7 +3410,7 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.add32, 8);
 		case 0o030: // ST Dn
-			return this.rwop8(op, src => src, 0xff);
+			return this.rwop8(op, this.thru, 0xff);
 		case 0o031: // DBT Dn,<label>
 			return this.dbcc(op, true);
 		case 0o032: // ST (An)
@@ -3418,11 +3418,11 @@ export default class MC68000 extends Cpu {
 		case 0o034: // ST -(An)
 		case 0o035: // ST d(An)
 		case 0o036: // ST d(An,Xi)
-			return this.rwop8(op, src => src, 0xff);
+			return this.rwop8(op, this.thru, 0xff);
 		case 0o037: // ST Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, 0xff);
+			return this.rwop8(op, this.thru, 0xff);
 		case 0o040: // SUBQ.B #8,Dn
 		case 0o042: // SUBQ.B #8,(An)
 		case 0o043: // SUBQ.B #8,(An)+
@@ -3437,7 +3437,7 @@ export default class MC68000 extends Cpu {
 		case 0o050: // SUBQ.W #8,Dn
 			return this.rwop16(op, this.sub16, 8);
 		case 0o051: // SUBQ.W #8,An
-			return this.rwop16(op, (src, dst) => dst - src | 0, 8);
+			return this.rwop16(op, this.suba32, 8);
 		case 0o052: // SUBQ.W #8,(An)
 		case 0o053: // SUBQ.W #8,(An)+
 		case 0o054: // SUBQ.W #8,-(An)
@@ -3451,7 +3451,7 @@ export default class MC68000 extends Cpu {
 		case 0o060: // SUBQ.L #8,Dn
 			return this.rwop32(op, this.sub32, 8);
 		case 0o061: // SUBQ.L #8,An
-			return this.rwop32(op, (src, dst) => dst - src | 0, 8);
+			return this.rwop32(op, this.suba32, 8);
 		case 0o062: // SUBQ.L #8,(An)
 		case 0o063: // SUBQ.L #8,(An)+
 		case 0o064: // SUBQ.L #8,-(An)
@@ -3463,7 +3463,7 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.sub32, 8);
 		case 0o070: // SF Dn
-			return this.rwop8(op, src => src, 0);
+			return this.rwop8(op, this.thru, 0);
 		case 0o071: // DBRA Dn,<label>
 			return this.dbcc(op, false);
 		case 0o072: // SF (An)
@@ -3471,11 +3471,11 @@ export default class MC68000 extends Cpu {
 		case 0o074: // SF -(An)
 		case 0o075: // SF d(An)
 		case 0o076: // SF d(An,Xi)
-			return this.rwop8(op, src => src, 0);
+			return this.rwop8(op, this.thru, 0);
 		case 0o077: // SF Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, 0);
+			return this.rwop8(op, this.thru, 0);
 		case 0o100: // ADDQ.B #1,Dn
 		case 0o102: // ADDQ.B #1,(An)
 		case 0o103: // ADDQ.B #1,(An)+
@@ -3490,7 +3490,7 @@ export default class MC68000 extends Cpu {
 		case 0o110: // ADDQ.W #1,Dn
 			return this.rwop16(op, this.add16, 1);
 		case 0o111: // ADDQ.W #1,An
-			return this.rwop16(op, (src, dst) => dst + src | 0, 1);
+			return this.rwop16(op, this.adda32, 1);
 		case 0o112: // ADDQ.W #1,(An)
 		case 0o113: // ADDQ.W #1,(An)+
 		case 0o114: // ADDQ.W #1,-(An)
@@ -3504,7 +3504,7 @@ export default class MC68000 extends Cpu {
 		case 0o120: // ADDQ.L #1,Dn
 			return this.rwop32(op, this.add32, 1);
 		case 0o121: // ADDQ.L #1,An
-			return this.rwop32(op, (src, dst) => dst + src | 0, 1);
+			return this.rwop32(op, this.adda32, 1);
 		case 0o122: // ADDQ.L #1,(An)
 		case 0o123: // ADDQ.L #1,(An)+
 		case 0o124: // ADDQ.L #1,-(An)
@@ -3516,7 +3516,7 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.add32, 1);
 		case 0o130: // SHI Dn
-			return this.rwop8(op, src => src, ((this.sr >> 2 | this.sr) & 1) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 | this.sr) & 1) === 0 ? 0xff : 0);
 		case 0o131: // DBHI Dn,<label>
 			return this.dbcc(op, ((this.sr >> 2 | this.sr) & 1) === 0);
 		case 0o132: // SHI (An)
@@ -3524,11 +3524,11 @@ export default class MC68000 extends Cpu {
 		case 0o134: // SHI -(An)
 		case 0o135: // SHI d(An)
 		case 0o136: // SHI d(An,Xi)
-			return this.rwop8(op, src => src, ((this.sr >> 2 | this.sr) & 1) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 | this.sr) & 1) === 0 ? 0xff : 0);
 		case 0o137: // SHI Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, ((this.sr >> 2 | this.sr) & 1) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 | this.sr) & 1) === 0 ? 0xff : 0);
 		case 0o140: // SUBQ.B #1,Dn
 		case 0o142: // SUBQ.B #1,(An)
 		case 0o143: // SUBQ.B #1,(An)+
@@ -3543,7 +3543,7 @@ export default class MC68000 extends Cpu {
 		case 0o150: // SUBQ.W #1,Dn
 			return this.rwop16(op, this.sub16, 1);
 		case 0o151: // SUBQ.W #1,An
-			return this.rwop16(op, (src, dst) => dst - src | 0, 1);
+			return this.rwop16(op, this.suba32, 1);
 		case 0o152: // SUBQ.W #1,(An)
 		case 0o153: // SUBQ.W #1,(An)+
 		case 0o154: // SUBQ.W #1,-(An)
@@ -3557,7 +3557,7 @@ export default class MC68000 extends Cpu {
 		case 0o160: // SUBQ.L #1,Dn
 			return this.rwop32(op, this.sub32, 1);
 		case 0o161: // SUBQ.L #1,An
-			return this.rwop32(op, (src, dst) => dst - src | 0, 1);
+			return this.rwop32(op, this.suba32, 1);
 		case 0o162: // SUBQ.L #1,(An)
 		case 0o163: // SUBQ.L #1,(An)+
 		case 0o164: // SUBQ.L #1,-(An)
@@ -3569,7 +3569,7 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.sub32, 1);
 		case 0o170: // SLS Dn
-			return this.rwop8(op, src => src, ((this.sr >> 2 | this.sr) & 1) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 | this.sr) & 1) !== 0 ? 0xff : 0);
 		case 0o171: // DBLS Dn,<label>
 			return this.dbcc(op, ((this.sr >> 2 | this.sr) & 1) !== 0);
 		case 0o172: // SLS (An)
@@ -3577,11 +3577,11 @@ export default class MC68000 extends Cpu {
 		case 0o174: // SLS -(An)
 		case 0o175: // SLS d(An)
 		case 0o176: // SLS d(An,Xi)
-			return this.rwop8(op, src => src, ((this.sr >> 2 | this.sr) & 1) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 | this.sr) & 1) !== 0 ? 0xff : 0);
 		case 0o177: // SLS Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, ((this.sr >> 2 | this.sr) & 1) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 | this.sr) & 1) !== 0 ? 0xff : 0);
 		case 0o200: // ADDQ.B #2,Dn
 		case 0o202: // ADDQ.B #2,(An)
 		case 0o203: // ADDQ.B #2,(An)+
@@ -3596,7 +3596,7 @@ export default class MC68000 extends Cpu {
 		case 0o210: // ADDQ.W #2,Dn
 			return this.rwop16(op, this.add16, 2);
 		case 0o211: // ADDQ.W #2,An
-			return this.rwop16(op, (src, dst) => dst + src | 0, 2);
+			return this.rwop16(op, this.adda32, 2);
 		case 0o212: // ADDQ.W #2,(An)
 		case 0o213: // ADDQ.W #2,(An)+
 		case 0o214: // ADDQ.W #2,-(An)
@@ -3610,7 +3610,7 @@ export default class MC68000 extends Cpu {
 		case 0o220: // ADDQ.L #2,Dn
 			return this.rwop32(op, this.add32, 2);
 		case 0o221: // ADDQ.L #2,An
-			return this.rwop32(op, (src, dst) => dst + src | 0, 2);
+			return this.rwop32(op, this.adda32, 2);
 		case 0o222: // ADDQ.L #2,(An)
 		case 0o223: // ADDQ.L #2,(An)+
 		case 0o224: // ADDQ.L #2,-(An)
@@ -3622,7 +3622,7 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.add32, 2);
 		case 0o230: // SCC Dn
-			return this.rwop8(op, src => src, (this.sr & 1) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 1) === 0 ? 0xff : 0);
 		case 0o231: // DBCC Dn,<label>
 			return this.dbcc(op, (this.sr & 1) === 0);
 		case 0o232: // SCC (An)
@@ -3630,11 +3630,11 @@ export default class MC68000 extends Cpu {
 		case 0o234: // SCC -(An)
 		case 0o235: // SCC d(An)
 		case 0o236: // SCC d(An,Xi)
-			return this.rwop8(op, src => src, (this.sr & 1) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 1) === 0 ? 0xff : 0);
 		case 0o237: // SCC Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, (this.sr & 1) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 1) === 0 ? 0xff : 0);
 		case 0o240: // SUBQ.B #2,Dn
 		case 0o242: // SUBQ.B #2,(An)
 		case 0o243: // SUBQ.B #2,(An)+
@@ -3649,7 +3649,7 @@ export default class MC68000 extends Cpu {
 		case 0o250: // SUBQ.W #2,Dn
 			return this.rwop16(op, this.sub16, 2);
 		case 0o251: // SUBQ.W #2,An
-			return this.rwop16(op, (src, dst) => dst - src | 0, 2);
+			return this.rwop16(op, this.suba32, 2);
 		case 0o252: // SUBQ.W #2,(An)
 		case 0o253: // SUBQ.W #2,(An)+
 		case 0o254: // SUBQ.W #2,-(An)
@@ -3663,7 +3663,7 @@ export default class MC68000 extends Cpu {
 		case 0o260: // SUBQ.L #2,Dn
 			return this.rwop32(op, this.sub32, 2);
 		case 0o261: // SUBQ.L #2,An
-			return this.rwop32(op, (src, dst) => dst - src | 0, 2);
+			return this.rwop32(op, this.suba32, 2);
 		case 0o262: // SUBQ.L #2,(An)
 		case 0o263: // SUBQ.L #2,(An)+
 		case 0o264: // SUBQ.L #2,-(An)
@@ -3675,7 +3675,7 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.sub32, 2);
 		case 0o270: // SCS Dn
-			return this.rwop8(op, src => src, (this.sr & 1) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 1) !== 0 ? 0xff : 0);
 		case 0o271: // DBCS Dn,<label>
 			return this.dbcc(op, (this.sr & 1) !== 0);
 		case 0o272: // SCS (An)
@@ -3683,11 +3683,11 @@ export default class MC68000 extends Cpu {
 		case 0o274: // SCS -(An)
 		case 0o275: // SCS d(An)
 		case 0o276: // SCS d(An,Xi)
-			return this.rwop8(op, src => src, (this.sr & 1) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 1) !== 0 ? 0xff : 0);
 		case 0o277: // SCS Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, (this.sr & 1) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 1) !== 0 ? 0xff : 0);
 		case 0o300: // ADDQ.B #3,Dn
 		case 0o302: // ADDQ.B #3,(An)
 		case 0o303: // ADDQ.B #3,(An)+
@@ -3702,7 +3702,7 @@ export default class MC68000 extends Cpu {
 		case 0o310: // ADDQ.W #3,Dn
 			return this.rwop16(op, this.add16, 3);
 		case 0o311: // ADDQ.W #3,An
-			return this.rwop16(op, (src, dst) => dst + src | 0, 3);
+			return this.rwop16(op, this.adda32, 3);
 		case 0o312: // ADDQ.W #3,(An)
 		case 0o313: // ADDQ.W #3,(An)+
 		case 0o314: // ADDQ.W #3,-(An)
@@ -3716,7 +3716,7 @@ export default class MC68000 extends Cpu {
 		case 0o320: // ADDQ.L #3,Dn
 			return this.rwop32(op, this.add32, 3);
 		case 0o321: // ADDQ.L #3,An
-			return this.rwop32(op, (src, dst) => dst + src | 0, 3);
+			return this.rwop32(op, this.adda32, 3);
 		case 0o322: // ADDQ.L #3,(An)
 		case 0o323: // ADDQ.L #3,(An)+
 		case 0o324: // ADDQ.L #3,-(An)
@@ -3728,7 +3728,7 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.add32, 3);
 		case 0o330: // SNE Dn
-			return this.rwop8(op, src => src, (this.sr & 4) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 4) === 0 ? 0xff : 0);
 		case 0o331: // DBNE Dn,<label>
 			return this.dbcc(op, (this.sr & 4) === 0);
 		case 0o332: // SNE (An)
@@ -3736,11 +3736,11 @@ export default class MC68000 extends Cpu {
 		case 0o334: // SNE -(An)
 		case 0o335: // SNE d(An)
 		case 0o336: // SNE d(An,Xi)
-			return this.rwop8(op, src => src, (this.sr & 4) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 4) === 0 ? 0xff : 0);
 		case 0o337: // SNE Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, (this.sr & 4) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 4) === 0 ? 0xff : 0);
 		case 0o340: // SUBQ.B #3,Dn
 		case 0o342: // SUBQ.B #3,(An)
 		case 0o343: // SUBQ.B #3,(An)+
@@ -3755,7 +3755,7 @@ export default class MC68000 extends Cpu {
 		case 0o350: // SUBQ.W #3,Dn
 			return this.rwop16(op, this.sub16, 3);
 		case 0o351: // SUBQ.W #3,An
-			return this.rwop16(op, (src, dst) => dst - src | 0, 3);
+			return this.rwop16(op, this.suba32, 3);
 		case 0o352: // SUBQ.W #3,(An)
 		case 0o353: // SUBQ.W #3,(An)+
 		case 0o354: // SUBQ.W #3,-(An)
@@ -3769,7 +3769,7 @@ export default class MC68000 extends Cpu {
 		case 0o360: // SUBQ.L #3,Dn
 			return this.rwop32(op, this.sub32, 3);
 		case 0o361: // SUBQ.L #3,An
-			return this.rwop32(op, (src, dst) => dst - src | 0, 3);
+			return this.rwop32(op, this.suba32, 3);
 		case 0o362: // SUBQ.L #3,(An)
 		case 0o363: // SUBQ.L #3,(An)+
 		case 0o364: // SUBQ.L #3,-(An)
@@ -3781,7 +3781,7 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.sub32, 3);
 		case 0o370: // SEQ Dn
-			return this.rwop8(op, src => src, (this.sr & 4) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 4) !== 0 ? 0xff : 0);
 		case 0o371: // DBEQ Dn,<label>
 			return this.dbcc(op, (this.sr & 4) !== 0);
 		case 0o372: // SEQ (An)
@@ -3789,11 +3789,11 @@ export default class MC68000 extends Cpu {
 		case 0o374: // SEQ -(An)
 		case 0o375: // SEQ d(An)
 		case 0o376: // SEQ d(An,Xi)
-			return this.rwop8(op, src => src, (this.sr & 4) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 4) !== 0 ? 0xff : 0);
 		case 0o377: // SEQ Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, (this.sr & 4) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 4) !== 0 ? 0xff : 0);
 		case 0o400: // ADDQ.B #4,Dn
 		case 0o402: // ADDQ.B #4,(An)
 		case 0o403: // ADDQ.B #4,(An)+
@@ -3808,7 +3808,7 @@ export default class MC68000 extends Cpu {
 		case 0o410: // ADDQ.W #4,Dn
 			return this.rwop16(op, this.add16, 4);
 		case 0o411: // ADDQ.W #4,An
-			return this.rwop16(op, (src, dst) => dst + src | 0, 4);
+			return this.rwop16(op, this.adda32, 4);
 		case 0o412: // ADDQ.W #4,(An)
 		case 0o413: // ADDQ.W #4,(An)+
 		case 0o414: // ADDQ.W #4,-(An)
@@ -3822,7 +3822,7 @@ export default class MC68000 extends Cpu {
 		case 0o420: // ADDQ.L #4,Dn
 			return this.rwop32(op, this.add32, 4);
 		case 0o421: // ADDQ.L #4,An
-			return this.rwop32(op, (src, dst) => dst + src | 0, 4);
+			return this.rwop32(op, this.adda32, 4);
 		case 0o422: // ADDQ.L #4,(An)
 		case 0o423: // ADDQ.L #4,(An)+
 		case 0o424: // ADDQ.L #4,-(An)
@@ -3834,7 +3834,7 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.add32, 4);
 		case 0o430: // SVC Dn
-			return this.rwop8(op, src => src, (this.sr & 2) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 2) === 0 ? 0xff : 0);
 		case 0o431: // DBVC Dn,<label>
 			return this.dbcc(op, (this.sr & 2) === 0);
 		case 0o432: // SVC (An)
@@ -3842,11 +3842,11 @@ export default class MC68000 extends Cpu {
 		case 0o434: // SVC -(An)
 		case 0o435: // SVC d(An)
 		case 0o436: // SVC d(An,Xi)
-			return this.rwop8(op, src => src, (this.sr & 2) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 2) === 0 ? 0xff : 0);
 		case 0o437: // SVC Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, (this.sr & 2) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 2) === 0 ? 0xff : 0);
 		case 0o440: // SUBQ.B #4,Dn
 		case 0o442: // SUBQ.B #4,(An)
 		case 0o443: // SUBQ.B #4,(An)+
@@ -3861,7 +3861,7 @@ export default class MC68000 extends Cpu {
 		case 0o450: // SUBQ.W #4,Dn
 			return this.rwop16(op, this.sub16, 4);
 		case 0o451: // SUBQ.W #4,An
-			return this.rwop16(op, (src, dst) => dst - src | 0, 4);
+			return this.rwop16(op, this.suba32, 4);
 		case 0o452: // SUBQ.W #4,(An)
 		case 0o453: // SUBQ.W #4,(An)+
 		case 0o454: // SUBQ.W #4,-(An)
@@ -3875,7 +3875,7 @@ export default class MC68000 extends Cpu {
 		case 0o460: // SUBQ.L #4,Dn
 			return this.rwop32(op, this.sub32, 4);
 		case 0o461: // SUBQ.L #4,An
-			return this.rwop32(op, (src, dst) => dst - src | 0, 4);
+			return this.rwop32(op, this.suba32, 4);
 		case 0o462: // SUBQ.L #4,(An)
 		case 0o463: // SUBQ.L #4,(An)+
 		case 0o464: // SUBQ.L #4,-(An)
@@ -3887,7 +3887,7 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.sub32, 4);
 		case 0o470: // SVS Dn
-			return this.rwop8(op, src => src, (this.sr & 2) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 2) !== 0 ? 0xff : 0);
 		case 0o471: // DBVS Dn,<label>
 			return this.dbcc(op, (this.sr & 2) !== 0);
 		case 0o472: // SVS (An)
@@ -3895,11 +3895,11 @@ export default class MC68000 extends Cpu {
 		case 0o474: // SVS -(An)
 		case 0o475: // SVS d(An)
 		case 0o476: // SVS d(An,Xi)
-			return this.rwop8(op, src => src, (this.sr & 2) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 2) !== 0 ? 0xff : 0);
 		case 0o477: // SVS Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, (this.sr & 2) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 2) !== 0 ? 0xff : 0);
 		case 0o500: // ADDQ.B #5,Dn
 		case 0o502: // ADDQ.B #5,(An)
 		case 0o503: // ADDQ.B #5,(An)+
@@ -3914,7 +3914,7 @@ export default class MC68000 extends Cpu {
 		case 0o510: // ADDQ.W #5,Dn
 			return this.rwop16(op, this.add16, 5);
 		case 0o511: // ADDQ.W #5,An
-			return this.rwop16(op, (src, dst) => dst + src | 0, 5);
+			return this.rwop16(op, this.adda32, 5);
 		case 0o512: // ADDQ.W #5,(An)
 		case 0o513: // ADDQ.W #5,(An)+
 		case 0o514: // ADDQ.W #5,-(An)
@@ -3928,7 +3928,7 @@ export default class MC68000 extends Cpu {
 		case 0o520: // ADDQ.L #5,Dn
 			return this.rwop32(op, this.add32, 5);
 		case 0o521: // ADDQ.L #5,An
-			return this.rwop32(op, (src, dst) => dst + src | 0, 5);
+			return this.rwop32(op, this.adda32, 5);
 		case 0o522: // ADDQ.L #5,(An)
 		case 0o523: // ADDQ.L #5,(An)+
 		case 0o524: // ADDQ.L #5,-(An)
@@ -3940,7 +3940,7 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.add32, 5);
 		case 0o530: // SPL Dn
-			return this.rwop8(op, src => src, (this.sr & 8) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 8) === 0 ? 0xff : 0);
 		case 0o531: // DBPL Dn,<label>
 			return this.dbcc(op, (this.sr & 8) === 0);
 		case 0o532: // SPL (An)
@@ -3948,11 +3948,11 @@ export default class MC68000 extends Cpu {
 		case 0o534: // SPL -(An)
 		case 0o535: // SPL d(An)
 		case 0o536: // SPL d(An,Xi)
-			return this.rwop8(op, src => src, (this.sr & 8) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 8) === 0 ? 0xff : 0);
 		case 0o537: // SPL Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, (this.sr & 8) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 8) === 0 ? 0xff : 0);
 		case 0o540: // SUBQ.B #5,Dn
 		case 0o542: // SUBQ.B #5,(An)
 		case 0o543: // SUBQ.B #5,(An)+
@@ -3967,7 +3967,7 @@ export default class MC68000 extends Cpu {
 		case 0o550: // SUBQ.W #5,Dn
 			return this.rwop16(op, this.sub16, 5);
 		case 0o551: // SUBQ.W #5,An
-			return this.rwop16(op, (src, dst) => dst - src | 0, 5);
+			return this.rwop16(op, this.suba32, 5);
 		case 0o552: // SUBQ.W #5,(An)
 		case 0o553: // SUBQ.W #5,(An)+
 		case 0o554: // SUBQ.W #5,-(An)
@@ -3981,7 +3981,7 @@ export default class MC68000 extends Cpu {
 		case 0o560: // SUBQ.L #5,Dn
 			return this.rwop32(op, this.sub32, 5);
 		case 0o561: // SUBQ.L #5,An
-			return this.rwop32(op, (src, dst) => dst - src | 0, 5);
+			return this.rwop32(op, this.suba32, 5);
 		case 0o562: // SUBQ.L #5,(An)
 		case 0o563: // SUBQ.L #5,(An)+
 		case 0o564: // SUBQ.L #5,-(An)
@@ -3993,7 +3993,7 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.sub32, 5);
 		case 0o570: // SMI Dn
-			return this.rwop8(op, src => src, (this.sr & 8) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 8) !== 0 ? 0xff : 0);
 		case 0o571: // DBMI Dn,<label>
 			return this.dbcc(op, (this.sr & 8) !== 0);
 		case 0o572: // SMI (An)
@@ -4001,11 +4001,11 @@ export default class MC68000 extends Cpu {
 		case 0o574: // SMI -(An)
 		case 0o575: // SMI d(An)
 		case 0o576: // SMI d(An,Xi)
-			return this.rwop8(op, src => src, (this.sr & 8) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 8) !== 0 ? 0xff : 0);
 		case 0o577: // SMI Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, (this.sr & 8) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, (this.sr & 8) !== 0 ? 0xff : 0);
 		case 0o600: // ADDQ.B #6,Dn
 		case 0o602: // ADDQ.B #6,(An)
 		case 0o603: // ADDQ.B #6,(An)+
@@ -4020,7 +4020,7 @@ export default class MC68000 extends Cpu {
 		case 0o610: // ADDQ.W #6,Dn
 			return this.rwop16(op, this.add16, 6);
 		case 0o611: // ADDQ.W #6,An
-			return this.rwop16(op, (src, dst) => dst + src | 0, 6);
+			return this.rwop16(op, this.adda32, 6);
 		case 0o612: // ADDQ.W #6,(An)
 		case 0o613: // ADDQ.W #6,(An)+
 		case 0o614: // ADDQ.W #6,-(An)
@@ -4034,7 +4034,7 @@ export default class MC68000 extends Cpu {
 		case 0o620: // ADDQ.L #6,Dn
 			return this.rwop32(op, this.add32, 6);
 		case 0o621: // ADDQ.L #6,An
-			return this.rwop32(op, (src, dst) => dst + src | 0, 6);
+			return this.rwop32(op, this.adda32, 6);
 		case 0o622: // ADDQ.L #6,(An)
 		case 0o623: // ADDQ.L #6,(An)+
 		case 0o624: // ADDQ.L #6,-(An)
@@ -4046,7 +4046,7 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.add32, 6);
 		case 0o630: // SGE Dn
-			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr) & 2) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 ^ this.sr) & 2) === 0 ? 0xff : 0);
 		case 0o631: // DBGE Dn,<label>
 			return this.dbcc(op, ((this.sr >> 2 ^ this.sr) & 2) === 0);
 		case 0o632: // SGE (An)
@@ -4054,11 +4054,11 @@ export default class MC68000 extends Cpu {
 		case 0o634: // SGE -(An)
 		case 0o635: // SGE d(An)
 		case 0o636: // SGE d(An,Xi)
-			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr) & 2) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 ^ this.sr) & 2) === 0 ? 0xff : 0);
 		case 0o637: // SGE Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr) & 2) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 ^ this.sr) & 2) === 0 ? 0xff : 0);
 		case 0o640: // SUBQ.B #6,Dn
 		case 0o642: // SUBQ.B #6,(An)
 		case 0o643: // SUBQ.B #6,(An)+
@@ -4073,7 +4073,7 @@ export default class MC68000 extends Cpu {
 		case 0o650: // SUBQ.W #6,Dn
 			return this.rwop16(op, this.sub16, 6);
 		case 0o651: // SUBQ.W #6,An
-			return this.rwop16(op, (src, dst) => dst - src | 0, 6);
+			return this.rwop16(op, this.suba32, 6);
 		case 0o652: // SUBQ.W #6,(An)
 		case 0o653: // SUBQ.W #6,(An)+
 		case 0o654: // SUBQ.W #6,-(An)
@@ -4087,7 +4087,7 @@ export default class MC68000 extends Cpu {
 		case 0o660: // SUBQ.L #6,Dn
 			return this.rwop32(op, this.sub32, 6);
 		case 0o661: // SUBQ.L #6,An
-			return this.rwop32(op, (src, dst) => dst - src | 0, 6);
+			return this.rwop32(op, this.suba32, 6);
 		case 0o662: // SUBQ.L #6,(An)
 		case 0o663: // SUBQ.L #6,(An)+
 		case 0o664: // SUBQ.L #6,-(An)
@@ -4099,7 +4099,7 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.sub32, 6);
 		case 0o670: // SLT Dn
-			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr) & 2) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 ^ this.sr) & 2) !== 0 ? 0xff : 0);
 		case 0o671: // DBLT Dn,<label>
 			return this.dbcc(op, ((this.sr >> 2 ^ this.sr) & 2) !== 0);
 		case 0o672: // SLT (An)
@@ -4107,11 +4107,11 @@ export default class MC68000 extends Cpu {
 		case 0o674: // SLT -(An)
 		case 0o675: // SLT d(An)
 		case 0o676: // SLT d(An,Xi)
-			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr) & 2) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 ^ this.sr) & 2) !== 0 ? 0xff : 0);
 		case 0o677: // SLT Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr) & 2) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 ^ this.sr) & 2) !== 0 ? 0xff : 0);
 		case 0o700: // ADDQ.B #7,Dn
 		case 0o702: // ADDQ.B #7,(An)
 		case 0o703: // ADDQ.B #7,(An)+
@@ -4126,7 +4126,7 @@ export default class MC68000 extends Cpu {
 		case 0o710: // ADDQ.W #7,Dn
 			return this.rwop16(op, this.add16, 7);
 		case 0o711: // ADDQ.W #7,An
-			return this.rwop16(op, (src, dst) => dst + src | 0, 7);
+			return this.rwop16(op, this.adda32, 7);
 		case 0o712: // ADDQ.W #7,(An)
 		case 0o713: // ADDQ.W #7,(An)+
 		case 0o714: // ADDQ.W #7,-(An)
@@ -4140,7 +4140,7 @@ export default class MC68000 extends Cpu {
 		case 0o720: // ADDQ.L #7,Dn
 			return this.rwop32(op, this.add32, 7);
 		case 0o721: // ADDQ.L #7,An
-			return this.rwop32(op, (src, dst) => dst + src | 0, 7);
+			return this.rwop32(op, this.adda32, 7);
 		case 0o722: // ADDQ.L #7,(An)
 		case 0o723: // ADDQ.L #7,(An)+
 		case 0o724: // ADDQ.L #7,-(An)
@@ -4152,7 +4152,7 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.add32, 7);
 		case 0o730: // SGT Dn
-			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) === 0 ? 0xff : 0);
 		case 0o731: // DBGT Dn,<label>
 			return this.dbcc(op, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) === 0);
 		case 0o732: // SGT (An)
@@ -4160,11 +4160,11 @@ export default class MC68000 extends Cpu {
 		case 0o734: // SGT -(An)
 		case 0o735: // SGT d(An)
 		case 0o736: // SGT d(An,Xi)
-			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) === 0 ? 0xff : 0);
 		case 0o737: // SGT Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) === 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) === 0 ? 0xff : 0);
 		case 0o740: // SUBQ.B #7,Dn
 		case 0o742: // SUBQ.B #7,(An)
 		case 0o743: // SUBQ.B #7,(An)+
@@ -4179,7 +4179,7 @@ export default class MC68000 extends Cpu {
 		case 0o750: // SUBQ.W #7,Dn
 			return this.rwop16(op, this.sub16, 7);
 		case 0o751: // SUBQ.W #7,An
-			return this.rwop16(op, (src, dst) => dst - src | 0, 7);
+			return this.rwop16(op, this.suba32, 7);
 		case 0o752: // SUBQ.W #7,(An)
 		case 0o753: // SUBQ.W #7,(An)+
 		case 0o754: // SUBQ.W #7,-(An)
@@ -4193,7 +4193,7 @@ export default class MC68000 extends Cpu {
 		case 0o760: // SUBQ.L #7,Dn
 			return this.rwop32(op, this.sub32, 7);
 		case 0o761: // SUBQ.L #7,An
-			return this.rwop32(op, (src, dst) => dst - src | 0, 7);
+			return this.rwop32(op, this.suba32, 7);
 		case 0o762: // SUBQ.L #7,(An)
 		case 0o763: // SUBQ.L #7,(An)+
 		case 0o764: // SUBQ.L #7,-(An)
@@ -4205,7 +4205,7 @@ export default class MC68000 extends Cpu {
 				return this.exception(4);
 			return this.rwop32(op, this.sub32, 7);
 		case 0o770: // SLE Dn
-			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) !== 0 ? 0xff : 0);
 		case 0o771: // DBLE Dn,<label>
 			return this.dbcc(op, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) !== 0);
 		case 0o772: // SLE (An)
@@ -4213,54 +4213,53 @@ export default class MC68000 extends Cpu {
 		case 0o774: // SLE -(An)
 		case 0o775: // SLE d(An)
 		case 0o776: // SLE d(An,Xi)
-			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) !== 0 ? 0xff : 0);
 		case 0o777: // SLE Abs...
 			if ((op & 7) >= 2)
 				return this.exception(4);
-			return this.rwop8(op, src => src, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) !== 0 ? 0xff : 0);
+			return this.rwop8(op, this.thru, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) !== 0 ? 0xff : 0);
 		default:
 			return this.exception(4);
 		}
 	}
 
 	execute_6(op) {
-		const base = this.pc;
-		const disp = (op & 0xff) === 0 ? this.fetch16s() : op << 24 >> 24;
+		const addr = (op & 0xff) === 0 ? this.disp(this.pc) : this.pc + (op << 24 >> 24) | 0;
 
 		switch (op >> 8 & 0xf) {
 		case 0x0: // BRA <label>
-			return void(this.pc = base + disp | 0);
+			return void(this.pc = addr);
 		case 0x1: // BSR <label>
 			this.write32(this.pc, this.a7 = this.a7 - 4 | 0);
-			return void(this.pc = base + disp | 0);
+			return void(this.pc = addr);
 		case 0x2: // BHI <label>
-			return void(((this.sr >> 2 | this.sr) & 1) === 0 && (this.pc = base + disp | 0));
+			return void(((this.sr >> 2 | this.sr) & 1) === 0 && (this.pc = addr));
 		case 0x3: // BLS <label>
-			return void(((this.sr >> 2 | this.sr) & 1) !== 0 && (this.pc = base + disp | 0));
+			return void(((this.sr >> 2 | this.sr) & 1) !== 0 && (this.pc = addr));
 		case 0x4: // BCC <label>
-			return void((this.sr & 1) === 0 && (this.pc = base + disp | 0));
+			return void((this.sr & 1) === 0 && (this.pc = addr));
 		case 0x5: // BCS <label>
-			return void((this.sr & 1) !== 0 && (this.pc = base + disp | 0));
+			return void((this.sr & 1) !== 0 && (this.pc = addr));
 		case 0x6: // BNE <label>
-			return void((this.sr & 4) === 0 && (this.pc = base + disp | 0));
+			return void((this.sr & 4) === 0 && (this.pc = addr));
 		case 0x7: // BEQ <label>
-			return void((this.sr & 4) !== 0 && (this.pc = base + disp | 0));
+			return void((this.sr & 4) !== 0 && (this.pc = addr));
 		case 0x8: // BVC <label>
-			return void((this.sr & 2) === 0 && (this.pc = base + disp | 0));
+			return void((this.sr & 2) === 0 && (this.pc = addr));
 		case 0x9: // BVS <label>
-			return void((this.sr & 2) !== 0 && (this.pc = base + disp | 0));
+			return void((this.sr & 2) !== 0 && (this.pc = addr));
 		case 0xa: // BPL <label>
-			return void((this.sr & 8) === 0 && (this.pc = base + disp | 0));
+			return void((this.sr & 8) === 0 && (this.pc = addr));
 		case 0xb: // BMI <label>
-			return void((this.sr & 8) !== 0 && (this.pc = base + disp | 0));
+			return void((this.sr & 8) !== 0 && (this.pc = addr));
 		case 0xc: // BGE <label>
-			return void(((this.sr >> 2 ^ this.sr) & 2) === 0 && (this.pc = base + disp | 0));
+			return void(((this.sr >> 2 ^ this.sr) & 2) === 0 && (this.pc = addr));
 		case 0xd: // BLT <label>
-			return void(((this.sr >> 2 ^ this.sr) & 2) !== 0 && (this.pc = base + disp | 0));
+			return void(((this.sr >> 2 ^ this.sr) & 2) !== 0 && (this.pc = addr));
 		case 0xe: // BGT <label>
-			return void(((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) === 0 && (this.pc = base + disp | 0));
+			return void(((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) === 0 && (this.pc = addr));
 		case 0xf: // BLE <label>
-			return void(((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) !== 0 && (this.pc = base + disp | 0));
+			return void(((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) !== 0 && (this.pc = addr));
 		}
 	}
 
@@ -9177,21 +9176,21 @@ export default class MC68000 extends Cpu {
 		case 0o47: // B -(A7)
 			return this.write8(fn.call(this, src, this.read8(this.a7 = this.a7 - 1 | 0)), this.a7);
 		case 0o50: // B d(A0)
-			return this.write8(fn.call(this, src, this.read8(ea = this.a0 + this.fetch16s() | 0)), ea);
+			return this.write8(fn.call(this, src, this.read8(ea = this.disp(this.a0))), ea);
 		case 0o51: // B d(A1)
-			return this.write8(fn.call(this, src, this.read8(ea = this.a1 + this.fetch16s() | 0)), ea);
+			return this.write8(fn.call(this, src, this.read8(ea = this.disp(this.a1))), ea);
 		case 0o52: // B d(A2)
-			return this.write8(fn.call(this, src, this.read8(ea = this.a2 + this.fetch16s() | 0)), ea);
+			return this.write8(fn.call(this, src, this.read8(ea = this.disp(this.a2))), ea);
 		case 0o53: // B d(A3)
-			return this.write8(fn.call(this, src, this.read8(ea = this.a3 + this.fetch16s() | 0)), ea);
+			return this.write8(fn.call(this, src, this.read8(ea = this.disp(this.a3))), ea);
 		case 0o54: // B d(A4)
-			return this.write8(fn.call(this, src, this.read8(ea = this.a4 + this.fetch16s() | 0)), ea);
+			return this.write8(fn.call(this, src, this.read8(ea = this.disp(this.a4))), ea);
 		case 0o55: // B d(A5)
-			return this.write8(fn.call(this, src, this.read8(ea = this.a5 + this.fetch16s() | 0)), ea);
+			return this.write8(fn.call(this, src, this.read8(ea = this.disp(this.a5))), ea);
 		case 0o56: // B d(A6)
-			return this.write8(fn.call(this, src, this.read8(ea = this.a6 + this.fetch16s() | 0)), ea);
+			return this.write8(fn.call(this, src, this.read8(ea = this.disp(this.a6))), ea);
 		case 0o57: // B d(A7)
-			return this.write8(fn.call(this, src, this.read8(ea = this.a7 + this.fetch16s() | 0)), ea);
+			return this.write8(fn.call(this, src, this.read8(ea = this.disp(this.a7))), ea);
 		case 0o60: // B d(A0,Xi)
 			return this.write8(fn.call(this, src, this.read8(ea = this.index(this.a0))), ea);
 		case 0o61: // B d(A1,Xi)
@@ -9308,21 +9307,21 @@ export default class MC68000 extends Cpu {
 		case 0o47: // W -(A7)
 			return this.write16(fn.call(this, src, this.read16(this.a7 = this.a7 - 2 | 0)), this.a7);
 		case 0o50: // W d(A0)
-			return this.write16(fn.call(this, src, this.read16(ea = this.a0 + this.fetch16s() | 0)), ea);
+			return this.write16(fn.call(this, src, this.read16(ea = this.disp(this.a0))), ea);
 		case 0o51: // W d(A1)
-			return this.write16(fn.call(this, src, this.read16(ea = this.a1 + this.fetch16s() | 0)), ea);
+			return this.write16(fn.call(this, src, this.read16(ea = this.disp(this.a1))), ea);
 		case 0o52: // W d(A2)
-			return this.write16(fn.call(this, src, this.read16(ea = this.a2 + this.fetch16s() | 0)), ea);
+			return this.write16(fn.call(this, src, this.read16(ea = this.disp(this.a2))), ea);
 		case 0o53: // W d(A3)
-			return this.write16(fn.call(this, src, this.read16(ea = this.a3 + this.fetch16s() | 0)), ea);
+			return this.write16(fn.call(this, src, this.read16(ea = this.disp(this.a3))), ea);
 		case 0o54: // W d(A4)
-			return this.write16(fn.call(this, src, this.read16(ea = this.a4 + this.fetch16s() | 0)), ea);
+			return this.write16(fn.call(this, src, this.read16(ea = this.disp(this.a4))), ea);
 		case 0o55: // W d(A5)
-			return this.write16(fn.call(this, src, this.read16(ea = this.a5 + this.fetch16s() | 0)), ea);
+			return this.write16(fn.call(this, src, this.read16(ea = this.disp(this.a5))), ea);
 		case 0o56: // W d(A6)
-			return this.write16(fn.call(this, src, this.read16(ea = this.a6 + this.fetch16s() | 0)), ea);
+			return this.write16(fn.call(this, src, this.read16(ea = this.disp(this.a6))), ea);
 		case 0o57: // W d(A7)
-			return this.write16(fn.call(this, src, this.read16(ea = this.a7 + this.fetch16s() | 0)), ea);
+			return this.write16(fn.call(this, src, this.read16(ea = this.disp(this.a7))), ea);
 		case 0o60: // W d(A0,Xi)
 			return this.write16(fn.call(this, src, this.read16(ea = this.index(this.a0))), ea);
 		case 0o61: // W d(A1,Xi)
@@ -9439,21 +9438,21 @@ export default class MC68000 extends Cpu {
 		case 0o47: // L -(A7)
 			return this.write32(fn.call(this, src, this.read32(this.a7 = this.a7 - 4 | 0)), this.a7);
 		case 0o50: // L d(A0)
-			return this.write32(fn.call(this, src, this.read32(ea = this.a0 + this.fetch16s() | 0)), ea);
+			return this.write32(fn.call(this, src, this.read32(ea = this.disp(this.a0))), ea);
 		case 0o51: // L d(A1)
-			return this.write32(fn.call(this, src, this.read32(ea = this.a1 + this.fetch16s() | 0)), ea);
+			return this.write32(fn.call(this, src, this.read32(ea = this.disp(this.a1))), ea);
 		case 0o52: // L d(A2)
-			return this.write32(fn.call(this, src, this.read32(ea = this.a2 + this.fetch16s() | 0)), ea);
+			return this.write32(fn.call(this, src, this.read32(ea = this.disp(this.a2))), ea);
 		case 0o53: // L d(A3)
-			return this.write32(fn.call(this, src, this.read32(ea = this.a3 + this.fetch16s() | 0)), ea);
+			return this.write32(fn.call(this, src, this.read32(ea = this.disp(this.a3))), ea);
 		case 0o54: // L d(A4)
-			return this.write32(fn.call(this, src, this.read32(ea = this.a4 + this.fetch16s() | 0)), ea);
+			return this.write32(fn.call(this, src, this.read32(ea = this.disp(this.a4))), ea);
 		case 0o55: // L d(A5)
-			return this.write32(fn.call(this, src, this.read32(ea = this.a5 + this.fetch16s() | 0)), ea);
+			return this.write32(fn.call(this, src, this.read32(ea = this.disp(this.a5))), ea);
 		case 0o56: // L d(A6)
-			return this.write32(fn.call(this, src, this.read32(ea = this.a6 + this.fetch16s() | 0)), ea);
+			return this.write32(fn.call(this, src, this.read32(ea = this.disp(this.a6))), ea);
 		case 0o57: // L d(A7)
-			return this.write32(fn.call(this, src, this.read32(ea = this.a7 + this.fetch16s() | 0)), ea);
+			return this.write32(fn.call(this, src, this.read32(ea = this.disp(this.a7))), ea);
 		case 0o60: // L d(A0,Xi)
 			return this.write32(fn.call(this, src, this.read32(ea = this.index(this.a0))), ea);
 		case 0o61: // L d(A1,Xi)
@@ -9586,28 +9585,28 @@ export default class MC68000 extends Cpu {
 			data = this.read8(this.a7 = this.a7 - 1 | 0);
 			break;
 		case 0o50: // B d(A0)
-			data = this.read8(this.a0 + this.fetch16s() | 0);
+			data = this.read8(this.disp(this.a0));
 			break;
 		case 0o51: // B d(A1)
-			data = this.read8(this.a1 + this.fetch16s() | 0);
+			data = this.read8(this.disp(this.a1));
 			break;
 		case 0o52: // B d(A2)
-			data = this.read8(this.a2 + this.fetch16s() | 0);
+			data = this.read8(this.disp(this.a2));
 			break;
 		case 0o53: // B d(A3)
-			data = this.read8(this.a3 + this.fetch16s() | 0);
+			data = this.read8(this.disp(this.a3));
 			break;
 		case 0o54: // B d(A4)
-			data = this.read8(this.a4 + this.fetch16s() | 0);
+			data = this.read8(this.disp(this.a4));
 			break;
 		case 0o55: // B d(A5)
-			data = this.read8(this.a5 + this.fetch16s() | 0);
+			data = this.read8(this.disp(this.a5));
 			break;
 		case 0o56: // B d(A6)
-			data = this.read8(this.a6 + this.fetch16s() | 0);
+			data = this.read8(this.disp(this.a6));
 			break;
 		case 0o57: // B d(A7)
-			data = this.read8(this.a7 + this.fetch16s() | 0);
+			data = this.read8(this.disp(this.a7));
 			break;
 		case 0o60: // B d(A0,Xi)
 			data = this.read8(this.index(this.a0));
@@ -9640,7 +9639,7 @@ export default class MC68000 extends Cpu {
 			data = this.read8(this.fetch32());
 			break;
 		case 0o72: // B d(PC)
-			data = this.read8(this.pc + this.fetch16s() | 0);
+			data = this.read8(this.disp(this.pc));
 			break;
 		case 0o73: // B d(PC,Xi)
 			data = this.read8(this.index(this.pc));
@@ -9787,28 +9786,28 @@ export default class MC68000 extends Cpu {
 			data = this.read16(this.a7 = this.a7 - 2 | 0);
 			break;
 		case 0o50: // W d(A0)
-			data = this.read16(this.a0 + this.fetch16s() | 0);
+			data = this.read16(this.disp(this.a0));
 			break;
 		case 0o51: // W d(A1)
-			data = this.read16(this.a1 + this.fetch16s() | 0);
+			data = this.read16(this.disp(this.a1));
 			break;
 		case 0o52: // W d(A2)
-			data = this.read16(this.a2 + this.fetch16s() | 0);
+			data = this.read16(this.disp(this.a2));
 			break;
 		case 0o53: // W d(A3)
-			data = this.read16(this.a3 + this.fetch16s() | 0);
+			data = this.read16(this.disp(this.a3));
 			break;
 		case 0o54: // W d(A4)
-			data = this.read16(this.a4 + this.fetch16s() | 0);
+			data = this.read16(this.disp(this.a4));
 			break;
 		case 0o55: // W d(A5)
-			data = this.read16(this.a5 + this.fetch16s() | 0);
+			data = this.read16(this.disp(this.a5));
 			break;
 		case 0o56: // W d(A6)
-			data = this.read16(this.a6 + this.fetch16s() | 0);
+			data = this.read16(this.disp(this.a6));
 			break;
 		case 0o57: // W d(A7)
-			data = this.read16(this.a7 + this.fetch16s() | 0);
+			data = this.read16(this.disp(this.a7));
 			break;
 		case 0o60: // W d(A0,Xi)
 			data = this.read16(this.index(this.a0));
@@ -9841,7 +9840,7 @@ export default class MC68000 extends Cpu {
 			data = this.read16(this.fetch32());
 			break;
 		case 0o72: // W d(PC)
-			data = this.read16(this.pc + this.fetch16s() | 0);
+			data = this.read16(this.disp(this.pc));
 			break;
 		case 0o73: // W d(PC,Xi)
 			data = this.read16(this.index(this.pc));
@@ -9988,28 +9987,28 @@ export default class MC68000 extends Cpu {
 			data = this.read32(this.a7 = this.a7 - 4 | 0);
 			break;
 		case 0o50: // L d(A0)
-			data = this.read32(this.a0 + this.fetch16s() | 0);
+			data = this.read32(this.disp(this.a0));
 			break;
 		case 0o51: // L d(A1)
-			data = this.read32(this.a1 + this.fetch16s() | 0);
+			data = this.read32(this.disp(this.a1));
 			break;
 		case 0o52: // L d(A2)
-			data = this.read32(this.a2 + this.fetch16s() | 0);
+			data = this.read32(this.disp(this.a2));
 			break;
 		case 0o53: // L d(A3)
-			data = this.read32(this.a3 + this.fetch16s() | 0);
+			data = this.read32(this.disp(this.a3));
 			break;
 		case 0o54: // L d(A4)
-			data = this.read32(this.a4 + this.fetch16s() | 0);
+			data = this.read32(this.disp(this.a4));
 			break;
 		case 0o55: // L d(A5)
-			data = this.read32(this.a5 + this.fetch16s() | 0);
+			data = this.read32(this.disp(this.a5));
 			break;
 		case 0o56: // L d(A6)
-			data = this.read32(this.a6 + this.fetch16s() | 0);
+			data = this.read32(this.disp(this.a6));
 			break;
 		case 0o57: // L d(A7)
-			data = this.read32(this.a7 + this.fetch16s() | 0);
+			data = this.read32(this.disp(this.a7));
 			break;
 		case 0o60: // L d(A0,Xi)
 			data = this.read32(this.index(this.a0));
@@ -10042,7 +10041,7 @@ export default class MC68000 extends Cpu {
 			data = this.read32(this.fetch32());
 			break;
 		case 0o72: // L d(PC)
-			data = this.read32(this.pc + this.fetch16s() | 0);
+			data = this.read32(this.disp(this.pc));
 			break;
 		case 0o73: // L d(PC,Xi)
 			data = this.read32(this.index(this.pc));
@@ -10112,7 +10111,7 @@ export default class MC68000 extends Cpu {
 				this.write16(this.d1, ea = ea - 2 | 0);
 			if ((list & 0x8000) !== 0)
 				this.write16(this.d0, ea = ea - 2 | 0);
-			this.rwop32(op & 7 | 0o10, src => src, ea);
+			this.rwop32(op & 7 | 0o10, this.thru, ea);
 		}
 		else {
 			ea = ea - 2 | 0;
@@ -10187,7 +10186,7 @@ export default class MC68000 extends Cpu {
 				this.write32(this.d1, ea = ea - 4 | 0);
 			if ((list & 0x8000) !== 0)
 				this.write32(this.d0, ea = ea - 4 | 0);
-			this.rwop32(op & 7 | 0o10, src => src, ea);
+			this.rwop32(op & 7 | 0o10, this.thru, ea);
 		}
 		else {
 			ea = ea - 4 | 0;
@@ -10262,7 +10261,7 @@ export default class MC68000 extends Cpu {
 		if ((list & 0x8000) !== 0)
 			this.a7 = this.read16s(ea = ea + 2 | 0);
 		if ((op & 0o70) === 0o30)
-			this.rwop32(op & 7 | 0o10, src => src, ea + 2 | 0);
+			this.rwop32(op & 7 | 0o10, this.thru, ea + 2 | 0);
 	}
 
 	movem32mr(op) {
@@ -10301,7 +10300,7 @@ export default class MC68000 extends Cpu {
 		if ((list & 0x8000) !== 0)
 			this.a7 = this.read32(ea = ea + 4 | 0);
 		if ((op & 0o70) === 0o30)
-			this.rwop32(op & 7 | 0o10, src => src, ea + 4 | 0);
+			this.rwop32(op & 7 | 0o10, this.thru, ea + 4 | 0);
 	}
 
 	exg(op, src) {
@@ -10423,21 +10422,21 @@ export default class MC68000 extends Cpu {
 		case 0o47: // -(A7)
 			return this.a7;
 		case 0o50: // d(A0)
-			return this.a0 + this.fetch16s() | 0;
+			return this.disp(this.a0);
 		case 0o51: // d(A1)
-			return this.a1 + this.fetch16s() | 0;
+			return this.disp(this.a1);
 		case 0o52: // d(A2)
-			return this.a2 + this.fetch16s() | 0;
+			return this.disp(this.a2);
 		case 0o53: // d(A3)
-			return this.a3 + this.fetch16s() | 0;
+			return this.disp(this.a3);
 		case 0o54: // d(A4)
-			return this.a4 + this.fetch16s() | 0;
+			return this.disp(this.a4);
 		case 0o55: // d(A5)
-			return this.a5 + this.fetch16s() | 0;
+			return this.disp(this.a5);
 		case 0o56: // d(A6)
-			return this.a6 + this.fetch16s() | 0;
+			return this.disp(this.a6);
 		case 0o57: // d(A7)
-			return this.a7 + this.fetch16s() | 0;
+			return this.disp(this.a7);
 		case 0o60: // d(A0,Xi)
 			return this.index(this.a0);
 		case 0o61: // d(A1,Xi)
@@ -10459,10 +10458,14 @@ export default class MC68000 extends Cpu {
 		case 0o71: // Abs.L
 			return this.fetch32();
 		case 0o72: // d(PC)
-			return this.pc + this.fetch16s() | 0;
+			return this.disp(this.pc);
 		case 0o73: // d(PC,Xi)
 			return this.index(this.pc);
 		}
+	}
+
+	thru(src) {
+		return src;
 	}
 
 	or8(src, dst) {
@@ -10519,6 +10522,10 @@ export default class MC68000 extends Cpu {
 		return r;
 	}
 
+	suba32(src, dst) {
+		return dst - src | 0;
+	}
+
 	add8(src, dst) {
 		const r = dst + src & 0xff, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
 		this.sr = this.sr & ~0x1f | c >> 3 & 0x10 | r >> 4 & 8 | !r << 2 | v >> 6 & 2 | c >> 7 & 1;
@@ -10535,6 +10542,10 @@ export default class MC68000 extends Cpu {
 		const r = dst + src | 0, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
 		this.sr = this.sr & ~0x1f | c >> 27 & 0x10 | r >> 28 & 8 | !r << 2 | v >> 30 & 2 | c >> 31 & 1;
 		return r;
+	}
+
+	adda32(src, dst) {
+		return dst + src | 0;
 	}
 
 	btst8(src, dst) {
@@ -10982,28 +10993,28 @@ export default class MC68000 extends Cpu {
 		switch(op & 7) {
 		case 0:
 			this.write32(this.a0, this.a7 = this.a7 - 4 | 0);
-			return void([this.a0, this.a7] = [this.a7, this.a7 + this.fetch16s() | 0]);
+			return void([this.a0, this.a7] = [this.a7, this.disp(this.a7)]);
 		case 1:
 			this.write32(this.a1, this.a7 = this.a7 - 4 | 0);
-			return void([this.a1, this.a7] = [this.a7, this.a7 + this.fetch16s() | 0]);
+			return void([this.a1, this.a7] = [this.a7, this.disp(this.a7)]);
 		case 2:
 			this.write32(this.a2, this.a7 = this.a7 - 4 | 0);
-			return void([this.a2, this.a7] = [this.a7, this.a7 + this.fetch16s() | 0]);
+			return void([this.a2, this.a7] = [this.a7, this.disp(this.a7)]);
 		case 3:
 			this.write32(this.a3, this.a7 = this.a7 - 4 | 0);
-			return void([this.a3, this.a7] = [this.a7, this.a7 + this.fetch16s() | 0]);
+			return void([this.a3, this.a7] = [this.a7, this.disp(this.a7)]);
 		case 4:
 			this.write32(this.a4, this.a7 = this.a7 - 4 | 0);
-			return void([this.a4, this.a7] = [this.a7, this.a7 + this.fetch16s() | 0]);
+			return void([this.a4, this.a7] = [this.a7, this.disp(this.a7)]);
 		case 5:
 			this.write32(this.a5, this.a7 = this.a7 - 4 | 0);
-			return void([this.a5, this.a7] = [this.a7, this.a7 + this.fetch16s() | 0]);
+			return void([this.a5, this.a7] = [this.a7, this.disp(this.a7)]);
 		case 6:
 			this.write32(this.a6, this.a7 = this.a7 - 4 | 0);
-			return void([this.a6, this.a7] = [this.a7, this.a7 + this.fetch16s() | 0]);
+			return void([this.a6, this.a7] = [this.a7, this.disp(this.a7)]);
 		case 7:
 			this.write32(this.a7, this.a7 = this.a7 - 4 | 0);
-			return void(this.a7 = this.a7 + this.fetch16s() | 0);
+			return void(this.a7 = this.disp(this.a7));
 		}
 	}
 
@@ -11029,25 +11040,29 @@ export default class MC68000 extends Cpu {
 	}
 
 	dbcc(op, cond) {
-		const base = this.pc;
+		const addr = this.disp(this.pc);
 		switch(op & 7) {
 		case 0:
-			return void(this.pc = !cond && ((this.d0 = this.d0 & ~0xffff | this.d0 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
+			return void(!cond && ((this.d0 = this.d0 & ~0xffff | this.d0 - 1 & 0xffff) & 0xffff) !== 0xffff && (this.pc = addr));
 		case 1:
-			return void(this.pc = !cond && ((this.d1 = this.d1 & ~0xffff | this.d1 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
+			return void(!cond && ((this.d1 = this.d1 & ~0xffff | this.d1 - 1 & 0xffff) & 0xffff) !== 0xffff && (this.pc = addr));
 		case 2:
-			return void(this.pc = !cond && ((this.d2 = this.d2 & ~0xffff | this.d2 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
+			return void(!cond && ((this.d2 = this.d2 & ~0xffff | this.d2 - 1 & 0xffff) & 0xffff) !== 0xffff && (this.pc = addr));
 		case 3:
-			return void(this.pc = !cond && ((this.d3 = this.d3 & ~0xffff | this.d3 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
+			return void(!cond && ((this.d3 = this.d3 & ~0xffff | this.d3 - 1 & 0xffff) & 0xffff) !== 0xffff && (this.pc = addr));
 		case 4:
-			return void(this.pc = !cond && ((this.d4 = this.d4 & ~0xffff | this.d4 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
+			return void(!cond && ((this.d4 = this.d4 & ~0xffff | this.d4 - 1 & 0xffff) & 0xffff) !== 0xffff && (this.pc = addr));
 		case 5:
-			return void(this.pc = !cond && ((this.d5 = this.d5 & ~0xffff | this.d5 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
+			return void(!cond && ((this.d5 = this.d5 & ~0xffff | this.d5 - 1 & 0xffff) & 0xffff) !== 0xffff && (this.pc = addr));
 		case 6:
-			return void(this.pc = !cond && ((this.d6 = this.d6 & ~0xffff | this.d6 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
+			return void(!cond && ((this.d6 = this.d6 & ~0xffff | this.d6 - 1 & 0xffff) & 0xffff) !== 0xffff && (this.pc = addr));
 		case 7:
-			return void(this.pc = !cond && ((this.d7 = this.d7 & ~0xffff | this.d7 - 1 & 0xffff) & 0xffff) !== 0xffff ? base + this.fetch16s() : base + 2);
+			return void(!cond && ((this.d7 = this.d7 & ~0xffff | this.d7 - 1 & 0xffff) & 0xffff) !== 0xffff && (this.pc = addr));
 		}
+	}
+
+	disp(base) {
+		return base + this.fetch16s() | 0;
 	}
 
 	index(base) {
@@ -11135,7 +11150,8 @@ export default class MC68000 extends Cpu {
 	}
 
 	fetch32() {
-		return this.fetch16() << 16 | this.fetch16();
+		const data = this.fetch16() << 16;
+		return data | this.fetch16();
 	}
 
 	read8(addr) {
@@ -11155,7 +11171,8 @@ export default class MC68000 extends Cpu {
 	}
 
 	read32(addr) {
-		return this.read16(addr) << 16 | this.read16(addr + 2 | 0);
+		const data = this.read16(addr) << 16;
+		return data | this.read16(addr + 2 | 0);
 	}
 
 	write8(data, addr) {
@@ -11181,8 +11198,8 @@ export default class MC68000 extends Cpu {
 	}
 
 	write32(data, addr) {
-		this.write16(data >> 16, addr);
-		this.write16(data, addr + 2 | 0);
+		this.write16(data >> 16 & 0xffff, addr);
+		this.write16(data & 0xffff, addr + 2 | 0);
 	}
 }
 

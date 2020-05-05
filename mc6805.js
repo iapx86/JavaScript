@@ -22,7 +22,7 @@ export default class MC6805 extends Cpu {
 		this.ccr = 0xe8;
 		this.x = 0;
 		this.s = 0x7f;
-		this.pc = this.read(0x7fe) << 8 & 0x700 | this.read(0x7ff);
+		this.pc = this.read16(0x7fe) & 0x7ff;
 		this.irq = false;
 	}
 
@@ -34,11 +34,11 @@ export default class MC6805 extends Cpu {
 		this.ccr |= 8;
 		switch (vector) {
 		case 'timer':
-			this.pc = this.read(0x7f8) << 8 & 0x700 | this.read(0x7f9);
+			this.pc = this.read16(0x7f8) & 0x7ff;
 			break;
 		default:
 		case 'external':
-			this.pc = this.read(0x7fa) << 8 & 0x700 | this.read(0x7fb);
+			this.pc = this.read16(0x7fa) & 0x7ff;
 			break;
 		}
 		return true;
@@ -265,7 +265,7 @@ export default class MC6805 extends Cpu {
 			this.psh16(this.pc);
 			this.psh(this.x, this.a, this.ccr);
 			this.ccr |= 8;
-			return void(this.pc = this.read(0x7fc) << 8 & 0x700 | this.read(0x7fd));
+			return void(this.pc = this.read16(0x7fc) & 0x7ff);
 		case 0x8e: // STOP
 		case 0x8f: // WAIT
 			this.ccr &= ~8;
@@ -345,69 +345,69 @@ export default class MC6805 extends Cpu {
 		case 0xbf: // STX <n
 			return this.write8(this.mov8(this.x), this.fetch());
 		case 0xc0: // SUB >nn
-			return void(this.a = this.sub8(this.read(this.fetch() << 8 & 0x700 | this.fetch()), this.a));
+			return void(this.a = this.sub8(this.read(this.fetch16() & 0x7ff), this.a));
 		case 0xc1: // CMP >nn
-			return void(this.sub8(this.read(this.fetch() << 8 & 0x700 | this.fetch()), this.a));
+			return void(this.sub8(this.read(this.fetch16() & 0x7ff), this.a));
 		case 0xc2: // SBC >nn
-			return void(this.a = this.sbc8(this.read(this.fetch() << 8 & 0x700 | this.fetch()), this.a));
+			return void(this.a = this.sbc8(this.read(this.fetch16() & 0x7ff), this.a));
 		case 0xc3: // CPX >nn
-			return void(this.sub8(this.read(this.fetch() << 8 & 0x700 | this.fetch()), this.x));
+			return void(this.sub8(this.read(this.fetch16() & 0x7ff), this.x));
 		case 0xc4: // AND >nn
-			return void(this.a = this.mov8(this.a & this.read(this.fetch() << 8 & 0x700 | this.fetch())));
+			return void(this.a = this.mov8(this.a & this.read(this.fetch16() & 0x7ff)));
 		case 0xc5: // BIT >nn
-			return void(this.mov8(this.a & this.read(this.fetch() << 8 & 0x700 | this.fetch())));
+			return void(this.mov8(this.a & this.read(this.fetch16() & 0x7ff)));
 		case 0xc6: // LDA >nn
-			return void(this.a = this.mov8(this.read(this.fetch() << 8 & 0x700 | this.fetch())));
+			return void(this.a = this.mov8(this.read(this.fetch16() & 0x7ff)));
 		case 0xc7: // STA >nn
-			return this.write8(this.mov8(this.a), this.fetch() << 8 & 0x700 | this.fetch());
+			return this.write8(this.mov8(this.a), this.fetch16() & 0x7ff);
 		case 0xc8: // EOR >nn
-			return void(this.a = this.mov8(this.a ^ this.read(this.fetch() << 8 & 0x700 | this.fetch())));
+			return void(this.a = this.mov8(this.a ^ this.read(this.fetch16() & 0x7ff)));
 		case 0xc9: // ADC >nn
-			return void(this.a = this.adc8(this.read(this.fetch() << 8 & 0x700 | this.fetch()), this.a));
+			return void(this.a = this.adc8(this.read(this.fetch16() & 0x7ff), this.a));
 		case 0xca: // ORA >nn
-			return void(this.a = this.mov8(this.a | this.read(this.fetch() << 8 & 0x700 | this.fetch())));
+			return void(this.a = this.mov8(this.a | this.read(this.fetch16() & 0x7ff)));
 		case 0xcb: // ADD >nn
-			return void(this.a = this.add8(this.read(this.fetch() << 8 & 0x700 | this.fetch()), this.a));
+			return void(this.a = this.add8(this.read(this.fetch16() & 0x7ff), this.a));
 		case 0xcc: // JMP >nn
-			return void(this.pc = this.fetch() << 8 & 0x700 | this.fetch());
+			return void(this.pc = this.fetch16() & 0x7ff);
 		case 0xcd: // JSR >nn
-			return this.jsr(this.fetch() << 8 & 0x700 | this.fetch());
+			return this.jsr(this.fetch16() & 0x7ff);
 		case 0xce: // LDX >nn
-			return void(this.x = this.mov8(this.read(this.fetch() << 8 & 0x700 | this.fetch())));
+			return void(this.x = this.mov8(this.read(this.fetch16() & 0x7ff)));
 		case 0xcf: // STX >nn
-			return this.write8(this.mov8(this.x), this.fetch() << 8 & 0x700 | this.fetch());
+			return this.write8(this.mov8(this.x), this.fetch16() & 0x7ff);
 		case 0xd0: // SUB nn,X
-			return void(this.a = this.sub8(this.read(this.x + (this.fetch() << 8 | this.fetch()) & 0x7ff), this.a));
+			return void(this.a = this.sub8(this.read(this.x + this.fetch16() & 0x7ff), this.a));
 		case 0xd1: // CMP nn,X
-			return void(this.sub8(this.read(this.x + (this.fetch() << 8 | this.fetch()) & 0x7ff), this.a));
+			return void(this.sub8(this.read(this.x + this.fetch16() & 0x7ff), this.a));
 		case 0xd2: // SBC nn,X
-			return void(this.a = this.sbc8(this.read(this.x + (this.fetch() << 8 | this.fetch()) & 0x7ff), this.a));
+			return void(this.a = this.sbc8(this.read(this.x + this.fetch16() & 0x7ff), this.a));
 		case 0xd3: // CPX nn,X
-			return void(this.sub8(this.read(this.x + (this.fetch() << 8 | this.fetch()) & 0x7ff), this.x));
+			return void(this.sub8(this.read(this.x + this.fetch16() & 0x7ff), this.x));
 		case 0xd4: // AND nn,X
-			return void(this.a = this.mov8(this.a & this.read(this.x + (this.fetch() << 8 | this.fetch()) & 0x7ff)));
+			return void(this.a = this.mov8(this.a & this.read(this.x + this.fetch16() & 0x7ff)));
 		case 0xd5: // BIT nn,X
-			return void(this.mov8(this.a & this.read(this.x + (this.fetch() << 8 | this.fetch()) & 0x7ff)));
+			return void(this.mov8(this.a & this.read(this.x + this.fetch16() & 0x7ff)));
 		case 0xd6: // LDA nn,X
-			return void(this.a = this.mov8(this.read(this.x + (this.fetch() << 8 | this.fetch()) & 0x7ff)));
+			return void(this.a = this.mov8(this.read(this.x + this.fetch16() & 0x7ff)));
 		case 0xd7: // STA nn,X
-			return this.write8(this.mov8(this.a), this.x + (this.fetch() << 8 | this.fetch()) & 0x7ff);
+			return this.write8(this.mov8(this.a), this.x + this.fetch16() & 0x7ff);
 		case 0xd8: // EOR nn,X
-			return void(this.a = this.mov8(this.a ^ this.read(this.x + (this.fetch() << 8 | this.fetch()) & 0x7ff)));
+			return void(this.a = this.mov8(this.a ^ this.read(this.x + this.fetch16() & 0x7ff)));
 		case 0xd9: // ADC nn,X
-			return void(this.a = this.adc8(this.read(this.x + (this.fetch() << 8 | this.fetch()) & 0x7ff), this.a));
+			return void(this.a = this.adc8(this.read(this.x + this.fetch16() & 0x7ff), this.a));
 		case 0xda: // ORA nn,X
-			return void(this.a = this.mov8(this.a | this.read(this.x + (this.fetch() << 8 | this.fetch()) & 0x7ff)));
+			return void(this.a = this.mov8(this.a | this.read(this.x + this.fetch16() & 0x7ff)));
 		case 0xdb: // ADD nn,X
-			return void(this.a = this.add8(this.read(this.x + (this.fetch() << 8 | this.fetch()) & 0x7ff), this.a));
+			return void(this.a = this.add8(this.read(this.x + this.fetch16() & 0x7ff), this.a));
 		case 0xdc: // JMP nn,X
-			return void(this.pc = this.x + (this.fetch() << 8 | this.fetch()) & 0x7ff);
+			return void(this.pc = this.x + this.fetch16() & 0x7ff);
 		case 0xdd: // JSR nn,X
-			return this.jsr(this.x + (this.fetch() << 8 | this.fetch()) & 0x7ff);
+			return this.jsr(this.x + this.fetch16() & 0x7ff);
 		case 0xde: // LDX nn,X
-			return void(this.x = this.mov8(this.read(this.x + (this.fetch() << 8 | this.fetch()) & 0x7ff)));
+			return void(this.x = this.mov8(this.read(this.x + this.fetch16() & 0x7ff)));
 		case 0xdf: // STX nn,X
-			return this.write8(this.mov8(this.x), this.x + (this.fetch() << 8 | this.fetch()) & 0x7ff);
+			return this.write8(this.mov8(this.x), this.x + this.fetch16() & 0x7ff);
 		case 0xe0: // SUB n,X
 			return void(this.a = this.sub8(this.read(this.x + this.fetch()), this.a));
 		case 0xe1: // CMP n,X
@@ -584,15 +584,12 @@ export default class MC6805 extends Cpu {
 	}
 
 	psh16(r) {
-		this.write8(r & 0xff, this.s);
-		this.s = this.s - 1 & 0x1f | 0x60;
-		this.write8(r >> 8, this.s);
-		this.s = this.s - 1 & 0x1f | 0x60;
+		this.psh(r & 0xff, r >> 8);
 	}
 
 	pul16() {
-		const r = this.read(this.s = this.s + 1 & 0x1f | 0x60) << 8;
-		return r | this.read(this.s = this.s + 1 & 0x1f | 0x60);
+		const r = this.pul() << 8;
+		return r | this.pul();
 	}
 
 	split(v) {
@@ -604,6 +601,16 @@ export default class MC6805 extends Cpu {
 		const data = !page.fetch ? page.base[this.pc & 0xff] : page.fetch(this.pc, this.arg);
 		this.pc = this.pc + 1 & 0x7ff;
 		return data;
+	}
+
+	fetch16() {
+		const data = this.fetch() << 8;
+		return data | this.fetch();
+	}
+
+	read16(addr) {
+		const data = this.read(addr) << 8;
+		return data | this.read(addr + 1);
 	}
 
 	write8(data, addr) {
