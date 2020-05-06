@@ -93,9 +93,7 @@ export default class Z80 extends Cpu {
 	non_maskable_interrupt() {
 		if (!super.interrupt())
 			return false;
-		this.iff &= 2;
-		this.rst(0x66);
-		return true;
+		return this.iff &= 2, this.rst(0x66), true;
 	}
 
 	_execute() {
@@ -106,7 +104,7 @@ export default class Z80 extends Cpu {
 		case 0x00: // NOP
 			return;
 		case 0x01: // LD BC,nn
-			return void([this.c, this.b] = [this.fetch(), this.fetch()]);
+			return void([this.c, this.b] = this.split(this.fetch16()));
 		case 0x02: // LD (BC),A
 			return this.write(this.c | this.b << 8, this.a);
 		case 0x03: // INC BC
@@ -118,7 +116,7 @@ export default class Z80 extends Cpu {
 		case 0x06: // LD B,n
 			return void(this.b = this.fetch());
 		case 0x07: // RLCA
-			return void([this.f, this.a] = [this.f & ~0x13 | this.a >> 7, this.a << 1 & 0xff | this.a >> 7]);
+			return this.f = this.f & ~0x13 | this.a >> 7, void(this.a = this.a << 1 & 0xff | this.a >> 7);
 		case 0x08: // EX AF,AF'
 			return void([this.f, this.a, this.f_prime, this.a_prime] = [this.f_prime, this.a_prime, this.f, this.a]);
 		case 0x09: // ADD HL,BC
@@ -134,11 +132,11 @@ export default class Z80 extends Cpu {
 		case 0x0e: // LD C,n
 			return void(this.c = this.fetch());
 		case 0x0f: // RRCA
-			return void([this.f, this.a] = [this.f & ~0x13 | this.a & 1, this.a >> 1 | this.a << 7 & 0x80]);
+			return this.f = this.f & ~0x13 | this.a & 1, void(this.a = this.a >> 1 | this.a << 7 & 0x80);
 		case 0x10: // DJNZ e
 			return this.jr((this.b = this.b - 1 & 0xff) !== 0);
 		case 0x11: // LD DE,nn
-			return void([this.e, this.d] = [this.fetch(), this.fetch()]);
+			return void([this.e, this.d] = this.split(this.fetch16()));
 		case 0x12: // LD (DE),A
 			return this.write(this.e | this.d << 8, this.a);
 		case 0x13: // INC DE
@@ -150,7 +148,7 @@ export default class Z80 extends Cpu {
 		case 0x16: // LD D,n
 			return void(this.d = this.fetch());
 		case 0x17: // RLA
-			return void([this.f, this.a] = [this.f & ~0x13 | this.a >> 7, this.a << 1 & 0xff | this.f & 1]);
+			return v = this.f, this.f = this.f & ~0x13 | this.a >> 7, void(this.a = this.a << 1 & 0xff | v & 1);
 		case 0x18: // JR e
 			return this.jr(true);
 		case 0x19: // ADD HL,DE
@@ -166,11 +164,11 @@ export default class Z80 extends Cpu {
 		case 0x1e: // LD E,n
 			return void(this.e = this.fetch());
 		case 0x1f: // RRA
-			return void([this.f, this.a] = [this.f & ~0x13 | this.a & 1, this.a >> 1 | this.f << 7 & 0x80]);
+			return v = this.f, this.f = this.f & ~0x13 | this.a & 1, void(this.a = this.a >> 1 | v << 7 & 0x80);
 		case 0x20: // JR NZ,e
 			return this.jr((this.f & 0x40) === 0);
 		case 0x21: // LD HL,nn
-			return void([this.l, this.h] = [this.fetch(), this.fetch()]);
+			return void([this.l, this.h] = this.split(this.fetch16()));
 		case 0x22: // LD (nn),HL
 			return this.write16(this.fetch16(), this.l | this.h << 8);
 		case 0x23: // INC HL
@@ -198,7 +196,7 @@ export default class Z80 extends Cpu {
 		case 0x2e: // LD L,n
 			return void(this.l = this.fetch());
 		case 0x2f: // CPL
-			return void([this.f, this.a] = [this.f | 0x12, ~this.a & 0xff]);
+			return this.f =  this.f | 0x12, void(this.a = ~this.a & 0xff);
 		case 0x30: // JR NC,e
 			return this.jr((this.f & 1) === 0);
 		case 0x31: // LD SP,nn
@@ -208,9 +206,9 @@ export default class Z80 extends Cpu {
 		case 0x33: // INC SP
 			return void(this.sp = this.sp + 1 & 0xffff);
 		case 0x34: // INC (HL)
-			return this.write(v = this.l | this.h << 8, this.inc8(this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.inc8(this.read(v)));
 		case 0x35: // DEC (HL)
-			return this.write(v = this.l | this.h << 8, this.dec8(this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.dec8(this.read(v)));
 		case 0x36: // LD (HL),n
 			return this.write(this.l | this.h << 8, this.fetch());
 		case 0x37: // SCF
@@ -561,8 +559,7 @@ export default class Z80 extends Cpu {
 		case 0xe2: // JP PO,nn
 			return this.jp((this.f & 4) === 0);
 		case 0xe3: // EX (SP),HL
-			[v, this.l, this.h] = [this.l | this.h << 8, ...this.split(this.pop16())];
-			return this.push16(v);
+			return v = this.l | this.h << 8, [this.l, this.h] = this.split(this.pop16()), this.push16(v);
 		case 0xe4: // CALL PO,nn
 			return this.call((this.f & 4) === 0);
 		case 0xe5: // PUSH HL
@@ -639,7 +636,7 @@ export default class Z80 extends Cpu {
 		case 0x05: // RLC L
 			return void(this.l = this.rlc8(this.l));
 		case 0x06: // RLC (HL)
-			return this.write(v = this.l | this.h << 8, this.rlc8(this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.rlc8(this.read(v)));
 		case 0x07: // RLC A
 			return void(this.a = this.rlc8(this.a));
 		case 0x08: // RRC B
@@ -655,7 +652,7 @@ export default class Z80 extends Cpu {
 		case 0x0d: // RRC L
 			return void(this.l = this.rrc8(this.l));
 		case 0x0e: // RRC (HL)
-			return this.write(v = this.l | this.h << 8, this.rrc8(this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.rrc8(this.read(v)));
 		case 0x0f: // RRC A
 			return void(this.a = this.rrc8(this.a));
 		case 0x10: // RL B
@@ -671,7 +668,7 @@ export default class Z80 extends Cpu {
 		case 0x15: // RL L
 			return void(this.l = this.rl8(this.l));
 		case 0x16: // RL (HL)
-			return this.write(v = this.l | this.h << 8, this.rl8(this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.rl8(this.read(v)));
 		case 0x17: // RL A
 			return void(this.a = this.rl8(this.a));
 		case 0x18: // RR B
@@ -687,7 +684,7 @@ export default class Z80 extends Cpu {
 		case 0x1d: // RR L
 			return void(this.l = this.rr8(this.l));
 		case 0x1e: // RR (HL)
-			return this.write(v = this.l | this.h << 8, this.rr8(this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.rr8(this.read(v)));
 		case 0x1f: // RR A
 			return void(this.a = this.rr8(this.a));
 		case 0x20: // SLA B
@@ -703,7 +700,7 @@ export default class Z80 extends Cpu {
 		case 0x25: // SLA L
 			return void(this.l = this.sla8(this.l));
 		case 0x26: // SLA (HL)
-			return this.write(v = this.l | this.h << 8, this.sla8(this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.sla8(this.read(v)));
 		case 0x27: // SLA A
 			return void(this.a = this.sla8(this.a));
 		case 0x28: // SRA B
@@ -719,7 +716,7 @@ export default class Z80 extends Cpu {
 		case 0x2d: // SRA L
 			return void(this.l = this.sra8(this.l));
 		case 0x2e: // SRA (HL)
-			return this.write(v = this.l | this.h << 8, this.sra8(this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.sra8(this.read(v)));
 		case 0x2f: // SRA A
 			return void(this.a = this.sra8(this.a));
 		case 0x38: // SRL B
@@ -735,7 +732,7 @@ export default class Z80 extends Cpu {
 		case 0x3d: // SRL L
 			return void(this.l = this.srl8(this.l));
 		case 0x3e: // SRL (HL)
-			return this.write(v = this.l | this.h << 8, this.srl8(this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.srl8(this.read(v)));
 		case 0x3f: // SRL A
 			return void(this.a = this.srl8(this.a));
 		case 0x40: // BIT 0,B
@@ -879,7 +876,7 @@ export default class Z80 extends Cpu {
 		case 0x85: // RES 0,L
 			return void(this.l = Z80.res8(0, this.l));
 		case 0x86: // RES 0,(HL)
-			return this.write(v = this.l | this.h << 8, Z80.res8(0, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, Z80.res8(0, this.read(v)));
 		case 0x87: // RES 0,A
 			return void(this.a = Z80.res8(0, this.a));
 		case 0x88: // RES 1,B
@@ -895,7 +892,7 @@ export default class Z80 extends Cpu {
 		case 0x8d: // RES 1,L
 			return void(this.l = Z80.res8(1, this.l));
 		case 0x8e: // RES 1,(HL)
-			return this.write(v = this.l | this.h << 8, Z80.res8(1, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, Z80.res8(1, this.read(v)));
 		case 0x8f: // RES 1,A
 			return void(this.a = Z80.res8(1, this.a));
 		case 0x90: // RES 2,B
@@ -911,7 +908,7 @@ export default class Z80 extends Cpu {
 		case 0x95: // RES 2,L
 			return void(this.l = Z80.res8(2, this.l));
 		case 0x96: // RES 2,(HL)
-			return this.write(v = this.l | this.h << 8, Z80.res8(2, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, Z80.res8(2, this.read(v)));
 		case 0x97: // RES 2,A
 			return void(this.a = Z80.res8(2, this.a));
 		case 0x98: // RES 3,B
@@ -927,7 +924,7 @@ export default class Z80 extends Cpu {
 		case 0x9d: // RES 3,L
 			return void(this.l = Z80.res8(3, this.l));
 		case 0x9e: // RES 3,(HL)
-			return this.write(v = this.l | this.h << 8, Z80.res8(3, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, Z80.res8(3, this.read(v)));
 		case 0x9f: // RES 3,A
 			return void(this.a = Z80.res8(3, this.a));
 		case 0xa0: // RES 4,B
@@ -943,7 +940,7 @@ export default class Z80 extends Cpu {
 		case 0xa5: // RES 4,L
 			return void(this.l = Z80.res8(4, this.l));
 		case 0xa6: // RES 4,(HL)
-			return this.write(v = this.l | this.h << 8, Z80.res8(4, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, Z80.res8(4, this.read(v)));
 		case 0xa7: // RES 4,A
 			return void(this.a = Z80.res8(4, this.a));
 		case 0xa8: // RES 5,B
@@ -959,7 +956,7 @@ export default class Z80 extends Cpu {
 		case 0xad: // RES 5,L
 			return void(this.l = Z80.res8(5, this.l));
 		case 0xae: // RES 5,(HL)
-			return this.write(v = this.l | this.h << 8, Z80.res8(5, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, Z80.res8(5, this.read(v)));
 		case 0xaf: // RES 5,A
 			return void(this.a = Z80.res8(5, this.a));
 		case 0xb0: // RES 6,B
@@ -975,7 +972,7 @@ export default class Z80 extends Cpu {
 		case 0xb5: // RES 6,L
 			return void(this.l = Z80.res8(6, this.l));
 		case 0xb6: // RES 6,(HL)
-			return this.write(v = this.l | this.h << 8, Z80.res8(6, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, Z80.res8(6, this.read(v)));
 		case 0xb7: // RES 6,A
 			return void(this.a = Z80.res8(6, this.a));
 		case 0xb8: // RES 7,B
@@ -991,7 +988,7 @@ export default class Z80 extends Cpu {
 		case 0xbd: // RES 7,L
 			return void(this.l = Z80.res8(7, this.l));
 		case 0xbe: // RES 7,(HL)
-			return this.write(v = this.l | this.h << 8, Z80.res8(7, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, Z80.res8(7, this.read(v)));
 		case 0xbf: // RES 7,A
 			return void(this.a = Z80.res8(7, this.a));
 		case 0xc0: // SET 0,B
@@ -1007,7 +1004,7 @@ export default class Z80 extends Cpu {
 		case 0xc5: // SET 0,L
 			return void(this.l = Z80.set8(0, this.l));
 		case 0xc6: // SET 0,(HL)
-			return this.write(v = this.l | this.h << 8, Z80.set8(0, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, Z80.set8(0, this.read(v)));
 		case 0xc7: // SET 0,A
 			return void(this.a = Z80.set8(0, this.a));
 		case 0xc8: // SET 1,B
@@ -1023,7 +1020,7 @@ export default class Z80 extends Cpu {
 		case 0xcd: // SET 1,L
 			return void(this.l = Z80.set8(1, this.l));
 		case 0xce: // SET 1,(HL)
-			return this.write(v = this.l | this.h << 8, Z80.set8(1, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, Z80.set8(1, this.read(v)));
 		case 0xcf: // SET 1,A
 			return void(this.a = Z80.set8(1, this.a));
 		case 0xd0: // SET 2,B
@@ -1039,7 +1036,7 @@ export default class Z80 extends Cpu {
 		case 0xd5: // SET 2,L
 			return void(this.l = Z80.set8(2, this.l));
 		case 0xd6: // SET 2,(HL)
-			return this.write(v = this.l | this.h << 8, Z80.set8(2, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, Z80.set8(2, this.read(v)));
 		case 0xd7: // SET 2,A
 			return void(this.a = Z80.set8(2, this.a));
 		case 0xd8: // SET 3,B
@@ -1055,7 +1052,7 @@ export default class Z80 extends Cpu {
 		case 0xdd: // SET 3,L
 			return void(this.l = Z80.set8(3, this.l));
 		case 0xde: // SET 3,(HL)
-			return this.write(v = this.l | this.h << 8, Z80.set8(3, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, Z80.set8(3, this.read(v)));
 		case 0xdf: // SET 3,A
 			return void(this.a = Z80.set8(3, this.a));
 		case 0xe0: // SET 4,B
@@ -1071,7 +1068,7 @@ export default class Z80 extends Cpu {
 		case 0xe5: // SET 4,L
 			return void(this.l = Z80.set8(4, this.l));
 		case 0xe6: // SET 4,(HL)
-			return this.write(v = this.l | this.h << 8, Z80.set8(4, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, Z80.set8(4, this.read(v)));
 		case 0xe7: // SET 4,A
 			return void(this.a = Z80.set8(4, this.a));
 		case 0xe8: // SET 5,B
@@ -1087,7 +1084,7 @@ export default class Z80 extends Cpu {
 		case 0xed: // SET 5,L
 			return void(this.l = Z80.set8(5, this.l));
 		case 0xee: // SET 5,(HL)
-			return this.write(v = this.l | this.h << 8, Z80.set8(5, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, Z80.set8(5, this.read(v)));
 		case 0xef: // SET 5,A
 			return void(this.a = Z80.set8(5, this.a));
 		case 0xf0: // SET 6,B
@@ -1103,7 +1100,7 @@ export default class Z80 extends Cpu {
 		case 0xf5: // SET 6,L
 			return void(this.l = Z80.set8(6, this.l));
 		case 0xf6: // SET 6,(HL)
-			return this.write(v = this.l | this.h << 8, Z80.set8(6, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, Z80.set8(6, this.read(v)));
 		case 0xf7: // SET 6,A
 			return void(this.a = Z80.set8(6, this.a));
 		case 0xf8: // SET 7,B
@@ -1119,7 +1116,7 @@ export default class Z80 extends Cpu {
 		case 0xfd: // SET 7,L
 			return void(this.l = Z80.set8(7, this.l));
 		case 0xfe: // SET 7,(HL)
-			return this.write(v = this.l | this.h << 8, Z80.set8(7, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, Z80.set8(7, this.read(v)));
 		case 0xff: // SET 7,A
 			return void(this.a = Z80.set8(7, this.a));
 		default:
@@ -1139,7 +1136,7 @@ export default class Z80 extends Cpu {
 		case 0x19: // ADD IX,DE
 			return void([this.ixl, this.ixh] = this.split(this.add16(this.ixl | this.ixh << 8, this.e | this.d << 8)));
 		case 0x21: // LD IX,nn
-			return void([this.ixl, this.ixh] = [this.fetch(), this.fetch()]);
+			return void([this.ixl, this.ixh] = this.split(this.fetch16()));
 		case 0x22: // LD (nn),IX
 			return this.write16(this.fetch16(), this.ixl | this.ixh << 8);
 		case 0x23: // INC IX
@@ -1163,9 +1160,9 @@ export default class Z80 extends Cpu {
 		case 0x2e: // LD IXL,n (undefined operation)
 			return void(this.ixl = this.fetch());
 		case 0x34: // INC (IX+d)
-			return this.write(v = this.disp(this.ixh, this.ixl), this.inc8(this.read(v)));
+			return v = this.disp(this.ixh, this.ixl), this.write(v, this.inc8(this.read(v)));
 		case 0x35: // DEC (IX+d)
-			return this.write(v = this.disp(this.ixh, this.ixl), this.dec8(this.read(v)));
+			return v = this.disp(this.ixh, this.ixl), this.write(v, this.dec8(this.read(v)));
 		case 0x36: // LD (IX+d),n
 			return this.write(this.disp(this.ixh, this.ixl), this.fetch());
 		case 0x39: // ADD IX,SP
@@ -1360,8 +1357,7 @@ export default class Z80 extends Cpu {
 		case 0xe1: // POP IX
 			return void([this.ixl, this.ixh] = this.split(this.pop16()));
 		case 0xe3: // EX (SP),IX
-			[v, this.ixl, this.ixh] = [this.ixl | this.ixh << 8, ...this.split(this.pop16())];
-			return this.push16(v);
+			return v = this.ixl | this.ixh << 8, [this.ixl, this.ixh] = this.split(this.pop16()), this.push16(v);
 		case 0xe5: // PUSH IX
 			return this.push16(this.ixl | this.ixh << 8);
 		case 0xe9: // JP (IX)
@@ -1391,9 +1387,7 @@ export default class Z80 extends Cpu {
 		case 0x44: // NEG
 			return void(this.a = this.neg8(this.a));
 		case 0x45: // RETN
-			this.iff = (this.iff & 2) !== 0 ? 3 : 0;
-			this.ret(true);
-			return;
+			return this.iff = (this.iff & 2) !== 0 ? 3 : 0, this.ret(true);
 		case 0x46: // IM 0
 			return void(this.im = 0);
 		case 0x47: // LD I,A
@@ -1441,8 +1435,7 @@ export default class Z80 extends Cpu {
 		case 0x62: // SBC HL,HL
 			return void([this.l, this.h] = this.split(this.sbc16(this.l | this.h << 8, this.l | this.h << 8)));
 		case 0x67: // RRD
-			this.write(this.l | this.h << 8, (v = this.read(this.l | this.h << 8) | this.a << 8) >> 4 & 0xff);
-			return void(this.f = this.f & ~0xd6 | Z80.fLogic[this.a = this.a & 0xf0 | v & 0x0f]);
+			return v = this.read(this.l | this.h << 8) | this.a << 8, this.write(this.l | this.h << 8, v >> 4 & 0xff), void(this.f = this.f & ~0xd6 | Z80.fLogic[this.a = this.a & 0xf0 | v & 0x0f]);
 		case 0x68: // IN L,(C)
 			return void(this.f = this.f & ~0xd6 | Z80.fLogic[this.l = this.ioread(this.b, this.c)]);
 		case 0x69: // OUT (C),L
@@ -1450,8 +1443,7 @@ export default class Z80 extends Cpu {
 		case 0x6a: // ADC HL,HL
 			return void([this.l, this.h] = this.split(this.adc16(this.l | this.h << 8, this.l | this.h << 8)));
 		case 0x6f: // RLD
-			this.write(this.l | this.h << 8, (v = this.a & 0x0f | this.read(this.l | this.h << 8) << 4) & 0xff);
-			return void(this.f = this.f & ~0xd6 | Z80.fLogic[this.a = this.a & 0xf0 | v >> 8]);
+			return v = this.a & 0x0f | this.read(this.l | this.h << 8) << 4, this.write(this.l | this.h << 8, v & 0xff), void(this.f = this.f & ~0xd6 | Z80.fLogic[this.a = this.a & 0xf0 | v >> 8]);
 		case 0x72: // SBC HL,SP
 			return void([this.l, this.h] = this.split(this.sbc16(this.l | this.h << 8, this.sp)));
 		case 0x73: // LD (nn),SP
@@ -1481,29 +1473,21 @@ export default class Z80 extends Cpu {
 		case 0xab: // OUTD
 			return this.outd();
 		case 0xb0: // LDIR
-			this.ldi();
-			return void((this.f & 4) !== 0 && (this.pc = this.pc - 2 & 0xffff));
+			return this.ldi(), void((this.f & 4) !== 0 && (this.pc = this.pc - 2 & 0xffff));
 		case 0xb1: // CPIR
-			this.cpi();
-			return void((this.f & 0x44) === 4 && (this.pc = this.pc - 2 & 0xffff));
+			return this.cpi(), void((this.f & 0x44) === 4 && (this.pc = this.pc - 2 & 0xffff));
 		case 0xb2: // INIR
-			this.ini();
-			return void((this.f & 0x40) === 0 && (this.pc = this.pc - 2 & 0xffff));
+			return this.ini(), void((this.f & 0x40) === 0 && (this.pc = this.pc - 2 & 0xffff));
 		case 0xb3: // OTIR
-			this.outi();
-			return void((this.f & 0x40) === 0 && (this.pc = this.pc - 2 & 0xffff));
+			return this.outi(), void((this.f & 0x40) === 0 && (this.pc = this.pc - 2 & 0xffff));
 		case 0xb8: // LDDR
-			this.ldd();
-			return void((this.f & 4) !== 0 && (this.pc = this.pc - 2 & 0xffff));
+			return this.ldd(), void((this.f & 4) !== 0 && (this.pc = this.pc - 2 & 0xffff));
 		case 0xb9: // CPDR
-			this.cpd();
-			return void((this.f & 0x44) === 4 && (this.pc = this.pc - 2 & 0xffff));
+			return this.cpd(), void((this.f & 0x44) === 4 && (this.pc = this.pc - 2 & 0xffff));
 		case 0xba: // INDR
-			this.ind();
-			return void((this.f & 0x40) === 0 && (this.pc = this.pc - 2 & 0xffff));
+			return this.ind(), void((this.f & 0x40) === 0 && (this.pc = this.pc - 2 & 0xffff));
 		case 0xbb: // OTDR
-			this.outd();
-			return void((this.f & 0x40) === 0 && (this.pc = this.pc - 2 & 0xffff));
+			return this.outd(), void((this.f & 0x40) === 0 && (this.pc = this.pc - 2 & 0xffff));
 		default:
 			this.undefsize = 2;
 			if (this.undef)
@@ -1521,7 +1505,7 @@ export default class Z80 extends Cpu {
 		case 0x19: // ADD IY,DE
 			return void([this.iyl, this.iyh] = this.split(this.add16(this.iyl | this.iyh << 8, this.e | this.d << 8)));
 		case 0x21: // LD IY,nn
-			return void([this.iyl, this.iyh] = [this.fetch(), this.fetch()]);
+			return void([this.iyl, this.iyh] = this.split(this.fetch16()));
 		case 0x22: // LD (nn),IY
 			return this.write16(this.fetch16(), this.iyl | this.iyh << 8);
 		case 0x23: // INC IY
@@ -1545,9 +1529,9 @@ export default class Z80 extends Cpu {
 		case 0x2e: // LD IYL,n (undefined operation)
 			return void(this.iyl = this.fetch());
 		case 0x34: // INC (IY+d)
-			return this.write(v = this.disp(this.iyh, this.iyl), this.inc8(this.read(v)));
+			return v = this.disp(this.iyh, this.iyl), this.write(v, this.inc8(this.read(v)));
 		case 0x35: // DEC (IY+d)
-			return this.write(v = this.disp(this.iyh, this.iyl), this.dec8(this.read(v)));
+			return v = this.disp(this.iyh, this.iyl), this.write(v, this.dec8(this.read(v)));
 		case 0x36: // LD (IY+d),n
 			return this.write(this.disp(this.iyh, this.iyl), this.fetch());
 		case 0x39: // ADD IY,SP
@@ -1742,8 +1726,7 @@ export default class Z80 extends Cpu {
 		case 0xe1: // POP IY
 			return void([this.iyl, this.iyh] = this.split(this.pop16()));
 		case 0xe3: // EX (SP),IY
-			[v, this.iyl, this.iyh] = [this.iyl | this.iyh << 8, ...this.split(this.pop16())];
-			return this.push16(v);
+			return v = this.iyl | this.iyh << 8, [this.iyl, this.iyh] = this.split(this.pop16()), this.push16(v);
 		case 0xe5: // PUSH IY
 			return this.push16(this.iyl | this.iyh << 8);
 		case 0xe9: // JP (IY)
@@ -1783,104 +1766,85 @@ export default class Z80 extends Cpu {
 	}
 
 	rst(addr) {
-		this.push16(this.pc);
-		this.pc = addr;
+		this.push16(this.pc), this.pc = addr;
 	}
 
 	push16(r) {
-		this.write(this.sp = this.sp - 1 & 0xffff, r >> 8);
-		this.write(this.sp = this.sp - 1 & 0xffff, r & 0xff);
+		this.sp = this.sp - 1 & 0xffff, this.write(this.sp, r >> 8), this.sp = this.sp - 1 & 0xffff, this.write(this.sp, r & 0xff);
 	}
 
 	pop16() {
 		const r = this.read16(this.sp);
-		this.sp = this.sp + 2 & 0xffff;
-		return r;
+		return this.sp = this.sp + 2 & 0xffff, r;
 	}
 
 	add8(dst, src) {
 		const r = dst + src & 0xff, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
-		this.f = this.f & ~0xd7 | r & 0x80 | !r << 6 | c << 1 & 0x10 | v >> 5 & 4 | c >> 7 & 1;
-		return r;
+		return this.f = this.f & ~0xd7 | r & 0x80 | !r << 6 | c << 1 & 0x10 | v >> 5 & 4 | c >> 7 & 1, r;
 	}
 
 	add16(dst, src) {
 		const r = dst + src & 0xffff, c = dst & src | src & ~r | ~r & dst;
-		this.f = this.f & ~13 | c >> 7 & 0x10 | c >> 15 & 1;
-		return r;
+		return this.f = this.f & ~13 | c >> 7 & 0x10 | c >> 15 & 1, r;
 	}
 
 	adc8(dst, src) {
 		const r = dst + src + (this.f & 1) & 0xff, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
-		this.f = this.f & ~0xd7 | r & 0x80 | !r << 6 | c << 1 & 0x10 | v >> 5 & 4 | c >> 7 & 1;
-		return r;
+		return this.f = this.f & ~0xd7 | r & 0x80 | !r << 6 | c << 1 & 0x10 | v >> 5 & 4 | c >> 7 & 1, r;
 	}
 
 	adc16(dst, src) {
 		const r = dst + src + (this.f & 1) & 0xffff, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
-		this.f = this.f & ~0xd7 | r >> 8 & 0x80 | !r << 6 | c >> 7 & 0x10 | v >> 13 & 4 | c >> 15 & 1;
-		return r;
+		return this.f = this.f & ~0xd7 | r >> 8 & 0x80 | !r << 6 | c >> 7 & 0x10 | v >> 13 & 4 | c >> 15 & 1, r;
 	}
 
 	sub8(dst, src) {
 		const r = dst - src & 0xff, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
-		this.f = this.f & ~0xd7 | r & 0x80 | !r << 6 | c << 1 & 0x10 | v >> 5 & 4 | 2 | c >> 7 & 1;
-		return r;
+		return this.f = this.f & ~0xd7 | r & 0x80 | !r << 6 | c << 1 & 0x10 | v >> 5 & 4 | 2 | c >> 7 & 1, r;
 	}
 
 	sbc8(dst, src) {
 		const r = dst - src - (this.f & 1) & 0xff, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
-		this.f = this.f & ~0xd7 | r & 0x80 | !r << 6 | c << 1 & 0x10 | v >> 5 & 4 | 2 | c >> 7 & 1;
-		return r;
+		return this.f = this.f & ~0xd7 | r & 0x80 | !r << 6 | c << 1 & 0x10 | v >> 5 & 4 | 2 | c >> 7 & 1, r;
 	}
 
 	sbc16(dst, src) {
 		const r = dst - src - (this.f & 1) & 0xffff, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
-		this.f = this.f & ~0xd7 | r >> 8 & 0x80 | !r << 6 | c >> 7 & 0x10 | v >> 13 & 4 | 2 | c >> 15 & 1;
-		return r;
+		return this.f = this.f & ~0xd7 | r >> 8 & 0x80 | !r << 6 | c >> 7 & 0x10 | v >> 13 & 4 | 2 | c >> 15 & 1, r;
 	}
 
 	and8(dst, src) {
 		const r = dst & src;
-		this.f = this.f & ~0xd7 | Z80.fLogic[r] | 0x10;
-		return r;
+		return this.f = this.f & ~0xd7 | Z80.fLogic[r] | 0x10, r;
 	}
 
 	xor8(dst, src) {
 		const r = dst ^ src;
-		this.f = this.f & ~0xd7 | Z80.fLogic[r];
-		return r;
+		return this.f = this.f & ~0xd7 | Z80.fLogic[r], r;
 	}
 
 	or8(dst, src) {
 		const r = dst | src;
-		this.f = this.f & ~0xd7 | Z80.fLogic[r];
-		return r;
+		return this.f = this.f & ~0xd7 | Z80.fLogic[r], r;
 	}
 
 	inc8(dst) {
 		const r = dst + 1 & 0xff, v = dst & 1 & ~r | ~dst & ~1 & r, c = dst & 1 | 1 & ~r | ~r & dst;
-		this.f = this.f & ~0xd6 | r & 0x80 | !r << 6 | c << 1 & 0x10 | v >> 5 & 4;
-		return r;
+		return this.f = this.f & ~0xd6 | r & 0x80 | !r << 6 | c << 1 & 0x10 | v >> 5 & 4, r;
 	}
 
 	dec8(dst) {
 		const r = dst - 1 & 0xff, v = dst & ~1 & ~r | ~dst & 1 & r, c = ~dst & 1 | 1 & r | r & ~dst;
-		this.f = this.f & ~0xd6 | r & 0x80 | !r << 6 | c << 1 & 0x10 | v >> 5 & 4 | 2;
-		return r;
+		return this.f = this.f & ~0xd6 | r & 0x80 | !r << 6 | c << 1 & 0x10 | v >> 5 & 4 | 2, r;
 	}
 
 	daa() {
 		let r = this.a;
 		if ((this.f & 2) !== 0) {
-			if ((this.f & 0x10) !== 0 && (r & 0x0f) > 5 || (r & 0x0f) > 9) {
-				r -= 6;
-				this.f |= 0x10;
-			}
-			if ((this.f & 1) !== 0 && (r & 0xf0) > 0x50 || (r & 0xf0) > 0x90) {
-				r -= 0x60;
-				this.f |= 1;
-			}
+			if ((this.f & 0x10) !== 0 && (r & 0x0f) > 5 || (r & 0x0f) > 9)
+				r -= 6, this.f |= 0x10;
+			if ((this.f & 1) !== 0 && (r & 0xf0) > 0x50 || (r & 0xf0) > 0x90)
+				r -= 0x60, this.f |= 1;
 		}
 		else {
 			if ((this.f & 0x10) !== 0 && (r & 0x0f) < 4 || (r & 0x0f) > 9) {
@@ -1888,55 +1852,45 @@ export default class Z80 extends Cpu {
 					this.f |= 1;
 				this.f |= 0x10;
 			}
-			if ((this.f & 1) !== 0 && (r & 0xf0) < 0x40 || (r & 0xf0) > 0x90) {
-				r += 0x60;
-				this.f |= 1;
-			}
+			if ((this.f & 1) !== 0 && (r & 0xf0) < 0x40 || (r & 0xf0) > 0x90)
+				r += 0x60, this.f |= 1;
 		}
-		this.a = r &= 0xff;
-		this.f = this.f & ~0xc4 | Z80.fLogic[r];
+		this.a = r &= 0xff, this.f = this.f & ~0xc4 | Z80.fLogic[r];
 	}
 
 	rlc8(dst) {
 		const r = dst << 1 & 0xff | dst >> 7, c = dst >> 7;
-		this.f = this.f & ~0xd7 | Z80.fLogic[r] | c;
-		return r;
+		return this.f = this.f & ~0xd7 | Z80.fLogic[r] | c, r;
 	}
 
 	rrc8(dst) {
 		const r = dst >> 1 | dst << 7 & 0x80, c = dst & 1;
-		this.f = this.f & ~0xd7 | Z80.fLogic[r] | c;
-		return r;
+		return this.f = this.f & ~0xd7 | Z80.fLogic[r] | c, r;
 	}
 
 	rl8(dst) {
 		const r = dst << 1 & 0xff | this.f & 1, c = dst >> 7;
-		this.f = this.f & ~0xd7 | Z80.fLogic[r] | c;
-		return r;
+		return this.f = this.f & ~0xd7 | Z80.fLogic[r] | c, r;
 	}
 
 	rr8(dst) {
 		const r = dst >> 1 | this.f << 7 & 0x80, c = dst & 1;
-		this.f = this.f & ~0xd7 | Z80.fLogic[r] | c;
-		return r;
+		return this.f = this.f & ~0xd7 | Z80.fLogic[r] | c, r;
 	}
 
 	sla8(dst) {
 		const r = dst << 1 & 0xff, c = dst >> 7;
-		this.f = this.f & ~0xd7 | Z80.fLogic[r] | c;
-		return r;
+		return this.f = this.f & ~0xd7 | Z80.fLogic[r] | c, r;
 	}
 
 	sra8(dst) {
 		const r = dst >> 1 | dst & 0x80, c = dst & 1;
-		this.f = this.f & ~0xd7 | Z80.fLogic[r] | c;
-		return r;
+		return this.f = this.f & ~0xd7 | Z80.fLogic[r] | c, r;
 	}
 
 	srl8(dst) {
 		const r = dst >> 1, c = dst & 1;
-		this.f = this.f & ~0xd7 | Z80.fLogic[r] | c;
-		return r;
+		return this.f = this.f & ~0xd7 | Z80.fLogic[r] | c, r;
 	}
 
 	bit8(src, dst) {
@@ -1953,8 +1907,7 @@ export default class Z80 extends Cpu {
 
 	neg8(dst) {
 		const r = -dst & 0xff, v = dst & r, c = dst | r;
-		this.f = this.f & ~0xd7 | r & 0x80 | !r << 6 | c << 1 & 0x10 | v >> 5 & 4 | 2 | c >> 7 & 1;
-		return r;
+		return this.f = this.f & ~0xd7 | r & 0x80 | !r << 6 | c << 1 & 0x10 | v >> 5 & 4 | 2 | c >> 7 & 1, r;
 	}
 
 	ldi() {
@@ -2036,8 +1989,7 @@ export default class Z80 extends Cpu {
 	}
 
 	write16(addr, data) {
-		this.write(addr, data & 0xff);
-		this.write(addr + 1 & 0xffff, data >> 8);
+		this.write(addr, data & 0xff), this.write(addr + 1 & 0xffff, data >> 8);
 	}
 }
 
