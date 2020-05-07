@@ -302,6 +302,14 @@ if (!Uint32Array.prototype.fill)
 if (!Uint32Array.of)
 	Uint32Array.of = function () {return new Uint32Array(arguments);};
 
+if (!Float32Array.from)
+	Float32Array.from = function (obj, func, thisObj) {
+		let typed_array = new this(obj.length);
+		for (let i = 0; i < typed_array.length; i++)
+			typed_array[i] = func.call(thisObj, obj[i], i, typed_array);
+		return typed_array;
+	};
+
 if (!String.prototype.repeat)
 	String.prototype.repeat = function (count) {
 		let str = '' + this;
