@@ -162,7 +162,7 @@ export default class MCS6502 extends Cpu {
 		case 0x6a: // RORA
 			return void(this.a = this.ror8(this.a));
 		case 0x6c: // JMP (nn)
-			return ea = this.fetch16(), void(this.pc = this.read16(ea));
+			return void(this.pc = this.read16(this.fetch16()));
 		case 0x6d: // ADC nn
 			return void(this.a = this.adc8(this.a, this.read(this.fetch16())));
 		case 0x6e: // ROR nn
