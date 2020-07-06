@@ -53,9 +53,9 @@ class SoundTest {
 					break;
 				case 0x14: // CSM/F RESET/IRQEN/LOAD
 					this.fm.status &= ~(data >> 4 & 3);
-					if ((data & 1) !== 0)
+					if ((data & ~this.fm.reg[0x14] & 1) !== 0)
 						this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
-					if ((data & 2) !== 0)
+					if ((data & ~this.fm.reg[0x14] & 2) !== 0)
 						this.fm.timerb = this.fm.reg[0x12];
 					break;
 				}
