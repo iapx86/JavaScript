@@ -66,11 +66,14 @@ class SoundTest {
 	}
 
 	execute() {
+		let interval = 0;
 		for (this.count = 0; this.count < 58; this.count++) { // 3579545 / 60 / 1024
 			if ((this.fm.status & 3) !== 0)
 				this.cpu2.interrupt(0xef);
-			else if (this.command.length)
-				this.cpu2.interrupt(0xdf);
+			if (interval)
+				interval -= 1;
+			if (interval === 0 && this.command.length && this.cpu2.interrupt(0xdf))
+				interval = 29;
 			this.cpu2.execute(146);
 			if ((this.fm.reg[0x14] & 1) !== 0 && (this.fm.timera += 16) >= 0x400) {
 				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
@@ -150,16 +153,16 @@ class SoundTest {
 		console.log(`command=$${this.nSound.toString(16)}`);
 		switch (this.nSound) {
 		case 0x86:
-			this.command.push(0x84, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x85);
+			this.command.push(0x20, 0x84, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x85);
 			break;
 		case 0x8b:
-			this.command.push(0x84, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f, 0x85);
+			this.command.push(0x20, 0x84, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f, 0x85);
 			break;
 		case 0x90:
-			this.command.push(0x84, 0x90, 0x91, 0x92, 0x93, 0x94, 0x85);
+			this.command.push(0x20, 0x84, 0x90, 0x91, 0x92, 0x93, 0x94, 0x85);
 			break;
 		default:
-			this.command.push(this.nSound);
+			this.command.push(0x20, this.nSound);
 			break;
 		}
 		return this;

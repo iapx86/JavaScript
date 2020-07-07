@@ -76,11 +76,14 @@ class SoundTest {
 	}
 
 	execute() {
+		let interval = 0;
 		for (this.count = 0; this.count < 58; this.count++) { // 3579545 / 60 / 1024
 			if ((this.fm.status & 3) !== 0)
 				this.cpu2.interrupt(0xef);
-			else if (this.command.length)
-				this.cpu2.interrupt(0xdf);
+			if (interval)
+				interval -= 1;
+			if (interval === 0 && this.command.length && this.cpu2.interrupt(0xdf))
+				interval = 29;
 			this.cpu2.non_maskable_interrupt();
 			this.cpu2.execute(73);
 			this.cpu2.non_maskable_interrupt();
@@ -159,7 +162,7 @@ class SoundTest {
 		if (fDown)
 			return this;
 		console.log(`command=$${this.nSound.toString(16)}`);
-		this.command.push(this.nSound);
+		this.command.push(0x20, this.nSound);
 		return this;
 	}
 
