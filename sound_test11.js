@@ -203,7 +203,16 @@ function success(zip) {
 			new C30(),
 		],
 	});
-	canvas.addEventListener('click', () => game.triggerA().right());
+	game.initial = true;
+	canvas.addEventListener('click', e => {
+		if (game.initial)
+			game.initial = false;
+		else if (e.offsetX < canvas.width / 2)
+			game.left();
+		else
+			game.right();
+		game.triggerA();
+	});
 	loop();
 }
 

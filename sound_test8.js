@@ -208,7 +208,16 @@ function success(zip) {
 		game: game = new SoundTest(),
 		sound: sound = new YM2151({clock: 4000000, resolution: 65}),
 	});
-	canvas.addEventListener('click', () => game.triggerA().right());
+	game.initial = true;
+	canvas.addEventListener('click', e => {
+		if (game.initial)
+			game.initial = false;
+		else if (e.offsetX < canvas.width / 2)
+			game.left();
+		else
+			game.right();
+		game.triggerA();
+	});
 	loop();
 }
 

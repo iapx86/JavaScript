@@ -244,7 +244,16 @@ function success(zip) {
 			new VLM5030({VLM: game.vlm, clock: 14318180 / 4, gain: 5}),
 		],
 	});
-	canvas.addEventListener('click', () => game.triggerA().right());
+	game.initial = true;
+	canvas.addEventListener('click', e => {
+		if (game.initial)
+			game.initial = false;
+		else if (e.offsetX < canvas.width / 2)
+			game.left();
+		else
+			game.right();
+		game.triggerA();
+	});
 	loop();
 }
 
