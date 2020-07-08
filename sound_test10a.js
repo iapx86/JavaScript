@@ -25,7 +25,6 @@ class SoundTest {
 		this.fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Array(8).fill(false), status: 0, timera: 0, timerb: 0};
 		this.count = 0;
 		this.command = [];
-		this.addr = 0;
 
 		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x100; i++) {
@@ -66,14 +65,11 @@ class SoundTest {
 	}
 
 	execute() {
-		let interval = 0;
+		if (this.command.length)
+			this.cpu2.interrupt(0xdf);
 		for (this.count = 0; this.count < 58; this.count++) { // 3579545 / 60 / 1024
 			if ((this.fm.status & 3) !== 0)
 				this.cpu2.interrupt(0xef);
-			if (interval)
-				interval -= 1;
-			if (interval === 0 && this.command.length && this.cpu2.interrupt(0xdf))
-				interval = 29;
 			this.cpu2.execute(146);
 			if ((this.fm.reg[0x14] & 1) !== 0 && (this.fm.timera += 16) >= 0x400) {
 				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
@@ -100,7 +96,6 @@ class SoundTest {
 			this.ram2.set(PRG.subarray(0x22000, 0x2f000));
 			this.command.splice(0);
 			this.cpu2.reset();
-			this.timer = 0;
 		}
 		return this;
 	}
