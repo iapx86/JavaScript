@@ -326,17 +326,17 @@ function updateGamepad(game) {
 	if ('triggerR3' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[11])
 		game.triggerR3(gamepadStatus.buttons[5] = pressed);
 	val = controller.buttons[12];
-	if ('hatU' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[12])
-		game.hatU(gamepadStatus.buttons[12] = pressed);
+	if ('up' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[12])
+		game.up(gamepadStatus.buttons[12] = pressed);
 	val = controller.buttons[13];
-	if ('hatD' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[13])
-		game.hatD(gamepadStatus.buttons[13] = pressed);
+	if ('down' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[13])
+		game.down(gamepadStatus.buttons[13] = pressed);
 	val = controller.buttons[14];
-	if ('hatL' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[14])
-		game.hatL(gamepadStatus.buttons[14] = pressed);
+	if ('left' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[14])
+		game.left(gamepadStatus.buttons[14] = pressed);
 	val = controller.buttons[15];
-	if ('hatR' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[15])
-		game.hatR(gamepadStatus.buttons[15] = pressed);
+	if ('right' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[15])
+		game.right(gamepadStatus.buttons[15] = pressed);
 	if ('up' in game && (pressed = controller.axes[1] < -0.5) !== gamepadStatus.up)
 		game.up(gamepadStatus.up = pressed);
 	if ('right' in game && (pressed = controller.axes[0] > 0.5) !== gamepadStatus.right)
