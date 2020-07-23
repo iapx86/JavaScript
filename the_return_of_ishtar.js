@@ -25,12 +25,15 @@ class TheReturnOfIshtar {
 		this.fCoin = 0;
 		this.fStart1P = 0;
 		this.fStart2P = 0;
+		this.fAttract = true;
 
 		// CPU周りの初期化
 		this.ram = new Uint8Array(0x6000).addBase();
 		this.ram3 = new Uint8Array(0xd00).addBase();
 		this.fm = {addr: 0};
 		this.in = new Uint8Array(5).fill(0xff);
+		this.sw = {a: 0, b: 0};
+		this.bank = 0;
 
 		this.cpu = new MC6809(this);
 		for (let i = 0; i < 0x40; i++) {
@@ -59,6 +62,13 @@ class TheReturnOfIshtar {
 				return void(this.vScroll[0] = this.vScroll[0] & 0xff00 | data);
 			case 2:
 				return void(this.hScroll[0] = data);
+			case 3:
+				const bank = data << 5 & 0x60;
+				if (bank === this.bank)
+					break;
+//				for (let i = 0; i < 0x20; i++)
+//					this.cpu.memorymap[0x60 + i].base = PRG1.base[bank + i];
+				return void(this.bank = bank);
 			case 4:
 				return void(this.vScroll[1] = this.vScroll[1] & 0xff | data << 8);
 			case 5:
@@ -173,17 +183,25 @@ class TheReturnOfIshtar {
 	}
 
 	updateStatus() {
+		const sw = this.sw;
+
 		// DIPスイッチの更新
 		if (this.fDIPSwitchChanged) {
 			this.fDIPSwitchChanged = false;
+			if (this.fAttract)
+				sw.a &= ~0x40;
+			else
+				sw.a |= 0x40;
 			if (!this.fTest)
 				this.fReset = true;
 		}
 
 		if (this.fTest)
-			this.in[4] &= 8;
+			sw.a |= 0x80;
 		else
-			this.in[4] |= 8;
+			sw.a &= ~0x80;
+		this.in[3] = ~(sw.a << 1 & 0x80 | sw.a << 2 & 0x40 | sw.a << 3 & 0x20 | sw.a << 4 & 0x10 | sw.b >> 3 & 8 | sw.b >> 2 & 4 | sw.b >> 1 & 2 | sw.b & 1);
+		this.in[4] = ~(sw.a & 0x80 | sw.a << 1 & 0x40 | sw.a << 2 & 0x20 | sw.a << 1 & 0x10 | sw.b >> 4 & 8 | sw.b >> 3 & 4 | sw.b >> 2 & 2 | sw.b >> 1 & 1);
 
 		// リセット処理
 		if (this.fReset) {
@@ -367,29 +385,53 @@ class TheReturnOfIshtar {
 					break;
 			switch (layer) {
 			case 0:
-				p = 256 * 8 * 2 + 232 - (204 - this.vScroll[0] & 7) * 256 + (7 - this.hScroll[0] & 7);
-				k = 204 - this.vScroll[0] >> 2 & 0x7e | 7 - this.hScroll[0] << 4 & 0xf80;
+				if ((this.ram[0x5ff6] & 1) === 0) {
+					p = 256 * 8 * 2 + 232 - (20 + this.vScroll[0] & 7) * 256 + (25 + this.hScroll[0] & 7);
+					k = 20 + this.vScroll[0] >> 2 & 0x7e | 25 + this.hScroll[0] << 4 & 0xf80;
+				}
+				else {
+					p = 256 * 8 * 2 + 232 - (204 - this.vScroll[0] & 7) * 256 + (7 - this.hScroll[0] & 7);
+					k = 204 - this.vScroll[0] >> 2 & 0x7e | 7 - this.hScroll[0] << 4 & 0xf80;
+				}
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
 						this.xfer8x8b1(data, p, k, 0);
 				break;
 			case 1:
-				p = 256 * 8 * 2 + 232 - (206 - this.vScroll[1] & 7) * 256 + (7 - this.hScroll[1] & 7);
-				k = 206 - this.vScroll[1] >> 2 & 0x7e | 7 - this.hScroll[1] << 4 & 0xf80 | 0x1000;
+				if ((this.ram[0x5ff6] & 1) === 0) {
+					p = 256 * 8 * 2 + 232 - (18 + this.vScroll[1] & 7) * 256 + (25 + this.hScroll[1] & 7);
+					k = 18 + this.vScroll[1] >> 2 & 0x7e | 25 + this.hScroll[1] << 4 & 0xf80 | 0x1000;
+				}
+				else {
+					p = 256 * 8 * 2 + 232 - (206 - this.vScroll[1] & 7) * 256 + (7 - this.hScroll[1] & 7);
+					k = 206 - this.vScroll[1] >> 2 & 0x7e | 7 - this.hScroll[1] << 4 & 0xf80 | 0x1000;
+				}
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0x1000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
 						this.xfer8x8b1(data, p, k, 0x10);
 				break;
 			case 2:
-				p = 256 * 8 * 2 + 232 - (203 - this.vScroll[2] & 7) * 256 + (7 - this.hScroll[2] & 7);
-				k = 203 - this.vScroll[2] >> 2 & 0x7e | 7 - this.hScroll[2] << 4 & 0xf80 | 0x2000;
+				if ((this.ram[0x5ff6] & 1) === 0) {
+					p = 256 * 8 * 2 + 232 - (21 + this.vScroll[2] & 7) * 256 + (25 + this.hScroll[2] & 7);
+					k = 21 + this.vScroll[2] >> 2 & 0x7e | 25 + this.hScroll[2] << 4 & 0xf80 | 0x2000;
+				}
+				else {
+					p = 256 * 8 * 2 + 232 - (203 - this.vScroll[2] & 7) * 256 + (7 - this.hScroll[2] & 7);
+					k = 203 - this.vScroll[2] >> 2 & 0x7e | 7 - this.hScroll[2] << 4 & 0xf80 | 0x2000;
+				}
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0x2000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
 						this.xfer8x8b2(data, p, k, 0);
 				break;
 			case 3:
-				p = 256 * 8 * 2 + 232 - (205 - this.vScroll[3] & 7) * 256 + (7 - this.hScroll[3] & 7);
-				k = 205 - this.vScroll[3] >> 2 & 0x7e | 7 - this.hScroll[3] << 4 & 0xf80 | 0x3000;
+				if ((this.ram[0x5ff6] & 1) === 0) {
+					p = 256 * 8 * 2 + 232 - (19 + this.vScroll[3] & 7) * 256 + (25 + this.hScroll[3] & 7);
+					k = 19 + this.vScroll[3] >> 2 & 0x7e | 25 + this.hScroll[3] << 4 & 0xf80 | 0x3000;
+				}
+				else {
+					p = 256 * 8 * 2 + 232 - (205 - this.vScroll[3] & 7) * 256 + (7 - this.hScroll[3] & 7);
+					k = 205 - this.vScroll[3] >> 2 & 0x7e | 7 - this.hScroll[3] << 4 & 0xf80 | 0x3000;
+				}
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0x3000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
 						this.xfer8x8b2(data, p, k, 0x10);
@@ -402,8 +444,8 @@ class TheReturnOfIshtar {
 				if (ram[k + 8] >> 5 !== pri)
 					continue;
 				const w = [16, 8, 32, 4][ram[k + 8] >> 1 & 3], h = [16, 8, 32, 4][ram[k + 4] >> 6];
-				const x = w + ram[k + 9] + ram[0x5ff7] & 0xff;
-				const y = 371 + (ram[k + 7] | ram[k + 6] << 8 & 0x100) + (ram[0x5ff5] | ram[0x5ff4] << 8 & 0x100) & 0x1ff;
+				const x = w + ram[k + 9] + ram[0x5ff7] - ((this.ram[0x5ff6] & 1) === 0 ? 2 : 0) & 0xff;
+				const y = (ram[k + 7] | ram[k + 6] << 8 & 0x100) + (ram[0x5ff5] | ram[0x5ff4] << 8 & 0x100) - ((this.ram[0x5ff6] & 1) === 0 ? 51 : 141) & 0x1ff;
 				const src = (~ram[k + 8] & 0x18 | 7) & -w | (ram[k + 4] & -h) << 5 & 0x300 | ram[k + 5] << 10 & 0xfc00 | ram[k + 4] << 16 & 0x70000;
 				const color = ram[k + 6] << 3 & 0x7f0;
 				switch (ram[k + 8] & 1 | ram[k + 4] >> 4 & 2) {
