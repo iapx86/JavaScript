@@ -22,6 +22,7 @@ const list = [
 	{name: 'gaplus', title: 'Gaplus', width: 224, height: 288},
 	{name: 'gradius', title: 'Gradius', width: 256, height: 224},
 	{name: 'grobda', title: 'Grobda', width: 224, height: 288},
+	{name: 'hopping_mappy', title: 'Hopping Mappy', width: 288, height: 224},
 	{name: 'jr_pac-man', title: 'Jr. Pac-Man', width: 224, height: 288},
 	{name: 'jump_bug', title: 'Jump Bug', width: 224, height: 256},
 	{name: 'king_and_balloon', title: 'King & Balloon', width: 224, height: 256},
