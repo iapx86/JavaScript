@@ -7,7 +7,7 @@ body {
 	display: table-cell;
 	text-align: center;
 	vertical-align: middle;
-	background-color: gray;
+	background-color: dimgray;
 }
 canvas {
 	image-rendering: pixelated;
