@@ -364,7 +364,7 @@ class SkyKidDeluxe {
 	}
 
 	makeBitmap(data) {
-		let p, k, layer;
+		let p, k;
 
 		// 画面クリア
 		p = 256 * 16 + 16;
@@ -373,50 +373,7 @@ class SkyKidDeluxe {
 
 		for (let pri = 0; pri < 8; pri++) {
 			// bg描画
-			for (layer = 0; layer < 4; layer++)
-				if ((this.vScroll[layer] >> 9 & 7) === pri)
-					break;
-			switch (layer) {
-			case 0:
-				if ((this.ram[0x5ff6] & 1) === 0) {
-					p = 256 * 8 * 2 + 232 - (20 + this.vScroll[0] & 7) * 256 + (25 + this.hScroll[0] & 7);
-					k = 20 + this.vScroll[0] >> 2 & 0x7e | 25 + this.hScroll[0] << 4 & 0xf80;
-				}
-				else {
-					p = 256 * 8 * 2 + 232 - (204 - this.vScroll[0] & 7) * 256 + (7 - this.hScroll[0] & 7);
-					k = 204 - this.vScroll[0] >> 2 & 0x7e | 7 - this.hScroll[0] << 4 & 0xf80;
-				}
-				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80, p -= 256 * 8 * 37 + 8, i++)
-					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
-						this.xfer8x8b1(data, p, k, 0);
-				break;
-			case 1:
-				if ((this.ram[0x5ff6] & 1) === 0) {
-					p = 256 * 8 * 2 + 232 - (18 + this.vScroll[1] & 7) * 256 + (25 + this.hScroll[1] & 7);
-					k = 18 + this.vScroll[1] >> 2 & 0x7e | 25 + this.hScroll[1] << 4 & 0xf80 | 0x1000;
-				}
-				else {
-					p = 256 * 8 * 2 + 232 - (206 - this.vScroll[1] & 7) * 256 + (7 - this.hScroll[1] & 7);
-					k = 206 - this.vScroll[1] >> 2 & 0x7e | 7 - this.hScroll[1] << 4 & 0xf80 | 0x1000;
-				}
-				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0x1000, p -= 256 * 8 * 37 + 8, i++)
-					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
-						this.xfer8x8b1(data, p, k, 0x10);
-				break;
-			case 2:
-				if ((this.ram[0x5ff6] & 1) === 0) {
-					p = 256 * 8 * 2 + 232 - (21 + this.vScroll[2] & 7) * 256 + (25 + this.hScroll[2] & 7);
-					k = 21 + this.vScroll[2] >> 2 & 0x7e | 25 + this.hScroll[2] << 4 & 0xf80 | 0x2000;
-				}
-				else {
-					p = 256 * 8 * 2 + 232 - (203 - this.vScroll[2] & 7) * 256 + (7 - this.hScroll[2] & 7);
-					k = 203 - this.vScroll[2] >> 2 & 0x7e | 7 - this.hScroll[2] << 4 & 0xf80 | 0x2000;
-				}
-				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0x2000, p -= 256 * 8 * 37 + 8, i++)
-					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
-						this.xfer8x8b2(data, p, k, 0);
-				break;
-			case 3:
+			if ((this.vScroll[3] >> 9 & 7) === pri) {
 				if ((this.ram[0x5ff6] & 1) === 0) {
 					p = 256 * 8 * 2 + 232 - (19 + this.vScroll[3] & 7) * 256 + (25 + this.hScroll[3] & 7);
 					k = 19 + this.vScroll[3] >> 2 & 0x7e | 25 + this.hScroll[3] << 4 & 0xf80 | 0x3000;
@@ -427,8 +384,43 @@ class SkyKidDeluxe {
 				}
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0x3000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
-						this.xfer8x8b2(data, p, k, 0x10);
-				break;
+						this.xfer8x8b2(data, p, k, 1);
+			}
+			if ((this.vScroll[2] >> 9 & 7) === pri) {
+				if ((this.ram[0x5ff6] & 1) === 0) {
+					p = 256 * 8 * 2 + 232 - (21 + this.vScroll[2] & 7) * 256 + (25 + this.hScroll[2] & 7);
+					k = 21 + this.vScroll[2] >> 2 & 0x7e | 25 + this.hScroll[2] << 4 & 0xf80 | 0x2000;
+				} else {
+					p = 256 * 8 * 2 + 232 - (203 - this.vScroll[2] & 7) * 256 + (7 - this.hScroll[2] & 7);
+					k = 203 - this.vScroll[2] >> 2 & 0x7e | 7 - this.hScroll[2] << 4 & 0xf80 | 0x2000;
+				}
+				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0x2000, p -= 256 * 8 * 37 + 8, i++)
+					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
+						this.xfer8x8b2(data, p, k, 0);
+			}
+			if ((this.vScroll[1] >> 9 & 7) === pri) {
+				if ((this.ram[0x5ff6] & 1) === 0) {
+					p = 256 * 8 * 2 + 232 - (18 + this.vScroll[1] & 7) * 256 + (25 + this.hScroll[1] & 7);
+					k = 18 + this.vScroll[1] >> 2 & 0x7e | 25 + this.hScroll[1] << 4 & 0xf80 | 0x1000;
+				} else {
+					p = 256 * 8 * 2 + 232 - (206 - this.vScroll[1] & 7) * 256 + (7 - this.hScroll[1] & 7);
+					k = 206 - this.vScroll[1] >> 2 & 0x7e | 7 - this.hScroll[1] << 4 & 0xf80 | 0x1000;
+				}
+				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0x1000, p -= 256 * 8 * 37 + 8, i++)
+					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
+						this.xfer8x8b1(data, p, k, 1);
+			}
+			if ((this.vScroll[0] >> 9 & 7) === pri) {
+				if ((this.ram[0x5ff6] & 1) === 0) {
+					p = 256 * 8 * 2 + 232 - (20 + this.vScroll[0] & 7) * 256 + (25 + this.hScroll[0] & 7);
+					k = 20 + this.vScroll[0] >> 2 & 0x7e | 25 + this.hScroll[0] << 4 & 0xf80;
+				} else {
+					p = 256 * 8 * 2 + 232 - (204 - this.vScroll[0] & 7) * 256 + (7 - this.hScroll[0] & 7);
+					k = 204 - this.vScroll[0] >> 2 & 0x7e | 7 - this.hScroll[0] << 4 & 0xf80;
+				}
+				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80, p -= 256 * 8 * 37 + 8, i++)
+					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
+						this.xfer8x8b1(data, p, k, 0);
 			}
 
 			// obj描画
@@ -466,7 +458,7 @@ class SkyKidDeluxe {
 	}
 
 	xfer8x8b1(data, p, k, back) {
-		const q = (this.ram[k] | BGADDR[this.ram[k + 1] << 2 & 0xc | back] << 7 & 0x700) << 6;
+		const q = (this.ram[k] | this.ram[k + 1] << 8 & 0x300 | back << 10) << 6;
 		const idx = this.ram[k + 1] << 3;
 		let px;
 
@@ -537,7 +529,7 @@ class SkyKidDeluxe {
 	}
 
 	xfer8x8b2(data, p, k, back) {
-		const q = (this.ram[k] | BGADDR[this.ram[k + 1] & 0x3 | back] << 3 & 0x700) << 6;
+		const q = (this.ram[k] | this.ram[k + 1] << 8 & 0x300 | back << 10) << 6;
 		const idx = this.ram[k + 1] << 3;
 		let px;
 
