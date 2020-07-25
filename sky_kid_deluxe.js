@@ -37,6 +37,8 @@ class SkyKidDeluxe {
 		this.in = new Uint8Array(5).fill(0xff);
 		this.sw = {a: 0, b: 0};
 		this.bank = 0;
+		this.cpu_irq = false;
+		this.cpu2_irq = false;
 
 		this.cpu = new MC6809(this);
 		for (let i = 0; i < 0x40; i++) {
@@ -55,6 +57,7 @@ class SkyKidDeluxe {
 			this.cpu.memorymap[0x60 + i].base = PRG1.base[i];
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[0x80 + i].base = PRG1.base[0x80 + i];
+		this.cpu.memorymap[0x84].write = () => this.cpu_irq = false;
 //		for (let i = 0; i < 8; i++)
 //			this.cpu.memorymap[0x88 + i].write = addr => this.bgbank = addr >> 10 & 1;
 		this.cpu.memorymap[0x90].write = (addr, data) => {
@@ -98,9 +101,14 @@ class SkyKidDeluxe {
 		};
 		this.cpu.memorymap[0xa0].write = (addr, data) => void(this.backcolor = data);
 
+		this.cpu.check_interrupt = () => this.cpu_irq && this.cpu.interrupt();
+
 		this.cpu2 = new MC6809(this);
 		for (let i = 0; i < 0x80; i++)
 			this.cpu2.memorymap[0x80 + i].base = PRG2.base[i];
+		this.cpu2.memorymap[0x94].write = () => this.cpu2_irq = false;
+
+		this.cpu2.check_interrupt = () => this.cpu2_irq && this.cpu2.interrupt();
 
 		this.mcu = new MC6801(this);
 		this.mcu.memorymap[0].base = this.ram3.base[0];
@@ -157,8 +165,7 @@ class SkyKidDeluxe {
 	}
 
 	execute() {
-		this.cpu.interrupt();
-		this.cpu2.interrupt();
+		this.cpu_irq = this.cpu2_irq = true;
 		this.mcu.interrupt();
 		Cpu.multiple_execute([this.cpu, this.cpu2, this.mcu], 0x1000);
 		if ((this.ram3[8] & 8) !== 0)
@@ -227,6 +234,7 @@ class SkyKidDeluxe {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
+			this.cpu_irq = this.cpu2_irq = false;
 			this.cpu.reset();
 			this.cpu2.reset();
 			this.mcu.reset();
@@ -270,29 +278,33 @@ class SkyKidDeluxe {
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.in[1] = this.in[1] & ~(1 << 2);
+		if (fDown) {
+			this.in[1] &= ~(1 << 2);
+			this.in[0] |= 1 << 2;
+		}
 		else
 			this.in[1] |= 1 << 2;
 	}
 
 	right(fDown) {
 		if (fDown)
-			this.in[2] = this.in[2] & ~(1 << 5);
+			this.in[2] = this.in[2] & ~(1 << 5) | 1 << 4;
 		else
 			this.in[2] |= 1 << 5;
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.in[0] = this.in[0] & ~(1 << 2);
+		if (fDown) {
+			this.in[0] &= ~(1 << 2);
+			this.in[1] |= 1 << 2;
+		}
 		else
 			this.in[0] |= 1 << 2;
 	}
 
 	left(fDown) {
 		if (fDown)
-			this.in[2] = this.in[2] & ~(1 << 4);
+			this.in[2] = this.in[2] & ~(1 << 4) | 1 << 5;
 		else
 			this.in[2] |= 1 << 4;
 	}
