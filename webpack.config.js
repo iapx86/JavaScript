@@ -20,6 +20,7 @@ const list = [
 	{name: 'galaxian', title: 'Galaxian', width: 224, height: 256},
 	{name: 'galaxy_wars', title: 'Galaxy Wars', width: 224, height: 256},
 	{name: 'gaplus', title: 'Gaplus', width: 224, height: 288},
+	{name: 'genpei_toumaden', title: 'Genpei ToumaDen', width: 288, height: 224},
 	{name: 'gradius', title: 'Gradius', width: 256, height: 224},
 	{name: 'grobda', title: 'Grobda', width: 224, height: 288},
 	{name: 'hopping_mappy', title: 'Hopping Mappy', width: 288, height: 224},
