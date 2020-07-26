@@ -5,7 +5,7 @@
  */
 
 export default class Namco63701X {
-	constructor({PCM, clock, gain = 1}) {
+	constructor({PCM, clock, gain = 0.7}) {
 		this.cycles = 0;
 		this.channel = [];
 		for (let i = 0; i < 2; i++)
