@@ -214,9 +214,9 @@ class HoppingMappy {
 			else
 				sw.b |= 0x40;
 			if (this.fRound)
-				sw.b |= 0x10
+				sw.b |= 0x10;
 			else
-				sw.b &= ~0x10
+				sw.b &= ~0x10;
 			if (!this.fTest)
 				this.fReset = true;
 		}
