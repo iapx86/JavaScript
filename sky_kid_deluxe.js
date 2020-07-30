@@ -376,6 +376,7 @@ class SkyKidDeluxe {
 	}
 
 	makeBitmap(data) {
+		const ram = this.ram;
 		let p, k;
 
 		// 画面クリア
@@ -386,7 +387,7 @@ class SkyKidDeluxe {
 		for (let pri = 0; pri < 8; pri++) {
 			// bg描画
 			if ((this.vScroll[3] >> 9 & 7) === pri) {
-				if ((this.ram[0x5ff6] & 1) === 0) {
+				if ((ram[0x5ff6] & 1) === 0) {
 					p = 256 * 8 * 2 + 232 - (19 + this.vScroll[3] & 7) * 256 + (25 + this.hScroll[3] & 7);
 					k = 19 + this.vScroll[3] >> 2 & 0x7e | 25 + this.hScroll[3] << 4 & 0xf80 | 0x3000;
 				}
@@ -399,7 +400,7 @@ class SkyKidDeluxe {
 						this.xfer8x8b2(data, p, k, 1);
 			}
 			if ((this.vScroll[2] >> 9 & 7) === pri) {
-				if ((this.ram[0x5ff6] & 1) === 0) {
+				if ((ram[0x5ff6] & 1) === 0) {
 					p = 256 * 8 * 2 + 232 - (21 + this.vScroll[2] & 7) * 256 + (25 + this.hScroll[2] & 7);
 					k = 21 + this.vScroll[2] >> 2 & 0x7e | 25 + this.hScroll[2] << 4 & 0xf80 | 0x2000;
 				} else {
@@ -411,7 +412,7 @@ class SkyKidDeluxe {
 						this.xfer8x8b2(data, p, k, 0);
 			}
 			if ((this.vScroll[1] >> 9 & 7) === pri) {
-				if ((this.ram[0x5ff6] & 1) === 0) {
+				if ((ram[0x5ff6] & 1) === 0) {
 					p = 256 * 8 * 2 + 232 - (18 + this.vScroll[1] & 7) * 256 + (25 + this.hScroll[1] & 7);
 					k = 18 + this.vScroll[1] >> 2 & 0x7e | 25 + this.hScroll[1] << 4 & 0xf80 | 0x1000;
 				} else {
@@ -423,7 +424,7 @@ class SkyKidDeluxe {
 						this.xfer8x8b1(data, p, k, 1);
 			}
 			if ((this.vScroll[0] >> 9 & 7) === pri) {
-				if ((this.ram[0x5ff6] & 1) === 0) {
+				if ((ram[0x5ff6] & 1) === 0) {
 					p = 256 * 8 * 2 + 232 - (20 + this.vScroll[0] & 7) * 256 + (25 + this.hScroll[0] & 7);
 					k = 20 + this.vScroll[0] >> 2 & 0x7e | 25 + this.hScroll[0] << 4 & 0xf80;
 				} else {
@@ -437,12 +438,11 @@ class SkyKidDeluxe {
 
 			// obj描画
 			for (let k = 0x5800, i = 127; i !== 0; k += 16, --i) {
-				const ram = this.ram;
 				if (ram[k + 8] >> 5 !== pri)
 					continue;
 				const w = [16, 8, 32, 4][ram[k + 8] >> 1 & 3], h = [16, 8, 32, 4][ram[k + 4] >> 6];
-				const x = w + ram[k + 9] + ram[0x5ff7] - ((this.ram[0x5ff6] & 1) === 0 ? 2 : 0) & 0xff;
-				const y = (ram[k + 7] | ram[k + 6] << 8 & 0x100) + (ram[0x5ff5] | ram[0x5ff4] << 8 & 0x100) - ((this.ram[0x5ff6] & 1) === 0 ? 51 : 141) & 0x1ff;
+				const x = w + ram[k + 9] + ram[0x5ff7] - ((ram[0x5ff6] & 1) === 0 ? 2 : 0) & 0xff;
+				const y = (ram[k + 7] | ram[k + 6] << 8) + (ram[0x5ff5] | ram[0x5ff4] << 8) - ((ram[0x5ff6] & 1) === 0 ? 51 : 141) & 0x1ff;
 				const src = (~ram[k + 8] & 0x18 | 7) & -w | (ram[k + 4] & -h) << 5 & 0x300 | ram[k + 5] << 10 & 0xfc00 | ram[k + 4] << 16 & 0x10000;
 				const color = ram[k + 6] << 3 & 0x7f0;
 				switch (ram[k + 8] & 1 | ram[k + 4] >> 4 & 2) {
