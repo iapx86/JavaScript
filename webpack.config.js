@@ -66,6 +66,7 @@ const list = [
 	{name: 'vulgus', title: 'Vulgus', width: 224, height: 256},
 	{name: 'warp_and_warp', title: 'Warp & Warp', width: 224, height: 272},
 	{name: 'wonder_momo', title: 'Wonder Momo', width: 288, height: 224},
+	{name: 'world_court', title: 'World Court', width: 288, height: 224},
 	{name: 'xevious', title: 'Xevious', width: 224, height: 288},
 	{name: 'zigzag', title: 'Zig Zag', width: 224, height: 256},
 ];
