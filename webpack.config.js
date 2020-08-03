@@ -38,6 +38,7 @@ const list = [
 	{name: 'pac_and_pal', title: 'Pac & Pal', width: 224, height: 288},
 	{name: 'pac-land', title: 'Pac-Land', width: 288, height: 224},
 	{name: 'pac-man', title: 'Pac-Man', width: 224, height: 288},
+	{name: 'pac-mania', title: 'Pac-Mania', width: 224, height: 288},
 	{name: 'pengo', title: 'Pengo', width: 224, height: 288},
 	{name: 'phozon', title: 'Phozon', width: 224, height: 288},
 	{name: 'polaris', title: 'Polaris', width: 224, height: 256},
