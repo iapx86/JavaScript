@@ -6,6 +6,7 @@ const list = [
 	{name: '1942', title: '1942', width: 224, height: 256},
 	{name: 'balloon_bomber', title: 'Balloon Bomber', width: 224, height: 256},
 	{name: 'baraduke', title: 'Baraduke', width: 288, height: 224},
+	{name: 'blast_off', title: 'Blast Off', width: 224, height: 288},
 	{name: 'bosconian', title: 'Bosconian', width: 285, height: 224},
 	{name: 'chackn_pop', title: 'Chack\'n Pop', width: 256, height: 224},
 	{name: 'crazy_balloon', title: 'Crazy Balloon', width: 224, height: 256},
