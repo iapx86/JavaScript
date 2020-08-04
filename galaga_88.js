@@ -26,6 +26,7 @@ class Galaga88 {
 		this.fCoin = 0;
 		this.fStart1P = 0;
 		this.fStart2P = 0;
+		this.fTurbo = 0;
 
 		// CPU周りの初期化
 		this.memorymap = [];
@@ -404,6 +405,10 @@ class Galaga88 {
 		}
 		else
 			this.in[1] |= 1 << 7;
+
+		// 連射処理
+		if (this.fTurbo)
+			this.in[0] ^= 1 << 4;
 		return this;
 	}
 
@@ -455,10 +460,8 @@ class Galaga88 {
 	}
 
 	triggerB(fDown) {
-		if (fDown)
-			this.in[0] &= ~(1 << 5);
-		else
-			this.in[0] |= 1 << 5;
+		if ((this.fTurbo = fDown) === false)
+			this.in[0] |= 1 << 4;
 	}
 
 	convertCHR() {

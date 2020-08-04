@@ -27,6 +27,7 @@ class MarchenMaze {
 		this.fStart1P = 0;
 		this.fStart2P = 0;
 		this.fRound = false;
+		this.fTurbo = 0;
 
 		// CPU周りの初期化
 		this.memorymap = [];
@@ -406,6 +407,10 @@ class MarchenMaze {
 		}
 		else
 			this.in[1] |= 1 << 7;
+
+		// 連射処理
+		if (this.fTurbo)
+			this.in[0] ^= 1 << 4;
 		return this;
 	}
 
@@ -461,6 +466,11 @@ class MarchenMaze {
 			this.in[0] &= ~(1 << 5);
 		else
 			this.in[0] |= 1 << 5;
+	}
+
+	triggerY(fDown) {
+		if ((this.fTurbo = fDown) === false)
+			this.in[0] |= 1 << 4;
 	}
 
 	convertCHR() {
