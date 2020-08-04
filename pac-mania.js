@@ -108,11 +108,7 @@ class PacMania {
 			}
 			else if (range(page, 0x2ff0, 0x2fff)) {
 				this.memorymap[page].base = this.ram2.base[page & 7];
-//				this.memorymap[page].write = null;
-				this.memorymap[page].write = (addr, data) => {
-//					console.log(`triram write: addr=$${(addr & 0x7ff).toString(16)}, data=$${data.toString(16)}`);
-					this.ram2[addr & 0x7ff] = data;
-				};
+				this.memorymap[page].write = null;
 			}
 			else if (range(page, 0x3000, 0x307f)) {
 				this.memorymap[page].base = this.ram.base[0x100 | page & 0x7f];
