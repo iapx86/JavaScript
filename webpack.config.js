@@ -31,6 +31,7 @@ const list = [
 	{name: 'libble_rabble', title: 'Libble Rabble', width: 288, height: 224},
 	{name: 'lunar_rescue', title: 'Lunar Rescue', width: 224, height: 256},
 	{name: 'mappy', title: 'Mappy', width: 224, height: 288},
+	{name: 'marchen_maze', title: 'Marchen Maze', width: 288, height: 224},
 	{name: 'metro-cross', title: 'Metro-Cross', width: 288, height: 224},
 	{name: 'moon_cresta', title: 'Moon Cresta', width: 224, height: 256},
 	{name: 'motos', title: 'Motos', width: 224, height: 288},
