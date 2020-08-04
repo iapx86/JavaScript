@@ -17,6 +17,7 @@ const list = [
 	{name: 'fantasy_zone', title: 'Fantasy Zone', width: 320, height: 224},
 	{name: 'frogger', title: 'Frogger', width: 224, height: 256},
 	{name: 'galaga', title: 'Galaga', width: 224, height: 288},
+	{name: 'galaga_88', title: 'Galaga \'88', width: 224, height: 288},
 	{name: 'galaxian', title: 'Galaxian', width: 224, height: 256},
 	{name: 'galaxy_wars', title: 'Galaxy Wars', width: 224, height: 256},
 	{name: 'gaplus', title: 'Gaplus', width: 224, height: 288},
