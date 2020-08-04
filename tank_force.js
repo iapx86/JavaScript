@@ -452,7 +452,7 @@ class TankForce {
 
 	triggerB(fDown) {
 		if ((this.fTurbo = fDown) === false)
-			this.in[0] &= ~(1 << 4);
+			this.in[0] |= 1 << 4;
 	}
 
 	convertCHR() {
