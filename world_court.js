@@ -38,6 +38,7 @@ class WorldCourt {
 		this.fm = {addr: 0, reg: new Uint8Array(0x100), status: 0, timera: 0, timerb: 0};
 		this.in = Uint8Array.of(0xff, 0xff, 0xff, 0xf8);
 		this.key = new Uint8Array(4);
+		this.count = 0;
 		this.bank1 = new Uint16Array(8);
 		this.bank2 = new Uint16Array(8);
 		this.bank3 = 0x40;

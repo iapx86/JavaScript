@@ -38,6 +38,7 @@ class PacMania {
 		this.fm = {addr: 0, reg: new Uint8Array(0x100), status: 0, timera: 0, timerb: 0};
 		this.in = Uint8Array.of(0xff, 0xff, 0xff, 0xf8);
 		this.key = new Uint8Array(4);
+		this.count = 0;
 		this.bank1 = new Uint16Array(8);
 		this.bank2 = new Uint16Array(8);
 		this.bank3 = 0x40;
@@ -107,7 +108,11 @@ class PacMania {
 			}
 			else if (range(page, 0x2ff0, 0x2fff)) {
 				this.memorymap[page].base = this.ram2.base[page & 7];
-				this.memorymap[page].write = null;
+//				this.memorymap[page].write = null;
+				this.memorymap[page].write = (addr, data) => {
+//					console.log(`triram write: addr=$${(addr & 0x7ff).toString(16)}, data=$${data.toString(16)}`);
+					this.ram2[addr & 0x7ff] = data;
+				};
 			}
 			else if (range(page, 0x3000, 0x307f)) {
 				this.memorymap[page].base = this.ram.base[0x100 | page & 0x7f];
