@@ -53,6 +53,7 @@ const list = [
 	{name: 'sea_fighter_poseidon', title: 'Sea Fighter Poseidon', width: 256, height: 224},
 	{name: 'sky_kid', title: 'Sky Kid', width: 288, height: 224},
 	{name: 'sky_kid_deluxe', title: 'Sky Kid Deluxe', width: 288, height: 224},
+	{name: 'souko_ban_deluxe', title: 'Souko Ban Deluxe', width: 288, height: 224},
 	{name: 'space_chaser', title: 'Space Chaser', width: 224, height: 256},
 	{name: 'space_invaders', title: 'Space Invaders', width: 224, height: 256},
 	{name: 'space_laser', title: 'Space Laser', width: 224, height: 256},
