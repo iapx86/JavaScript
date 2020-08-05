@@ -27,7 +27,7 @@ class MarchenMaze {
 		this.fStart1P = 0;
 		this.fStart2P = 0;
 		this.fRound = false;
-		this.fTurbo = 0;
+		this.fTurbo = false;
 
 		// CPU周りの初期化
 		this.memorymap = [];

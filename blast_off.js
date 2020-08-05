@@ -26,7 +26,7 @@ class BlastOff {
 		this.fCoin = 0;
 		this.fStart1P = 0;
 		this.fStart2P = 0;
-		this.fTurbo = 0;
+		this.fTurbo = false;
 
 		// CPU周りの初期化
 		this.memorymap = [];
