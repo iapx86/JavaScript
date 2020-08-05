@@ -14,6 +14,7 @@ const list = [
 	{name: 'digdug', title: 'DigDug', width: 224, height: 288},
 	{name: 'digdug_ii', title: 'DigDug II', width: 224, height: 288},
 	{name: 'dragon_buster', title: 'Dragon Buster', width: 288, height: 224},
+	{name: 'dragon_spirit', title: 'Dragon Spirit', width: 224, height: 288},
 	{name: 'elevator_action', title: 'Elevator Action', width: 256, height: 224},
 	{name: 'fantasy_zone', title: 'Fantasy Zone', width: 320, height: 224},
 	{name: 'frogger', title: 'Frogger', width: 224, height: 256},
