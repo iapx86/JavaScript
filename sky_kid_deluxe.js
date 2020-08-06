@@ -246,10 +246,10 @@ class SkyKidDeluxe {
 		// クレジット/スタートボタン処理
 		if (this.fCoin) {
 			--this.fCoin;
-			this.in[0] &= ~(1 << 5);
+			this.in[1] &= ~(1 << 4);
 		}
 		else
-			this.in[0] |= 1 << 5;
+			this.in[1] |= 1 << 4;
 		if (this.fStart1P) {
 			--this.fStart1P;
 			this.in[0] &= ~(1 << 6);
