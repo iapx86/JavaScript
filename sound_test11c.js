@@ -99,7 +99,7 @@ class SoundTest {
 		if (fDown)
 			return this;
 		this.nSound = this.nSound + 1;
-		if (this.nSound >= 0x50)
+		if (this.nSound >= 40)
 			this.nSound = 0;
 		return this;
 	}
@@ -113,28 +113,28 @@ class SoundTest {
 			return this;
 		this.nSound = this.nSound - 1;
 		if (this.nSound < 0)
-			this.nSound = 0x4f;
+			this.nSound = 39;
 		return this;
 	}
 
 	triggerA(fDown = false) {
 		if (fDown)
 			return this;
-		for (let i = 0; i < 0x40; i++)
+		for (let i = 0; i < 0x41; i++)
 			sound[1].write(0x285 + i, 0);
 		sound[1].write(0x380, 0);
 		console.log(`command=$${this.nSound.toString(16)}`);
-		if (this.nSound < 0x10)
+		if (this.nSound < 16)
 			sound[1].write(0x380, this.nSound);
 		else
-			sound[1].write(0x285 + this.nSound - 0x10, 1);
+			sound[1].write(0x285 + this.nSound - 16, 1);
 		return this;
 	}
 
 	triggerB(fDown = false) {
 		if (fDown)
 			return this;
-		for (let i = 0; i < 0x40; i++)
+		for (let i = 0; i < 0x41; i++)
 			sound[1].write(0x285 + i, 0);
 		sound[1].write(0x380, 0);
 		return this;
