@@ -827,7 +827,7 @@ function success(zip) {
 		game: new Galaga88(),
 		sound: sound = [
 			new YM2151({clock: 3579580, resolution: 58, gain: 2}),
-			new C30({resolution: 58}),
+			new C30({clock: 49152000 / 2048 / 2, resolution: 58}),
 			new Dac8Bit2Ch({resolution: 100}),
 		],
 	});

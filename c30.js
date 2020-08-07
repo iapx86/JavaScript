@@ -5,14 +5,14 @@
  */
 
 export default class C30 {
-	constructor({resolution = 1, gain = 0.1} = {}) {
+	constructor({clock = 24000, resolution = 1, gain = 0.1} = {}) {
 		this.ram = new Uint8Array(0x400);
 		this.reg = new Uint8Array(0x140);
 		this.snd = new Float32Array(0x200);
 		this.channel = [];
 		for (let i = 0; i < 8; i++)
 			this.channel.push({phase: 0, ncount: 0, rng: 1, output: 0});
-		this.rate = Math.floor(2048 * 48000 / audioCtx.sampleRate);
+		this.rate = Math.floor(clock * 4096 / audioCtx.sampleRate);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.count = this.sampleRate - 1;
 		this.resolution = resolution;

@@ -136,7 +136,7 @@ class SoundTest {
 				SoundTest.Xfer28x16(data, 256 * 16 * i, key[1]);
 			else {
 				const freq = reg[3 + i * 8] | reg[2 + i * 8] << 8 | reg[1 + i * 8] << 16 & 0xf0000;
-				const pitch = Math.floor(Math.log2(freq * 48000 / (1 << 21) / 440) * 12 + 45.5);
+				const pitch = Math.floor(Math.log2(freq * 24000 / (1 << 20) / 440) * 12 + 45.5);
 				if (pitch < 0 || pitch >= 12 * 8)
 					continue;
 				SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);

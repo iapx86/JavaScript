@@ -218,7 +218,7 @@ class SoundTest {
 				SoundTest.Xfer28x16(data, 256 * 16 * (8 + i), key[1]);
 			else {
 				const freq = reg[3 + i * 8] | reg[2 + i * 8] << 8 | reg[1 + i * 8] << 16 & 0xf0000;
-				const pitch = Math.floor(Math.log2(freq * 48000 / (1 << 21) / 440) * 12 + 45.5);
+				const pitch = Math.floor(Math.log2(freq * 12000 / (1 << 20) / 440) * 12 + 45.5);
 				if (pitch < 0 || pitch >= 12 * 8)
 					continue;
 				SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * (8 + i), key[pitch % 12 + 1]);
@@ -259,7 +259,7 @@ function success(zip) {
 		game: game = new SoundTest(),
 		sound: sound = [
 			new YM2151({clock: 3579580, resolution: 58, gain: 2}),
-			new C30({resolution: 58}),
+			new C30({clock: 49152000 / 2048 / 2, resolution: 58}),
 		],
 	});
 	game.initial = true;
