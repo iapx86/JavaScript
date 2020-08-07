@@ -38,7 +38,7 @@ class SoundTest {
 			this.cpu.memorymap[0x14 + i].write = null;
 		}
 		for (let i = 0; i < 0x20; i++)
-			this.cpu.memorymap[0x20 + i].base = PRG2.base[0x20 + i];
+			this.cpu.memorymap[0x20 + i].base = PRG3.base[0x20 + i];
 		this.cpu.memorymap[0x60].read = addr => addr === 0x6001 ? this.fm.status : 0xff;
 		this.cpu.memorymap[0x60].write = (addr, data) => {
 			switch (addr & 0xff) {
@@ -51,9 +51,9 @@ class SoundTest {
 			}
 		};
 		for (let i = 0; i < 0x40; i++)
-			this.cpu.memorymap[0x80 + i].base = PRG2.base[0x40 + i];
+			this.cpu.memorymap[0x80 + i].base = PRG3.base[0x40 + i];
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0xf0 + i].base = PRG2I.base[i];
+			this.cpu.memorymap[0xf0 + i].base = PRG3I.base[i];
 	}
 
 	execute() {
@@ -187,7 +187,7 @@ class SoundTest {
 
 const key = [];
 const url = 'roishtar.zip';
-let PRG2, PRG2I;
+let PRG3, PRG3I;
 
 window.addEventListener('load', () => {
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
@@ -200,8 +200,8 @@ window.addEventListener('load', () => {
 });
 
 function success(zip) {
-	PRG2 = new Uint8Array(zip.files['ri1_4.6b'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+	PRG3 = new Uint8Array(zip.files['ri1_4.6b'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+	PRG3I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	init({
 		game: game = new SoundTest(),
 		sound: sound = [
