@@ -20,6 +20,7 @@ class SoundTest {
 		this.yOffset = 0;
 		this.fReset = true;
 		this.nSound = 0;
+		this.command = [];
 
 		// CPU周りの初期化
 		this.ram2 = new Uint8Array(0x800).addBase();
@@ -106,10 +107,32 @@ class SoundTest {
 	}
 
 	updateStatus() {
+		// コマンド処理
+		if (this.command.length) {
+			if (this.command[0] < 0) {
+				for (let i = 0; i < 0x80; i++)
+					sound[1].write(0x240 + i, 0);
+				this.ram2[0x101] = 0;
+				this.ram2.set([0, 1, 0, 0, 0, 0, 0, 0], 0x30);
+				this.ram2[0x2f] = 8;
+				this.ram2[0x13] = 0;
+				this.ram2[0x38] = 0;
+			}
+			else if (this.command[0] < 0x100) {
+				this.ram2[0x100] = this.command[0];
+				this.ram2[0x101] = 0x40;
+				this.ram2[0x38] = 1;
+			}
+			else if (this.command[0] < 0x140)
+				sound[1].write(0x240 + this.command[0] - 0x100, 1);
+			this.command.shift();
+		}
+
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
 			this.nSound = 0;
+			this.command.splice(0);
 			this.cpu3_irq = false;
 			this.bankswitch3(0x40);
 			this.cpu3.reset();
@@ -141,8 +164,7 @@ class SoundTest {
 	right(fDown = false) {
 		if (fDown)
 			return this;
-		this.nSound = this.nSound + 1;
-		if (this.nSound >= 0x140)
+		if (++this.nSound >= 0x140)
 			this.nSound = 0;
 		return this;
 	}
@@ -154,8 +176,7 @@ class SoundTest {
 	left(fDown = false) {
 		if (fDown)
 			return this;
-		this.nSound = this.nSound - 1;
-		if (this.nSound < 0)
+		if (--this.nSound < 0)
 			this.nSound = 0x13f;
 		return this;
 	}
@@ -163,34 +184,15 @@ class SoundTest {
 	triggerA(fDown = false) {
 		if (fDown)
 			return this;
-		for (let i = 0; i < 0x80; i++)
-			sound[1].write(0x240 + i, 0);
-		this.ram2[0x101] = 0;
-		this.ram2.set([0, 1, 0, 0, 0, 0, 0, 0], 0x30);
-		this.ram2[0x2f] = 8;
-		this.ram2[0x13] = 0;
-		this.ram2[0x38] = 0;
 		console.log(`command=$${this.nSound.toString(16)}`);
-		if (this.nSound < 0x100) {
-			this.ram2[0x100] = this.nSound;
-			this.ram2[0x101] = 0x40;
-			this.ram2[0x38] = 1;
-		}
-		else if (this.nSound < 0x140)
-			sound[1].write(0x240 + this.nSound - 0x100, 1);
+		this.command.push(-1, this.nSound);
 		return this;
 	}
 
 	triggerB(fDown = false) {
 		if (fDown)
 			return this;
-		for (let i = 0; i < 0x80; i++)
-			sound[1].write(0x240 + i, 0);
-		this.ram2[0x101] = 0;
-		this.ram2.set([0, 1, 0, 0, 0, 0, 0, 0], 0x30);
-		this.ram2[0x2f] = 8;
-		this.ram2[0x13] = 0;
-		this.ram2[0x38] = 0;
+		this.command.push(-1);
 		return this;
 	}
 

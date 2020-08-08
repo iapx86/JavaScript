@@ -20,6 +20,7 @@ class SoundTest {
 		this.yOffset = 0;
 		this.fReset = true;
 		this.nSound = 1;
+		this.command = [];
 
 		// CPU周りの初期化
 		this.ram = new Uint8Array(0xd00).addBase();
@@ -67,9 +68,25 @@ class SoundTest {
 	}
 
 	updateStatus() {
+		// コマンド処理
+		if (this.command.length) {
+			if (this.command[0] === 0) {
+				for (let i = 0; i < 0x41; i++)
+					sound[1].write(0x285 + i, 0);
+				sound[1].write(0x380, 0);
+			}
+			else if (this.command[0] < 16)
+				sound[1].write(0x380, this.command[0]);
+			else if (this.command[0] < 40)
+				sound[1].write(0x285 + this.command[0] - 16, 1);
+			this.command.shift();
+		}
+
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
+			this.nSound = 1;
+			this.command.splice(0);
 			this.cpu.reset();
 		}
 		return this;
@@ -98,8 +115,7 @@ class SoundTest {
 	right(fDown = false) {
 		if (fDown)
 			return this;
-		this.nSound = this.nSound + 1;
-		if (this.nSound >= 40)
+		if (++this.nSound >= 40)
 			this.nSound = 1;
 		return this;
 	}
@@ -111,8 +127,7 @@ class SoundTest {
 	left(fDown = false) {
 		if (fDown)
 			return this;
-		this.nSound = this.nSound - 1;
-		if (this.nSound <= 0)
+		if (--this.nSound <= 0)
 			this.nSound = 39;
 		return this;
 	}
@@ -120,23 +135,15 @@ class SoundTest {
 	triggerA(fDown = false) {
 		if (fDown)
 			return this;
-		for (let i = 0; i < 0x41; i++)
-			sound[1].write(0x285 + i, 0);
-		sound[1].write(0x380, 0);
 		console.log(`command=$${this.nSound.toString(16)}`);
-		if (this.nSound < 16)
-			sound[1].write(0x380, this.nSound);
-		else
-			sound[1].write(0x285 + this.nSound - 16, 1);
+		this.command.push(0, this.nSound);
 		return this;
 	}
 
 	triggerB(fDown = false) {
 		if (fDown)
 			return this;
-		for (let i = 0; i < 0x41; i++)
-			sound[1].write(0x285 + i, 0);
-		sound[1].write(0x380, 0);
+		this.command.push(0);
 		return this;
 	}
 
