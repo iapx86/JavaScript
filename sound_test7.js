@@ -24,7 +24,7 @@ class SoundTest {
 
 		// CPU周りの初期化
 		this.ram2 = new Uint8Array(0x800).addBase();
-		this.fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Array(8).fill(false), status: 0, timera: 0, timerb: 0};
+		this.fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8), status: 0, timera: 0, timerb: 0};
 		this.vlm_latch = 0;
 		this.vlm_control = 0;
 		this.count = 0;
@@ -164,19 +164,15 @@ class SoundTest {
 	}
 
 	makeBitmap(data) {
-		for (let i = 0; i < 8; i++)
+		for (let i = 0; i < 16; i++)
 			for (let j = 0; j < 8; j++)
-				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[0]);
-
-		for (let i = 8; i < 16; i++)
-			for (let j = 0; j < 8; j++)
-				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[13]);
+				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);
 
 		for (let i = 0; i < 8; i++) {
-			if (!this.fm.kon[i])
+			const kc = this.fm.reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3);
+			if (!this.fm.kon[i] || pitch < 0 || pitch >= 12 * 8)
 				continue;
-			const kc = this.fm.reg[0x28 + i];
-			SoundTest.Xfer28x16(data, 28 * (kc >> 4 & 7) + 256 * 16 * i, key[(kc >> 2 & 3) * 3 + (kc & 3) + 1]);
+			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
 		}
 	}
 

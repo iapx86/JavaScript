@@ -157,7 +157,7 @@ class GenpeiToumaDen {
 			case 0:
 				return void(this.fm.addr = data);
 			case 1:
-				return void sound[0].write(this.fm.addr, data);
+				return sound[0].write(this.fm.addr, data);
 			}
 		};
 		for (let i = 0; i < 0x80; i++)

@@ -19,11 +19,11 @@ class SoundTest {
 		this.xOffset = 0;
 		this.yOffset = 0;
 		this.fReset = true;
-		this.nSound = 0;
+		this.nSound = 1;
 
 		// CPU周りの初期化
 		this.ram = new Uint8Array(0xd00).addBase();
-		this.fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Array(8).fill(false)};
+		this.fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8)};
 
 		this.cpu = new MC6801(this);
 
@@ -45,7 +45,7 @@ class SoundTest {
 			case 1:
 				if (this.fm.addr === 8)
 					this.fm.kon[data & 7] = (data & 0x78) !== 0;
-				return void sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data);
+				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data);
 			}
 		};
 		for (let i = 0; i < 0x40; i++)
@@ -98,7 +98,7 @@ class SoundTest {
 			return this;
 		this.nSound = this.nSound + 1;
 		if (this.nSound >= 48)
-			this.nSound = 0;
+			this.nSound = 1;
 		return this;
 	}
 
@@ -110,7 +110,7 @@ class SoundTest {
 		if (fDown)
 			return this;
 		this.nSound = this.nSound - 1;
-		if (this.nSound < 0)
+		if (this.nSound <= 0)
 			this.nSound = 47;
 		return this;
 	}
@@ -144,10 +144,10 @@ class SoundTest {
 				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[0]);
 
 		for (let i = 0; i < 8; i++) {
-			if (!this.fm.kon[i])
+			const kc = this.fm.reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3);
+			if (!this.fm.kon[i] || pitch < 0 || pitch >= 12 * 8)
 				continue;
-			const kc = this.fm.reg[0x28 + i];
-			SoundTest.Xfer28x16(data, 28 * (kc >> 4 & 7) + 256 * 16 * i, key[(kc >> 2 & 3) * 3 + (kc & 3) + 1]);
+			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
 		}
 
 		const reg = [];

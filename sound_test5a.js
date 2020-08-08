@@ -170,13 +170,9 @@ class SoundTest {
 	}
 
 	makeBitmap(data) {
-		for (let i = 0; i < 8; i++)
+		for (let i = 0; i < 16; i++)
 			for (let j = 0; j < 8; j++)
-				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[0]);
-
-		for (let i = 8; i < 16; i++)
-			for (let j = 0; j < 8; j++)
-				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[13]);
+				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);
 
 		const reg = [];
 		for (let i = 0; i < 0x20; i++)
