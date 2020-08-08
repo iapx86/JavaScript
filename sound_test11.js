@@ -23,23 +23,22 @@ class SoundTest {
 		this.command = [];
 
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0xd00).addBase();
+		this.ram3 = new Uint8Array(0xd00).addBase();
 		this.fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8)};
 
-		this.cpu = new MC6801(this);
-
-		this.cpu.memorymap[0].base = this.ram.base[0];
-		this.cpu.memorymap[0].write = null;
+		this.mcu = new MC6801(this);
+		this.mcu.memorymap[0].base = this.ram3.base[0];
+		this.mcu.memorymap[0].write = null;
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x10 + i].read = addr => sound[1].read(addr);
-			this.cpu.memorymap[0x10 + i].write = (addr, data) => sound[1].write(addr, data);
+			this.mcu.memorymap[0x10 + i].read = addr => sound[1].read(addr);
+			this.mcu.memorymap[0x10 + i].write = (addr, data) => sound[1].write(addr, data);
 		}
 		for (let i = 0; i < 0x0c; i++) {
-			this.cpu.memorymap[0x14 + i].base = this.ram.base[1 + i];
-			this.cpu.memorymap[0x14 + i].write = null;
+			this.mcu.memorymap[0x14 + i].base = this.ram3.base[1 + i];
+			this.mcu.memorymap[0x14 + i].write = null;
 		}
-		this.cpu.memorymap[0x28].read = addr => addr === 0x2801 ? 0 : 0xff;
-		this.cpu.memorymap[0x28].write = (addr, data) => {
+		this.mcu.memorymap[0x28].read = addr => addr === 0x2801 ? 0 : 0xff;
+		this.mcu.memorymap[0x28].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
 				return void(this.fm.addr = data);
@@ -50,14 +49,17 @@ class SoundTest {
 			}
 		};
 		for (let i = 0; i < 0x80; i++)
-			this.cpu.memorymap[0x40 + i].base = PRG3.base[i];
+			this.mcu.memorymap[0x40 + i].base = PRG3.base[i];
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0xf0 + i].base = PRG3I.base[i];
+			this.mcu.memorymap[0xf0 + i].base = PRG3I.base[i];
 	}
 
 	execute() {
-		this.cpu.interrupt('ocf');
-		this.cpu.execute(0x2000);
+		this.mcu.interrupt();
+		this.mcu.execute(0x1000);
+		if ((this.ram3[8] & 8) !== 0)
+			this.mcu.interrupt('ocf');
+		this.mcu.execute(0x1000);
 		return this;
 	}
 
@@ -85,7 +87,7 @@ class SoundTest {
 			this.fReset = false;
 			this.nSound = 1;
 			this.command.splice(0);
-			this.cpu.reset();
+			this.mcu.reset();
 		}
 		return this;
 	}
