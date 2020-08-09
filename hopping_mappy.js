@@ -154,6 +154,8 @@ class HoppingMappy {
 		this.bg2 = new Uint8Array(0x10000);
 		this.obj = new Uint8Array(0x10000);
 		this.rgb = new Uint32Array(0x200);
+		this.isspace1 = new Uint8Array(0x400);
+		this.isspace2 = new Uint8Array(0x400);
 		this.vScroll = new Uint16Array(4);
 		this.hScroll = new Uint8Array(4);
 //		this.bgbank = 0;
@@ -329,7 +331,7 @@ class HoppingMappy {
 	}
 
 	convertBG() {
-		for (let p = 0, q = 0, i = 0; i < 1024; q += 8, i++) {
+		for (let p = 0, q = 0, i = 1024; i !== 0; q += 8, --i) {
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
 					this.bg1[p++] = BG1[(q + k) * 2] >> j & 1 | BG1[(q + k) * 2] >> j + 3 & 2 | 4;
@@ -337,7 +339,7 @@ class HoppingMappy {
 				for (let k = 7; k >= 0; --k)
 					this.bg1[p++] = BG1[(q + k) * 2 + 1] >> j & 1 | BG1[(q + k) * 2 + 1] >> j + 3 & 2 | 4;
 		}
-		for (let p = 0, q = 0, i = 0; i < 1024; q += 8, i++) {
+		for (let p = 0, q = 0, i = 1024; i !== 0; q += 8, --i) {
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
 					this.bg2[p++] = BG2[(q + k) * 2] >> j & 1 | BG2[(q + k) * 2] >> j + 3 & 2 | 4;
@@ -345,6 +347,10 @@ class HoppingMappy {
 				for (let k = 7; k >= 0; --k)
 					this.bg2[p++] = BG2[(q + k) * 2 + 1] >> j & 1 | BG2[(q + k) * 2 + 1] >> j + 3 & 2 | 4;
 		}
+		for (let p = 0, q = 0, i = 1024; i !== 0; q += 64, --i)
+			this.isspace1[p++] = this.bg1.subarray(q, q + 64).every(e => e === 7)
+		for (let p = 0, q = 0, i = 1024; i !== 0; q += 64, --i)
+			this.isspace2[p++] = this.bg2.subarray(q, q + 64).every(e => e === 7)
 	}
 
 	convertOBJ() {
@@ -467,10 +473,12 @@ class HoppingMappy {
 	}
 
 	xfer8x8b1(data, p, k, back) {
-		const q = (this.ram[k] | this.ram[k + 1] << 8 & 0x100 | back << 9) << 6;
+		const c = this.ram[k] | this.ram[k + 1] << 8 & 0x100 | back << 9, q = c << 6;
 		const idx = this.ram[k + 1] << 3;
 		let px;
 
+		if (this.isspace1[c])
+			return;
 		if ((px = this.bg1[q | 0x00]) !== 7) data[p + 0x000] = BGCOLOR[idx | px];
 		if ((px = this.bg1[q | 0x01]) !== 7) data[p + 0x001] = BGCOLOR[idx | px];
 		if ((px = this.bg1[q | 0x02]) !== 7) data[p + 0x002] = BGCOLOR[idx | px];
@@ -538,10 +546,12 @@ class HoppingMappy {
 	}
 
 	xfer8x8b2(data, p, k, back) {
-		const q = (this.ram[k] | this.ram[k + 1] << 8 & 0x100 | back << 9) << 6;
+		const c = this.ram[k] | this.ram[k + 1] << 8 & 0x100 | back << 9, q = c << 6;
 		const idx = this.ram[k + 1] << 3;
 		let px;
 
+		if (this.isspace2[c])
+			return;
 		if ((px = this.bg2[q | 0x00]) !== 7) data[p + 0x000] = BGCOLOR[idx | px];
 		if ((px = this.bg2[q | 0x01]) !== 7) data[p + 0x001] = BGCOLOR[idx | px];
 		if ((px = this.bg2[q | 0x02]) !== 7) data[p + 0x002] = BGCOLOR[idx | px];

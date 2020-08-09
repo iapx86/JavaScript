@@ -180,6 +180,14 @@ if (!Uint8Array.prototype.copyWithin)
 			this[target - start + i] = this[i];
 	};
 
+if (!Uint8Array.prototype.every)
+	Uint8Array.prototype.every = function (func, thisObj) {
+		for (let i = 0; i < this.length; i++)
+			if (!func.call(thisObj, this[i]))
+				return false;
+		return true;
+	};
+
 if (!Uint8Array.prototype.fill)
 	Uint8Array.prototype.fill = function (value, start, end) {
 		if (start === undefined)

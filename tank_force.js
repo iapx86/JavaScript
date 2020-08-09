@@ -248,6 +248,7 @@ class TankForce {
 		this.chr = new Uint8Array(0x100000).fill(0xff);
 		this.obj = new Uint8Array(0x200000).fill(0xf);
 		this.rgb = new Uint32Array(0x2000).fill(0xff000000);
+		this.isspace = new Uint8Array(0x4000);
 		this.convertCHR();
 		this.convertOBJ();
 	}
@@ -456,6 +457,8 @@ class TankForce {
 	}
 
 	convertCHR() {
+		for (let p = 0, q = 0, i = 16384; i !== 0; q += 8, --i)
+			this.isspace[p++] = CHR8.subarray(q, q + 8).every(e => !e);
 		this.chr.set(CHR);
 	}
 
@@ -610,15 +613,16 @@ class TankForce {
 		// クリップ処理
 		const t = -58 + (ram[0x7800] << 8 | ram[0x7801]), b = -58 + (ram[0x7802] << 8 | ram[0x7803]);
 		const r = 273 - (ram[0x7804] << 8 | ram[0x7805]), l = 273 - (ram[0x7806] << 8 | ram[0x7807]);
-		for (let y = 16; y < 288 + 16; y++) {
-			if (y < t || y >= b) {
-				data.fill(black, 16 | y << 8, 224 + 16 | y << 8);
-				continue;
+		if (t > 16 || b < 288 + 16 || l > 16 || r < 224 + 16)
+			for (let y = 16; y < 288 + 16; y++) {
+				if (y < t || y >= b) {
+					data.fill(black, 16 | y << 8, 224 + 16 | y << 8);
+					continue;
+				}
+				for (let x = 16; x < 224 + 16; x++)
+					if (x < l || x >= r)
+						data[x | y << 8] = black;
 			}
-			for (let x = 16; x < 224 + 16; x++)
-				if (x < l || x >= r)
-					data[x | y << 8] = black;
-		}
 
 		// palette変換
 		p = 256 * 16 + 16;
@@ -628,8 +632,10 @@ class TankForce {
 	}
 
 	xfer8x8(data, p, k, color) {
-		const q1 = (this.ram[k] << 8 & 0x3f00 | this.ram[k + 1]) << 3, q2 = q1 << 3;
+		const c = this.ram[k] << 8 & 0x3f00 | this.ram[k + 1], q1 = c << 3, q2 = q1 << 3;
 
+		if (this.isspace[c])
+			return ;
 		if ((CHR8[q1 | 0] & 0x80) !== 0) data[p + 0x007] = color | this.chr[q2 | 0x00];
 		if ((CHR8[q1 | 0] & 0x40) !== 0) data[p + 0x107] = color | this.chr[q2 | 0x01];
 		if ((CHR8[q1 | 0] & 0x20) !== 0) data[p + 0x207] = color | this.chr[q2 | 0x02];

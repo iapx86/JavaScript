@@ -155,6 +155,8 @@ class SkyKidDeluxe {
 		this.bg2 = new Uint8Array(0x20000);
 		this.obj = new Uint8Array(0x20000);
 		this.rgb = new Uint32Array(0x200);
+		this.isspace1 = new Uint8Array(0x800);
+		this.isspace2 = new Uint8Array(0x800);
 		this.vScroll = new Uint16Array(4);
 		this.hScroll = new Uint8Array(4);
 //		this.bgbank = 0;
@@ -332,7 +334,7 @@ class SkyKidDeluxe {
 	}
 
 	convertBG() {
-		for (let p = 0, q = 0, i = 0; i < 2048; q += 8, i++) {
+		for (let p = 0, q = 0, i = 2048; i !== 0; q += 8, --i) {
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
 					this.bg1[p++] = BG1[(q + k) * 2] >> j & 1 | BG1[(q + k) * 2] >> j + 3 & 2 | ~BG1[q + k + 0x8000] >> j + 2 & 4;
@@ -340,7 +342,7 @@ class SkyKidDeluxe {
 				for (let k = 7; k >= 0; --k)
 					this.bg1[p++] = BG1[(q + k) * 2 + 1] >> j & 1 | BG1[(q + k) * 2 + 1] >> j + 3 & 2 | ~BG1[q + k + 0x8000] >> j << 2 & 4;
 		}
-		for (let p = 0, q = 0, i = 0; i < 2048; q += 8, i++) {
+		for (let p = 0, q = 0, i = 2048; i !== 0; q += 8, --i) {
 			for (let j = 3; j >= 0; --j)
 				for (let k = 7; k >= 0; --k)
 					this.bg2[p++] = BG2[(q + k) * 2] >> j & 1 | BG2[(q + k) * 2] >> j + 3 & 2 | ~BG2[q + k + 0x8000] >> j + 2 & 4;
@@ -348,6 +350,10 @@ class SkyKidDeluxe {
 				for (let k = 7; k >= 0; --k)
 					this.bg2[p++] = BG2[(q + k) * 2 + 1] >> j & 1 | BG2[(q + k) * 2 + 1] >> j + 3 & 2 | ~BG2[q + k + 0x8000] >> j << 2 & 4;
 		}
+		for (let p = 0, q = 0, i = 2048; i !== 0; q += 64, --i)
+			this.isspace1[p++] = this.bg1.subarray(q, q + 64).every(e => e === 7)
+		for (let p = 0, q = 0, i = 2048; i !== 0; q += 64, --i)
+			this.isspace2[p++] = this.bg2.subarray(q, q + 64).every(e => e === 7)
 	}
 
 	convertOBJ() {
