@@ -14,7 +14,7 @@ export default class Dac8Bit2Ch {
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.resolution = resolution;
 		this.gain = gain;
-		this.tmpwheel = [new Uint8Array(resolution), new Uint8Array(resolution)];
+		this.tmpwheel = [new Uint8Array(resolution).fill(0x80), new Uint8Array(resolution).fill(0x80)];
 		this.wheel = [];
 		if (!audioCtx)
 			return;
@@ -47,7 +47,7 @@ export default class Dac8Bit2Ch {
 			}
 			this.wheel.push(this.tmpwheel);
 		}
-		this.tmpwheel = [new Uint8Array(this.resolution), new Uint8Array(this.resolution)];
+		this.tmpwheel = [new Uint8Array(this.resolution).fill(0x80), new Uint8Array(this.resolution).fill(0x80)];
 	}
 
 	makeSound(data) {
