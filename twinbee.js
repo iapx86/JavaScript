@@ -56,7 +56,7 @@ class TwinBee {
 		}
 		for (let i = 0; i < 0x80; i++) {
 			this.cpu.memorymap[0x200 + i].read = addr => (addr & 1) !== 0 ? this.ram2[addr >> 1 & 0x3fff] : 0;
-			this.cpu.memorymap[0x200 + i].write = (addr, data) => (addr & 1) !== 0 && (this.ram2[addr >> 1 & 0x3fff] = data);
+			this.cpu.memorymap[0x200 + i].write = (addr, data) => void((addr & 1) !== 0 && (this.ram2[addr >> 1 & 0x3fff] = data));
 		}
 		for (let i = 0; i < 0x100; i++) {
 			this.cpu.memorymap[0x300 + i].base = this.ram.base[0x100 + i];
@@ -84,7 +84,7 @@ class TwinBee {
 					| 0xff000000;									// Alpha
 			};
 		}
-		this.cpu.memorymap[0x5c0].write = (addr, data) => addr === 0x5c001 && this.command.push(data);
+		this.cpu.memorymap[0x5c0].write = (addr, data) => void(addr === 0x5c001 && this.command.push(data));
 		this.cpu.memorymap[0x5c4].read = addr => addr >= 0x5c402 && addr < 0x5c408 ? this.in[addr - 0x5c402 >> 1] : 0xff;
 		this.cpu.memorymap[0x5cc].read = addr => addr < 0x5cc06 ? this.in[addr - 0x5cc00 + 6 >> 1] : 0xff;
 		this.cpu.memorymap[0x5d0].read = addr => addr === 0x5d001 ? 0 : 0xff;
@@ -119,8 +119,8 @@ class TwinBee {
 			this.cpu2.memorymap[0x80 + i].write = null;
 		}
 		for (let i = 0; i < 0x10; i++) {
-			this.cpu2.memorymap[0xa0 + i].write = addr => this.scc.freq0 = ~addr & 0xfff;
-			this.cpu2.memorymap[0xc0 + i].write = addr => this.scc.freq1 = ~addr & 0xfff;
+			this.cpu2.memorymap[0xa0 + i].write = addr => void(this.scc.freq0 = ~addr & 0xfff);
+			this.cpu2.memorymap[0xc0 + i].write = addr => void(this.scc.freq1 = ~addr & 0xfff);
 		}
 		this.cpu2.memorymap[0xe0].read = addr => {
 			switch (addr & 0xff) {
@@ -147,7 +147,7 @@ class TwinBee {
 				return sound[3].st(this.vlm_latch);
 			}
 		};
-		this.cpu2.memorymap[0xe1].write = (addr, data) => addr === 0xe106 && this.psg[0].addr !== 0xe && sound[0].write(this.psg[0].addr, data, this.count);
+		this.cpu2.memorymap[0xe1].write = (addr, data) => void(addr === 0xe106 && this.psg[0].addr !== 0xe && sound[0].write(this.psg[0].addr, data, this.count));
 		this.cpu2.memorymap[0xe2].read = addr => addr === 0xe205 ? sound[1].read(this.psg[1].addr) : 0xff;
 		this.cpu2.memorymap[0xe4].write = (addr, data) => {
 			if (addr === 0xe405) {

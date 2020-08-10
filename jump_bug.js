@@ -56,7 +56,7 @@ class JumpBug {
 			else if (range(page, 0x58, 0x58))
 				this.cpu.memorymap[page].write = (addr, data) => sound[0].write(this.psg.addr, data);
 			else if (range(page, 0x59, 0x59))
-				this.cpu.memorymap[page].write = (addr, data) => this.psg.addr = data;
+				this.cpu.memorymap[page].write = (addr, data) => void(this.psg.addr = data);
 			else if (range(page, 0x60, 0x60, 0x07)) {
 				this.cpu.memorymap[page].read = () => this.in[0];
 				this.cpu.memorymap[page].write = (addr, data) => {

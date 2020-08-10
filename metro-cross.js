@@ -51,7 +51,7 @@ class MetroCross {
 		}
 		for (let i = 0; i < 0xa0; i++)
 			this.cpu.memorymap[0x60 + i].base = PRG1.base[i];
-		this.cpu.memorymap[0x88].write = () => this.cpu_irq = false;
+		this.cpu.memorymap[0x88].write = () => void(this.cpu_irq = false);
 		this.cpu.memorymap[0xb0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:

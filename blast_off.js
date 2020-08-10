@@ -213,14 +213,14 @@ class BlastOff {
 				return data;
 			}
 			return this.ram4[addr];
-		}
+		};
 		this.mcu.memorymap[0].write = (addr, data) => {
 			if (addr === 3) {
 				sound[2].channel[0].gain = ((data >> 1 & 2 | data & 1) + 1) / 4;
 				sound[2].channel[1].gain = ((data >> 3 & 3) + 1) / 4;
 			}
 			this.ram4[addr] = data;
-		}
+		};
 		this.mcu.memorymap[0x10].read = addr => this.in[2] >> (~addr << 1 & 4) | 0xf0;
 		this.mcu.memorymap[0x14].read = addr => this.in[addr & 1];
 		for (let i = 0; i < 0x80; i++)
@@ -512,7 +512,8 @@ class BlastOff {
 				if ((ram[0x5ff6] & 1) === 0) {
 					p = 256 * 8 * 2 + 232 - (48 + vScroll & 7) * 256 + (24 + hScroll & 7);
 					k = 48 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0x8000;
-				} else {
+				}
+				else {
 					p = 256 * 8 * 2 + 232 - (176 - vScroll & 7) * 256 + (264 - hScroll & 7);
 					k = 176 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0x8000;
 				}
@@ -525,7 +526,8 @@ class BlastOff {
 				if ((ram[0x5ff6] & 1) === 0) {
 					p = 256 * 8 * 2 + 232 - (46 + vScroll & 7) * 256 + (24 + hScroll & 7);
 					k = 46 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0xa000;
-				} else {
+				}
+				else {
 					p = 256 * 8 * 2 + 232 - (178 - vScroll & 7) * 256 + (264 - hScroll & 7);
 					k = 178 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0xa000;
 				}
@@ -538,7 +540,8 @@ class BlastOff {
 				if ((ram[0x5ff6] & 1) === 0) {
 					p = 256 * 8 * 2 + 232 - (45 + vScroll & 7) * 256 + (24 + hScroll & 7);
 					k = 45 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0xc000;
-				} else {
+				}
+				else {
 					p = 256 * 8 * 2 + 232 - (179 - vScroll & 7) * 256 + (264 - hScroll & 7);
 					k = 179 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0xc000;
 				}

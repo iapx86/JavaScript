@@ -60,7 +60,7 @@ class Toypop {
 		this.cpu.memorymap[0x88].write = () => this.cpu3.disable();
 		this.cpu.memorymap[0x90].write = () => this.cpu2.enable();
 		this.cpu.memorymap[0x98].write = () => this.cpu2.disable();
-		this.cpu.memorymap[0xa0].write = addr => this.palette = addr << 7 & 0x80;
+		this.cpu.memorymap[0xa0].write = addr => void(this.palette = addr << 7 & 0x80);
 
 		this.cpu2 = new MC6809(this);
 		for (let i = 0; i < 4; i++) {
@@ -79,7 +79,7 @@ class Toypop {
 		}
 		for (let i = 0; i < 0x10; i++) {
 			this.cpu3.memorymap[0x1000 + i].read = addr => this.ram2[addr >> 1 & 0x7ff];
-			this.cpu3.memorymap[0x1000 + i].write = (addr, data) => this.ram2[addr >> 1 & 0x7ff] = data;
+			this.cpu3.memorymap[0x1000 + i].write = (addr, data) => void(this.ram2[addr >> 1 & 0x7ff] = data);
 		}
 		for (let i = 0; i < 0x80; i++) {
 			this.cpu3.memorymap[0x1800 + i].read = addr => this.vram[addr = addr << 1 & 0xfffe] << 4 | this.vram[addr | 1] & 0xf;

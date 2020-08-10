@@ -51,15 +51,15 @@ class SkyKid {
 			this.cpu.memorymap[0x40 + i].base = this.ram.base[0x10 + i];
 			this.cpu.memorymap[0x40 + i].write = null;
 		}
-		this.cpu.memorymap[0x60].write = addr => this.hScroll = addr & 0xff;
+		this.cpu.memorymap[0x60].write = addr => void(this.hScroll = addr & 0xff);
 		for (let i = 0; i < 2; i++)
-			this.cpu.memorymap[0x62 + i].write = addr => this.vScroll = addr & 0x1ff;
+			this.cpu.memorymap[0x62 + i].write = addr => void(this.vScroll = addr & 0x1ff);
 		for (let i = 0; i < 4; i++) {
 			this.cpu.memorymap[0x68 + i].read = addr => sound.read(addr);
 			this.cpu.memorymap[0x68 + i].write = (addr, data) => sound.write(addr, data);
 		}
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0x70 + i].write = addr => this.fInterruptEnable0 = (addr & 0x800) === 0;
+			this.cpu.memorymap[0x70 + i].write = addr => void(this.fInterruptEnable0 = (addr & 0x800) === 0);
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[0x80 + i].base = PRG1.base[i];
 		for (let i = 0; i < 0x10; i++)
@@ -92,7 +92,7 @@ class SkyKid {
 			this.mcu.memorymap[0x10 + i].write = (addr, data) => sound.write(addr, data);
 		}
 		for (let i = 0; i < 0x40; i++)
-			this.mcu.memorymap[0x40 + i].write = addr => this.fInterruptEnable1 = (addr & 0x2000) === 0;
+			this.mcu.memorymap[0x40 + i].write = addr => void(this.fInterruptEnable1 = (addr & 0x2000) === 0);
 		for (let i = 0; i < 0x20; i++)
 			this.mcu.memorymap[0x80 + i].base = PRG2.base[i];
 		for (let i = 0; i < 8; i++) {

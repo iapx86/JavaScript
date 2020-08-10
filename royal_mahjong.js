@@ -40,7 +40,7 @@ class RoyalMahjong {
 			this.cpu.memorymap[0x70 + i].write = null;
 		}
 		for (let i = 0; i < 0x80; i++)
-			this.cpu.memorymap[0x80 + i].write = (addr, data) => this.vram[addr & 0x7fff] = data;
+			this.cpu.memorymap[0x80 + i].write = (addr, data) => void(this.vram[addr & 0x7fff] = data);
 		for (let i = 0; i < 0x100; i++) {
 			this.cpu.iomap[i].read = addr => {
 				switch (addr & 0xff) {

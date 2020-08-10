@@ -57,9 +57,9 @@ class SkyKidDeluxe {
 			this.cpu.memorymap[0x60 + i].base = PRG1.base[i];
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[0x80 + i].base = PRG1.base[0x80 + i];
-		this.cpu.memorymap[0x84].write = () => this.cpu_irq = false;
+		this.cpu.memorymap[0x84].write = () => void(this.cpu_irq = false);
 //		for (let i = 0; i < 8; i++)
-//			this.cpu.memorymap[0x88 + i].write = addr => this.bgbank = addr >> 10 & 1;
+//			this.cpu.memorymap[0x88 + i].write = addr => void(this.bgbank = addr >> 10 & 1);
 		this.cpu.memorymap[0x90].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
@@ -106,7 +106,7 @@ class SkyKidDeluxe {
 		this.cpu2 = new MC6809(this);
 		for (let i = 0; i < 0x80; i++)
 			this.cpu2.memorymap[0x80 + i].base = PRG2.base[i];
-		this.cpu2.memorymap[0x94].write = () => this.cpu2_irq = false;
+		this.cpu2.memorymap[0x94].write = () => void(this.cpu2_irq = false);
 
 		this.cpu2.check_interrupt = () => this.cpu2_irq && this.cpu2.interrupt();
 
@@ -409,7 +409,8 @@ class SkyKidDeluxe {
 				if ((ram[0x5ff6] & 1) === 0) {
 					p = 256 * 8 * 2 + 232 - (21 + this.vScroll[2] & 7) * 256 + (25 + this.hScroll[2] & 7);
 					k = 21 + this.vScroll[2] >> 2 & 0x7e | 25 + this.hScroll[2] << 4 & 0xf80 | 0x2000;
-				} else {
+				}
+				else {
 					p = 256 * 8 * 2 + 232 - (203 - this.vScroll[2] & 7) * 256 + (7 - this.hScroll[2] & 7);
 					k = 203 - this.vScroll[2] >> 2 & 0x7e | 7 - this.hScroll[2] << 4 & 0xf80 | 0x2000;
 				}
@@ -421,7 +422,8 @@ class SkyKidDeluxe {
 				if ((ram[0x5ff6] & 1) === 0) {
 					p = 256 * 8 * 2 + 232 - (18 + this.vScroll[1] & 7) * 256 + (25 + this.hScroll[1] & 7);
 					k = 18 + this.vScroll[1] >> 2 & 0x7e | 25 + this.hScroll[1] << 4 & 0xf80 | 0x1000;
-				} else {
+				}
+				else {
 					p = 256 * 8 * 2 + 232 - (206 - this.vScroll[1] & 7) * 256 + (7 - this.hScroll[1] & 7);
 					k = 206 - this.vScroll[1] >> 2 & 0x7e | 7 - this.hScroll[1] << 4 & 0xf80 | 0x1000;
 				}
@@ -433,7 +435,8 @@ class SkyKidDeluxe {
 				if ((ram[0x5ff6] & 1) === 0) {
 					p = 256 * 8 * 2 + 232 - (20 + this.vScroll[0] & 7) * 256 + (25 + this.hScroll[0] & 7);
 					k = 20 + this.vScroll[0] >> 2 & 0x7e | 25 + this.hScroll[0] << 4 & 0xf80;
-				} else {
+				}
+				else {
 					p = 256 * 8 * 2 + 232 - (204 - this.vScroll[0] & 7) * 256 + (7 - this.hScroll[0] & 7);
 					k = 204 - this.vScroll[0] >> 2 & 0x7e | 7 - this.hScroll[0] << 4 & 0xf80;
 				}
@@ -476,10 +479,12 @@ class SkyKidDeluxe {
 	}
 
 	xfer8x8b1(data, p, k, back) {
-		const q = (this.ram[k] | this.ram[k + 1] << 8 & 0x300 | back << 10) << 6;
+		const c = this.ram[k] | this.ram[k + 1] << 8 & 0x300 | back << 10, q = c << 6;
 		const idx = this.ram[k + 1] << 3;
 		let px;
 
+		if (this.isspace1[c])
+			return;
 		if ((px = this.bg1[q | 0x00]) !== 7) data[p + 0x000] = BGCOLOR[idx | px];
 		if ((px = this.bg1[q | 0x01]) !== 7) data[p + 0x001] = BGCOLOR[idx | px];
 		if ((px = this.bg1[q | 0x02]) !== 7) data[p + 0x002] = BGCOLOR[idx | px];
@@ -547,10 +552,12 @@ class SkyKidDeluxe {
 	}
 
 	xfer8x8b2(data, p, k, back) {
-		const q = (this.ram[k] | this.ram[k + 1] << 8 & 0x300 | back << 10) << 6;
+		const c = this.ram[k] | this.ram[k + 1] << 8 & 0x300 | back << 10, q = c << 6;
 		const idx = this.ram[k + 1] << 3;
 		let px;
 
+		if (this.isspace2[c])
+			return;
 		if ((px = this.bg2[q | 0x00]) !== 7) data[p + 0x000] = BGCOLOR[idx | px];
 		if ((px = this.bg2[q | 0x01]) !== 7) data[p + 0x001] = BGCOLOR[idx | px];
 		if ((px = this.bg2[q | 0x02]) !== 7) data[p + 0x002] = BGCOLOR[idx | px];

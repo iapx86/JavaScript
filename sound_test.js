@@ -29,8 +29,8 @@ class SoundTest {
 			this.cpu.memorymap[i].read = addr => sound.read(addr);
 			this.cpu.memorymap[i].write = (addr, data) => sound.write(addr, data);
 		}
-		this.cpu.memorymap[0x40].write = () => this.fInterruptEnable = true;
-		this.cpu.memorymap[0x60].write = () => this.fInterruptEnable = false;
+		this.cpu.memorymap[0x40].write = () => void(this.fInterruptEnable = true);
+		this.cpu.memorymap[0x60].write = () => void(this.fInterruptEnable = false);
 		for (let i = 0; i < 0x20; i++)
 			this.cpu.memorymap[0xe0 + i].base = PRG2.base[i];
 	}

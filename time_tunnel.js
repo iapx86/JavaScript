@@ -57,8 +57,8 @@ class TimeTunnel {
 			this.cpu.memorymap[0x90 + i].write = null;
 		}
 		this.cpu.memorymap[0xd2].read = addr => this.ram[0x4a00 | addr & 0x7f];
-		this.cpu.memorymap[0xd2].write = (addr, data) => this.ram[0x4a00 | addr & 0x7f] = data;
-		this.cpu.memorymap[0xd3].write = (addr, data) => this.priority = data;
+		this.cpu.memorymap[0xd2].write = (addr, data) => void(this.ram[0x4a00 | addr & 0x7f] = data);
+		this.cpu.memorymap[0xd3].write = (addr, data) => void(this.priority = data);
 		this.cpu.memorymap[0xd4].read = addr => {
 			switch (addr & 0x0f) {
 			case 0:
@@ -132,7 +132,7 @@ class TimeTunnel {
 				return;
 			}
 		};
-		this.cpu.memorymap[0xd6].write = (addr, data) => this.mode = data;
+		this.cpu.memorymap[0xd6].write = (addr, data) => void(this.mode = data);
 
 		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x10; i++)

@@ -69,7 +69,7 @@ class Mappy {
 			this.cpu.memorymap[i].write = null;
 		}
 		for (let i = 0; i < 8; i++)
-			this.cpu.memorymap[0x38 + i].write = addr => this.dwScroll = addr >> 3 & 0xff;
+			this.cpu.memorymap[0x38 + i].write = addr => void(this.dwScroll = addr >> 3 & 0xff);
 		for (let i = 0; i < 4; i++) {
 			this.cpu.memorymap[0x40 + i].read = addr => sound.read(addr);
 			this.cpu.memorymap[0x40 + i].write = (addr, data) => sound.write(addr, data);

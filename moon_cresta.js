@@ -85,7 +85,7 @@ class MoonCresta {
 				};
 			}
 			else if (range(page, 0xb8, 0xb8, 0x07))
-				this.cpu.memorymap[page].write = (addr, data) => this.mmo[0x30] = data;
+				this.cpu.memorymap[page].write = (addr, data) => void(this.mmo[0x30] = data);
 
 		// Videoの初期化
 		this.stars = [];

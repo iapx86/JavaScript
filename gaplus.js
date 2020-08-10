@@ -54,8 +54,8 @@ class Gaplus {
 				this.se[0].start = this.se[0].stop = true;
 			this.ram[0x2000 | addr & 0xff] = data;
 		};
-		this.cpu.memorymap[0x74].write = () => this.fInterruptEnable0 = true;
-		this.cpu.memorymap[0x7c].write = () => this.fInterruptEnable0 = false;
+		this.cpu.memorymap[0x74].write = () => void(this.fInterruptEnable0 = true);
+		this.cpu.memorymap[0x7c].write = () => void(this.fInterruptEnable0 = false);
 		this.cpu.memorymap[0x84].write = () => {
 			this.cpu2.enable();
 			this.cpu3.enable();
@@ -66,7 +66,7 @@ class Gaplus {
 		};
 		for (let i = 0; i < 0x60; i++)
 			this.cpu.memorymap[0xa0 + i].base = PRG1.base[i];
-		this.cpu.memorymap[0xa0].write = (addr, data) => this.starport[addr & 0xff] = data;
+		this.cpu.memorymap[0xa0].write = (addr, data) => void(this.starport[addr & 0xff] = data);
 
 		this.cpu2 = new MC6809(this);
 		for (let i = 0; i < 0x20; i++) {
@@ -91,8 +91,8 @@ class Gaplus {
 			this.cpu3.memorymap[i].read = addr => sound[0].read(addr);
 			this.cpu3.memorymap[i].write = (addr, data) => sound[0].write(addr, data);
 		}
-		this.cpu3.memorymap[0x40].write = () => this.fInterruptEnable2 = true;
-		this.cpu3.memorymap[0x60].write = () => this.fInterruptEnable2 = false;
+		this.cpu3.memorymap[0x40].write = () => void(this.fInterruptEnable2 = true);
+		this.cpu3.memorymap[0x60].write = () => void(this.fInterruptEnable2 = false);
 		for (let i = 0; i < 0x20; i++)
 			this.cpu3.memorymap[0xe0 + i].base = PRG3.base[i];
 

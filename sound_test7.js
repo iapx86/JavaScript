@@ -40,7 +40,7 @@ class SoundTest {
 		}
 		this.cpu2.memorymap[0xa0].read = addr => addr === 0xa000 && this.command.length ? this.command.shift() : 0xff;
 		this.cpu2.memorymap[0xb0].read = addr => addr < 0xb00e ? sound[1].read(addr, this.count) : 0xff;
-		this.cpu2.memorymap[0xb0].write = (addr, data) => addr < 0xb00e && sound[1].write(addr, data, this.count);
+		this.cpu2.memorymap[0xb0].write = (addr, data) => void(addr < 0xb00e && sound[1].write(addr, data, this.count));
 		this.cpu2.memorymap[0xc0].read = addr => addr === 0xc001 ? this.fm.status : 0xff;
 		this.cpu2.memorymap[0xc0].write = (addr, data) => {
 			switch (addr & 0xff) {
@@ -62,7 +62,7 @@ class SoundTest {
 				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
 			}
 		};
-		this.cpu2.memorymap[0xd0].write = (addr, data) => addr === 0xd000 && (this.vlm_latch = data);
+		this.cpu2.memorymap[0xd0].write = (addr, data) => void(addr === 0xd000 && (this.vlm_latch = data));
 		this.cpu2.memorymap[0xe0].read = addr => addr === 0xe000 ? this.wd ^= 1 : 0xff;
 		this.cpu2.memorymap[0xf0].write = (addr, data) => {
 			if (addr === 0xf000) {

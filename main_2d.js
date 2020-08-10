@@ -433,16 +433,15 @@ export default class Cpu {
 		return true;
 	}
 
-	static multiple_execute(cpu, count) {
-		const n = cpu.length;
+	static multiple_execute(cpus, count) {
 		for (let i = 0; i < count; i++)
-			for (let j = 0; j < n; j++) {
-				if (!cpu[j].fActive || cpu[j].check_interrupt && cpu[j].check_interrupt(cpu[j].arg) || cpu[j].fSuspend)
-					continue;
-				if (cpu[j].breakpoint && (cpu[j].breakpointmap[cpu[j].pc >> 5] & 1 << (cpu[j].pc & 0x1f)) !== 0)
-					cpu[j].breakpoint(cpu[j].pc, cpu[j].arg);
-				cpu[j]._execute();
-			}
+			cpus.forEach(cpu => {
+				if (!cpu.fActive || cpu.check_interrupt && cpu.check_interrupt(cpu.arg) || cpu.fSuspend)
+					return;
+				if (cpu.breakpoint && (cpu.breakpointmap[cpu.pc >>> 5] & 1 << (cpu.pc & 0x1f)) !== 0)
+					cpu.breakpoint(cpu.pc, cpu.arg);
+				cpu._execute();
+			});
 	}
 
 	execute(count) {
@@ -451,7 +450,7 @@ export default class Cpu {
 				break;
 			if (this.check_interrupt && this.check_interrupt(this.arg) || this.fSuspend)
 				continue;
-			if (this.breakpoint && (this.breakpointmap[this.pc >> 5] & 1 << (this.pc & 0x1f)) !== 0)
+			if (this.breakpoint && (this.breakpointmap[this.pc >>> 5] & 1 << (this.pc & 0x1f)) !== 0)
 				this.breakpoint(this.pc, this.arg);
 			this._execute();
 		}

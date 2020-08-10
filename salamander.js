@@ -55,7 +55,7 @@ class Salamander {
 		}
 		for (let i = 0; i < 0x20; i++) {
 			this.cpu.memorymap[0x900 + i].read = addr => (addr & 1) !== 0 ? this.ram[0x8000 | addr >> 1 & 0xfff] : 0;
-			this.cpu.memorymap[0x900 + i].write = (addr, data) => (addr & 1) !== 0 && (this.ram[0x8000 | addr >> 1 & 0xfff] = data);
+			this.cpu.memorymap[0x900 + i].write = (addr, data) => void((addr & 1) !== 0 && (this.ram[0x8000 | addr >> 1 & 0xfff] = data));
 		}
 		this.cpu.memorymap[0xa00].write = (addr, data) => {
 			if (addr === 0xa0001) {
@@ -64,7 +64,7 @@ class Salamander {
 			}
 		};
 		this.cpu.memorymap[0xc00].read = addr => addr === 0xc0003 ? this.in[0] : 0xff;
-		this.cpu.memorymap[0xc00].write = (addr, data) => addr === 0xc0001 && this.command.push(data);
+		this.cpu.memorymap[0xc00].write = (addr, data) => void(addr === 0xc0001 && this.command.push(data));
 		this.cpu.memorymap[0xc20].read = addr => {
 			switch (addr & 0xff) {
 			case 1:
@@ -109,7 +109,7 @@ class Salamander {
 		}
 		this.cpu2.memorymap[0xa0].read = addr => addr === 0xa000 && this.command.length ? this.command.shift() : 0xff;
 		this.cpu2.memorymap[0xb0].read = addr => addr < 0xb00e ? sound[1].read(addr, this.count) : 0xff;
-		this.cpu2.memorymap[0xb0].write = (addr, data) => addr < 0xb00e && sound[1].write(addr, data, this.count);
+		this.cpu2.memorymap[0xb0].write = (addr, data) => void(addr < 0xb00e && sound[1].write(addr, data, this.count));
 		this.cpu2.memorymap[0xc0].read = addr => addr === 0xc001 ? this.fm.status : 0xff;
 		this.cpu2.memorymap[0xc0].write = (addr, data) => {
 			switch (addr & 0xff) {
@@ -126,7 +126,7 @@ class Salamander {
 				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
 			}
 		};
-		this.cpu2.memorymap[0xd0].write = (addr, data) => addr === 0xd000 && (this.vlm_latch = data);
+		this.cpu2.memorymap[0xd0].write = (addr, data) => void(addr === 0xd000 && (this.vlm_latch = data));
 		this.cpu2.memorymap[0xe0].read = addr => addr === 0xe000 ? this.wd ^= 1 : 0xff;
 		this.cpu2.memorymap[0xf0].write = (addr, data) => {
 			if (addr === 0xf000) {
