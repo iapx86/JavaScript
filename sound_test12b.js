@@ -90,14 +90,14 @@ class SoundTest {
 				return data;
 			}
 			return this.ram4[addr];
-		}
+		};
 		this.mcu.memorymap[0].write = (addr, data) => {
 			if (addr === 3) {
 				sound[2].channel[0].gain = ((data >> 1 & 2 | data & 1) + 1) / 4;
 				sound[2].channel[1].gain = ((data >> 3 & 3) + 1) / 4;
 			}
 			this.ram4[addr] = data;
-		}
+		};
 		for (let i = 0; i < 0x80; i++)
 			this.mcu.memorymap[0x40 + i].base = VOI.base[0x80 + i];
 		for (let i = 0; i < 8; i++) {
@@ -345,9 +345,9 @@ function success(zip) {
 	init({
 		game: game = new SoundTest(),
 		sound: sound = [
-			new YM2151({clock: 3579580, resolution: 58, gain: 2}),
+			new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
 			new C30({clock: 49152000 / 2048 / 2, resolution: 58}),
-			new Dac8Bit2Ch({resolution: 100}),
+			new Dac8Bit2Ch({resolution: 100, gain: 0.5}),
 		],
 	});
 	game.initial = true;

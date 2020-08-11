@@ -10,7 +10,7 @@ export default class Dac8Bit2Ch {
 		this.position = 0;
 		this.channel = [];
 		for (let i = 0; i < 2; i++)
-			this.channel.push({output: 0, position: 0, gain: 1});
+			this.channel.push({output: 0, gain: 1});
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.resolution = resolution;
 		this.gain = gain;
