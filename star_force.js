@@ -5,6 +5,7 @@
  */
 
 import SN76489 from './sn76489.js';
+import SenjyoSound from './senjyo_sound.js';
 import Cpu, {init, loop} from './main.js';
 import Z80 from './z80.js';
 let sound;
@@ -38,7 +39,7 @@ class StarForce {
 		this.cpu_irq = false;
 		this.cpu2_command = 0;
 		this.pio = {irq: false, fInterruptEnable: false};
-		this.ctc = {irq: false, fInterruptEnable: false};
+		this.ctc = {irq: false, fInterruptEnable: false, cmd: 0};
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x80; i++)
@@ -72,19 +73,23 @@ class StarForce {
 		this.cpu2.memorymap[0x80].write = (addr, data) => sound[0].write(data, this.count);
 		this.cpu2.memorymap[0x90].write = (addr, data) => sound[1].write(data, this.count);
 		this.cpu2.memorymap[0xa0].write = (addr, data) => sound[2].write(data, this.count);
-		this.cpu2.memorymap[0xd0].write = () => {};
+		this.cpu2.memorymap[0xd0].write = (addr, data) => sound[3].write(1, data & 15, this.count);
 		for (let i = 0; i < 0x100; i++) {
 			this.cpu2.iomap[i].read = addr => (addr & 0xff) === 0 ? this.cpu2_command : 0xff;
 			this.cpu2.iomap[i].write = (addr, data) => {
 				switch (addr & 0xff) {
 				case 1:
-					if (data === 0xa7)
-						this.pio.fInterruptEnable = true;
-					break;
+					return void(data === 0xa7 && (this.pio.fInterruptEnable = true));
 				case 9:
-					if (data === 0xd7)
-						this.ctc.fInterruptEnable = true;
-					break;
+					return void(data === 0xd7 && (this.ctc.fInterruptEnable = true));
+				case 0xa:
+					if ((this.ctc.cmd & 4) !== 0) {
+						sound[3].write(0, (data ? data : 256) * ((this.ctc.cmd & 0x20) !== 0 ? 16 : 1), this.count);
+						this.ctc.cmd &= ~4;
+					}
+					else if ((data & 1) !== 0)
+						this.ctc.cmd = data;
+					return;
 				}
 			};
 		}
@@ -212,6 +217,7 @@ class StarForce {
 			this.pio.fInterruptEnable = false;
 			this.ctc.irq = false;
 			this.ctc.fInterruptEnable = false;
+			this.ctc.cmd = 0;
 		}
 		return this;
 	}
@@ -653,7 +659,7 @@ class StarForce {
  */
 
 const url = 'starforc.zip';
-let PRG1, PRG2, FG, BG1, BG2, BG3, OBJ;
+let PRG1, PRG2, FG, BG1, BG2, BG3, OBJ, SND;
 
 window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
 
@@ -665,12 +671,14 @@ function success(zip) {
 	BG2 = new Uint8Array((zip.files['12.10de'].inflate()+ zip.files['11.9de'].inflate() + zip.files['10.8de'].inflate()).split('').map(c => c.charCodeAt(0)));
 	BG3 = new Uint8Array((zip.files['18.10pq'].inflate()+ zip.files['17.9pq'].inflate() + zip.files['16.8pq'].inflate()).split('').map(c => c.charCodeAt(0)));
 	OBJ = new Uint8Array((zip.files['6.10lm'].inflate()+ zip.files['5.9lm'].inflate() + zip.files['4.8lm'].inflate()).split('').map(c => c.charCodeAt(0)));
+	SND = new Uint8Array(zip.files['07b.bin'].inflate().split('').map(c => c.charCodeAt(0)));
 	init({
 		game: new StarForce(),
 		sound: sound = [
 			new SN76489({clock: 2000000, resolution: 3}),
 			new SN76489({clock: 2000000, resolution: 3}),
 			new SN76489({clock: 2000000, resolution: 3}),
+			new SenjyoSound({SND, clock: 2000000, resolution: 3}),
 		],
 	});
 	loop();
