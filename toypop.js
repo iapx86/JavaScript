@@ -31,6 +31,7 @@ class Toypop {
 		this.fRound = false;
 
 		// CPU周りの初期化
+		this.fInterruptEnable = false;
 		this.fInterruptEnable2 = false;
 
 		this.ram = new Uint8Array(0x2100).addBase();
@@ -54,6 +55,11 @@ class Toypop {
 			this.cpu.memorymap[0x68 + i].read = addr => sound.read(addr);
 			this.cpu.memorymap[0x68 + i].write = (addr, data) => sound.write(addr, data);
 		}
+		this.cpu.memorymap[0x70].read = () => {
+			this.fInterruptEnable = true;
+			return 0;
+		};
+		this.cpu.memorymap[0x70].write = () => void(this.fInterruptEnable = false);
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[0x80 + i].base = PRG1.base[i];
 		this.cpu.memorymap[0x80].write = () => this.cpu3.enable();
@@ -93,7 +99,7 @@ class Toypop {
 			this.cpu3.memorymap[0x1900 + i].write = null;
 		}
 		for (let i = 0; i < 0x1000; i++)
-			this.cpu3.memorymap[0x3000 + i].write16 = addr => this.fInterruptEnable2 = (addr & 0x80000) === 0;
+			this.cpu3.memorymap[0x3000 + i].write16 = addr => void(this.fInterruptEnable2 = (addr & 0x80000) === 0);
 
 		// Videoの初期化
 		this.bg = new Uint8Array(0x8000);
@@ -106,7 +112,8 @@ class Toypop {
 	}
 
 	execute() {
-		this.cpu.interrupt();
+		if (this.fInterruptEnable)
+			this.cpu.interrupt();
 		this.cpu2.interrupt();
 		if (this.fInterruptEnable2)
 			this.cpu3.interrupt(6);

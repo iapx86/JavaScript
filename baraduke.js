@@ -39,6 +39,7 @@ class Baraduke {
 		this.timer = 0;
 		this.counter = 0;
 		this.cpu_irq = false;
+		this.mcu_irq = false;
 
 		this.cpu = new MC6809(this);
 		for (let i = 0; i < 0x40; i++) {
@@ -55,7 +56,6 @@ class Baraduke {
 		}
 		for (let i = 0; i < 0xa0; i++)
 			this.cpu.memorymap[0x60 + i].base = PRG1.base[i];
-		this.cpu.memorymap[0x88].write = () => void(this.cpu_irq = false);
 		this.cpu.memorymap[0xb0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
@@ -73,10 +73,26 @@ class Baraduke {
 			}
 		};
 
-		this.cpu.check_interrupt = () => this.cpu_irq && this.cpu.interrupt();
+		this.cpu.check_interrupt = () => {
+			if (this.cpu_irq && this.cpu.interrupt()) {
+				this.cpu_irq = false;
+				return true;
+			}
+			return false;
+		};
 
 		this.mcu = new MC6801(this);
-		this.mcu.memorymap[0].read = addr => addr === 2 ? this.in[this.select] : this.ram2[addr];
+		this.mcu.memorymap[0].read = addr => {
+			switch (addr) {
+			case 2:
+				return this.in[this.select];
+			case 8:
+				const data = this.ram2[8];
+				this.ram2[8] &= ~0xe0;
+				return data;
+			}
+			return this.ram2[addr];
+		};
 		this.mcu.memorymap[0].write = (addr, data) => {
 			if (addr === 2 && (data & 0xe0) === 0x60)
 				this.select = data & 7;
@@ -95,6 +111,14 @@ class Baraduke {
 		for (let i = 0; i < 0x10; i++)
 			this.mcu.memorymap[0xf0 + i].base = PRG2I.base[i];
 
+		this.mcu.check_interrupt = () => {
+			if (this.mcu_irq && this.mcu.interrupt()) {
+				this.mcu_irq = false;
+				return true;
+			}
+			return (this.ram2[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf');
+		};
+
 		// Videoの初期化
 		this.fg = new Uint8Array(0x8000);
 		this.bg = new Uint8Array(0x20000);
@@ -109,8 +133,7 @@ class Baraduke {
 	}
 
 	execute() {
-		this.cpu_irq = true;
-		this.mcu.interrupt();
+		this.cpu_irq = this.mcu_irq = true;
 		for (this.timer = 0; this.timer < 200; this.timer++) {
 			sound.ram[0x105] = this.counter >> 15;
 			for (let i = 0; i < 4; i++) {
@@ -119,8 +142,7 @@ class Baraduke {
 			}
 			this.counter += sound.ram[0x103] | sound.ram[0x102] << 8 | sound.ram[0x101] << 16 & 0xf0000;
 		}
-		if ((this.ram2[8] & 8) !== 0)
-			this.mcu.interrupt('ocf');
+		this.ram2[8] |= this.ram2[8] << 3 & 0x40;
 		for (this.timer = 200; this.timer < 400; this.timer++) {
 			sound.ram[0x105] = this.counter >> 15;
 			for (let i = 0; i < 4; i++) {
@@ -207,7 +229,7 @@ class Baraduke {
 		if (this.fReset) {
 			this.fReset = false;
 			this.counter = 0;
-			this.cpu_irq = false;
+			this.cpu_irq = this.mcu_irq = false;
 			this.cpu.reset();
 			this.mcu.reset();
 		}

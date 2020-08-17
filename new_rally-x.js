@@ -31,7 +31,7 @@ class NewRallyX {
 		this.nBonus = 'A';
 
 		// CPU周りの初期化
-		this.fInterrupt = false;
+		this.fInterruptEnable = false;
 		this.fSoundEnable = false;
 
 		this.ram = new Uint8Array(0x1800).addBase();
@@ -40,6 +40,7 @@ class NewRallyX {
 		this.adwCount = new Uint8Array(8);
 		this.mmi[0x100] = 0xc5;
 		this.vector = 0;
+		this.cpu_irq = false;
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x40; i++)
@@ -57,7 +58,14 @@ class NewRallyX {
 			this.cpu.memorymap[0xa0 + i].write = systemcontrolarea;
 		}
 		for (let i = 0; i < 0x100; i++)
-			this.cpu.iomap[i].write = (addr, data) => void((addr & 0xff) === 0 && (this.vector = data));
+			this.cpu.iomap[i].write = (addr, data) => {
+				if ((addr & 0xff) === 0) {
+					this.vector = data;
+					this.cpu_irq = false;
+				}
+			};
+
+		this.cpu.check_interrupt = () => this.cpu_irq && this.cpu.interrupt(this.vector);
 
 		this.cpu.breakpoint = hookBreakPoint;
 		this.cpu.set_breakpoint(0x0d39);
@@ -89,7 +97,8 @@ class NewRallyX {
 						game.se[0].start = game.se[0].stop = true;
 					break;
 				case 1:
-					game.fInterrupt = (data & 1) !== 0;
+					game.fInterruptEnable = (data & 1) !== 0;
+					game.cpu_irq = false;
 					break;
 				case 2:
 					game.fSoundEnable = (data & 1) !== 0;
@@ -120,8 +129,7 @@ class NewRallyX {
 
 	execute() {
 //		sound[0].mute(!this.fSoundEnable);
-		while (this.fInterrupt && !this.cpu.interrupt(this.vector))
-			this.cpu.execute(0x10);
+		this.cpu_irq = this.fInterruptEnable;
 		this.cpu.execute(0x2400);
 		return this;
 	}
@@ -169,6 +177,7 @@ class NewRallyX {
 		if (this.fReset) {
 			this.fReset = false;
 			this.adwCount.fill(0);
+			this.cpu_irq = false;
 			this.cpu.reset();
 		}
 

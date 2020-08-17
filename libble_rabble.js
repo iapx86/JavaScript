@@ -32,6 +32,7 @@ class LibbleRabble {
 		this.nRank = 'A';
 
 		// CPU周りの初期化
+		this.fInterruptEnable = false;
 		this.fInterruptEnable2 = false;
 
 		this.ram = new Uint8Array(0x2100).addBase();
@@ -55,6 +56,8 @@ class LibbleRabble {
 		}
 		this.cpu.memorymap[0x68].base = this.ram.base[0x20];
 		this.cpu.memorymap[0x68].write = null;
+		for (let i = 0; i < 0x10; i++)
+			this.cpu.memorymap[0x70 + i].write = addr => void(this.fInterruptEnable = (addr & 0x800) === 0);
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[0x80 + i].base = PRG1.base[i];
 		this.cpu.memorymap[0x80].write = () => this.cpu3.enable();
@@ -94,7 +97,7 @@ class LibbleRabble {
 			this.cpu3.memorymap[0x1900 + i].write = null;
 		}
 		for (let i = 0; i < 0x1000; i++)
-			this.cpu3.memorymap[0x3000 + i].write16 = addr => this.fInterruptEnable2 = (addr & 0x80000) === 0;
+			this.cpu3.memorymap[0x3000 + i].write16 = addr => void(this.fInterruptEnable2 = (addr & 0x80000) === 0);
 
 		// Videoの初期化
 		this.bg = new Uint8Array(0x8000);
@@ -107,7 +110,8 @@ class LibbleRabble {
 	}
 
 	execute() {
-		this.cpu.interrupt();
+		if (this.fInterruptEnable)
+			this.cpu.interrupt();
 		this.cpu2.interrupt();
 		if (this.fInterruptEnable2)
 			this.cpu3.interrupt(6);

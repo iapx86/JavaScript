@@ -27,6 +27,8 @@ class SpaceChaser {
 		// CPU周りの初期化
 		this.ram = new Uint8Array(0x4000).addBase();
 		this.io = new Uint8Array(0x100);
+		this.cpu_irq = false;
+		this.cpu_irq2 = false;
 
 		this.cpu = new I8080(this);
 		for (let i = 0; i < 0x20; i++)
@@ -65,6 +67,18 @@ class SpaceChaser {
 			}
 		};
 
+		this.cpu.check_interrupt = () => {
+			if (this.cpu_irq && this.cpu.interrupt(0xd7)) { // RST 10H
+				this.cpu_irq = false;
+				return true;
+			}
+			if (this.cpu_irq2 && this.cpu.interrupt(0xcf)) { // RST 08H
+				this.cpu_irq2 = false;
+				return true;
+			}
+			return false;
+		};
+
 		// Videoの初期化
 		this.shifter = {shift: 0, reg: 0};
 		this.background_disable = false;
@@ -72,10 +86,10 @@ class SpaceChaser {
 	}
 
 	execute() {
+		this.cpu_irq = true;
 		this.cpu.execute(0x0800);
-		this.cpu.interrupt(0xd7); // RST 10h
+		this.cpu_irq2 = true;
 		this.cpu.execute(0x0800);
-		this.cpu.interrupt(0xcf); // RST 08h
 		return this;
 	}
 
@@ -115,6 +129,7 @@ class SpaceChaser {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
+			this.cpu_irq = this.cpu_irq2 = false;
 			this.ram.fill(0);
 			this.cpu.reset();
 		}

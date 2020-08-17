@@ -244,7 +244,7 @@ class WorldCourt {
 			this.mcu.memorymap[0xf0 + i].base = MCU.base[i];
 		this.mcu.memorymap[0xf0].write = () => void(this.mcu_irq = false);
 
-		this.mcu.check_interrupt = () => this.mcu_irq && this.mcu.interrupt() || (this.ram4[8] & 0x40) !== 0 && this.mcu.interrupt('ocf');
+		this.mcu.check_interrupt = () => this.mcu_irq && this.mcu.interrupt() || (this.ram4[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf');
 
 		// Videoの初期化
 		this.chr = new Uint8Array(0x100000).fill(0xff);
@@ -321,7 +321,7 @@ class WorldCourt {
 			}
 		}
 		for (this.count = 0; this.count < 50; this.count++) {
-			(this.ram4[8] & 8) !== 0 && (this.ram4[8] |= 0x40);
+			this.ram4[8] |= this.ram4[8] << 3 & 0x40;
 			this.mcu.execute(84);
 		}
 		for (this.count = 29; this.count < 58; this.count++) { // 3579580 / 60 / 1024
@@ -336,7 +336,7 @@ class WorldCourt {
 			}
 		}
 		for (this.count = 50; this.count < 100; this.count++) {
-			(this.ram4[8] & 8) !== 0 && (this.ram4[8] |= 0x40);
+			this.ram4[8] |= this.ram4[8] << 3 & 0x40;
 			this.mcu.execute(84);
 		}
 		return this;

@@ -36,6 +36,8 @@ class _1942 {
 		this.command = 0;
 		this.bank = 0x80;
 		this.timer = 0;
+		this.cpu_irq = false;
+		this.cpu_irq2 = false;
 
 		this.cpu = new Z80(this);
 		for (let i = 0; i < 0xc0; i++)
@@ -72,6 +74,18 @@ class _1942 {
 			this.cpu.memorymap[0xe0 + i].base = this.ram.base[0x0d + i];
 			this.cpu.memorymap[0xe0 + i].write = null;
 		}
+
+		this.cpu.check_interrupt = () => {
+			if (this.cpu_irq && this.cpu.interrupt(0xd7)) { // RST 10H
+				this.cpu_irq = false;
+				return true;
+			}
+			if (this.cpu_irq2 && this.cpu.interrupt(0xcf)) { // RST 08H
+				this.cpu_irq2 = false;
+				return true;
+			}
+			return false;
+		};
 
 		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x40; i++)
@@ -118,9 +132,9 @@ class _1942 {
 	execute() {
 		for (let i = 0; i < 16; i++) {
 			if (i === 0)
-				this.cpu.interrupt(0xd7); // RST 10H
+				this.cpu_irq = true;
 			if (i === 1)
-				this.cpu.interrupt(0xcf); // RST 08H
+				this.cpu_irq2 = true;
 			if ((i & 3) === 0) {
 				this.timer = i >> 2;
 				this.cpu2.interrupt();
@@ -187,6 +201,7 @@ class _1942 {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
+			this.cpu_irq = this.cpu_irq2 = false;
 			this.cpu.reset();
 			this.cpu2.disable();
 		}
