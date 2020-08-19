@@ -127,17 +127,9 @@ class DragonSpirit {
 					return this.bankswitch(reg, (addr & 1) === 0 ? data << 13 & 0x6000 | this.bank1[reg] & 0x1fe0 : this.bank1[reg] & 0x6000 | data << 5);
 				switch (reg) {
 				case 8:
-					if ((data & 1) === 0) {
-						this.cpu2.disable();
-						this.cpu3.disable();
-						this.mcu.disable();
-					}
-					else {
-						this.cpu2.enable();
-						this.cpu3.enable();
-						this.mcu.enable();
-					}
-					return;
+					(data & 1) === 0 ? this.cpu2.disable() : this.cpu2.enable();
+					(data & 1) === 0 ? this.cpu3.disable() : this.cpu3.enable();
+					return (data & 1) === 0 ? this.mcu.disable() : this.mcu.enable();
 				case 11:
 					return void(this.cpu_irq = false);
 				case 13:
@@ -476,7 +468,7 @@ class DragonSpirit {
 
 	convertCHR() {
 		for (let p = 0, q = 0, i = 16384; i !== 0; q += 8, --i)
-			this.isspace[p++] = CHR8.subarray(q, q + 8).every(e => !e);
+			this.isspace[p++] = Number(CHR8.subarray(q, q + 8).every(e => !e));
 		this.chr.set(CHR);
 	}
 

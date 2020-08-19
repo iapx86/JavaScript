@@ -348,9 +348,9 @@ class HoppingMappy {
 					this.bg2[p++] = BG2[(q + k) * 2 + 1] >> j & 1 | BG2[(q + k) * 2 + 1] >> j + 3 & 2 | 4;
 		}
 		for (let p = 0, q = 0, i = 1024; i !== 0; q += 64, --i)
-			this.isspace1[p++] = this.bg1.subarray(q, q + 64).every(e => e === 7)
+			this.isspace1[p++] = Number(this.bg1.subarray(q, q + 64).every(e => e === 7));
 		for (let p = 0, q = 0, i = 1024; i !== 0; q += 64, --i)
-			this.isspace2[p++] = this.bg2.subarray(q, q + 64).every(e => e === 7)
+			this.isspace2[p++] = Number(this.bg2.subarray(q, q + 64).every(e => e === 7));
 	}
 
 	convertOBJ() {

@@ -46,7 +46,7 @@ class SoundTest {
 				return void(this.fm.addr = data);
 			case 1:
 				if (this.fm.addr === 8)
-					this.fm.kon[data & 7] = (data & 0x78) !== 0;
+					this.fm.kon[data & 7] = Number((data & 0x78) !== 0);
 				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data);
 			}
 		};

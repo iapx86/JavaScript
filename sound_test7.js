@@ -49,7 +49,7 @@ class SoundTest {
 			case 1:
 				switch (this.fm.addr) {
 				case 8: // KON
-					this.fm.kon[data & 7] = (data & 0x78) !== 0;
+					this.fm.kon[data & 7] = Number((data & 0x78) !== 0);
 					break;
 				case 0x14: // CSM/F RESET/IRQEN/LOAD
 					this.fm.status &= ~(data >> 4 & 3);
