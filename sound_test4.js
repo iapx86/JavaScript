@@ -4,46 +4,63 @@
  *
  */
 
+import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import {init, loop, canvas} from './main.js';
 import MC6801 from './mc6801.js';
 let game, sound;
 
 class SoundTest {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 256;
+	xOffset = 0;
+	yOffset = 0;
+
+	fReset = true;
+	nSound = 0;
+	command = [];
+
+	ram3 = new Uint8Array(0xd00).addBase();
+	fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8)};
+	mcu = new MC6801();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 256;
-		this.xOffset = 0;
-		this.yOffset = 0;
-		this.fReset = true;
-		this.nSound = 0;
-
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0xe00).addBase();
-
-		this.cpu = new MC6801(this);
-
-		this.cpu.memorymap[0].base = this.ram.base[0];
-		this.cpu.memorymap[0].write = null;
+		this.mcu.memorymap[0].base = this.ram3.base[0];
+		this.mcu.memorymap[0].write = null;
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x10 + i].read = addr => sound.read(addr);
-			this.cpu.memorymap[0x10 + i].write = (addr, data) => sound.write(addr, data);
+			this.mcu.memorymap[0x10 + i].read = addr => sound[1].read(addr);
+			this.mcu.memorymap[0x10 + i].write = (addr, data) => sound[1].write(addr, data);
 		}
-		for (let i = 0; i < 0x0d; i++) {
-			this.cpu.memorymap[0x14 + i].base = this.ram.base[1 + i];
-			this.cpu.memorymap[0x14 + i].write = null;
+		for (let i = 0; i < 0x0c; i++) {
+			this.mcu.memorymap[0x14 + i].base = this.ram3.base[1 + i];
+			this.mcu.memorymap[0x14 + i].write = null;
 		}
+		this.mcu.memorymap[0x20].read = addr => addr === 0x2001 ? 0 : 0xff;
+		this.mcu.memorymap[0x20].write = (addr, data) => {
+			switch (addr & 0xff) {
+			case 0:
+				return void(this.fm.addr = data);
+			case 1:
+				if (this.fm.addr === 8)
+					this.fm.kon[data & 7] = Number((data & 0x78) !== 0);
+				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data);
+			}
+		};
 		for (let i = 0; i < 0x20; i++)
-			this.cpu.memorymap[0x80 + i].base = PRG3.base[i];
+			this.mcu.memorymap[0x80 + i].base = PRG3.base[i];
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0xf0 + i].base = PRG3I.base[i];
+			this.mcu.memorymap[0xf0 + i].base = PRG3I.base[i];
 	}
 
 	execute() {
-		this.cpu.interrupt('ocf');
-		this.cpu.execute(0x2000);
+		this.mcu.interrupt();
+		this.mcu.execute(0x1000);
+		if ((this.ram3[8] & 8) !== 0)
+			this.mcu.interrupt('ocf');
+		this.mcu.execute(0x1000);
 		return this;
 	}
 
@@ -52,10 +69,22 @@ class SoundTest {
 	}
 
 	updateStatus() {
+		// コマンド処理
+		if (this.command.length) {
+			for (let i = 0; i < 0x20; i++)
+				sound[1].write(0x285 + i, 0);
+			sound[1].write(0x380, 0);
+			if (this.command[0] < 0xe)
+				sound[1].write(0x285 + this.command[0], 1);
+			this.command.shift();
+		}
+
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.cpu.reset();
+			this.nSound = 0;
+			this.command.splice(0);
+			this.mcu.reset();
 		}
 		return this;
 	}
@@ -83,7 +112,8 @@ class SoundTest {
 	right(fDown = false) {
 		if (fDown)
 			return this;
-		this.nSound = this.nSound + 1 & 0x1f;
+		if (++this.nSound >= 0xe)
+			this.nSound = 0;
 		return this;
 	}
 
@@ -94,24 +124,23 @@ class SoundTest {
 	left(fDown = false) {
 		if (fDown)
 			return this;
-		this.nSound = this.nSound - 1 & 0x1f;
+		if (--this.nSound < 0)
+			this.nSound = 0xd;
 		return this;
 	}
 
 	triggerA(fDown = false) {
 		if (fDown)
 			return this;
-		for (let i = 0; i < 0x40; i++)
-			sound.write(0x285 + i, 0);
-		sound.write(0x285 + this.nSound, 1);
+		console.log(`command=$${this.nSound.toString(16)}`);
+		this.command.push(this.nSound);
 		return this;
 	}
 
 	triggerB(fDown = false) {
 		if (fDown)
 			return this;
-		for (let i = 0; i < 0x40; i++)
-			sound.write(0x285 + i, 0);
+		this.command.push(0x100);
 		return this;
 	}
 
@@ -122,7 +151,7 @@ class SoundTest {
 
 		const reg = [];
 		for (let i = 0; i < 0x40; i++)
-			reg[i] = sound.read(0x100 + i);
+			reg[i] = sound[1].read(0x100 + i);
 
 		for (let i = 0; i < 8; i++) {
 			const vol = reg[i * 8] & 0x0f;
@@ -172,7 +201,10 @@ function success(zip) {
 	PRG3I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	init({
 		game: game = new SoundTest(),
-		sound: sound = new C30(),
+		sound: sound = [
+			new YM2151({clock: 3579580}),
+			new C30(),
+		],
 	});
 	game.initial = true;
 	canvas.addEventListener('click', e => {

@@ -10,48 +10,61 @@ import Z80 from './z80.js';
 let sound;
 
 class DigDug {
+	cxScreen = 224;
+	cyScreen = 288;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = false;
+	fStart1P = false;
+	fStart2P = false;
+	dwCoin = 0;
+	dwStick = 0;
+	abStick = Uint8Array.of(0xf8, 0xf0, 0xf2, 0xf0, 0xf4, 0xf8, 0xf2, 0xf2, 0xf6, 0xf6, 0xf8, 0xf0, 0xf4, 0xf6, 0xf4, 0xf8);
+	abStick2 = Uint8Array.of(~0, ~1, ~2, ~1, ~4, ~0, ~2, ~2, ~8, ~8, ~0, ~1, ~4, ~8, ~4, ~0);
+	dwButton = 0;
+	nDigdug = 3;
+	nBonus = 'F';
+	nRank = 'B';
+	fContinue = false;
+	fAttract = true;
+
+	fInterruptEnable0 = false;
+	fInterruptEnable1 = false;
+	fInterruptEnable2 = false;
+	fNmiEnable = false;
+	dwMode = 0;
+	ram = new Uint8Array(RAM).addBase();
+	mmi = new Uint8Array(0x100).fill(0xff);
+	mmo = new Uint8Array(0x100);
+	count = 0;
+	dmaport = new Uint8Array(0x100).fill(0x10);
+	ioport = new Uint8Array(0x100).fill(0xff);
+
+	fBG2Attribute = true;
+	fBG4Disable = true;
+	fFlip = true;
+	dwBG4Color = 3;
+	dwBG4Select = 3;
+	bg2 = new Uint8Array(0x2000);
+	bg4 = new Uint8Array(0x4000);
+	obj = new Uint8Array(0x10000);
+	bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf);
+	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf | 0x10);
+	rgb = new Uint32Array(0x20);
+
+	cpu = [];
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 288;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = false;
-		this.fStart1P = false;
-		this.fStart2P = false;
-		this.dwCoin = 0;
-		this.dwStick = 0;
-		this.abStick = Uint8Array.of(0xf8, 0xf0, 0xf2, 0xf0, 0xf4, 0xf8, 0xf2, 0xf2, 0xf6, 0xf6, 0xf8, 0xf0, 0xf4, 0xf6, 0xf4, 0xf8);
-		this.abStick2 = Uint8Array.of(~0, ~1, ~2, ~1, ~4, ~0, ~2, ~2, ~8, ~8, ~0, ~1, ~4, ~8, ~4, ~0);
-		this.dwButton = 0;
-		this.nDigdug = 3;
-		this.nBonus = 'F';
-		this.nRank = 'B';
-		this.fContinue = false;
-		this.fAttract = true;
+		for (let i = 0; i < 3; i++)
+			this.cpu.push(new Z80(this));
 
 		// CPU周りの初期化
-		this.fInterruptEnable0 = false;
-		this.fInterruptEnable1 = false;
-		this.fInterruptEnable2 = false;
-		this.fNmiEnable = false;
-		this.dwMode = 0;
-
-		this.ram = new Uint8Array(0x2000).addBase();
-		this.ram.set(RAM);
-		this.mmi = new Uint8Array(0x100).fill(0xff);
-		this.mmo = new Uint8Array(0x100);
-		this.count = 0;
-		this.dmaport = new Uint8Array(0x100).fill(0x10);
-		this.ioport = new Uint8Array(0x100).fill(0xff);
-
-		this.cpu = [];
-		for (let i = 0; i < 3; i++)
-			this.cpu[i] = new Z80(this);
 		for (let i = 0; i < 0x40; i++)
 			this.cpu[0].memorymap[i].base = PRG1.base[i];
 		for (let i = 0; i < 0x20; i++)
@@ -86,17 +99,6 @@ class DigDug {
 		this.mmi[1] = 0x2e; // DIPSW B
 
 		// Videoの初期化
-		this.fBG2Attribute = true;
-		this.fBG4Disable = true;
-		this.fFlip = true;
-		this.dwBG4Color = 3;
-		this.dwBG4Select = 3;
-		this.bg2 = new Uint8Array(0x2000);
-		this.bg4 = new Uint8Array(0x4000);
-		this.obj = new Uint8Array(0x10000);
-		this.bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf);
-		this.objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf | 0x10);
-		this.rgb = new Uint32Array(0x20);
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
@@ -121,14 +123,10 @@ class DigDug {
 						game.fInterruptEnable2 = true;
 					break;
 				case 3:
-					if ((data & 1) !== 0) {
-						game.cpu[1].enable();
-						game.cpu[2].enable();
-					}
-					else {
-						game.cpu[1].disable();
-						game.cpu[2].disable();
-					}
+					if ((data & 1) !== 0)
+						game.cpu[1].enable(), game.cpu[2].enable();
+					else
+						game.cpu[1].disable(), game.cpu[2].disable();
 					break;
 				}
 			}

@@ -5,15 +5,24 @@
  */
 
 export default class Namco63701X {
+	pcm;
+	rate;
+	sampleRate;
+	gain;
+	cycles = 0;
+	channel = [];
+
+	source;
+	gainNode;
+	scriptNode;
+
 	constructor({PCM, clock, gain = 0.7}) {
-		this.cycles = 0;
-		this.channel = [];
-		for (let i = 0; i < 2; i++)
-			this.channel.push({select: 0, play: false, pos: 0, vol: 0, count: 0});
 		this.pcm = PCM;
 		this.rate = Math.floor(clock / 1000);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.gain = gain;
+		for (let i = 0; i < 2; i++)
+			this.channel.push({select: 0, play: false, pos: 0, vol: 0, count: 0});
 		if (!audioCtx)
 			return;
 		this.source = audioCtx.createBufferSource();

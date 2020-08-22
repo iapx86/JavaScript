@@ -7,13 +7,14 @@
 import Cpu from './main.js';
 
 export default class MCS6502 extends Cpu {
+	a = 0;
+	iy = 0;
+	ix = 0;
+	sp = 0;
+	ccr = 0; // ccr:nv1bdizc
+
 	constructor(arg = null) {
 		super(arg);
-		this.a = 0;
-		this.iy = 0;
-		this.ix = 0;
-		this.sp = 0;
-		this.ccr = 0; // ccr:nv1bdizc
 	}
 
 	reset() {

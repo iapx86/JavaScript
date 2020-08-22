@@ -372,18 +372,20 @@ function updateGamepad(game) {
 export const dummypage = new Uint8Array(0x100).fill(0xff);
 
 export default class Cpu {
+	fActive = false;
+	fSuspend = false;
+	pc = 0;
+	memorymap = [];
+	check_interrupt = null;
+	breakpointmap = new Uint32Array(0x800);
+	breakpoint = null;
+	undef = null;
+	undefsize = 0;
+	arg = null;
+
 	constructor(arg = null) {
-		this.fActive = false;
-		this.fSuspend = false;
-		this.pc = 0;
-		this.memorymap = [];
 		for (let i = 0; i < 0x100; i++)
 			this.memorymap.push({base: dummypage, read: null, write: () => {}, fetch: null});
-		this.check_interrupt = null;
-		this.breakpointmap = new Uint32Array(0x800);
-		this.breakpoint = null;
-		this.undef = null;
-		this.undefsize = 0;
 		this.arg = arg;
 	}
 

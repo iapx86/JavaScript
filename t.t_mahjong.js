@@ -10,31 +10,36 @@ import Z80 from './z80.js';
 let game, sound;
 
 class TTMahjong {
+	cxScreen = 240;
+	cyScreen = 256;
+	width = 256;
+	height = 256;
+	xOffset = 0;
+	yOffset = 0;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nSpeed = 0;
+
+	ram = new Uint8Array(0x400).addBase();
+	vram1 = new Uint8Array(0x4000);
+	vram2 = new Uint8Array(0x4000);
+	in = new Uint8Array(9);
+	select = 0;
+	psg = {addr: 0};
+
+	rgb = Uint32Array.of(0xff000000, 0xffff0000, 0xff00ff00, 0xffffff00, 0xff0000ff, 0xffff00ff, 0xff00ffff, 0xffffffff);
+	palette1 = 0;
+	palette2 = 0;
+
+	cpu = [new Z80(), new Z80()];
+
 	constructor() {
-		this.cxScreen = 240;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 256;
-		this.xOffset = 0;
-		this.yOffset = 0;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nSpeed = 0;
-
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0x400).addBase();
-		this.vram1 = new Uint8Array(0x4000);
-		this.vram2 = new Uint8Array(0x4000);
-		this.in = new Uint8Array(9);
-		this.select = 0;
-		this.psg = {addr: 0};
-
-		this.cpu = [new Z80(this), new Z80(this)];
-
 		for (let i = 0; i < 0x40; i++)
 			this.cpu[0].memorymap[i].base = PRG1.base[i];
 		for (let i = 0; i < 4; i++) {
@@ -60,11 +65,6 @@ class TTMahjong {
 		}
 		for (let i = 0; i < 0x40; i++)
 			this.cpu[1].memorymap[0x80 + i].write = (addr, data) => void(this.vram2[addr & 0x3fff] = data);
-
-		// Videoの初期化
-		this.rgb = Uint32Array.of(0xff000000, 0xffff0000, 0xff00ff00, 0xffffff00, 0xff0000ff, 0xffff00ff, 0xff00ffff, 0xffffffff);
-		this.palette1 = 0;
-		this.palette2 = 0;
 	}
 
 	execute() {
@@ -109,22 +109,16 @@ class TTMahjong {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[7] |= 1 << 7;
-		}
+		if (this.fCoin)
+			this.in[7] |= 1 << 7, --this.fCoin;
 		else
 			this.in[7] &= ~(1 << 7);
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[0] |= 1 << 5;
-		}
+		if (this.fStart1P)
+			this.in[0] |= 1 << 5, --this.fStart1P;
 		else
 			this.in[0] &= ~(1 << 5);
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[1] |= 1 << 5;
-		}
+		if (this.fStart2P)
+			this.in[1] |= 1 << 5, --this.fStart2P;
 		else
 			this.in[1] &= ~(1 << 5);
 		return this;

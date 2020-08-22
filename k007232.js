@@ -5,23 +5,34 @@
  */
 
 export default class K007232 {
+	snd;
+	rate;
+	sampleRate;
+	count;
+	resolution;
+	gain;
+	tmpwheel = [];
+	wheel = [];
+	reg = new Uint8Array(14);
+	cycles = 0;
+	channel = [];
+	vol = 0;
+
+	source;
+	gainNode;
+	scriptNode;
+
 	constructor({SND, clock, resolution = 1, gain = 0.1}) {
-		this.reg = new Uint8Array(14);
-		this.cycles = 0;
-		this.channel = [];
-		for (let i = 0; i < 2; i++)
-			this.channel.push({play: false, addr: 0});
-		this.vol = 0;
 		this.snd = Float32Array.from(SND, e => (e & 0x7f) * 2 / 127 - 1);
 		this.rate = Math.floor(clock / 128);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.count = this.sampleRate - 1;
 		this.resolution = resolution;
 		this.gain = gain;
-		this.tmpwheel = [];
 		for (let i = 0; i < resolution; i++)
 			this.tmpwheel.push([]);
-		this.wheel = [];
+		for (let i = 0; i < 2; i++)
+			this.channel.push({play: false, addr: 0});
 		if (!audioCtx)
 			return;
 		this.source = audioCtx.createBufferSource();

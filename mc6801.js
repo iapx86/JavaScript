@@ -7,13 +7,14 @@
 import Cpu from './main.js';
 
 export default class MC6801 extends Cpu {
+	a = 0;
+	b = 0;
+	ccr = 0; // ccr:11hinzvc
+	x = 0;
+	s = 0;
+
 	constructor(arg = null) {
 		super(arg);
-		this.a = 0;
-		this.b = 0;
-		this.ccr = 0; // ccr:11hinzvc
-		this.x = 0;
-		this.s = 0;
 	}
 
 	reset() {
@@ -28,20 +29,15 @@ export default class MC6801 extends Cpu {
 		this.psh16(this.pc, this.x), this.psh(this.a, this.b, this.ccr), this.ccr |= 0x10;
 		switch (cause) {
 		default:
-			this.pc = this.read16(0xfff8);
-			break;
+			return this.pc = this.read16(0xfff8), true;
 		case 'icf':
-			this.pc = this.read16(0xfff6);
-			break;
+			return this.pc = this.read16(0xfff6), true;
 		case 'ocf':
-			this.pc = this.read16(0xfff4);
-			break;
+			return this.pc = this.read16(0xfff4), true;
 		case 'tof':
-			this.pc = this.read16(0xfff2);
-			break;
+			return this.pc = this.read16(0xfff2), true;
 		case 'sci':
-			this.pc = this.read16(0xfff0);
-			break;
+			return this.pc = this.read16(0xfff0), true;
 		}
 		return true;
 	}

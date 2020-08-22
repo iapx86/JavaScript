@@ -10,64 +10,73 @@ import MC6809 from './mc6809.js';
 let sound;
 
 class Phozon {
+	cxScreen = 224;
+	cyScreen = 288;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = false;
+	fStart1P = false;
+	fStart2P = false;
+	nChemic = 3;
+	nBonus = 'A';
+	nRank = '0';
+
+	fPortTest = false;
+	fInterruptEnable0 = false;
+	fInterruptEnable1 = false;
+	fInterruptEnable2 = false;
+	fSoundEnable = false;
+	ram = new Uint8Array(0x2c00).addBase();
+	port = new Uint8Array(0x20);
+	key = Uint8Array.of(0, 2, 3, 4, 5, 6, 0x0c, 0x0a, 1, 0x0c);
+
+	bg = new Uint8Array(0x8000);
+	obj = new Uint8Array(0x8000);
+	bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf);
+	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf | 0x10);
+	rgb = new Uint32Array(0x40);
+
+	cpu = new MC6809();
+	cpu2 = new MC6809();
+	cpu3 = new MC6809();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 288;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = false;
-		this.fStart1P = false;
-		this.fStart2P = false;
-		this.nChemic = 3;
-		this.nBonus = 'A';
-		this.nRank = '0';
-
-		// CPU周りの初期化
-		this.fPortTest = false;
-		this.fInterruptEnable0 = false;
-		this.fInterruptEnable1 = false;
-		this.fInterruptEnable2 = false;
-		this.fSoundEnable = false;
-
-		this.ram = new Uint8Array(0x2c00).addBase();
-		this.port = new Uint8Array(0x20);
-		this.key = Uint8Array.of(0, 2, 3, 4, 5, 6, 0x0c, 0x0a, 1, 0x0c);
-
 		const systemcontrolarea = addr => {
 			switch (addr & 0xff) {
-			case 0x00: // INTERRUPT STOP */
+			case 0x00: // INTERRUPT STOP
 				return void(this.fInterruptEnable2 = false);
-			case 0x01: // INTERRUPT START */
+			case 0x01: // INTERRUPT START
 				return void(this.fInterruptEnable2 = true);
-			case 0x02: // INTERRUPT STOP */
+			case 0x02: // INTERRUPT STOP
 				return void(this.fInterruptEnable1 = false);
-			case 0x03: // INTERRUPT START */
+			case 0x03: // INTERRUPT START
 				return void(this.fInterruptEnable1 = true);
-			case 0x04: // INTERRUPT STOP */
+			case 0x04: // INTERRUPT STOP
 				return void(this.fInterruptEnable0 = false);
-			case 0x05: // INTERRUPT START */
+			case 0x05: // INTERRUPT START
 				return void(this.fInterruptEnable0 = true);
-			case 0x07: // PORT TEST END */
+			case 0x07: // PORT TEST END
 				this.fPortTest = false;
 				this.ram.fill(0, 0x0840, 0x0844);
 				this.ram.set(this.port.subarray(4, 8), 0x0844);
 				this.ram.set(this.port.subarray(0x10, 0x18), 0x0850);
 				this.ram.set(this.port.subarray(4, 8), 0x2804);
 				return this.ram.set(this.port.subarray(0x10, 0x18), 0x2810);
-			case 0x09: // PORT TEST START */
+			case 0x09: // PORT TEST START
 				return void(this.fPortTest = true);
-			case 0x0a: // SUB CPU STOP */
+			case 0x0a: // SUB CPU STOP
 				return this.cpu2.disable();
-			case 0x0b: // SUB CPU START */
+			case 0x0b: // SUB CPU START
 				return this.cpu2.enable();
-			case 0x0c: // SUB CPU STOP */
+			case 0x0c: // SUB CPU STOP
 				return this.cpu3.disable();
-			case 0x0d: // SUB CPU START */
+			case 0x0d: // SUB CPU START
 				return this.cpu3.enable();
 			case 0x0e: // SND START
 				return void(this.fSoundEnable = true);
@@ -76,7 +85,7 @@ class Phozon {
 			}
 		};
 
-		this.cpu = new MC6809(this);
+		// CPU周りの初期化
 		for (let i = 0; i < 0x20; i++) {
 			this.cpu.memorymap[i].base = this.ram.base[i];
 			this.cpu.memorymap[i].write = null;
@@ -93,7 +102,6 @@ class Phozon {
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[0x80 + i].base = PRG1.base[i];
 
-		this.cpu2 = new MC6809(this);
 		for (let i = 0; i < 4; i++) {
 			this.cpu2.memorymap[i].read = addr => sound.read(addr);
 			this.cpu2.memorymap[i].write = (addr, data) => sound.write(addr, data);
@@ -101,7 +109,6 @@ class Phozon {
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[0xe0 + i].base = PRG2.base[i];
 
-		this.cpu3 = new MC6809(this);
 		for (let i = 0; i < 0x20; i++) {
 			this.cpu3.memorymap[i].base = this.ram.base[i];
 			this.cpu3.memorymap[i].write = null;
@@ -118,11 +125,6 @@ class Phozon {
 			this.cpu3.memorymap[0xe0 + i].base = PRG3.base[i];
 
 		// Videoの初期化
-		this.bg = new Uint8Array(0x8000);
-		this.obj = new Uint8Array(0x8000);
-		this.bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf);
-		this.objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf | 0x10);
-		this.rgb = new Uint32Array(0x40);
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();

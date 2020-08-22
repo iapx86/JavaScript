@@ -11,39 +11,56 @@ import Z80 from './z80.js';
 let game, sound, pcm = [];
 
 class TimeTunnel {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nLife = 3;
+
+	fNmiEnable = false;
+	bank = 0x60;
+
+	ram = new Uint8Array(0x4b00).addBase();
+	ram2 = new Uint8Array(0x400).addBase();
+	in = Uint8Array.of(0xff, 0xff, 0x1c, 0xff, 0xff, 0x0f, 0, 0xf0);
+	psg = [{addr: 0}, {addr: 0}, {addr: 0}, {addr: 0}];
+	count = 0;
+	timer = 0;
+	cpu2_irq = false;
+	cpu2_nmi = false;
+	cpu2_nmi2 = false;
+	cpu2_command = 0;
+	cpu2_flag = 0;
+	cpu2_flag2 = 0;
+
+	bg = new Uint8Array(0x8000);
+	obj = new Uint8Array(0x8000);
+	rgb = new Uint32Array(0x40);
+	pri = [];
+	layer = [];
+	priority = 0;
+	collision = new Uint8Array(4);
+	gfxaddr = 0;
+	scroll = new Uint8Array(6);
+	colorbank = new Uint8Array(2);
+	mode = 0;
+
+	se = pcm.map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+
+	cpu = new Z80();
+	cpu2 = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nLife = 3;
-
 		// CPU周りの初期化
-		this.fNmiEnable = false;
-		this.bank = 0x60;
-
-		this.ram = new Uint8Array(0x4b00).addBase();
-		this.ram2 = new Uint8Array(0x400).addBase();
-		this.in = Uint8Array.of(0xff, 0xff, 0x1c, 0xff, 0xff, 0x0f, 0, 0xf0);
-		this.psg = [{addr: 0}, {addr: 0}, {addr: 0}, {addr: 0}];
-		this.count = 0;
-		this.timer = 0;
-		this.cpu2_irq = false;
-		this.cpu2_nmi = false;
-		this.cpu2_nmi2 = false;
-		this.cpu2_command = 0;
-		this.cpu2_flag = 0;
-		this.cpu2_flag2 = 0;
-
-		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[i].base = PRG1.base[i];
 		for (let i = 0; i < 8; i++) {
@@ -88,11 +105,9 @@ class TimeTunnel {
 		this.cpu.memorymap[0xd4].write = (addr, data) => {
 			switch (addr & 0xf) {
 			case 0xe:
-				this.psg[0].addr = data;
-				break;
+				return void(this.psg[0].addr = data);
 			case 0xf:
-				(this.psg[0].addr & 0xf) < 0xe && sound[0].write(this.psg[0].addr, data, this.count);
-				break;
+				return void((this.psg[0].addr & 0xf) < 0xe && sound[0].write(this.psg[0].addr, data, this.count));
 			}
 		};
 		this.cpu.memorymap[0xd5].write = (addr, data) => {
@@ -114,14 +129,9 @@ class TimeTunnel {
 			case 0xa:
 				return void(this.gfxaddr = this.gfxaddr & 0xff | data << 8);
 			case 0xb:
-				this.cpu2_command = data;
-				this.cpu2_flag = 1;
-				this.cpu2_nmi = true;
-				return;
+				return void(this.cpu2_command = data, this.cpu2_flag = 1, this.cpu2_nmi = true);
 			case 0xc:
-				this.cpu2_flag2 = data & 1;
-				this.cpu2_nmi2 = (data & 1) !== 0;
-				return;
+				return void(this.cpu2_flag2 = data & 1, this.cpu2_nmi2 = (data & 1) !== 0);
 			case 0xe:
 				const bank = (data >> 2 & 0x20) + 0x60;
 				if (bank === this.bank)
@@ -134,7 +144,6 @@ class TimeTunnel {
 		};
 		this.cpu.memorymap[0xd6].write = (addr, data) => void(this.mode = data);
 
-		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x10; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
 		for (let i = 0; i < 4; i++) {
@@ -179,8 +188,7 @@ class TimeTunnel {
 			this.cpu2.memorymap[0x50 + i].read = addr => {
 				switch (addr & 3) {
 				case 0:
-					this.cpu2_flag = 0;
-					return this.cpu2_command;
+					return this.cpu2_flag = 0, this.cpu2_command;
 				case 1:
 					return this.cpu2_flag << 3 | this.cpu2_flag2 << 2 | 3;
 				}
@@ -197,14 +205,10 @@ class TimeTunnel {
 		}
 
 		this.cpu2.check_interrupt = () => {
-			if (((this.fNmiEnable && this.cpu2_nmi) || this.cpu2_nmi2) && this.cpu2.non_maskable_interrupt()) {
-				this.cpu2_nmi = this.cpu2_nmi2 = false;
-				return true;
-			}
-			if (this.cpu2_irq && this.cpu2.interrupt()) {
-				this.cpu2_irq = false;
-				return true;
-			}
+			if (((this.fNmiEnable && this.cpu2_nmi) || this.cpu2_nmi2) && this.cpu2.non_maskable_interrupt())
+				return this.cpu2_nmi = this.cpu2_nmi2 = false, true;
+			if (this.cpu2_irq && this.cpu2.interrupt())
+				return this.cpu2_irq = false, true;
 			return false;
 		};
 
@@ -216,25 +220,11 @@ class TimeTunnel {
 		this.cpu2.set_breakpoint(0x04f3);
 
 		// Videoの初期化
-		this.bg = new Uint8Array(0x8000);
-		this.obj = new Uint8Array(0x8000);
-		this.rgb = new Uint32Array(0x40);
-		this.pri = [];
 		for (let i = 0; i < 32; i++)
 			this.pri.push(new Uint8Array(4));
-		this.layer = [];
 		for (let i = 0; i < 4; i++)
 			this.layer.push(new Uint8Array(this.width * this.height));
-		this.priority = 0;
-		this.collision = new Uint8Array(4);
-		this.gfxaddr = 0;
-		this.scroll = new Uint8Array(6);
-		this.colorbank = new Uint8Array(2);
-		this.mode = 0;
 		this.convertPRI();
-
-		// 効果音の初期化
-		this.se = pcm.map(buf => ({buf: buf, loop: false, start: false, stop: false}));
 	}
 
 	execute() {
@@ -295,22 +285,16 @@ class TimeTunnel {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[3] &= ~(1 << 5);
-		}
+		if (this.fCoin)
+			this.in[3] &= ~(1 << 5), --this.fCoin;
 		else
 			this.in[3] |= 1 << 5;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[3] &= ~(1 << 6);
-		}
+		if (this.fStart1P)
+			this.in[3] &= ~(1 << 6), --this.fStart1P;
 		else
 			this.in[3] |= 1 << 6;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[3] &= ~(1 << 7);
-		}
+		if (this.fStart2P)
+			this.in[3] &= ~(1 << 7), --this.fStart2P;
 		else
 			this.in[3] |= 1 << 7;
 		return this;

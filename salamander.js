@@ -13,38 +13,45 @@ import Z80 from './z80.js';
 let sound;
 
 class Salamander {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = true;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	fTurbo = 0;
+	nLife = 3;
+	nRank = 'Normal';
+	fDemoSound = true;
+
+	fInterruptEnable = false;
+
+	ram = new Uint8Array(0x20000).addBase();
+	ram2 = new Uint8Array(0x800).addBase();
+	in = Uint8Array.of(0xff, 0x42, 0xe0, 0, 0);
+	fm = {addr: 0, reg: new Uint8Array(0x100), status: 0, timera: 0, timerb: 0};
+	vlm_latch = 0;
+	vlm_control = 0;
+	count = 0;
+	command = [];
+	wd = 0;
+
+	chr = new Uint8Array(0x20000);
+	rgb = new Uint32Array(0x800);
+	flip = 0;
+
+	cpu = new MC68000();
+	cpu2 = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = true;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.fTurbo = 0;
-		this.nLife = 3;
-		this.nRank = 'Normal';
-		this.fDemoSound = true;
-
 		// CPU周りの初期化
-		this.fInterruptEnable = false;
-
-		this.ram = new Uint8Array(0x20000).addBase();
-		this.ram2 = new Uint8Array(0x800).addBase();
-		this.in = Uint8Array.of(0xff, 0x42, 0xe0, 0, 0);
-		this.fm = {addr: 0, reg: new Uint8Array(0x100), status: 0, timera: 0, timerb: 0};
-		this.vlm_latch = 0;
-		this.vlm_control = 0;
-		this.count = 0;
-		this.command = [];
-		this.wd = 0;
-
-		this.cpu = new MC68000(this);
 		for (let i = 0; i < 0x200; i++)
 			this.cpu.memorymap[i].base = PRG1.base[i];
 		for (let i = 0; i < 0x400; i++)
@@ -58,10 +65,8 @@ class Salamander {
 			this.cpu.memorymap[0x900 + i].write = (addr, data) => void((addr & 1) !== 0 && (this.ram[0x8000 | addr >> 1 & 0xfff] = data));
 		}
 		this.cpu.memorymap[0xa00].write = (addr, data) => {
-			if (addr === 0xa0001) {
-				this.fInterruptEnable = (data & 1) !== 0;
-				this.flip = data >> 2 & 3;
-			}
+			if (addr === 0xa0001)
+				this.fInterruptEnable = (data & 1) !== 0, this.flip = data >> 2 & 3;
 		};
 		this.cpu.memorymap[0xc00].read = addr => addr === 0xc0003 ? this.in[0] : 0xff;
 		this.cpu.memorymap[0xc00].write = (addr, data) => void(addr === 0xc0001 && this.command.push(data));
@@ -86,9 +91,7 @@ class Salamander {
 			this.cpu.memorymap[0x1200 + i].base = this.ram.base[0x100 + i];
 			this.cpu.memorymap[0x1200 + i].write = (addr, data) => {
 				let offset = addr & 0xffff;
-				this.ram[0x10000 | offset] = data;
-				this.chr[offset <<= 1] = data >> 4;
-				this.chr[1 | offset] = data & 0xf;
+				this.ram[0x10000 | offset] = data, this.chr[offset <<= 1] = data >> 4, this.chr[1 | offset] = data & 0xf;
 			};
 		}
 		for (let i = 0; i < 0x10; i++) {
@@ -100,7 +103,6 @@ class Salamander {
 			this.cpu.memorymap[0x1900 + i].write = null;
 		}
 
-		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x80; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
 		for (let i = 0; i < 8; i++) {
@@ -137,11 +139,6 @@ class Salamander {
 				this.vlm_control = data;
 			}
 		};
-
-		// Videoの初期化
-		this.chr = new Uint8Array(0x20000);
-		this.rgb = new Uint32Array(0x800);
-		this.flip = 0;
 	}
 
 	execute() {
@@ -220,22 +217,16 @@ class Salamander {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[2] |= 1 << 2;
-		}
+		if (this.fCoin)
+			this.in[2] |= 1 << 2, --this.fCoin;
 		else
 			this.in[2] &= ~(1 << 2);
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[2] |= 1 << 3;
-		}
+		if (this.fStart1P)
+			this.in[2] |= 1 << 3, --this.fStart1P;
 		else
 			this.in[2] &= ~(1 << 3);
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[2] |= 1 << 4;
-		}
+		if (this.fStart2P)
+			this.in[2] |= 1 << 4, --this.fStart2P;
 		else
 			this.in[2] &= ~(1 << 4);
 

@@ -10,23 +10,24 @@ import Z80 from './z80.js';
 let game, sound;
 
 class SoundTest {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 256;
+	xOffset = 0;
+	yOffset = 0;
+
+	fReset = true;
+	nSound = 0;
+
+	ram2 = new Uint8Array(0x800).addBase();
+	fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8), status: 0, timera: 0, timerb: 0};
+	count = 0;
+	command = [];
+	cpu2 = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 256;
-		this.xOffset = 0;
-		this.yOffset = 0;
-		this.fReset = true;
-		this.nSound = 0;
-
 		// CPU周りの初期化
-		this.ram2 = new Uint8Array(0x800).addBase();
-		this.fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8), status: 0, timera: 0, timerb: 0};
-		this.count = 0;
-		this.command = [];
-
-		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x80; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
 		this.cpu2.memorymap[0xe8].read = addr => addr === 0xe800 && this.command.length ? this.command.shift() : 0xff;
@@ -47,25 +48,22 @@ class SoundTest {
 			this.cpu2.iomap[i].write = (addr, data) => {
 				if ((addr >> 6 & 3) !== 0)
 					return;
-				switch (addr & 1) {
-				case 0:
+				if ((addr & 1) === 0)
 					return void(this.fm.addr = data);
-				case 1:
-					switch (this.fm.addr) {
-					case 8: // KON
-						this.fm.kon[data & 7] = Number((data & 0x78) !== 0);
-						break;
-					case 0x14: // CSM/F RESET/IRQEN/LOAD
-						this.fm.status &= ~(data >> 4 & 3);
-						if ((data & ~this.fm.reg[0x14] & 1) !== 0)
-							this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
-						if ((data & ~this.fm.reg[0x14] & 2) !== 0)
-							this.fm.timerb = this.fm.reg[0x12];
-						break;
-					}
-					return sound.write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
+				switch (this.fm.addr) {
+				case 8: // KON
+					this.fm.kon[data & 7] = Number((data & 0x78) !== 0);
+					break;
+				case 0x14: // CSM/F RESET/IRQEN/LOAD
+					this.fm.status &= ~(data >> 4 & 3);
+					if ((data & ~this.fm.reg[0x14] & 1) !== 0)
+						this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
+					if ((data & ~this.fm.reg[0x14] & 2) !== 0)
+						this.fm.timerb = this.fm.reg[0x12];
+					break;
 				}
-			}
+				return sound.write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
+			};
 		}
 	}
 
@@ -123,8 +121,7 @@ class SoundTest {
 	right(fDown = false) {
 		if (fDown)
 			return this;
-		this.nSound = this.nSound + 1;
-		if (this.nSound >= 0x100)
+		if (++this.nSound >= 0x100)
 			this.nSound = 1;
 		return this;
 	}
@@ -136,8 +133,7 @@ class SoundTest {
 	left(fDown = false) {
 		if (fDown)
 			return this;
-		this.nSound = this.nSound - 1;
-		if (this.nSound < 1)
+		if (--this.nSound < 1)
 			this.nSound = 0xff;
 		return this;
 	}
@@ -153,7 +149,6 @@ class SoundTest {
 	triggerB(fDown = false) {
 		if (fDown)
 			return this;
-		console.log(`command=0`);
 		this.command.push(0, 0);
 		return this;
 	}
@@ -164,7 +159,7 @@ class SoundTest {
 				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);
 
 		for (let i = 0; i < 8; i++) {
-			const kc = this.fm.reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3);
+			const kc = this.fm.reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3) + 2;
 			if (!this.fm.kon[i] || pitch < 0 || pitch >= 12 * 8)
 				continue;
 			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);

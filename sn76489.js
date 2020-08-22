@@ -5,24 +5,34 @@
  */
 
 export default class SN76489 {
+	rate;
+	sampleRate;
+	count;
+	resolution;
+	gain;
+	tmpwheel = [];
+	wheel = [];
+	addr = 0;
+	reg = new Uint16Array(8).fill(-1);
+	cycles = 0;
+	channel = [];
+	ncount = 0;
+	rng = 0x4000;
+
+	source;
+	gainNode;
+	scriptNode;
+
 	constructor({clock, resolution = 1, gain = 0.1}) {
-		this.addr = 0;
-		this.reg = new Uint16Array(8).fill(-1);
-		this.cycles = 0;
-		this.channel = [];
-		for (let i = 0; i < 3; i++)
-			this.channel.push({freq: 0, count: 0, output: 0});
-		this.ncount = 0;
-		this.rng = 0x4000;
 		this.rate = Math.floor(clock / 16);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.count = this.sampleRate - 1;
 		this.resolution = resolution;
 		this.gain = gain;
-		this.tmpwheel = [];
 		for (let i = 0; i < resolution; i++)
 			this.tmpwheel.push([]);
-		this.wheel = [];
+		for (let i = 0; i < 3; i++)
+			this.channel.push({freq: 0, count: 0, output: 0});
 		if (!audioCtx)
 			return;
 		this.source = audioCtx.createBufferSource();
@@ -74,24 +84,18 @@ export default class SN76489 {
 			data[i] += ((this.rng & 1) * 2 - 1) * (nvol ? Math.pow(10, (nvol - 15) / 10) : 0);
 			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {
 				this.channel.forEach(ch => {
-					if ((--ch.count & 0x3ff) === 0) {
-						ch.count = ch.freq;
-						ch.output = ~ch.output;
-					}
+					if ((--ch.count & 0x3ff) === 0)
+						ch.count = ch.freq, ch.output = ~ch.output;
 				});
-				if ((--this.ncount & 0x7ff) === 0) {
-					this.ncount = nfreq;
-					this.rng = this.rng >> 1 | (this.rng << 14 ^ this.rng << 13 & reg[6] << 12) & 0x4000;
-				}
+				if ((--this.ncount & 0x7ff) === 0)
+					this.ncount = nfreq, this.rng = this.rng >> 1 | (this.rng << 14 ^ this.rng << 13 & reg[6] << 12) & 0x4000;
 			}
 		});
 	}
 
 	regwrite(data) {
-		if ((data & 0x80) !== 0) {
-			this.addr = data >> 4 & 7;
-			this.reg[this.addr] = this.reg[this.addr] & 0x3f0 | data & 0x0f;
-		}
+		if ((data & 0x80) !== 0)
+			this.addr = data >> 4 & 7, this.reg[this.addr] = this.reg[this.addr] & 0x3f0 | data & 0x0f;
 		else
 			this.reg[this.addr] = this.reg[this.addr] & 0x0f | data << 4 & 0x3f0;
 		if (this.addr === 6)

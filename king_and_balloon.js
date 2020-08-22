@@ -11,33 +11,41 @@ import Z80 from './z80.js';
 let game, sound;
 
 class KingAndBalloon {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nKing = 3;
+	nBonus = 'A';
+	fVoice = true;
+
+	fInterruptEnable = false;
+	fSoundEnable = false;
+	ram = new Uint8Array(0x900).addBase();
+	mmo = new Uint8Array(0x100);
+	ioport = new Uint8Array(0x100);
+
+	bg = new Uint8Array(0x4000);
+	obj = new Uint8Array(0x4000);
+	rgb = new Uint32Array(0x20);
+
+	se = [BOMB, SHOT, WAVE1111, HELP, THANKYOU, BYEBYE].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+
+	cpu = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nKing = 3;
-		this.nBonus = 'A';
-		this.fVoice = true;
-
-		// CPU周りの初期化
-		this.fInterruptEnable = false;
-		this.fSoundEnable = false;
-
-		this.ram = new Uint8Array(0x900).addBase();
-		this.mmo = new Uint8Array(0x100);
-		this.ioport = new Uint8Array(0x100);
 		this.ioport[0x10] = 0x40;
 
-		this.cpu = new Z80(this);
+		// CPU周りの初期化
 		for (let i = 0; i < 0x28; i++)
 			this.cpu.memorymap[i].base = PRG.base[i];
 		for (let i = 0; i < 4; i++) {
@@ -49,97 +57,84 @@ class KingAndBalloon {
 		this.cpu.memorymap[0x98].base = this.ram.base[8];
 		this.cpu.memorymap[0x98].write = null;
 		this.cpu.memorymap[0xa0].base = this.ioport;
-		this.cpu.memorymap[0xa0].write = systemctrl0;
-		this.cpu.memorymap[0xa8].base = this.ioport.subarray(0x10);
-		this.cpu.memorymap[0xa8].write = systemctrl1;
-		this.cpu.memorymap[0xb0].base = this.ioport.subarray(0x20);
-		this.cpu.memorymap[0xb0].write = systemctrl2;
-		this.cpu.memorymap[0xb8].write = systemctrl3;
-
-		// Videoの初期化
-		this.bg = new Uint8Array(0x4000);
-		this.obj = new Uint8Array(0x4000);
-		this.rgb = new Uint32Array(0x20);
-		this.convertRGB();
-		this.convertBG();
-		this.convertOBJ();
-
-		// 効果音の初期化
-		this.se = [BOMB, SHOT, WAVE1111, HELP, THANKYOU, BYEBYE].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
-		this.se[2].loop = this.se[3].loop = true;
-
-		// ライトハンドラ
-		function systemctrl0(addr, data, game) {
-			if ((addr & 0x0f) === 4) {
+		this.cpu.memorymap[0xa0].write = (addr, data) => {
+			if ((addr & 0xf) === 4) {
 				if ((data & 1) !== 0)
-					game.se[2].start = true;
+					this.se[2].start = true;
 				else
-					game.se[2].stop = true;
+					this.se[2].stop = true;
 			}
-			game.mmo[addr & 0x0f] = data;
-		}
-
-		function systemctrl1(addr, data, game) {
-			switch (addr & 0x0f) {
-			case 0x03: // BOMB
+			this.mmo[addr & 0x0f] = data;
+		};
+		this.cpu.memorymap[0xa8].base = this.ioport.subarray(0x10);
+		this.cpu.memorymap[0xa8].write = (addr, data) => {
+			switch (addr & 0xf) {
+			case 3: // BOMB
 				if ((data & 1) !== 0)
-					game.se[0].start = game.se[0].stop = true;
+					this.se[0].start = this.se[0].stop = true;
 				break;
-			case 0x05: // SHOT
-				if ((data & 1) !== 0 && !game.mmo[addr & 0x0f | 0x10])
-					game.se[1].start = game.se[1].stop = true;
+			case 5: // SHOT
+				if ((data & 1) !== 0 && !this.mmo[addr & 0x0f | 0x10])
+					this.se[1].start = this.se[1].stop = true;
 				break;
 			}
-			game.mmo[addr & 0x0f | 0x10] = data & 1;
-		}
-
-		function systemctrl2(addr, data, game) {
-			switch (addr & 0x0f) {
-			case 0x01:
-				game.fInterruptEnable = (data & 1) !== 0;
+			this.mmo[addr & 0x0f | 0x10] = data & 1;
+		};
+		this.cpu.memorymap[0xb0].base = this.ioport.subarray(0x20);
+		this.cpu.memorymap[0xb0].write = (addr, data) => {
+			switch (addr & 0xf) {
+			case 1:
+				this.fInterruptEnable = (data & 1) !== 0;
 				break;
-			case 0x02:
+			case 2:
 				// VOICE OUTPUT
 				// mmo[0x20] : VOICE NO.
 				//			 $01 HELP!
 				//			 $02 THANK YOU!
 				//			 $03 BYE BYE!
-				game.se[3].stop = game.se[4].stop = game.se[5].stop = true;
-				switch (game.mmo[0x20]) {
-				case 0x01:
-					game.se[3].start = true;
+				this.se[3].stop = this.se[4].stop = this.se[5].stop = true;
+				switch (this.mmo[0x20]) {
+				case 1:
+					this.se[3].start = true;
 					break;
-				case 0x02:
-					game.se[4].start = true;
+				case 2:
+					this.se[4].start = true;
 					break;
-				case 0x03:
-					game.se[5].start = true;
+				case 3:
+					this.se[5].start = true;
 					break;
 				}
 				break;
-			case 0x03:
+			case 3:
 				if (data) {
-					game.ioport[0x30] = game.fVoice ? 0x40 : 0;
-					game.cpu.memorymap[0xa0].base = game.ioport.subarray(0x30);
+					this.ioport[0x30] = this.fVoice ? 0x40 : 0;
+					this.cpu.memorymap[0xa0].base = this.ioport.subarray(0x30);
 				}
 				else
-					game.cpu.memorymap[0xa0].base = game.ioport;
+					this.cpu.memorymap[0xa0].base = this.ioport;
 				break;
-			case 0x04:
-				if (!game.fSoundEnable)
-					game.mmo[0x30] = 0xff;
-				game.fSoundEnable = (data & 1) !== 0;
+			case 4:
+				if (!this.fSoundEnable)
+					this.mmo[0x30] = 0xff;
+				this.fSoundEnable = (data & 1) !== 0;
 				break;
 			default:
 				break;
 			}
-			game.mmo[addr & 0x0f | 0x20] = data;
-		}
-
-		function systemctrl3(addr, data, game) {
+			this.mmo[addr & 0x0f | 0x20] = data;
+		};
+		this.cpu.memorymap[0xb8].write = (addr, data) => {
 			if ((addr & 0x0f) === 0)
-				game.mmo[0x30] = data; // SOUND FREQUENCY
-		}
+				this.mmo[0x30] = data; // SOUND FREQUENCY
+		};
+
+		// Videoの初期化
+		this.convertRGB();
+		this.convertBG();
+		this.convertOBJ();
+
+		// 効果音の初期化
+		this.se[2].loop = this.se[3].loop = true;
 	}
 
 	execute() {
@@ -202,22 +197,16 @@ class KingAndBalloon {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.ioport[0] |= 1 << 0;
-		}
+		if (this.fCoin)
+			this.ioport[0] |= 1 << 0, --this.fCoin;
 		else
 			this.ioport[0] &= ~(1 << 0);
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.ioport[0x10] |= 1 << 0;
-		}
+		if (this.fStart1P)
+			this.ioport[0x10] |= 1 << 0, --this.fStart1P;
 		else
 			this.ioport[0x10] &= ~(1 << 0);
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.ioport[0x10] |= 1 << 1;
-		}
+		if (this.fStart2P)
+			this.ioport[0x10] |= 1 << 1, --this.fStart2P;
 		else
 			this.ioport[0x10] &= ~(1 << 1);
 
@@ -383,7 +372,7 @@ class KingAndBalloon {
 			}
 		}
 
-		// bullets 描画
+		// bullets描画
 		for (let k = 0x860, i = 0; i < 8; k += 4, i++) {
 			p = this.ram[k + 1] | 267 - this.ram[k + 3] << 8;
 			data[p + 0x300] = data[p + 0x200] = data[p + 0x100] = data[p] = i > 6 ? 5 : 6;

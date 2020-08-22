@@ -11,33 +11,44 @@ import MC6801 from './mc6801.js';
 let sound;
 
 class MetroCross {
+	cxScreen = 224;
+	cyScreen = 288;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = true;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nRank = 'A';
+	fContinue = true;
+	fAttract = true;
+	fSelect = false;
+
+	// CPU周りの初期化
+	ram = new Uint8Array(0x4800).addBase();
+	ram2 = new Uint8Array(0x900).addBase();
+	in = new Uint8Array(8).fill(0xff);
+	select = 0;
+	cpu_irq = false;
+	mcu_irq = false;
+
+	fg = new Uint8Array(0x8000);
+	bg = new Uint8Array(0x20000);
+	obj = new Uint8Array(0x20000);
+	rgb = new Uint32Array(0x800);
+	vScroll = [0, 0];
+	hScroll = [0, 0];
+
+	cpu = new MC6809();
+	mcu = new MC6801();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 288;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = true;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nRank = 'A';
-		this.fContinue = true;
-		this.fAttract = true;
-		this.fSelect = false;
-
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0x4800).addBase();
-		this.ram2 = new Uint8Array(0x900).addBase();
-		this.in = new Uint8Array(8).fill(0xff);
-		this.select = 0;
-		this.cpu_irq = false;
-		this.mcu_irq = false;
-
-		this.cpu = new MC6809(this);
 		for (let i = 0; i < 0x40; i++) {
 			this.cpu.memorymap[i].base = this.ram.base[i];
 			this.cpu.memorymap[i].write = null;
@@ -70,22 +81,18 @@ class MetroCross {
 		};
 
 		this.cpu.check_interrupt = () => {
-			if (this.cpu_irq && this.cpu.interrupt()) {
-				this.cpu_irq = false;
-				return true;
-			}
+			if (this.cpu_irq && this.cpu.interrupt())
+				return this.cpu_irq = false, true;
 			return false;
 		};
 
-		this.mcu = new MC6801(this);
 		this.mcu.memorymap[0].read = addr => {
+			let data;
 			switch (addr) {
 			case 2:
 				return this.in[this.select];
 			case 8:
-				const data = this.ram2[8];
-				this.ram2[8] &= ~0xe0;
-				return data;
+				return data = this.ram2[8], this.ram2[8] &= ~0xe0, data;
 			}
 			return this.ram2[addr];
 		};
@@ -108,20 +115,12 @@ class MetroCross {
 			this.mcu.memorymap[0xf0 + i].base = PRG2I.base[i];
 
 		this.mcu.check_interrupt = () => {
-			if (this.mcu_irq && this.mcu.interrupt()) {
-				this.mcu_irq = false;
-				return true;
-			}
+			if (this.mcu_irq && this.mcu.interrupt())
+				return this.mcu_irq = false, true;
 			return (this.ram2[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf');
 		};
 
 		// Videoの初期化
-		this.fg = new Uint8Array(0x8000);
-		this.bg = new Uint8Array(0x20000);
-		this.obj = new Uint8Array(0x20000);
-		this.rgb = new Uint32Array(0x800);
-		this.vScroll = [0, 0];
-		this.hScroll = [0, 0];
 		this.convertRGB();
 		this.convertFG();
 		this.convertBG();
@@ -130,15 +129,11 @@ class MetroCross {
 
 	execute() {
 		this.cpu_irq = this.mcu_irq = true;
-		for (let i = 0; i < 800; i++) {
-			this.cpu.execute(5);
-			this.mcu.execute(6);
-		}
+		for (let i = 0; i < 800; i++)
+			this.cpu.execute(5), this.mcu.execute(6);
 		this.ram2[8] |= this.ram2[8] << 3 & 0x40;
-		for (let i = 0; i < 800; i++) {
-			this.cpu.execute(5);
-			this.mcu.execute(6);
-		}
+		for (let i = 0; i < 800; i++)
+			this.cpu.execute(5), this.mcu.execute(6);
 		return this;
 	}
 
@@ -197,22 +192,16 @@ class MetroCross {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[4] &= ~(1 << 0);
-		}
+		if (this.fCoin)
+			this.in[4] &= ~(1 << 0), --this.fCoin;
 		else
 			this.in[4] |= 1 << 0;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[4] &= ~(1 << 3);
-		}
+		if (this.fStart1P)
+			this.in[4] &= ~(1 << 3), --this.fStart1P;
 		else
 			this.in[4] |= 1 << 3;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[4] &= ~(1 << 4);
-		}
+		if (this.fStart2P)
+			this.in[4] &= ~(1 << 4), --this.fStart2P;
 		else
 			this.in[4] |= 1 << 4;
 		return this;

@@ -8,38 +8,56 @@ import {init, loop} from './main.js';
 import Z80 from './z80.js';
 
 class CrazyBalloon {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 256;
+	xOffset = 0;
+	yOffset = 0;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nLife = 3;
+	nBonus = 5000;
+
+	fInterruptEnable = false;
+	ram = new Uint8Array(0x0c00).addBase();
+	io = new Uint8Array(0x100);
+	cpu = new Z80();
+
+	bg = new Uint8Array(0x4000);
+	obj = new Uint8Array(0x4000);
+	rgb = Uint32Array.of(
+		0xffffffff, 0xffffff00, 0xffff00ff, 0xffff0000,
+		0xff00ffff, 0xff00ff00, 0xff0000ff, 0xff000000,
+		0xff555555, 0xff555500, 0xff550055, 0xff550000,
+		0xff005555, 0xff005500, 0xff000055, 0xff000000,
+	);
+	objctrl = new Uint8Array(3);
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 256;
-		this.xOffset = 0;
-		this.yOffset = 0;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nLife = 3;
-		this.nBonus = 5000;
-
 		// CPU周りの初期化
-		this.fInterruptEnable = false;
-		this.ram = new Uint8Array(0x0c00).addBase();
-		this.io = new Uint8Array(0x100);
+		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
 
-		this.cpu = new Z80(this);
-		for (let i = 0; i < 0x30; i++)
-			this.cpu.memorymap[i].base = PRG.base[i];
-		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x44 + i].base = this.cpu.memorymap[0x40 + i].base = this.ram.base[i];
-			this.cpu.memorymap[0x44 + i].write = this.cpu.memorymap[0x40 + i].write = null;
-			this.cpu.memorymap[0x4c + i].base = this.cpu.memorymap[0x48 + i].base = this.ram.base[4 + i];
-			this.cpu.memorymap[0x4c + i].write = this.cpu.memorymap[0x48 + i].write = null;
-			this.cpu.memorymap[0x54 + i].base = this.cpu.memorymap[0x50 + i].base = this.ram.base[8 + i];
-			this.cpu.memorymap[0x54 + i].write = this.cpu.memorymap[0x50 + i].write = null;
-		}
+		for (let page = 0; page < 0x100; page++)
+			if (range(page, 0, 0x2f))
+				this.cpu.memorymap[page].base = PRG.base[page & 0x3f];
+			else if (range(page, 0x40, 0x43, 4)) {
+				this.cpu.memorymap[page].base = this.ram.base[page & 3];
+				this.cpu.memorymap[page].write = null;
+			}
+			else if (range(page, 0x48, 0x4b, 4)) {
+				this.cpu.memorymap[page].base = this.ram.base[4 | page & 3];
+				this.cpu.memorymap[page].write = null;
+			}
+			else if (range(page, 0x50, 0x53, 4)) {
+				this.cpu.memorymap[page].base = this.ram.base[8 | page & 3];
+				this.cpu.memorymap[page].write = null;
+			}
 		for (let i = 0; i < 0x100; i++) {
 			this.cpu.iomap[i].read = addr => this.io[addr & 3];
 			this.cpu.iomap[i].write = (addr, data) => {
@@ -47,16 +65,13 @@ class CrazyBalloon {
 				case 2:
 				case 3:
 				case 4:
-					this.objctrl[(addr & 0xff) - 2] = data;
-					break;
+					return void(this.objctrl[(addr & 0xff) - 2] = data);
 				case 6:
-					this.fInterruptEnable = (data & 1) !== 0;
-					break;
+					return void(this.fInterruptEnable = (data & 1) !== 0);
 				case 8:
-					this.io[8] = data;
-					break;
+					return void(this.io[8] = data);
 				}
-			}
+			};
 		}
 
 		// DIPSW SETUP
@@ -66,15 +81,6 @@ class CrazyBalloon {
 		this.io[3] = 0x3f;
 
 		// Videoの初期化
-		this.rgb = Uint32Array.of(
-			0xffffffff, 0xffffff00, 0xffff00ff, 0xffff0000,
-			0xff00ffff, 0xff00ff00, 0xff0000ff, 0xff000000,
-			0xff555555, 0xff555500, 0xff550055, 0xff550000,
-			0xff005555, 0xff005500, 0xff000055, 0xff000000,
-		);
-		this.bg = new Uint8Array(0x4000);
-		this.obj = new Uint8Array(0x4000);
-		this.objctrl = new Uint8Array(3);
 		this.convertBG();
 		this.convertOBJ();
 	}
@@ -137,22 +143,16 @@ class CrazyBalloon {
 			this.io[3] &= 0x0f;
 			return this;
 		}
-		if (this.fCoin) {
-			--this.fCoin;
-			this.io[3] |= 1 << 6;
-		}
+		if (this.fCoin)
+			this.io[3] |= 1 << 6, --this.fCoin;
 		else
 			this.io[3] &= ~(1 << 6);
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.io[3] &= ~(1 << 4);
-		}
+		if (this.fStart1P)
+			this.io[3] &= ~(1 << 4), --this.fStart1P;
 		else
 			this.io[3] |= 1 << 4;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.io[3] &= ~(1 << 5);
-		}
+		if (this.fStart2P)
+			this.io[3] &= ~(1 << 5), --this.fStart2P;
 		else
 			this.io[3] |= 1 << 5;
 		return this;

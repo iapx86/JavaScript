@@ -10,31 +10,41 @@ import Z80 from './z80.js';
 let sound;
 
 class JrPacMan {
+	static patched = false;
+
+	cxScreen = 224;
+	cyScreen = 288;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nPacman = 3;
+	nBonus = 10000;
+	nRank = 'NORMAL';
+
+	fInterruptEnable = false;
+	fSoundEnable = false;
+	ram = new Uint8Array(0x1100).fill(0xff).fill(1, 0x1070, 0x1078).addBase();
+	in = Uint8Array.of(0xff, 0xff, 0xc9, 0x00);
+	vector = 0;
+
+	dwScroll = 0;
+	bg = new Uint8Array(0x8000);
+	obj = new Uint8Array(0x8000);
+	color = Uint8Array.from(COLOR, e => e & 0xf);
+	rgb = new Uint32Array(0x20);
+
+	cpu = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 288;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nPacman = 3;
-		this.nBonus = 10000;
-		this.nRank = 'NORMAL';
-
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0x1100).fill(0xff).fill(1, 0x1070, 0x1078).addBase();
-		this.in = Uint8Array.of(0xff, 0xff, 0xc9, 0x00);
-		this.vector = 0;
-		this.fInterruptEnable = false;
-		this.fSoundEnable = false;
-
-		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x40; i++)
 			this.cpu.memorymap[i].base = PRG.base[i];
 		for (let i = 0; i < 0x10; i++) {
@@ -69,11 +79,6 @@ class JrPacMan {
 			this.cpu.iomap[i].write = (addr, data) => void((addr & 0xff) === 0 && (this.vector = data));
 
 		// Videoの初期化
-		this.dwScroll = 0;
-		this.bg = new Uint8Array(0x8000);
-		this.obj = new Uint8Array(0x8000);
-		this.color = Uint8Array.from(COLOR, e => e & 0xf);
-		this.rgb = new Uint32Array(0x20);
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
@@ -150,22 +155,16 @@ class JrPacMan {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[0] &= ~(1 << 5);
-		}
+		if (this.fCoin)
+			this.in[0] &= ~(1 << 5), --this.fCoin;
 		else
 			this.in[0] |= 1 << 5;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[1] &= ~(1 << 5);
-		}
+		if (this.fStart1P)
+			this.in[1] &= ~(1 << 5), --this.fStart1P;
 		else
 			this.in[1] |= 1 << 5;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[1] &= ~(1 << 6);
-		}
+		if (this.fStart2P)
+			this.in[1] &= ~(1 << 6), --this.fStart2P;
 		else
 			this.in[1] |= 1 << 6;
 		return this;
@@ -184,47 +183,31 @@ class JrPacMan {
 	}
 
 	up(fDown) {
-		if (fDown) {
-			this.in[0] = this.in[0] & ~(1 << 0) | 1 << 3;
-			this.in[1] = this.in[1] & ~(1 << 0) | 1 << 3;
-		}
-		else {
-			this.in[0] |= 1 << 0;
-			this.in[1] |= 1 << 0;
-		}
+		if (fDown)
+			this.in[0] = this.in[0] & ~(1 << 0) | 1 << 3, this.in[1] = this.in[1] & ~(1 << 0) | 1 << 3;
+		else
+			this.in[0] |= 1 << 0, this.in[1] |= 1 << 0;
 	}
 
 	right(fDown) {
-		if (fDown) {
-			this.in[0] = this.in[0] & ~(1 << 2) | 1 << 1;
-			this.in[1] = this.in[1] & ~(1 << 2) | 1 << 1;
-		}
-		else {
-			this.in[0] |= 1 << 2;
-			this.in[1] |= 1 << 2;
-		}
+		if (fDown)
+			this.in[0] = this.in[0] & ~(1 << 2) | 1 << 1, this.in[1] = this.in[1] & ~(1 << 2) | 1 << 1;
+		else
+			this.in[0] |= 1 << 2, this.in[1] |= 1 << 2;
 	}
 
 	down(fDown) {
-		if (fDown) {
-			this.in[0] = this.in[0] & ~(1 << 3) | 1 << 0;
-			this.in[1] = this.in[1] & ~(1 << 3) | 1 << 0;
-		}
-		else {
-			this.in[0] |= 1 << 3;
-			this.in[1] |= 1 << 3;
-		}
+		if (fDown)
+			this.in[0] = this.in[0] & ~(1 << 3) | 1 << 0, this.in[1] = this.in[1] & ~(1 << 3) | 1 << 0;
+		else
+			this.in[0] |= 1 << 3, this.in[1] |= 1 << 3;
 	}
 
 	left(fDown) {
-		if (fDown) {
-			this.in[0] = this.in[0] & ~(1 << 1) | 1 << 2;
-			this.in[1] = this.in[1] & ~(1 << 1) | 1 << 2;
-		}
-		else {
-			this.in[0] |= 1 << 1;
-			this.in[1] |= 1 << 1;
-		}
+		if (fDown)
+			this.in[0] = this.in[0] & ~(1 << 1) | 1 << 2, this.in[1] = this.in[1] & ~(1 << 1) | 1 << 2;
+		else
+			this.in[0] |= 1 << 1, this.in[1] |= 1 << 1;
 	}
 
 	triggerA(fDown) {
@@ -304,7 +287,7 @@ class JrPacMan {
 			[0x01B0, 0x01], [0x0001, 0x00], [0x0002, 0x01], [0x00AD, 0x00],
 			[0x0031, 0x01], [0x005C, 0x00], [0x0005, 0x01], [0x204E, 0x00]
 		];
-		if ("patched" in JrPacMan)
+		if (JrPacMan.patched)
 			return;
 		for (let addr = 0, i = 0, n = table.length; i < n; i++)
 			for (let j = 0; j < table[i][0]; j++)

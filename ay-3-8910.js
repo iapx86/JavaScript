@@ -5,26 +5,36 @@
  */
 
 export default class AY_3_8910 {
+	rate;
+	sampleRate;
+	count;
+	resolution;
+	gain;
+	tmpwheel = [];
+	wheel = [];
+	ram = new Uint8Array(0x10);
+	reg = new Uint8Array(0x10);
+	cycles = 0;
+	channel = [];
+	ncount = 0;
+	rng = 0xffff;
+	ecount = 0;
+	step = 0;
+
+	source;
+	gainNode;
+	scriptNode;
+
 	constructor({clock, resolution = 1, gain = 0.1}) {
-		this.ram = new Uint8Array(0x10);
-		this.reg = new Uint8Array(0x10);
-		this.cycles = 0;
-		this.channel = [];
-		for (let i = 0; i < 3; i++)
-			this.channel.push({freq: 0, count: 0, output: 0});
-		this.ncount = 0;
-		this.rng = 0xffff;
-		this.ecount = 0;
-		this.step = 0;
 		this.rate = Math.floor(clock / 8);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.count = this.sampleRate - 1;
 		this.resolution = resolution;
 		this.gain = gain;
-		this.tmpwheel = [];
 		for (let i = 0; i < resolution; i++)
 			this.tmpwheel.push([]);
-		this.wheel = [];
+		for (let i = 0; i < 3; i++)
+			this.channel.push({freq: 0, count: 0, output: 0});
 		if (!audioCtx)
 			return;
 		this.source = audioCtx.createBufferSource();
@@ -83,19 +93,13 @@ export default class AY_3_8910 {
 			});
 			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {
 				this.channel.forEach(ch => {
-					if (++ch.count >= ch.freq) {
-						ch.count = 0;
-						ch.output = ~ch.output;
-					}
+					if (++ch.count >= ch.freq)
+						ch.output = ~ch.output, ch.count = 0;
 				});
-				if (++this.ncount >= nfreq << 1) {
-					this.ncount = 0;
-					this.rng = (this.rng >> 16 ^ this.rng >> 13 ^ 1) & 1 | this.rng << 1;
-				}
-				if (++this.ecount >= efreq) {
-					this.ecount = 0;
-					this.step += ((this.step < 16) | etype >> 3 & ~etype & 1) - (this.step >= 47) * 32;
-				}
+				if (++this.ncount >= nfreq << 1)
+					this.rng = (this.rng >> 16 ^ this.rng >> 13 ^ 1) & 1 | this.rng << 1, this.ncount = 0;
+				if (++this.ecount >= efreq)
+					this.step += ((this.step < 16) | etype >> 3 & ~etype & 1) - (this.step >= 47) * 32, this.ecount = 0;
 			}
 		});
 	}

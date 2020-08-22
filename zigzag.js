@@ -10,33 +10,42 @@ import Z80 from './z80.js';
 let sound;
 
 class ZigZag {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nLife = 3;
+	nBonus = '10000 60000';
+
+	fInterruptEnable = false;
+	bank = 0x20;
+
+	ram = new Uint8Array(0x900).addBase();
+	in = Uint8Array.of(0, 0, 2);
+	psg = {latch: 0, addr: 0};
+
+	stars = [];
+	fStarEnable = false;
+	fStarMove = false;
+	bg = new Uint8Array(0x4000);
+	obj = new Uint8Array(0x4000);
+	rgb = new Uint32Array(0x80);
+
+	cpu = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nLife = 3;
-		this.nBonus = '10000 60000';
-
 		// CPU周りの初期化
-		this.fInterruptEnable = false;
-		this.bank = 0x20;
-
-		this.ram = new Uint8Array(0x900).addBase();
-		this.in = Uint8Array.of(0, 0, 2);
-		this.psg = {latch: 0, addr: 0};
-
 		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
 
-		this.cpu = new Z80(this);
 		for (let page = 0; page < 0x100; page++)
 			if (range(page, 0, 0x3f))
 				this.cpu.memorymap[page].base = PRG.base[page & 0x3f];
@@ -92,14 +101,8 @@ class ZigZag {
 			}
 
 		// Videoの初期化
-		this.stars = [];
 		for (let i = 0; i < 1024; i++)
 			this.stars[i] = {x: 0, y: 0, color: 0};
-		this.fStarEnable = false;
-		this.fStarMove = false;
-		this.bg = new Uint8Array(0x4000);
-		this.obj = new Uint8Array(0x4000);
-		this.rgb = new Uint32Array(0x80);
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
@@ -159,22 +162,16 @@ class ZigZag {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[0] |= 1 << 0;
-		}
+		if (this.fCoin)
+			this.in[0] |= 1 << 0, --this.fCoin;
 		else
 			this.in[0] &= ~(1 << 0);
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[1] |= 1 << 0;
-		}
+		if (this.fStart1P)
+			this.in[1] |= 1 << 0, --this.fStart1P;
 		else
 			this.in[1] &= ~(1 << 0);
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[1] |= 1 << 1;
-		}
+		if (this.fStart2P)
+			this.in[1] |= 1 << 1, --this.fStart2P;
 		else
 			this.in[1] &= ~(1 << 1);
 		return this;

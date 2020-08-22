@@ -5,28 +5,45 @@
  */
 
 export default class SenjyoSound {
-	constructor({SND, clock, resolution = 1, gain = 0.2}) {
-		this.cycles = 0;
-		this.channel = {vol: 0, freq: 256, count: 256, phase: 0};
+	snd;
+	rate;
+	sampleRate;
+	count;
+	resolution;
+	gain;
+	tmpwheel = [];
+	wheel = [];
+	cycles = 0;
+	channel = {vol: 0, freq: 256, count: 256, phase: 0};
+
+	source;
+	biquadFilter;
+	gainNode;
+	scriptNode;
+
+	constructor({SND, clock, resolution = 1, gain = 0.7}) {
 		this.snd = Float32Array.from(SND, e => e * 2 / 0xbf - 1);
 		this.rate = Math.floor(clock / 16);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.count = this.sampleRate - 1;
 		this.resolution = resolution;
 		this.gain = gain;
-		this.tmpwheel = [];
 		for (let i = 0; i < resolution; i++)
 			this.tmpwheel.push([]);
-		this.wheel = [];
 		if (!audioCtx)
 			return;
 		this.source = audioCtx.createBufferSource();
+		this.biquadFilter = audioCtx.createBiquadFilter();
+		this.biquadFilter.type = 'bandpass';
+		this.biquadFilter.frequency.value = 200;
+		this.biquadFilter.Q.value = 5;
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = this.gain;
 		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0));
 		this.source.connect(this.scriptNode);
-		this.scriptNode.connect(this.gainNode);
+		this.scriptNode.connect(this.biquadFilter);
+		this.biquadFilter.connect(this.gainNode);
 		this.gainNode.connect(audioCtx.destination);
 		this.source.start();
 	}
@@ -56,10 +73,8 @@ export default class SenjyoSound {
 					this.wheel.shift().forEach(e => this.regwrite(e));
 			data[i] = this.snd[ch.phase] * ch.vol;
 			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate)
-				if (--ch.count <= 0) {
-					ch.count = ch.freq;
-					ch.phase = ch.phase + 1 & 15;
-				}
+				if (--ch.count <= 0)
+					ch.count = ch.freq, ch.phase = ch.phase + 1 & 15;
 		});
 	}
 

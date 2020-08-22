@@ -10,40 +10,47 @@ import MC6801 from './mc6801.js';
 let game, sound;
 
 class SoundTest {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 256;
+	xOffset = 0;
+	yOffset = 0;
+
+	fReset = true;
+	nSound = 0;
+
+	fInterruptEnable1 = false;
+	ram2 = new Uint8Array(0x900).addBase();
+	mcu = new MC6801();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 256;
-		this.xOffset = 0;
-		this.yOffset = 0;
-		this.fReset = true;
-		this.nSound = 0;
-
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0x900).addBase();
-
-		this.cpu = new MC6801(this);
-
-		this.cpu.memorymap[0].base = this.ram.base[0];
-		this.cpu.memorymap[0].write = null;
+		this.mcu.memorymap[0].base = this.ram2.base[0];
+		this.mcu.memorymap[0].write = null;
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x10 + i].read = addr => sound.read(addr);
-			this.cpu.memorymap[0x10 + i].write = (addr, data) => sound.write(addr, data);
+			this.mcu.memorymap[0x10 + i].read = addr => sound.read(addr);
+			this.mcu.memorymap[0x10 + i].write = (addr, data) => sound.write(addr, data);
 		}
+		for (let i = 0; i < 0x40; i++)
+			this.mcu.memorymap[0x40 + i].write = addr => void(this.fInterruptEnable1 = (addr & 0x2000) === 0);
 		for (let i = 0; i < 0x20; i++)
-			this.cpu.memorymap[0x80 + i].base = PRG2.base[i];
+			this.mcu.memorymap[0x80 + i].base = PRG2.base[i];
 		for (let i = 0; i < 8; i++) {
-			this.cpu.memorymap[0xc0 + i].base = this.ram.base[1 + i];
-			this.cpu.memorymap[0xc0 + i].write = null;
+			this.mcu.memorymap[0xc0 + i].base = this.ram2.base[1 + i];
+			this.mcu.memorymap[0xc0 + i].write = null;
 		}
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0xf0 + i].base = PRG2I.base[i];
+			this.mcu.memorymap[0xf0 + i].base = PRG2I.base[i];
 	}
 
 	execute() {
-		this.cpu.interrupt('ocf');
-		this.cpu.execute(0x2000);
+		if (this.fInterruptEnable1)
+			this.mcu.interrupt();
+		this.mcu.execute(0x1000);
+		if ((this.ram2[8] & 8) !== 0)
+			this.mcu.interrupt('ocf');
+		this.mcu.execute(0x1000);
 		return this;
 	}
 
@@ -55,7 +62,7 @@ class SoundTest {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.cpu.reset();
+			this.mcu.reset();
 		}
 		return this;
 	}

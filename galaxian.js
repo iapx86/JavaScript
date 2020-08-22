@@ -11,32 +11,42 @@ import Z80 from './z80.js';
 let game, sound;
 
 class Galaxian {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nGalaxip = 3;
+	nBonus = 'B';
+
+	fInterruptEnable = false;
+	fSoundEnable = false;
+	mode = 0;
+	ram = new Uint8Array(0x900).addBase();
+	mmo = new Uint8Array(0x100);
+	ioport = new Uint8Array(0x100);
+
+	stars = [];
+	fStarEnable = false;
+	fStarMove = false;
+	bg = new Uint8Array(0x4000);
+	obj = new Uint8Array(0x4000);
+	rgb = new Uint32Array(0x80);
+
+	se;
+
+	cpu = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nGalaxip = 3;
-		this.nBonus = 'B';
-
 		// CPU周りの初期化
-		this.fInterruptEnable = false;
-		this.fSoundEnable = false;
-		this.mode = 0;
-
-		this.ram = new Uint8Array(0x900).addBase();
-		this.mmo = new Uint8Array(0x100);
-		this.ioport = new Uint8Array(0x100);
-
-		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x28; i++)
 			this.cpu.memorymap[i].base = PRG.base[i];
 		for (let i = 0; i < 4; i++) {
@@ -48,26 +58,59 @@ class Galaxian {
 		this.cpu.memorymap[0x58].base = this.ram.base[8];
 		this.cpu.memorymap[0x58].write = null;
 		this.cpu.memorymap[0x60].base = this.ioport;
-		this.cpu.memorymap[0x60].write = systemctrl0;
+		this.cpu.memorymap[0x60].write = (addr, data) => void(this.mmo[addr & 0x0f] = data & 1);
 		this.cpu.memorymap[0x68].base = this.ioport.subarray(0x10);
-		this.cpu.memorymap[0x68].write = systemctrl1;
+		this.cpu.memorymap[0x68].write = (addr, data) => {
+			switch (addr & 0xf) {
+			case 3: // BOMB
+				if ((data & 1) !== 0)
+					this.se[0].start = this.se[0].stop = true;
+				break;
+			case 5: // SHOT
+				if ((data & 1) !== 0 && !this.mmo[addr & 0x0f | 0x10])
+					this.se[1].start = this.se[1].stop = true;
+				break;
+			}
+			this.mmo[addr & 0x0f | 0x10] = data & 1;
+		};
 		this.cpu.memorymap[0x70].base = this.ioport.subarray(0x20);
-		this.cpu.memorymap[0x70].write = systemctrl2;
-		this.cpu.memorymap[0x78].write = systemctrl3;
+		this.cpu.memorymap[0x70].write = (addr, data) => {
+			switch (addr & 0xf) {
+			case 1:
+				this.fInterruptEnable = (data & 1) !== 0;
+				break;
+			case 4:
+				if (!this.fSoundEnable)
+					this.mmo[0x30] = 0xff;
+				this.fStarEnable = this.fSoundEnable = (data & 1) !== 0;
+				break;
+			default:
+				break;
+			}
+			this.mmo[addr & 0x0f | 0x20] = data & 1;
+		};
+		this.cpu.memorymap[0x78].write = (addr, data) => {
+			if ((addr & 0xff) === 0)
+				this.mmo[0x30] = data; // SOUND FREQUENCY
+		};
 
-		this.cpu.breakpoint = hookBreakPoint;
+		this.cpu.breakpoint = addr => {
+			switch (addr) {
+			case 0x18c3:
+				if (!this.ram[0x07])
+					this.emulateWave(this.ram[0x021f]);
+				break;
+			case 0x1cc1:
+				this.emulateWave(0);
+				break;
+			}
+		};
 		this.cpu.set_breakpoint(0x18c3);
 		this.cpu.set_breakpoint(0x1cc1);
 
 		// Videoの初期化
-		this.stars = [];
 		for (let i = 0; i < 1024; i++)
 			this.stars.push({x: 0, y: 0, color: 0});
-		this.fStarEnable = false;
-		this.fStarMove = false;
-		this.bg = new Uint8Array(0x4000);
-		this.obj = new Uint8Array(0x4000);
-		this.rgb = new Uint32Array(0x80);
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
@@ -77,59 +120,6 @@ class Galaxian {
 		const table = [BOMB, SHOT, WAVE0001, WAVE0010, WAVE0011, WAVE0100, WAVE0101, WAVE0110, WAVE0111, WAVE1000, WAVE1001, WAVE1010, WAVE1011, WAVE1100, WAVE1101, WAVE1110, WAVE1111];
 		this.se = table.map(buf => ({buf: buf, loop: true, start: false, stop: false}));
 		this.se[0].loop = this.se[1].loop = false;
-
-		// ライトハンドラ
-		function systemctrl0(addr, data, game) {
-			game.mmo[addr & 0x0f] = data & 1;
-		}
-
-		function systemctrl1(addr, data, game) {
-			switch (addr & 0x0f) {
-			case 0x03: // BOMB
-				if ((data & 1) !== 0)
-					game.se[0].start = game.se[0].stop = true;
-				break;
-			case 0x05: // SHOT
-				if ((data & 1) !== 0 && !game.mmo[addr & 0x0f | 0x10])
-					game.se[1].start = game.se[1].stop = true;
-				break;
-			}
-			game.mmo[addr & 0x0f | 0x10] = data & 1;
-		}
-
-		function systemctrl2(addr, data, game) {
-			switch (addr & 0x0f) {
-			case 0x01:
-				game.fInterruptEnable = (data & 1) !== 0;
-				break;
-			case 0x04:
-				if (game.fSoundEnable === false)
-					game.mmo[0x30] = 0xff;
-				game.fStarEnable = game.fSoundEnable = (data & 1) !== 0;
-				break;
-			default:
-				break;
-			}
-			game.mmo[addr & 0x0f | 0x20] = data & 1;
-		}
-
-		function systemctrl3(addr, data, game) {
-			if ((addr & 0xff) === 0)
-				game.mmo[0x30] = data; // SOUND FREQUENCY
-		}
-
-		// ブレークポイントコールバック
-		function hookBreakPoint(addr, game) {
-			switch (addr) {
-			case 0x18c3:
-				if (!game.ram[0x07])
-					game.emulateWave(game.ram[0x021f]);
-				break;
-			case 0x1cc1:
-				game.emulateWave(0);
-				break;
-			}
-		}
 	}
 
 	execute() {
@@ -203,22 +193,16 @@ class Galaxian {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.ioport[0] |= 1 << 0;
-		}
+		if (this.fCoin)
+			this.ioport[0] |= 1 << 0, --this.fCoin;
 		else
 			this.ioport[0] &= ~(1 << 0);
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.ioport[0x10] |= 1 << 0;
-		}
+		if (this.fStart1P)
+			this.ioport[0x10] |= 1 << 0, --this.fStart1P;
 		else
 			this.ioport[0x10] &= ~(1 << 0);
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.ioport[0x10] |= 1 << 1;
-		}
+		if (this.fStart2P)
+			this.ioport[0x10] |= 1 << 1, --this.fStart2P;
 		else
 			this.ioport[0x10] &= ~(1 << 1);
 		return this;

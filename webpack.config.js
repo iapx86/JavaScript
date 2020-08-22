@@ -39,10 +39,10 @@ const list = [
 	{name: 'moon_cresta', title: 'Moon Cresta', width: 224, height: 256},
 	{name: 'motos', title: 'Motos', width: 224, height: 288},
 	{name: 'new_rally-x', title: 'New Rally-X', width: 285, height: 224},
-	{name: 'pac_and_pal', title: 'Pac & Pal', width: 224, height: 288},
 	{name: 'pac-land', title: 'Pac-Land', width: 288, height: 224},
 	{name: 'pac-man', title: 'Pac-Man', width: 224, height: 288},
 	{name: 'pac-mania', title: 'Pac-Mania', width: 224, height: 288},
+	{name: 'pac_and_pal', title: 'Pac & Pal', width: 224, height: 288},
 	{name: 'pengo', title: 'Pengo', width: 224, height: 288},
 	{name: 'phozon', title: 'Phozon', width: 224, height: 288},
 	{name: 'polaris', title: 'Polaris', width: 224, height: 256},
@@ -142,7 +142,8 @@ module.exports = {
 			use: [{
 				loader: 'babel-loader',
 				options: {
-					presets: [['@babel/preset-env', {modules: false, targets: {ie: '11'}}]]
+					presets: [['@babel/preset-env', {modules: false, targets: {ie: '11'}}]],
+					plugins: [['@babel/plugin-proposal-class-properties', { loose: true }]],
 				}
 			}]
 		}]

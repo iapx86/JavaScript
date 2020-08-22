@@ -5,22 +5,32 @@
  */
 
 export default class C30 {
+	rate;
+	sampleRate;
+	count;
+	resolution;
+	gain;
+	tmpwheel = [];
+	wheel = [];
+	ram = new Uint8Array(0x400);
+	reg = new Uint8Array(0x140);
+	snd = new Float32Array(0x200);
+	channel = [];
+
+	source;
+	gainNode;
+	scriptNode;
+
 	constructor({clock = 24000, resolution = 1, gain = 0.1} = {}) {
-		this.ram = new Uint8Array(0x400);
-		this.reg = new Uint8Array(0x140);
-		this.snd = new Float32Array(0x200);
-		this.channel = [];
-		for (let i = 0; i < 8; i++)
-			this.channel.push({phase: 0, ncount: 0, rng: 1, output: 0});
 		this.rate = Math.floor(clock * 4096 / audioCtx.sampleRate);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.count = this.sampleRate - 1;
 		this.resolution = resolution;
 		this.gain = gain;
-		this.tmpwheel = [];
 		for (let i = 0; i < resolution; i++)
 			this.tmpwheel.push([]);
-		this.wheel = [];
+		for (let i = 0; i < 8; i++)
+			this.channel.push({phase: 0, ncount: 0, rng: 1, output: 0});
 		if (!audioCtx)
 			return;
 		this.source = audioCtx.createBufferSource();
@@ -73,14 +83,12 @@ export default class C30 {
 			this.channel.forEach((ch, j) => {
 				if (j >= 4 || (reg[0x100 | -4 + j * 8 & 0x3f] & 0x80) === 0) {
 					data[i] += this.snd[reg[0x101 + j * 8] << 1 & 0x1e0 | ch.phase >>> 27] * (reg[0x100 + j * 8] & 0x0f) / 15;
-					ch.phase += (reg[0x103 + j * 8] | reg[0x102 + j * 8] << 8 | reg[0x101 + j * 8] << 16 & 0xf0000) * this.rate;
+					ch.phase = ch.phase + (reg[0x103 + j * 8] | reg[0x102 + j * 8] << 8 | reg[0x101 + j * 8] << 16 & 0xf0000) * this.rate | 0;
 				}
 				else {
 					data[i] += (ch.output * 2 - 1) * (reg[0x100 + j * 8] & 0x0f) / 15;
-					for (ch.ncount += reg[0x103 + j * 8] * this.rate; ch.ncount >= 0x80000; ch.ncount -= 0x80000) {
-						ch.output ^= ch.rng + 1 >> 1 & 1;
-						ch.rng = (ch.rng ^ (~ch.rng & 1) - 1 & 0x28000) >> 1;
-					}
+					for (ch.ncount += reg[0x103 + j * 8] * this.rate; ch.ncount >= 0x80000; ch.ncount -= 0x80000)
+						ch.output ^= ch.rng + 1 >> 1 & 1, ch.rng = (ch.rng ^ (~ch.rng & 1) - 1 & 0x28000) >> 1;
 				}
 			});
 		});
@@ -88,10 +96,8 @@ export default class C30 {
 
 	regwrite({addr, data}) {
 		this.reg[addr] = data;
-		if (addr >= 0x100)
-			return;
-		this.snd[addr * 2] = (data >> 4) * 2 / 15 - 1;
-		this.snd[1 + addr * 2] = (data & 0x0f) * 2 / 15 - 1;
+		if (addr < 0x100)
+			this.snd[addr * 2] = (data >> 4) * 2 / 15 - 1, this.snd[1 + addr * 2] = (data & 0x0f) * 2 / 15 - 1;
 	}
 }
 

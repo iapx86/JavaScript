@@ -11,22 +11,23 @@ import MC6801 from './mc6801.js';
 let game, sound;
 
 class SoundTest {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 256;
+	xOffset = 0;
+	yOffset = 0;
+
+	fReset = true;
+	nSound = 1;
+	command = [];
+
+	ram3 = new Uint8Array(0xd00).addBase();
+	fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8)};
+	mcu = new MC6801();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 256;
-		this.xOffset = 0;
-		this.yOffset = 0;
-		this.fReset = true;
-		this.nSound = 1;
-		this.command = [];
-
 		// CPU周りの初期化
-		this.ram3 = new Uint8Array(0xd00).addBase();
-		this.fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8)};
-
-		this.mcu = new MC6801(this);
 		this.mcu.memorymap[0].base = this.ram3.base[0];
 		this.mcu.memorymap[0].write = null;
 		for (let i = 0; i < 4; i++) {

@@ -7,19 +7,21 @@
 import Cpu, {dummypage} from './main.js';
 
 export default class I8080 extends Cpu {
+	static fLogic = new Uint8Array(0x100);
+	b = 0;
+	c = 0;
+	d = 0;
+	e = 0;
+	h = 0;
+	l = 0;
+	a = 0;
+	f = 0; // f:sz-a-p-c
+	iff = 0;
+	sp = 0;
+	iomap = {base: dummypage, read: null, write: () => {}};
+
 	constructor(arg = null) {
 		super(arg);
-		this.b = 0;
-		this.c = 0;
-		this.d = 0;
-		this.e = 0;
-		this.h = 0;
-		this.l = 0;
-		this.a = 0;
-		this.f = 0; // f:sz-a-p-c
-		this.iff = 0;
-		this.sp = 0;
-		this.iomap = {base: dummypage, read: null, write: () => {}};
 	}
 
 	reset() {
@@ -679,7 +681,6 @@ export default class I8080 extends Cpu {
 }
 
 void function () {
-	I8080.fLogic = new Uint8Array(0x100);
 	for (let r = 0; r < 0x100; r++) {
 		let p = r ^ r >> 4;
 		p ^= p >> 2;

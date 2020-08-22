@@ -7,34 +7,36 @@
 import Cpu, {dummypage} from './main.js';
 
 export default class Z80 extends Cpu {
+	static fLogic = new Uint8Array(0x100);
+	b = 0;
+	c = 0;
+	d = 0;
+	e = 0;
+	h = 0;
+	l = 0;
+	a = 0;
+	f = 0; // f:sz-h-pnc
+	ixh = 0;
+	ixl = 0;
+	iyh = 0;
+	iyl = 0;
+	iff = 0;
+	im = 0;
+	i = 0;
+	r = 0;
+	b_prime = 0;
+	c_prime = 0;
+	d_prime = 0;
+	e_prime = 0;
+	h_prime = 0;
+	l_prime = 0;
+	a_prime = 0;
+	f_prime = 0;
+	sp = 0;
+	iomap = [];
+
 	constructor(arg = null) {
 		super(arg);
-		this.b = 0;
-		this.c = 0;
-		this.d = 0;
-		this.e = 0;
-		this.h = 0;
-		this.l = 0;
-		this.a = 0;
-		this.f = 0; // f:sz-h-pnc
-		this.ixh = 0;
-		this.ixl = 0;
-		this.iyh = 0;
-		this.iyl = 0;
-		this.iff = 0;
-		this.im = 0;
-		this.i = 0;
-		this.r = 0;
-		this.b_prime = 0;
-		this.c_prime = 0;
-		this.d_prime = 0;
-		this.e_prime = 0;
-		this.h_prime = 0;
-		this.l_prime = 0;
-		this.a_prime = 0;
-		this.f_prime = 0;
-		this.sp = 0;
-		this.iomap = [];
 		for (let i = 0; i < 0x100; i++)
 			this.iomap.push({base: dummypage, read: null, write: () => {}});
 	}
@@ -1994,7 +1996,6 @@ export default class Z80 extends Cpu {
 }
 
 void function () {
-	Z80.fLogic = new Uint8Array(0x100);
 	for (let r = 0; r < 0x100; r++) {
 		let p = r ^ r >> 4;
 		p ^= p >> 2;

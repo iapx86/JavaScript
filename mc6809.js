@@ -7,16 +7,17 @@
 import Cpu from './main.js';
 
 export default class MC6809 extends Cpu {
+	a = 0;
+	b = 0;
+	dp = 0;
+	ccr = 0; // ccr:efhinzvc
+	x = 0;
+	y = 0;
+	u = 0;
+	s = 0;
+
 	constructor(arg = null) {
 		super(arg);
-		this.a = 0;
-		this.b = 0;
-		this.dp = 0;
-		this.ccr = 0; // ccr:efhinzvc
-		this.x = 0;
-		this.y = 0;
-		this.u = 0;
-		this.s = 0;
 	}
 
 	reset() {

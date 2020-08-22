@@ -5,19 +5,30 @@
  */
 
 export default class K005289 {
+	snd;
+	rate;
+	sampleRate;
+	count;
+	resolution;
+	gain;
+	tmpwheel = [];
+	wheel = [];
+	reg = new Uint16Array(4);
+	phase = new Uint32Array(2);
+
+	source;
+	gainNode;
+	scriptNode;
+
 	constructor({SND, clock, resolution = 1, gain = 0.1}) {
-		this.reg = new Uint16Array(4);
-		this.phase = new Uint32Array(2);
 		this.snd = Float32Array.from(SND, e => (e & 0x0f) * 2 / 15 - 1);
 		this.rate = clock / audioCtx.sampleRate * (1 << 27);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.count = this.sampleRate - 1;
 		this.resolution = resolution;
 		this.gain = gain;
-		this.tmpwheel = [];
 		for (let i = 0; i < resolution; i++)
 			this.tmpwheel.push([]);
-		this.wheel = [];
 		if (!audioCtx)
 			return;
 		this.source = audioCtx.createBufferSource();
@@ -63,7 +74,7 @@ export default class K005289 {
 			for (let j = 0; j < 2; j++)
 				if (reg[j + 2]) {
 					data[i] += this.snd[j << 8 | reg[j] & 0xe0 | this.phase[j] >>> 27] * (reg[j] & 0x0f) / 15;
-					this.phase[j] += Math.floor(this.rate / reg[j + 2]);
+					this.phase[j] = this.phase[j] + Math.floor(this.rate / reg[j + 2]) | 0;
 				}
 		});
 	}

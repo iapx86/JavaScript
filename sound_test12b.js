@@ -13,29 +13,31 @@ import MC6801 from './mc6801.js';
 let game, sound;
 
 class SoundTest {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 256;
+	xOffset = 0;
+	yOffset = 0;
+	fReset = true;
+
+	nSound = 0;
+	command = [];
+
+	ram2 = new Uint8Array(0x800).addBase();
+	ram3 = new Uint8Array(0x2000).addBase();
+	ram4 = new Uint8Array(0x900).addBase();
+	fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8), status: 0, timera: 0, timerb: 0};
+	count = 0;
+	bank3 = 0x40;
+	bank4 = 0x80;
+	cpu3_irq = false;
+	mcu_irq = false;
+	cpu3 = new MC6809();
+	mcu = new MC6801();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 256;
-		this.xOffset = 0;
-		this.yOffset = 0;
-		this.fReset = true;
-		this.nSound = 0;
-		this.command = [];
-
 		// CPU周りの初期化
-		this.ram2 = new Uint8Array(0x800).addBase();
-		this.ram3 = new Uint8Array(0x2000).addBase();
-		this.ram4 = new Uint8Array(0x900).addBase();
-		this.fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8), status: 0, timera: 0, timerb: 0};
-		this.count = 0;
-		this.bank3 = 0x40;
-		this.bank4 = 0x80;
-		this.cpu3_irq = false;
-		this.mcu_irq = false;
-
-		this.cpu3 = new MC6809(this);
 		for (let i = 0; i < 0x40; i++)
 			this.cpu3.memorymap[i].base = SND.base[0x40 + i];
 		this.cpu3.memorymap[0x40].read = addr => addr === 0x4001 ? this.fm.status : 0xff;
@@ -78,16 +80,14 @@ class SoundTest {
 
 		this.cpu3.check_interrupt = () => this.cpu3_irq && this.cpu3.interrupt() || (this.fm.status & 3) !== 0 && this.cpu3.fast_interrupt();
 
-		this.mcu = new MC6801(this);
 		this.mcu.memorymap[0].base = this.ram4.base[0];
 		this.mcu.memorymap[0].read = addr => {
+			let data;
 			switch (addr) {
 			case 2:
 				return 0xf8;
 			case 8:
-				const data = this.ram4[8];
-				this.ram4[8] &= ~0xe0;
-				return data;
+				return data = this.ram4[8], this.ram4[8] &= ~0xe0, data;
 			}
 			return this.ram4[addr];
 		};

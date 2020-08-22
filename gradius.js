@@ -13,41 +13,49 @@ import Z80 from './z80.js';
 let game, sound;
 
 class Gradius {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = true;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	fTurbo = 0;
+	nLife = 3;
+	nBonus = '30000 every 80000';
+	nRank = 'Normal';
+	fDemoSound = true;
+
+	fInterrupt2Enable = false;
+	fInterrupt4Enable = false;
+
+	ram = new Uint8Array(0x49000).addBase();
+	ram2 = new Uint8Array(0x4000).addBase();
+	vlm = new Uint8Array(0x800).addBase();
+	in = Uint8Array.of(0xff, 0x53, 0xff, 0xff, 0xff, 0xff);
+	psg = [{addr: 0}, {addr: 0}];
+	scc = {freq0: 0, freq1: 0};
+	vlm_latch = 0;
+	count = 0;
+	timer = 0;
+	command = [];
+
+	chr = new Uint8Array(0x20000);
+	rgb = new Uint32Array(0x800).fill(0xff000000);
+	flip = 0;
+	intensity = new Uint8Array(32);
+
+	cpu = new MC68000();
+	cpu2 = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = true;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.fTurbo = 0;
-		this.nLife = 3;
-		this.nBonus = '30000 every 80000';
-		this.nRank = 'Normal';
-		this.fDemoSound = true;
-
 		// CPU周りの初期化
-		this.fInterrupt2Enable = false;
-		this.fInterrupt4Enable = false;
-
-		this.ram = new Uint8Array(0x49000).addBase();
-		this.ram2 = new Uint8Array(0x4000).addBase();
-		this.vlm = new Uint8Array(0x800).addBase();
-		this.in = Uint8Array.of(0xff, 0x53, 0xff, 0xff, 0xff, 0xff);
-		this.psg = [{addr: 0}, {addr: 0}];
-		this.scc = {freq0: 0, freq1: 0};
-		this.vlm_latch = 0;
-		this.count = 0;
-		this.timer = 0;
-		this.command = [];
-
-		this.cpu = new MC68000(this);
 		for (let i = 0; i < 0x100; i++)
 			this.cpu.memorymap[i].base = PRG1.base[i];
 		for (let i = 0; i < 0x100; i++) {
@@ -62,9 +70,7 @@ class Gradius {
 			this.cpu.memorymap[0x300 + i].base = this.ram.base[0x100 + i];
 			this.cpu.memorymap[0x300 + i].write = (addr, data) => {
 				let offset = addr & 0xffff;
-				this.ram[0x10000 | offset] = data;
-				this.chr[offset <<= 1] = data >> 4;
-				this.chr[1 | offset] = data & 0xf;
+				this.ram[0x10000 | offset] = data, this.chr[offset <<= 1] = data >> 4, this.chr[1 | offset] = data & 0xf;
 			};
 		}
 		for (let i = 0; i < 0x80; i++) {
@@ -76,8 +82,7 @@ class Gradius {
 			this.cpu.memorymap[0x5a0 + i].write = null;
 			this.cpu.memorymap[0x5a0 + i].write16 = (addr, data) => {
 				const offset = addr & 0xffe;
-				this.ram[0x28000 | offset] = data >> 8;
-				this.ram[0x28001 | offset] = data;
+				this.ram[0x28000 | offset] = data >> 8, this.ram[0x28001 | offset] = data;
 				this.rgb[offset >> 1] = this.intensity[data & 0x1f]	// Red
 					| this.intensity[data >> 5 & 0x1f] << 8			// Green
 					| this.intensity[data >> 10 & 0x1f] << 16		// Blue
@@ -107,7 +112,6 @@ class Gradius {
 		for (let i = 0; i < 0x400; i++)
 			this.cpu.memorymap[0x800 + i].base = PRG1.base[0x100 + i];
 
-		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
 		for (let i = 0; i < 0x40; i++) {
@@ -158,9 +162,6 @@ class Gradius {
 		};
 
 		// Videoの初期化
-		this.chr = new Uint8Array(0x20000);
-		this.rgb = new Uint32Array(0x800).fill(0xff000000);
-		this.flip = 0;
 
 		// 輝度の計算
 		const intensity = new Array(32);
@@ -168,17 +169,12 @@ class Gradius {
 		for (let i = 0; i < 32; i++) {
 			let rt = 0, v = 0;
 			for (let j = 0; j < r.length; j++)
-				if ((i >> j & 1) === 0) {
-					rt += 1 / r[j];
-					v += 0.05 / r[j];
-				}
-			rt += 0.001;
-			v += 0.005;
-			v = v / rt - 0.7;
-			intensity[i] = v * 255 / 5.0 + 0.4;
+				if ((i >> j & 1) === 0)
+					rt += 1 / r[j], v += 0.05 / r[j];
+			intensity[i] = ((v + 0.005) / (rt + 0.001) - 0.7) * 255 / 5.0 + 0.4;
 		}
 		const black = intensity[0], white = 255 / (intensity[31] - black);
-		this.intensity = new Uint8Array(intensity.map(e => (e - black) * white + 0.5));
+		this.intensity.set(intensity.map(e => (e - black) * white + 0.5));
 	}
 
 	execute() {
@@ -272,22 +268,16 @@ class Gradius {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[3] &= ~(1 << 2);
-		}
+		if (this.fCoin)
+			this.in[3] &= ~(1 << 2), --this.fCoin;
 		else
 			this.in[3] |= 1 << 2;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[3] &= ~(1 << 3);
-		}
+		if (this.fStart1P)
+			this.in[3] &= ~(1 << 3), --this.fStart1P;
 		else
 			this.in[3] |= 1 << 3;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[3] &= ~(1 << 4);
-		}
+		if (this.fStart2P)
+			this.in[3] &= ~(1 << 4), --this.fStart2P;
 		else
 			this.in[3] |= 1 << 4;
 

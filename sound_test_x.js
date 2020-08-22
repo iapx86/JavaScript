@@ -11,24 +11,25 @@ import Z80 from './z80.js';
 let game, sound;
 
 class SoundTest {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 256;
+	xOffset = 0;
+	yOffset = 0;
+
+	fReset = true;
+	nSound = 0x80;
+
+	ram2 = new Uint8Array(0x2000).addBase();
+	fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8), status: 0, timera: 0, timerb: 0};
+	count = 0;
+	command = [];
+	bank = 0x80;
+	cpu2 = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 256;
-		this.xOffset = 0;
-		this.yOffset = 0;
-		this.fReset = true;
-		this.nSound = 0x80;
-
 		// CPU周りの初期化
-		this.ram2 = new Uint8Array(0x2000).addBase();
-		this.fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8), status: 0, timera: 0, timerb: 0};
-		this.count = 0;
-		this.command = [];
-		this.bank = 0x80;
-
-		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0xc0; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
 		for (let i = 0; i < 0x20; i++) {
@@ -194,7 +195,7 @@ class SoundTest {
 
 const key = [];
 const url = 'xexex.zip';
-let PRG2, PCM;
+let PRG2, PCM = new Uint8Array(0x300000);
 
 window.addEventListener('load', () => {
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
@@ -213,7 +214,7 @@ function success(zip) {
 		game: game = new SoundTest(),
 		sound: sound = [
 			new YM2151({clock: 4000000, resolution: 65, gain: 2}),
-//			new K054539({PCM, clock: 18432000, resolution: 65, gain: 0.2}),
+			new K054539({PCM, clock: 18432000, resolution: 65, gain: 0.2}),
 		],
 	});
 	game.initial = true;

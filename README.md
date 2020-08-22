@@ -1,6 +1,6 @@
 Webpackのインストール
 $ npm init -y
-$ npm install webpack webpack-cli html-webpack-plugin html-webpack-inline-source-plugin babel-loader @babel/core @babel/preset-env --save-dev
+$ npm install webpack webpack-cli html-webpack-plugin html-webpack-inline-source-plugin babel-loader @babel/core @babel/preset-env @babel/plugin-proposal-class-properties --save-dev
 
 Webpackの実行
 $ webpack

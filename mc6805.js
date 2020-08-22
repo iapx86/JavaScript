@@ -7,13 +7,14 @@
 import Cpu from './main.js';
 
 export default class MC6805 extends Cpu {
+	a = 0;
+	ccr = 0; // ccr:111hinzc
+	x = 0;
+	s = 0;
+	irq = false;
+
 	constructor(arg = null) {
 		super(arg);
-		this.a = 0;
-		this.ccr = 0; // ccr:111hinzc
-		this.x = 0;
-		this.s = 0;
-		this.irq = false;
 	}
 
 	reset() {
@@ -32,12 +33,10 @@ export default class MC6805 extends Cpu {
 		this.psh16(this.pc), this.psh(this.x, this.a, this.ccr), this.ccr |= 8;
 		switch (vector) {
 		case 'timer':
-			this.pc = this.read16(0x7f8) & 0x7ff;
-			break;
+			return this.pc = this.read16(0x7f8) & 0x7ff, true;
 		default:
 		case 'external':
-			this.pc = this.read16(0x7fa) & 0x7ff;
-			break;
+			return this.pc = this.read16(0x7fa) & 0x7ff, true;
 		}
 		return true;
 	}

@@ -5,33 +5,44 @@
  */
 
 export default class VLM5030 {
+	base;
+	rate;
+	sampleRate;
+	gain;
+	BSY = 0;
+	cycles = 0;
+	param = 0;
+	offset = 0;
+	icount = 0;
+	scount = 0;
+	pcount = 0;
+	pitch0 = 0;
+	energy0 = 0;
+	k0 = new Int16Array(10);
+	npitch = 0;
+	nenergy = 0;
+	nk = new Int16Array(10);
+	pitch1 = 0;
+	energy1 = 0;
+	k1;
+	pitch = 0;
+	energy = 0;
+	k = new Int16Array(10);
+	x = new Int32Array(10);
+	output = 0;
+
+	source;
+	gainNode;
+	scriptNode;
+
 	constructor({VLM, clock, gain = 0.1}) {
 		const sampleRate = Math.floor(audioCtx.sampleRate);
-		this.BSY = 0;
-		this.cycles = sampleRate - 1;
-		this.param = 0;
-		this.offset = 0;
-		this.icount = 0;
-		this.scount = 0;
-		this.pcount = 0;
-		this.pitch0 = 0;
-		this.energy0 = 0;
-		this.k0 = new Int16Array(10);
-		this.npitch = 0;
-		this.nenergy = 0;
-		this.nk = new Int16Array(10);
-		this.pitch1 = 0;
-		this.energy1 = 0;
-		this.k1 = this.k0;
-		this.pitch = 0;
-		this.energy = 0;
-		this.k = new Int16Array(10);
-		this.x = new Int32Array(10);
-		this.output = 0;
 		this.base = VLM;
 		this.rate = Math.floor(clock / 440);
 		this.sampleRate = sampleRate;
 		this.gain = gain;
+		this.cycles = sampleRate - 1;
+		this.k1 = this.k0;
 		if (!audioCtx)
 			return;
 		this.source = audioCtx.createBufferSource();

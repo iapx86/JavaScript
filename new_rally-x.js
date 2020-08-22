@@ -11,38 +11,48 @@ import Z80 from './z80.js';
 let game, sound;
 
 class NewRallyX {
+	cxScreen = 224;
+	cyScreen = 285;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 19;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	dwStick = 0;
+	abStick = Uint8Array.of(~0, ~1, ~2, ~0, ~4, ~4, ~2, ~4, ~8, ~1, ~8, ~8, ~0, ~1, ~2, ~0);
+	nMyCar = 3;
+//	nRank = 'A';
+	nBonus = 'A';
+
+	fInterruptEnable = false;
+	fSoundEnable = false;
+
+	ram = new Uint8Array(0x1800).addBase();
+	mmi = new Uint8Array(0x200).fill(0xff).addBase();
+	mmo = new Uint8Array(0x200);
+	adwCount = new Uint8Array(8);
+	vector = 0;
+	cpu_irq = false;
+
+	bg = new Uint8Array(0x4000);
+	obj = new Uint8Array(0x4000);
+	color = Uint8Array.from(COLOR, e => e & 0xf);
+	rgb = new Uint32Array(0x20);
+
+	se = [{buf: BANG, loop: false, start: false, stop: false}];
+
+	cpu = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 285;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 19;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.dwStick = 0;
-		this.abStick = Uint8Array.of(~0, ~1, ~2, ~0, ~4, ~4, ~2, ~4, ~8, ~1, ~8, ~8, ~0, ~1, ~2, ~0);
-		this.nMyCar = 3;
-//		this.nRank = 'A';
-		this.nBonus = 'A';
-
 		// CPU周りの初期化
-		this.fInterruptEnable = false;
-		this.fSoundEnable = false;
-
-		this.ram = new Uint8Array(0x1800).addBase();
-		this.mmi = new Uint8Array(0x200).fill(0xff).addBase();
-		this.mmo = new Uint8Array(0x200);
-		this.adwCount = new Uint8Array(8);
 		this.mmi[0x100] = 0xc5;
-		this.vector = 0;
-		this.cpu_irq = false;
 
-		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x40; i++)
 			this.cpu.memorymap[i].base = PRG.base[i];
 		for (let i = 0; i < 0x10; i++) {
@@ -55,76 +65,57 @@ class NewRallyX {
 		}
 		for (let i = 0; i < 0x02; i++) {
 			this.cpu.memorymap[0xa0 + i].base = this.mmi.base[i];
-			this.cpu.memorymap[0xa0 + i].write = systemcontrolarea;
+			this.cpu.memorymap[0xa0 + i].write = (addr, data) => {
+				switch (addr >> 4 & 0xfff) {
+				case 0xa10:
+				case 0xa11:
+					return sound[0].write(addr, data);
+				case 0xa18:
+					switch (addr & 0xf) {
+					case 0:
+						if (data === 0xff)
+							this.se[0].start = this.se[0].stop = true;
+						break;
+					case 1:
+						this.fInterruptEnable = (data & 1) !== 0, this.cpu_irq = false;
+						break;
+					case 2:
+						this.fSoundEnable = (data & 1) !== 0;
+						break;
+					}
+					// fallthrough
+				default:
+					return void(this.mmo[addr & 0x1ff] = data);
+				}
+			};
 		}
 		for (let i = 0; i < 0x100; i++)
 			this.cpu.iomap[i].write = (addr, data) => {
-				if ((addr & 0xff) === 0) {
-					this.vector = data;
-					this.cpu_irq = false;
-				}
+				if ((addr & 0xff) === 0)
+					this.vector = data, this.cpu_irq = false;
 			};
 
 		this.cpu.check_interrupt = () => this.cpu_irq && this.cpu.interrupt(this.vector);
 
-		this.cpu.breakpoint = hookBreakPoint;
+		this.cpu.breakpoint = addr => {
+			switch (addr) {
+			case 0x0d39:
+				if (!this.adwCount[(this.ixl | this.ixh << 8) - 0x8088 >> 5])
+					this.adwCount[(this.ixl | this.ixh << 8) - 0x8088 >> 5] = 0x88;
+				break;
+			case 0x1886:
+				if (!this.adwCount[(this.ixl | this.ixh << 8) - 0x8088 >> 5])
+					this.adwCount[(this.ixl | this.ixh << 8) - 0x8088 >> 5] = 0x20;
+				break;
+			}
+		};
 		this.cpu.set_breakpoint(0x0d39);
 		this.cpu.set_breakpoint(0x1886);
 
 		// Videoの初期化
-		this.bg = new Uint8Array(0x4000);
-		this.obj = new Uint8Array(0x4000);
-		this.color = Uint8Array.from(COLOR, e => e & 0xf);
-		this.rgb = new Uint32Array(0x20);
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
-
-		// 効果音の初期化
-		this.se = [{buf: BANG, loop: false, start: false, stop: false}];
-
-		// ライトハンドラ
-		function systemcontrolarea(addr, data, game) {
-			switch (addr >> 4 & 0xfff) {
-			case 0xa10:
-			case 0xa11:
-				sound[0].write(addr, data);
-				break;
-			case 0xa18:
-				switch (addr & 0xf) {
-				case 0:
-					if (data === 0xff)
-						game.se[0].start = game.se[0].stop = true;
-					break;
-				case 1:
-					game.fInterruptEnable = (data & 1) !== 0;
-					game.cpu_irq = false;
-					break;
-				case 2:
-					game.fSoundEnable = (data & 1) !== 0;
-					break;
-				}
-				game.mmo[addr & 0x1ff] = data;
-				break;
-			default:
-				game.mmo[addr & 0x1ff] = data;
-				break;
-			}
-		}
-
-		// ブレークポイントコールバック
-		function hookBreakPoint(addr, game) {
-			switch (addr) {
-			case 0x0d39:
-				if (!game.adwCount[(this.ixl | this.ixh << 8) - 0x8088 >> 5])
-					game.adwCount[(this.ixl | this.ixh << 8) - 0x8088 >> 5] = 0x88;
-				break;
-			case 0x1886:
-				if (!game.adwCount[(this.ixl | this.ixh << 8) - 0x8088 >> 5])
-					game.adwCount[(this.ixl | this.ixh << 8) - 0x8088 >> 5] = 0x20;
-				break;
-			}
-		}
 	}
 
 	execute() {
@@ -191,22 +182,16 @@ class NewRallyX {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.mmi[0] &= ~(1 << 7);
-		}
+		if (this.fCoin)
+			this.mmi[0] &= ~(1 << 7), --this.fCoin;
 		else
 			this.mmi[0] |= 1 << 7;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.mmi[0] &= ~(1 << 6);
-		}
+		if (this.fStart1P)
+			this.mmi[0] &= ~(1 << 6), --this.fStart1P;
 		else
 			this.mmi[0] |= 1 << 6;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.mmi[0x80] &= ~(1 << 6);
-		}
+		if (this.fStart2P)
+			this.mmi[0x80] &= ~(1 << 6), --this.fStart2P;
 		else
 			this.mmi[0x80] |= 1 << 6;
 

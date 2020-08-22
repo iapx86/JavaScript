@@ -10,32 +10,40 @@ import I8080 from './i8080.js';
 let game;
 
 class WarpAndWarp {
-	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 272;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.dwStick = 0;
-		this.abStick = Uint8Array.of(0, 1, 2, 0, 4, 1, 4, 4, 8, 8, 2, 8, 0, 1, 2, 0);
-		this.nFighter = 3;
-		this.nBonus = 'A';
+	cxScreen = 224;
+	cyScreen = 272;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
 
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	dwStick = 0;
+	abStick = Uint8Array.of(0, 1, 2, 0, 4, 1, 4, 4, 8, 8, 2, 8, 0, 1, 2, 0);
+	nFighter = 3;
+	nBonus = 'A';
+
+	ram = new Uint8Array(0xe00).fill(0xff).addBase();
+
+	bg = new Uint8Array(0x4000);
+	rgb = new Uint32Array(0x100);
+
+	se = [WAVE02, WAVE10, WAVE11, WAVE14, WAVE16].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+
+	cpu = new I8080();
+
+	constructor() {
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0xe00).fill(0xff).addBase();
 		this.ram[0xc21] = 0xfe;
 		this.ram[0xc23] = 0xfe;
 		this.ram[0xc24] = 0xfe;
 		this.ram[0xc25] = 0xfe;
 
-		this.cpu = new I8080(this);
 		for (let i = 0; i < 0x30; i++)
 			this.cpu.memorymap[i].base = PRG.base[i];
 		for (let i = 0; i < 8; i++) {
@@ -76,13 +84,8 @@ class WarpAndWarp {
 		};
 
 		// Videoの初期化
-		this.bg = new Uint8Array(0x4000);
-		this.rgb = new Uint32Array(0x100);
 		this.convertRGB();
 		this.convertBG();
-
-		// 効果音の初期化
-		this.se = [WAVE02, WAVE10, WAVE11, WAVE14, WAVE16].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
 	}
 
 	execute() {
@@ -155,22 +158,16 @@ class WarpAndWarp {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.ram[0xc07] = 0xfe;
-		}
+		if (this.fCoin)
+			this.ram[0xc07] = 0xfe, --this.fCoin;
 		else
 			this.ram[0xc07] = 0xff;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.ram[0xc02] = 0xfe;
-		}
+		if (this.fStart1P)
+			this.ram[0xc02] = 0xfe, --this.fStart1P;
 		else
 			this.ram[0xc02] = 0xff;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.ram[0xc03] = 0xfe;
-		}
+		if (this.fStart2P)
+			this.ram[0xc03] = 0xfe, --this.fStart2P;
 		else
 			this.ram[0xc03] = 0xff;
 		switch (this.abStick[this.dwStick]) {

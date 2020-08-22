@@ -10,38 +10,48 @@ import Z80 from './z80.js';
 let sound;
 
 class Scramble {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nLife = 3;
+
+	fInterruptEnable = false;
+	fSoundEnable = false;
+
+	ram = new Uint8Array(0xd00).addBase();
+	ppi0 = Uint8Array.of(0xff, 0xfc, 0xf1, 0);
+	ppi1 = new Uint8Array(4);
+	ram2 = new Uint8Array(0x400).addBase();
+	psg = [{addr: 0}, {addr: 0}];
+	count = 0;
+	timer = 0;
+	command = [];
+	state = 0;
+
+	stars = [];
+	fStarEnable = false;
+	fBackgroundEnable = false;
+	bg = new Uint8Array(0x4000);
+	obj = new Uint8Array(0x4000);
+	rgb = new Uint32Array(0x80);
+
+	cpu = new Z80();
+	cpu2 = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nLife = 3;
-
 		// CPU周りの初期化
-		this.fInterruptEnable = false;
-		this.fSoundEnable = false;
-
-		this.ram = new Uint8Array(0xd00).addBase();
-		this.ppi0 = Uint8Array.of(0xff, 0xfc, 0xf1, 0);
-		this.ppi1 = new Uint8Array(4);
-		this.ram2 = new Uint8Array(0x400).addBase();
-		this.psg = [{addr: 0}, {addr: 0}];
-		this.count = 0;
-		this.timer = 0;
-		this.command = [];
-		this.state = 0;
-
 		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
 
-		this.cpu = new Z80(this);
 		for (let page = 0; page < 0x100; page++)
 			if (range(page, 0, 0x3f))
 				this.cpu.memorymap[page].base = PRG1.base[page & 0x3f];
@@ -96,7 +106,6 @@ class Scramble {
 				};
 			}
 
-		this.cpu2 = new Z80(this);
 		for (let page = 0; page < 0x100; page++)
 			if (range(page, 0, 0x17))
 				this.cpu2.memorymap[page].base = PRG2.base[page & 0x1f];
@@ -126,14 +135,8 @@ class Scramble {
 		}
 
 		// Videoの初期化
-		this.stars = [];
 		for (let i = 0; i < 1024; i++)
 			this.stars.push({x: 0, y: 0, color: 0});
-		this.fStarEnable = false;
-		this.fBackgroundEnable = false;
-		this.bg = new Uint8Array(0x4000);
-		this.obj = new Uint8Array(0x4000);
-		this.rgb = new Uint32Array(0x80);
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
@@ -201,22 +204,16 @@ class Scramble {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.ppi0[0] &= ~(1 << 7);
-		}
+		if (this.fCoin)
+			this.ppi0[0] &= ~(1 << 7), --this.fCoin;
 		else
 			this.ppi0[0] |= 1 << 7;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.ppi0[1] &= ~(1 << 7);
-		}
+		if (this.fStart1P)
+			this.ppi0[1] &= ~(1 << 7), --this.fStart1P;
 		else
 			this.ppi0[1] |= 1 << 7;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.ppi0[1] &= ~(1 << 6);
-		}
+		if (this.fStart2P)
+			this.ppi0[1] &= ~(1 << 6), --this.fStart2P;
 		else
 			this.ppi0[1] |= 1 << 6;
 		return this;
@@ -364,7 +361,7 @@ class Scramble {
 			}
 		}
 
-		// bullets 描画
+		// bullets描画
 		for (let k = 0xc60, i = 0; i < 8; k += 4, i++) {
 			p = this.ram[k + 1] | 264 - this.ram[k + 3] << 8;
 			data[p] = 7;

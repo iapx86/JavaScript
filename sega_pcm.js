@@ -5,21 +5,32 @@
  */
 
 export default class SegaPCM {
+	pcm;
+	rate;
+	sampleRate;
+	count;
+	resolution;
+	gain;
+	tmpwheel = [];
+	wheel = [];
+	ram = new Uint8Array(0x800);
+	reg = new Uint8Array(0x100);
+	cycles = 0;
+	low = new Uint8Array(16);
+
+	source;
+	gainNode;
+	scriptNode;
+
 	constructor({PCM, clock, resolution = 1, gain = 1}) {
-		this.ram = new Uint8Array(0x800);
-		this.reg = new Uint8Array(0x100);
-		this.cycles = 0;
-		this.low = new Uint8Array(16);
 		this.pcm = Float32Array.from(PCM, e => e * 2 / 255 - 1);
 		this.rate = Math.floor(clock / 128);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.count = this.sampleRate - 1;
 		this.resolution = resolution;
 		this.gain = gain;
-		this.tmpwheel = [];
 		for (let i = 0; i < resolution; i++)
 			this.tmpwheel.push([]);
-		this.wheel = [];
 		if (!audioCtx)
 			return;
 		this.source = audioCtx.createBufferSource();
@@ -78,15 +89,12 @@ export default class SegaPCM {
 				for (let j = 0; j < 0x80; j += 8)
 					if ((reg[0x86 | j] & 1) === 0) {
 						const addr = (reg[0x85 | j] << 16 | reg[0x84 | j] << 8 | this.low[j >> 3]) + reg[7 | j];
-						reg[0x85 | j] = addr >> 16;
-						reg[0x84 | j] = addr >> 8;
-						this.low[j >> 3] = addr;
+						reg[0x85 | j] = addr >> 16, reg[0x84 | j] = addr >> 8, this.low[j >> 3] = addr;
 						if (reg[0x85 | j] === (reg[6 | j] + 1 & 0xff)) {
 							this.low[j >> 3] = 0;
-							if ((reg[0x86 | j] & 2) === 0) {
-								reg[0x85 | j] = reg[5 | j];
-								reg[0x84 | j] = reg[4 | j];
-							} else
+							if ((reg[0x86 | j] & 2) === 0)
+								reg[0x85 | j] = reg[5 | j], reg[0x84 | j] = reg[4 | j];
+							else
 								reg[0x86 | j] |= 1;
 						}
 					}

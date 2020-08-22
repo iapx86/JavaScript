@@ -11,35 +11,53 @@ import MC6809 from './mc6809.js';
 let game, sound;
 
 class Gaplus {
+	cxScreen = 224;
+	cyScreen = 288;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = false;
+	fStart1P = false;
+	fStart2P = false;
+	nMyShip = 3;
+	nRank = '0';
+	nBonus = 'A';
+	fAttract = true;
+
+	fInterruptEnable0 = false;
+	fInterruptEnable1 = false;
+	fInterruptEnable2 = false;
+	ram = new Uint8Array(0x2100).addBase();
+	port = new Uint8Array(0x40);
+	starport = new Uint8Array(0x100);
+
+	stars = [];
+	stars0 = [];
+	stars1 = [];
+	stars2 = [];
+	bg = new Uint8Array(0x4000);
+	obj4 = new Uint8Array(0x10000);
+	obj8 = new Uint8Array(0x10000);
+	bgcolor = Uint8Array.from(BGCOLOR, e => 0xf0 | e & 0xf);
+	objcolor = Uint8Array.from(OBJCOLOR_H, (e, i) => OBJCOLOR_H[i] << 4 & 0xf0 | OBJCOLOR_L[i] & 0xf);
+	rgb = new Uint32Array(0x140);
+	dwCount = 0;
+
+	se = [{buf: BANG, loop: false, start: false, stop: false}];
+
+	cpu = new MC6809();
+	cpu2 = new MC6809();
+	cpu3 = new MC6809();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 288;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = false;
-		this.fStart1P = false;
-		this.fStart2P = false;
-		this.nMyShip = 3;
-		this.nRank = '0';
-		this.nBonus = 'A';
-		this.fAttract = true;
-
 		// CPU周りの初期化
-		this.fInterruptEnable0 = false;
-		this.fInterruptEnable1 = false;
-		this.fInterruptEnable2 = false;
-
-		this.ram = new Uint8Array(0x2100).addBase();
-		this.port = new Uint8Array(0x40);
-		this.starport = new Uint8Array(0x100);
 		this.port[0x20] = 4; // UPRIGHT
 
-		this.cpu = new MC6809(this);
 		for (let i = 0; i < 0x20; i++) {
 			this.cpu.memorymap[i].base = this.ram.base[i];
 			this.cpu.memorymap[i].write = null;
@@ -56,19 +74,12 @@ class Gaplus {
 		};
 		this.cpu.memorymap[0x74].write = () => void(this.fInterruptEnable0 = true);
 		this.cpu.memorymap[0x7c].write = () => void(this.fInterruptEnable0 = false);
-		this.cpu.memorymap[0x84].write = () => {
-			this.cpu2.enable();
-			this.cpu3.enable();
-		};
-		this.cpu.memorymap[0x8c].write = () => {
-			this.cpu2.disable();
-			this.cpu3.disable();
-		};
+		this.cpu.memorymap[0x84].write = () => (this.cpu2.enable(), this.cpu3.enable());
+		this.cpu.memorymap[0x8c].write = () => (this.cpu2.disable(), this.cpu3.disable());
 		for (let i = 0; i < 0x60; i++)
 			this.cpu.memorymap[0xa0 + i].base = PRG1.base[i];
 		this.cpu.memorymap[0xa0].write = (addr, data) => void(this.starport[addr & 0xff] = data);
 
-		this.cpu2 = new MC6809(this);
 		for (let i = 0; i < 0x20; i++) {
 			this.cpu2.memorymap[i].base = this.ram.base[i];
 			this.cpu2.memorymap[i].write = null;
@@ -86,7 +97,6 @@ class Gaplus {
 		for (let i = 0; i < 0x60; i++)
 			this.cpu2.memorymap[0xa0 + i].base = PRG2.base[i];
 
-		this.cpu3 = new MC6809(this);
 		for (let i = 0; i < 4; i++) {
 			this.cpu3.memorymap[i].read = addr => sound[0].read(addr);
 			this.cpu3.memorymap[i].write = (addr, data) => sound[0].write(addr, data);
@@ -97,32 +107,18 @@ class Gaplus {
 			this.cpu3.memorymap[0xe0 + i].base = PRG3.base[i];
 
 		// Videoの初期化
-		this.stars = [];
 		for (let i = 0; i < 256; i++)
 			this.stars.push({x: 0, y: 0, color: 0, blk: 0});
-		this.stars0 = [];
 		for (let i = 0; i < 64; i++)
 			this.stars0.push({x: 0, y: 0, color: 0, blk: 0});
-		this.stars1 = [];
 		for (let i = 0; i < 32; i++)
 			this.stars1.push({x: 0, y: 0, color: 0, blk: 0});
-		this.stars2 = [];
 		for (let i = 0; i < 64; i++)
 			this.stars2.push({x: 0, y: 0, color: 0, blk: 0});
-		this.bg = new Uint8Array(0x4000);
-		this.obj4 = new Uint8Array(0x10000);
-		this.obj8 = new Uint8Array(0x10000);
-		this.bgcolor = Uint8Array.from(BGCOLOR, e => 0xf0 | e & 0xf);
-		this.objcolor = Uint8Array.from(OBJCOLOR_H, (e, i) => OBJCOLOR_H[i] << 4 & 0xf0 | OBJCOLOR_L[i] & 0xf);
-		this.rgb = new Uint32Array(0x140);
-		this.dwCount = 0;
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
 		this.initializeStar();
-
-		// 効果音の初期化
-		this.se = [{buf: BANG, loop: false, start: false, stop: false}];
 	}
 
 	execute() {

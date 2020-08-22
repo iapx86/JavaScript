@@ -10,38 +10,48 @@ import Z80 from './z80.js';
 let sound;
 
 class TimePilot {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nLife = 3;
+	nBonus = '10000 50000';
+	nDifficulty = 4;
+
+	fInterruptEnable = false;
+	fSoundEnable = false;
+
+	ram = new Uint8Array(0x1400).addBase();
+	in = Uint8Array.of(0xff, 0xff, 0xff, 0xff, 0x4b);
+	ram2 = new Uint8Array(0x400).addBase();
+	psg = [{addr: 0}, {addr: 0}];
+	count = 0;
+	timer = 0;
+	command = [];
+
+	bg = new Uint8Array(0x8000);
+	obj = new Uint8Array(0x10000);
+	bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf | 0x10);
+	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
+	rgb = new Uint32Array(0x20);
+	vpos = 0;
+
+	cpu = new Z80();
+	cpu2 = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nLife = 3;
-		this.nBonus = '10000 50000';
-		this.nDifficulty = 4;
-
 		// CPU周りの初期化
-		this.fInterruptEnable = false;
-		this.fSoundEnable = false;
-
-		this.ram = new Uint8Array(0x1400).addBase();
-		this.in = Uint8Array.of(0xff, 0xff, 0xff, 0xff, 0x4b);
-		this.ram2 = new Uint8Array(0x400).addBase();
-		this.psg = [{addr: 0}, {addr: 0}];
-		this.count = 0;
-		this.timer = 0;
-		this.command = [];
-
 		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
 
-		this.cpu = new Z80(this);
 		for (let page = 0; page < 0x100; page++)
 			if (range(page, 0, 0x5f))
 				this.cpu.memorymap[page].base = PRG1.base[page & 0x7f];
@@ -75,7 +85,6 @@ class TimePilot {
 				};
 			}
 
-		this.cpu2 = new Z80(this);
 		for (let page = 0; page < 0x100; page++)
 			if (range(page, 0, 0x0f))
 				this.cpu2.memorymap[page].base = PRG2.base[page & 0xf];
@@ -97,12 +106,6 @@ class TimePilot {
 				this.cpu2.memorymap[page].write = (addr, data) => void(this.psg[1].addr = data);
 
 		// Videoの初期化
-		this.bg = new Uint8Array(0x8000);
-		this.obj = new Uint8Array(0x10000);
-		this.bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf | 0x10);
-		this.objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
-		this.rgb = new Uint32Array(0x20);
-		this.vpos = 0;
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
@@ -204,22 +207,16 @@ class TimePilot {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[0] &= ~(1 << 0);
-		}
+		if (this.fCoin)
+			this.in[0] &= ~(1 << 0), --this.fCoin;
 		else
 			this.in[0] |= 1 << 0;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[0] &= ~(1 << 3);
-		}
+		if (this.fStart1P)
+			this.in[0] &= ~(1 << 3), --this.fStart1P;
 		else
 			this.in[0] |= 1 << 3;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[0] &= ~(1 << 4);
-		}
+		if (this.fStart2P)
+			this.in[0] &= ~(1 << 4), --this.fStart2P;
 		else
 			this.in[0] |= 1 << 4;
 		return this;

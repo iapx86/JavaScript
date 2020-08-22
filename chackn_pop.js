@@ -11,33 +11,41 @@ import MC6805 from './mc6805.js';
 let game, sound;
 
 class ChacknPop {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nLife = 3;
+	nBonus = 20000;
+
+	ram = new Uint8Array(0xd00).addBase();
+	vram = new Uint8Array(0x8000).addBase();
+	ram2 = new Uint8Array(0x80);
+	in = Uint8Array.of(0x7d, 0xff, 0xff, 0xff, 0, 0x4f);
+	psg = [{addr: 0}, {addr: 0}];
+	mcu_command = 0;
+	mcu_result = 0;
+	mcu_flag = 0;
+
+	bg = new Uint8Array(0x10000);
+	obj = new Uint8Array(0x10000);
+	rgb = new Uint32Array(0x400);
+	mode = 0;
+
+	cpu = new Z80();
+	mcu = new MC6805();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nLife = 3;
-		this.nBonus = 20000;
-
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0xd00).addBase();
-		this.vram = new Uint8Array(0x8000).addBase();
-		this.ram2 = new Uint8Array(0x80);
-		this.in = Uint8Array.of(0x7d, 0xff, 0xff, 0xff, 0, 0x4f);
-		this.psg = [{addr: 0}, {addr: 0}];
-		this.mcu_command = 0;
-		this.mcu_result = 0;
-		this.mcu_flag = 0;
-
-		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[i].base = PRG1.base[i];
 		for (let i = 0; i < 8; i++) {
@@ -47,8 +55,7 @@ class ChacknPop {
 		this.cpu.memorymap[0x88].read = addr => {
 			switch (addr & 0xff) {
 			case 0x00:
-				this.mcu_flag &= ~2;
-				return this.mcu_result;
+				return this.mcu_flag &= ~2, this.mcu_result;
 			case 0x01:
 				return this.mcu_flag ^ 1 | 0xfc;
 			case 0x04:
@@ -70,10 +77,7 @@ class ChacknPop {
 		this.cpu.memorymap[0x88].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0x00:
-				this.mcu_command = data;
-				this.mcu_flag |= 1;
-				this.mcu.irq = true;
-				return;
+				return void(this.mcu_command = data, this.mcu_flag |= 1, this.mcu.irq = true);
 			case 0x04:
 				return void(this.psg[0].addr = data);
 			case 0x05:
@@ -104,7 +108,6 @@ class ChacknPop {
 			this.cpu.memorymap[0xc0 + i].write = null;
 		}
 
-		this.mcu = new MC6805(this);
 		this.mcu.memorymap[0].fetch = addr => addr >= 0x80 ? PRG2[addr] : this.ram2[addr];
 		this.mcu.memorymap[0].read = addr => {
 			if (addr >= 0x80)
@@ -120,14 +123,10 @@ class ChacknPop {
 		this.mcu.memorymap[0].write = (addr, data) => {
 			if (addr >= 0x80)
 				return;
-			if (addr === 1 && (~this.ram2[1] & data & 2) !== 0) {
-				this.mcu_flag &= ~1;
-				this.mcu.irq = false;
-			}
-			if (addr === 1 && (this.ram2[1] & ~data & 4) !== 0) {
-				this.mcu_result = this.ram2[0];
-				this.mcu_flag |= 2;
-			}
+			if (addr === 1 && (~this.ram2[1] & data & 2) !== 0)
+				this.mcu_flag &= ~1, this.mcu.irq = false;
+			if (addr === 1 && (this.ram2[1] & ~data & 4) !== 0)
+				this.mcu_result = this.ram2[0], this.mcu_flag |= 2;
 			this.ram2[addr] = data;
 		};
 		for (let i = 1; i < 8; i++)
@@ -136,10 +135,6 @@ class ChacknPop {
 		this.mcu.check_interrupt = () => this.mcu.irq && this.mcu.interrupt();
 
 		// Videoの初期化
-		this.bg = new Uint8Array(0x10000);
-		this.obj = new Uint8Array(0x10000);
-		this.rgb = new Uint32Array(0x400);
-		this.mode = 0;
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
@@ -207,22 +202,16 @@ class ChacknPop {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[2] &= ~(1 << 2);
-		}
+		if (this.fCoin)
+			this.in[2] &= ~(1 << 2), --this.fCoin;
 		else
 			this.in[2] |= 1 << 2;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[2] &= ~(1 << 4);
-		}
+		if (this.fStart1P)
+			this.in[2] &= ~(1 << 4), --this.fStart1P;
 		else
 			this.in[2] |= 1 << 4;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[2] &= ~(1 << 5);
-		}
+		if (this.fStart2P)
+			this.in[2] &= ~(1 << 5), --this.fStart2P;
 		else
 			this.in[2] |= 1 << 5;
 		return this;

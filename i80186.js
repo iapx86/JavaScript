@@ -7,31 +7,32 @@
 import Cpu, {dummypage} from './main.js';
 
 export default class I80186 extends Cpu {
+	ax = 0;
+	cx = 0;
+	dx = 0;
+	bx = 0;
+	sp = 0;
+	bp = 0;
+	si = 0;
+	di = 0;
+	ip = 0;
+	flags = 0; // ----odit sz-a-p-c
+	cs = 0;
+	ds = 0;
+	ss = 0;
+	es = 0;
+	iomap = [];
+	intmask = false;
+	parity = new Uint32Array(8);
+
 	constructor(arg = null) {
 		super(arg);
-		this.ax = 0;
-		this.cx = 0;
-		this.dx = 0;
-		this.bx = 0;
-		this.sp = 0;
-		this.bp = 0;
-		this.si = 0;
-		this.di = 0;
-		this.ip = 0;
-		this.flags = 0; // ----odit sz-a-p-c
-		this.cs = 0;
-		this.ds = 0;
-		this.ss = 0;
-		this.es = 0;
 		this.memorymap.splice(0);
 		for (let i = 0; i < 0x1000; i++)
 			this.memorymap.push({base: dummypage, read: null, read16: null, write: () => {}, write16: null});
 		this.breakpointmap = new Uint32Array(0x8000);
-		this.iomap = [];
 		for (let i = 0; i < 0x100; i++)
 			this.iomap.push({base: dummypage, read: null, write: () => {}});
-		this.intmask = false;
-		this.parity = new Uint32Array(8);
 		for (let i = 0; i < 256; i++) {
 			let p = i ^ i >>> 4;
 			p ^= p >>> 2;

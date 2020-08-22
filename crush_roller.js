@@ -10,34 +10,41 @@ import Z80 from './z80.js';
 let sound;
 
 class CrushRoller {
+	cxScreen = 224;
+	cyScreen = 288;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nLife = 3;
+
+	fInterruptEnable = false;
+	fSoundEnable = false;
+	ram = new Uint8Array(0xd00).addBase();
+	in = Uint8Array.of(0xef, 0x6f, 0x31);
+	vector = 0;
+	fProtectEnable = false;
+	protect_count = 0;
+	protect_index = 0;
+
+	bg = new Uint8Array(0x4000);
+	obj = new Uint8Array(0x4000);
+	color = Uint8Array.from(COLOR, e => e & 0xf);
+	rgb = new Uint32Array(0x20);
+
+	cpu = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 288;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nLife = 3;
-
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0xd00).addBase();
-		this.in = Uint8Array.of(0xef, 0x6f, 0x31);
-		this.vector = 0;
-		this.fInterruptEnable = false;
-		this.fSoundEnable = false;
-		this.fProtectEnable = false;
-		this.protect_count = 0;
-		this.protect_index = 0;
-
 		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
 
-		this.cpu = new Z80(this);
 		for (let page = 0; page < 0x100; page++)
 			if (range(page, 0, 0x3f, 0x80))
 				this.cpu.memorymap[page].base = PRG.base[page & 0x3f];
@@ -120,10 +127,6 @@ class CrushRoller {
 			this.cpu.iomap[page].write = (addr, data) => void((addr & 0xff) === 0 && (this.vector = data));
 
 		// Videoの初期化
-		this.bg = new Uint8Array(0x4000);
-		this.obj = new Uint8Array(0x4000);
-		this.color = Uint8Array.from(COLOR, e => e & 0xf);
-		this.rgb = new Uint32Array(0x20);
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
@@ -172,22 +175,16 @@ class CrushRoller {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[0] &= ~(1 << 5);
-		}
+		if (this.fCoin)
+			this.in[0] &= ~(1 << 5), --this.fCoin;
 		else
 			this.in[0] |= 1 << 5;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[1] &= ~(1 << 5);
-		}
+		if (this.fStart1P)
+			this.in[1] &= ~(1 << 5), --this.fStart1P;
 		else
 			this.in[1] |= 1 << 5;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[1] &= ~(1 << 6);
-		}
+		if (this.fStart2P)
+			this.in[1] &= ~(1 << 6), --this.fStart2P;
 		else
 			this.in[1] |= 1 << 6;
 		return this;
@@ -206,47 +203,31 @@ class CrushRoller {
 	}
 
 	up(fDown) {
-		if (fDown) {
-			this.in[0] = this.in[0] & ~(1 << 0) | 1 << 3;
-			this.in[1] = this.in[1] & ~(1 << 0) | 1 << 3;
-		}
-		else {
-			this.in[0] |= 1 << 0;
-			this.in[1] |= 1 << 0;
-		}
+		if (fDown)
+			this.in[0] = this.in[0] & ~(1 << 0) | 1 << 3, this.in[1] = this.in[1] & ~(1 << 0) | 1 << 3;
+		else
+			this.in[0] |= 1 << 0, this.in[1] |= 1 << 0;
 	}
 
 	right(fDown) {
-		if (fDown) {
-			this.in[0] = this.in[0] & ~(1 << 2) | 1 << 1;
-			this.in[1] = this.in[1] & ~(1 << 2) | 1 << 1;
-		}
-		else {
-			this.in[0] |= 1 << 2;
-			this.in[1] |= 1 << 2;
-		}
+		if (fDown)
+			this.in[0] = this.in[0] & ~(1 << 2) | 1 << 1, this.in[1] = this.in[1] & ~(1 << 2) | 1 << 1;
+		else
+			this.in[0] |= 1 << 2, this.in[1] |= 1 << 2;
 	}
 
 	down(fDown) {
-		if (fDown) {
-			this.in[0] = this.in[0] & ~(1 << 3) | 1 << 0;
-			this.in[1] = this.in[1] & ~(1 << 3) | 1 << 0;
-		}
-		else {
-			this.in[0] |= 1 << 3;
-			this.in[1] |= 1 << 3;
-		}
+		if (fDown)
+			this.in[0] = this.in[0] & ~(1 << 3) | 1 << 0, this.in[1] = this.in[1] & ~(1 << 3) | 1 << 0;
+		else
+			this.in[0] |= 1 << 3, this.in[1] |= 1 << 3;
 	}
 
 	left(fDown) {
-		if (fDown) {
-			this.in[0] = this.in[0] & ~(1 << 1) | 1 << 2;
-			this.in[1] = this.in[1] & ~(1 << 1) | 1 << 2;
-		}
-		else {
-			this.in[0] |= 1 << 1;
-			this.in[1] |= 1 << 1;
-		}
+		if (fDown)
+			this.in[0] = this.in[0] & ~(1 << 1) | 1 << 2, this.in[1] = this.in[1] & ~(1 << 1) | 1 << 2;
+		else
+			this.in[0] |= 1 << 1, this.in[1] |= 1 << 1;
 	}
 
 	triggerA(fDown) {

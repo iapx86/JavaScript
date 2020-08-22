@@ -10,34 +10,43 @@ import MC6809 from './mc6809.js';
 let sound;
 
 class Mappy {
+	cxScreen = 224;
+	cyScreen = 288;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = false;
+	fStart1P = false;
+	fStart2P = false;
+	nMappy = 3;
+	nRank = 'A';
+	nBonus = 'A';
+	fAttract = true;
+
+	fPortTest = false;
+	fInterruptEnable0 = false;
+	fInterruptEnable1 = false;
+	fSoundEnable = false;
+	ram = new Uint8Array(0x2c00).addBase();
+	port = new Uint8Array(0x20);
+	key = Uint8Array.of(8, 4, 6, 0x0e, 0x0d, 9, 0x0d);
+
+	bg = new Uint8Array(0x4000);
+	obj = new Uint8Array(0x10000);
+	bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf | 0x10);
+	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
+	rgb = new Uint32Array(0x20);
+	dwScroll = 0xff;
+
+	cpu = new MC6809();
+	cpu2 = new MC6809();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 288;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = false;
-		this.fStart1P = false;
-		this.fStart2P = false;
-		this.nMappy = 3;
-		this.nRank = 'A';
-		this.nBonus = 'A';
-		this.fAttract = true;
-
-		// CPU周りの初期化
-		this.fPortTest = false;
-		this.fInterruptEnable0 = false;
-		this.fInterruptEnable1 = false;
-		this.fSoundEnable = false;
-
-		this.ram = new Uint8Array(0x2c00).addBase();
-		this.port = new Uint8Array(0x20);
-		this.key = Uint8Array.of(8, 4, 6, 0x0e, 0x0d, 9, 0x0d);
-
 		const systemcontrolarea = addr => {
 			switch (addr & 0xff) {
 			case 0x00: // INTERRUPT STOP
@@ -63,7 +72,7 @@ class Mappy {
 			}
 		};
 
-		this.cpu = new MC6809(this);
+		// CPU周りの初期化
 		for (let i = 0; i < 0x28; i++) {
 			this.cpu.memorymap[i].base = this.ram.base[i];
 			this.cpu.memorymap[i].write = null;
@@ -82,7 +91,6 @@ class Mappy {
 		for (let i = 0; i < 0x60; i++)
 			this.cpu.memorymap[0xa0 + i].base = PRG1.base[i];
 
-		this.cpu2 = new MC6809(this);
 		for (let i = 0; i < 4; i++) {
 			this.cpu2.memorymap[i].read = addr => sound.read(addr);
 			this.cpu2.memorymap[i].write = (addr, data) => sound.write(addr, data);
@@ -92,12 +100,6 @@ class Mappy {
 			this.cpu2.memorymap[0xe0 + i].base = PRG2.base[i];
 
 		// Videoの初期化
-		this.bg = new Uint8Array(0x4000);
-		this.obj = new Uint8Array(0x10000);
-		this.bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf | 0x10);
-		this.objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
-		this.rgb = new Uint32Array(0x20);
-		this.dwScroll = 0xff;
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();

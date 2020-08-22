@@ -11,33 +11,44 @@ import MC6809 from './mc6809.js';
 let game, sound;
 
 class Grobda {
+	cxScreen = 224;
+	cyScreen = 288;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = false;
+	fStart1P = false;
+	fStart2P = false;
+	nGrobda = 3;
+	nRank = 'A';
+	nExtend = 'A';
+	fAttract = true;
+	fSelect = true;
+
+	fPortTest = false;
+	fInterruptEnable0 = false;
+	fInterruptEnable1 = false;
+	fSoundEnable = false;
+	ram = new Uint8Array(0x2400).addBase();
+	port = new Uint8Array(0x20);
+
+	bg = new Uint8Array(0x4000);
+	obj = new Uint8Array(0x10000);
+	bgcolor = Uint8Array.from(BGCOLOR, e => ~e & 0xf | 0x10);
+	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
+	rgb = new Uint32Array(0x20);
+
+	se = [{buf: GETREADY, loop: false, start: false, stop: false}];
+
+	cpu = new MC6809();
+	cpu2 = new MC6809();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 288;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = false;
-		this.fStart1P = false;
-		this.fStart2P = false;
-		this.nGrobda = 3;
-		this.nRank = 'A';
-		this.nExtend = 'A';
-		this.fAttract = true;
-		this.fSelect = true;
-
-		// CPU周りの初期化
-		this.fPortTest = false;
-		this.fInterruptEnable0 = false;
-		this.fInterruptEnable1 = false;
-		this.fSoundEnable = false;
-
-		this.ram = new Uint8Array(0x2400).addBase();
-		this.port = new Uint8Array(0x20);
 		this.port[0x12] = 6;
 		this.port[0x14] = 3;
 
@@ -52,7 +63,7 @@ class Grobda {
 			case 0x03: // INTERRUPT START
 				return void(this.fInterruptEnable0 = true);
 			case 0x06: // SND STOP
-				return void([this.fSoundEnable, this.se[0].stop] = [false, true]);
+				return void(this.fSoundEnable = false, this.se[0].stop = true);
 			case 0x07: // SND START
 				return void(this.fSoundEnable = true);
 			case 0x08: // PORT TEST START
@@ -66,7 +77,7 @@ class Grobda {
 			}
 		};
 
-		this.cpu = new MC6809(this);
+		// CPU周りの初期化
 		for (let i = 0; i < 0x20; i++) {
 			this.cpu.memorymap[i].base = this.ram.base[i];
 			this.cpu.memorymap[i].write = null;
@@ -83,7 +94,6 @@ class Grobda {
 		for (let i = 0; i < 0x60; i++)
 			this.cpu.memorymap[0xa0 + i].base = PRG1.base[i];
 
-		this.cpu2 = new MC6809(this);
 		for (let i = 0; i < 4; i++) {
 			this.cpu2.memorymap[i].read = addr => sound[0].read(addr);
 			this.cpu2.memorymap[i].write = (addr, data) => sound[0].write(addr, data);
@@ -92,27 +102,16 @@ class Grobda {
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[0xe0 + i].base = PRG2.base[i];
 
-		this.cpu2.breakpoint = hookBreakPoint1;
+		this.cpu2.breakpoint = addr => {
+			if (addr === 0xea2c)
+				this.se[0].start = this.se[0].stop = true;
+		};
 		this.cpu2.set_breakpoint(0xea2c); // Get Ready
 
 		// Videoの初期化
-		this.bg = new Uint8Array(0x4000);
-		this.obj = new Uint8Array(0x10000);
-		this.bgcolor = Uint8Array.from(BGCOLOR, e => ~e & 0xf | 0x10);
-		this.objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
-		this.rgb = new Uint32Array(0x20);
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
-
-		// 効果音の初期化
-		this.se = [{buf: GETREADY, loop: false, start: false, stop: false}];
-
-		// ブレークポイントコールバック
-		function hookBreakPoint1(addr, game) {
-			if (addr === 0xea2c)
-				game.se[0].start = game.se[0].stop = true;
-		}
 	}
 
 	execute() {
@@ -399,7 +398,7 @@ class Grobda {
 				for (j = 0; j < 13; j++)
 					voicebuf[i++] = m;
 			}
-			 else {
+			else {
 				m = ((PRG2[k] & 0x0f) - 8) * 3 << 9;
 				for (j = 0; j < 4; j++)
 					voicebuf[i++] = m;

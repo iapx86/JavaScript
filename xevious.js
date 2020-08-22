@@ -11,45 +11,58 @@ import Z80 from './z80.js';
 let game, sound;
 
 class Xevious {
+	cxScreen = 224;
+	cyScreen = 288;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = false;
+	fStart1P = false;
+	fStart2P = false;
+	dwStick = 0;
+	dwStickPrev = 0;
+	dwCoin = 0;
+	nSolvalou = 3;
+	nRank = 'NORMAL';
+	nBonus = 'A';
+
+	fInterruptEnable = false;
+	fNmiEnable = false;
+	fSoundEnable = false;
+	ram = new Uint8Array(0x4000).addBase();
+	mmi = new Uint8Array(0x100).fill(0xff);
+	mmo = new Uint8Array(0x100);
+	count = 0;
+	mapreg = new Uint8Array(0x100);
+	mapaddr = 0;
+	dmaport = new Uint8Array(0x100);
+	ioport = new Uint8Array(0x100);
+	keyport = 0;
+	keytbl = Uint8Array.of(8, 0, 2, 1, 4, 8, 3, 8, 6, 7, 8, 8, 5, 8, 8, 8);
+
+	bg2 = new Uint8Array(0x8000);
+	bg4 = new Uint8Array(0x8000);
+	obj4 = new Uint8Array(0x10000);
+	obj8 = new Uint8Array(0x10000);
+	bgcolor = Uint8Array.from(BGCOLOR_H, (e, i) => BGCOLOR_H[i] << 4 & 0x70 | BGCOLOR_L[i] & 0xf);
+	objcolor = Uint8Array.from(OBJCOLOR_H, (e, i) => OBJCOLOR_H[i] << 4 & 0xf0 | OBJCOLOR_L[i] & 0xf);
+	rgb = new Uint32Array(0x100);
+	dwScroll = 0xff;
+
+	se = [VX01, VX02, VX80].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+
+	cpu = [];
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 288;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = false;
-		this.fStart1P = false;
-		this.fStart2P = false;
-		this.dwStick = 0;
-		this.dwStickPrev = 0;
-		this.dwCoin = 0;
-		this.nSolvalou = 3;
-		this.nRank = 'NORMAL';
-		this.nBonus = 'A';
+		for (let i = 0; i < 3; i++)
+			this.cpu.push(new Z80(this));
 
 		// CPU周りの初期化
-		this.fInterruptEnable = false;
-		this.fNmiEnable = false;
-		this.fSoundEnable = false;
-
-		this.ram = new Uint8Array(0x4000).addBase();
-		this.mmi = new Uint8Array(0x100).fill(0xff);
-		this.mmo = new Uint8Array(0x100);
-		this.count = 0;
-		this.mapreg = new Uint8Array(0x100);
-		this.mapaddr = 0;
-		this.dmaport = new Uint8Array(0x100);
-		this.ioport = new Uint8Array(0x100);
-		this.keyport = 0;
-		this.keytbl = Uint8Array.of(8, 0, 2, 1, 4, 8, 3, 8, 6, 7, 8, 8, 5, 8, 8, 8);
-
-		this.cpu = [];
-		for (let i = 0; i < 3; i++)
-			this.cpu[i] = new Z80(this);
 
 		// CPU0 ROM AREA SETUP
 		for (let i = 0; i < 0x40; i++)
@@ -107,20 +120,9 @@ class Xevious {
 		this.convertMAP();
 
 		// Videoの初期化
-		this.bg2 = new Uint8Array(0x8000);
-		this.bg4 = new Uint8Array(0x8000);
-		this.obj4 = new Uint8Array(0x10000);
-		this.obj8 = new Uint8Array(0x10000);
-		this.bgcolor = Uint8Array.from(BGCOLOR_H, (e, i) => BGCOLOR_H[i] << 4 & 0x70 | BGCOLOR_L[i] & 0xf);
-		this.objcolor = Uint8Array.from(OBJCOLOR_H, (e, i) => OBJCOLOR_H[i] << 4 & 0xf0 | OBJCOLOR_L[i] & 0xf);
-		this.rgb = new Uint32Array(0x100);
-		this.dwScroll = 0xff;
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
-
-		// 効果音の初期化
-		this.se = [VX01, VX02, VX80].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
 
 		// ライトハンドラ
 		function systemctrl0(addr, data, game) {
@@ -136,14 +138,10 @@ class Xevious {
 				case 1:
 					break;
 				case 2:
-					if (data) {
-						game.cpu[1].enable();
-						game.cpu[2].enable();
-					}
-					else {
-						game.cpu[1].disable();
-						game.cpu[2].disable();
-					}
+					if (data)
+						game.cpu[1].enable(), game.cpu[2].enable();
+					else
+						game.cpu[1].disable(), game.cpu[2].disable();
 					break;
 				case 3:
 					if (data)
@@ -154,6 +152,7 @@ class Xevious {
 					}
 					break;
 				}
+				// fallthrough
 			default:
 				game.mmo[addr & 0xff] = data;
 				break;

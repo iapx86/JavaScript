@@ -5,6 +5,8 @@
  */
 
 export default class SoundEffect {
+	se;
+
 	constructor({se, freq = audioCtx.sampleRate, gain = 1}) {
 		this.se = se;
 		if (!audioCtx)

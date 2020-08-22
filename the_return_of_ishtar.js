@@ -12,32 +12,48 @@ import MC6801 from './mc6801.js';
 let sound;
 
 class TheReturnOfIshtar {
+	cxScreen = 224;
+	cyScreen = 288;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = true;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	fAttract = true;
+
+	// CPU周りの初期化
+	ram = new Uint8Array(0x6000).addBase();
+	ram3 = new Uint8Array(0xd00).addBase();
+	fm = {addr: 0};
+	in = new Uint8Array(5).fill(0xff);
+	sw = {a: 0, b: 0};
+	bank = 0;
+	cpu_irq = false;
+	cpu2_irq = false;
+
+	bg1 = new Uint8Array(0x10000);
+	bg2 = new Uint8Array(0x10000);
+	obj = new Uint8Array(0x80000);
+	rgb = new Uint32Array(0x200);
+	isspace1 = new Uint8Array(0x400);
+	isspace2 = new Uint8Array(0x400);
+	vScroll = new Uint16Array(4);
+	hScroll = new Uint8Array(4);
+//	bgbank = 0;
+	backcolor = 0;
+
+	cpu = new MC6809();
+	cpu2 = new MC6809();
+	mcu = new MC6801();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 288;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = true;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.fAttract = true;
-
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0x6000).addBase();
-		this.ram3 = new Uint8Array(0xd00).addBase();
-		this.fm = {addr: 0};
-		this.in = new Uint8Array(5).fill(0xff);
-		this.sw = {a: 0, b: 0};
-		this.bank = 0;
-		this.cpu_irq = false;
-		this.cpu2_irq = false;
-
-		this.cpu = new MC6809(this);
 		for (let i = 0; i < 0x40; i++) {
 			this.cpu.memorymap[i].base = this.ram.base[i];
 			this.cpu.memorymap[i].write = null;
@@ -100,7 +116,6 @@ class TheReturnOfIshtar {
 
 		this.cpu.check_interrupt = () => this.cpu_irq && this.cpu.interrupt();
 
-		this.cpu2 = new MC6809(this);
 		for (let i = 0; i < 0x20; i++) {
 			this.cpu2.memorymap[i].base = this.ram.base[0x40 + i];
 			this.cpu2.memorymap[i].write = null;
@@ -119,7 +134,6 @@ class TheReturnOfIshtar {
 
 		this.cpu2.check_interrupt = () => this.cpu2_irq && this.cpu2.interrupt();
 
-		this.mcu = new MC6801(this);
 		this.mcu.memorymap[0].base = this.ram3.base[0];
 		this.mcu.memorymap[0].read = addr => addr === 2 ? this.in[2] : this.ram3[addr];
 		this.mcu.memorymap[0].write = null;
@@ -162,16 +176,6 @@ class TheReturnOfIshtar {
 			this.mcu.memorymap[0xf0 + i].base = PRG3I.base[i];
 
 		// Videoの初期化
-		this.bg1 = new Uint8Array(0x10000);
-		this.bg2 = new Uint8Array(0x10000);
-		this.obj = new Uint8Array(0x80000);
-		this.rgb = new Uint32Array(0x200);
-		this.isspace1 = new Uint8Array(0x400);
-		this.isspace2 = new Uint8Array(0x400);
-		this.vScroll = new Uint16Array(4);
-		this.hScroll = new Uint8Array(4);
-//		this.bgbank = 0;
-		this.backcolor = 0;
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
@@ -225,22 +229,16 @@ class TheReturnOfIshtar {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[1] &= ~(1 << 4);
-		}
+		if (this.fCoin)
+			this.in[1] &= ~(1 << 4), --this.fCoin;
 		else
 			this.in[1] |= 1 << 4;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[0] &= ~(1 << 6);
-		}
+		if (this.fStart1P)
+			this.in[0] &= ~(1 << 6), --this.fStart1P;
 		else
 			this.in[0] |= 1 << 6;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[1] &= ~(1 << 6);
-		}
+		if (this.fStart2P)
+			this.in[1] &= ~(1 << 6), --this.fStart2P;
 		else
 			this.in[1] |= 1 << 6;
 		return this;
@@ -259,10 +257,8 @@ class TheReturnOfIshtar {
 	}
 
 	up(fDown) {
-		if (fDown) {
-			this.in[1] &= ~(1 << 2);
-			this.in[0] |= 1 << 2;
-		}
+		if (fDown)
+			this.in[1] &= ~(1 << 2), this.in[0] |= 1 << 2;
 		else
 			this.in[1] |= 1 << 2;
 	}
@@ -275,10 +271,8 @@ class TheReturnOfIshtar {
 	}
 
 	down(fDown) {
-		if (fDown) {
-			this.in[0] &= ~(1 << 2);
-			this.in[1] |= 1 << 2;
-		}
+		if (fDown)
+			this.in[0] &= ~(1 << 2), this.in[1] |= 1 << 2;
 		else
 			this.in[0] |= 1 << 2;
 	}
@@ -291,37 +285,29 @@ class TheReturnOfIshtar {
 	}
 
 	up2(fDown) {
-		if (fDown) {
-			this.in[1] &= ~(1 << 3);
-			this.in[0] |= 1 << 3;
-		}
+		if (fDown)
+			this.in[1] &= ~(1 << 3), this.in[0] |= 1 << 3;
 		else
 			this.in[1] |= 1 << 3;
 	}
 
 	right2(fDown) {
-		if (fDown) {
-			this.in[0] &= ~(1 << 4);
-			this.in[2] |= 1 << 7;
-		}
+		if (fDown)
+			this.in[0] &= ~(1 << 4), this.in[2] |= 1 << 7;
 		else
 			this.in[0] |= 1 << 4;
 	}
 
 	down2(fDown) {
-		if (fDown) {
-			this.in[0] &= ~(1 << 3);
-			this.in[1] |= 1 << 3;
-		}
+		if (fDown)
+			this.in[0] &= ~(1 << 3), this.in[1] |= 1 << 3;
 		else
 			this.in[0] |= 1 << 3;
 	}
 
 	left2(fDown) {
-		if (fDown) {
-			this.in[2] &= ~(1 << 7);
-			this.in[0] |= 1 << 4;
-		}
+		if (fDown)
+			this.in[2] &= ~(1 << 7), this.in[0] |= 1 << 4;
 		else
 			this.in[2] |= 1 << 7;
 	}

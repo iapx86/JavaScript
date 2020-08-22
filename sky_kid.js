@@ -11,36 +11,48 @@ import MC6801 from './mc6801.js';
 let sound;
 
 class SkyKid {
+	cxScreen = 224;
+	cyScreen = 288;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = true;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	fAttract = true;
+	fSkip = false;
+	nLife = 3;
+	nBonus = '1st 30000 2nd 90000';
+	fContinue = true;
+
+	fInterruptEnable0 = false;
+	fInterruptEnable1 = false;
+	bank = 0x80;
+
+	ram = new Uint8Array(0x3000).addBase();
+	ram2 = new Uint8Array(0x900).addBase();
+	in = new Uint8Array(8).fill(0xff);
+	select = 0;
+
+	fg = new Uint8Array(0x8000);
+	bg = new Uint8Array(0x8000);
+	obj = new Uint8Array(0x20000);
+	rgb = new Uint32Array(0x100);
+	priority = 0;
+	vScroll = 0;
+	hScroll = 0;
+	fFlip = false;
+
+	cpu = new MC6809();
+	mcu = new MC6801();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 288;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = true;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.fAttract = true;
-		this.fSkip = false;
-		this.nLife = 3;
-		this.nBonus = '1st 30000 2nd 90000';
-		this.fContinue = true;
-
 		// CPU周りの初期化
-		this.fInterruptEnable0 = false;
-		this.fInterruptEnable1 = false;
-		this.bank = 0x80;
-
-		this.ram = new Uint8Array(0x3000).addBase();
-		this.ram2 = new Uint8Array(0x900).addBase();
-		this.in = new Uint8Array(8).fill(0xff);
-		this.select = 0;
-
-		this.cpu = new MC6809(this);
 		for (let i = 0; i < 0x20; i++)
 			this.cpu.memorymap[i].base = PRG1.base[0x80 + i];
 		for (let i = 0; i < 0x10; i++) {
@@ -73,14 +85,8 @@ class SkyKid {
 					this.cpu.memorymap[i].base = PRG1.base[bank + i];
 				this.bank = bank;
 			};
-		this.cpu.memorymap[0xa0].write = (addr, data) => {
-			if ((addr & 0xfe) !== 0)
-				return;
-			this.priority = data;
-			this.fFlip = (addr & 1) !== 0;
-		};
+		this.cpu.memorymap[0xa0].write = (addr, data) => void((addr & 0xfe) === 0 && (this.priority = data, this.fFlip = (addr & 1) !== 0));
 
-		this.mcu = new MC6801(this);
 		this.mcu.memorymap[0].read = addr => addr === 2 ? this.in[this.select] : this.ram2[addr];
 		this.mcu.memorymap[0].write = (addr, data) => {
 			if (addr === 2 && (data & 0xe0) === 0x60)
@@ -103,14 +109,6 @@ class SkyKid {
 			this.mcu.memorymap[0xf0 + i].base = PRG2I.base[i];
 
 		// Videoの初期化
-		this.fg = new Uint8Array(0x8000);
-		this.bg = new Uint8Array(0x8000);
-		this.obj = new Uint8Array(0x20000);
-		this.rgb = new Uint32Array(0x100);
-		this.priority = 0;
-		this.vScroll = 0;
-		this.hScroll = 0;
-		this.fFlip = false;
 		this.convertRGB();
 		this.convertFG();
 		this.convertBG();
@@ -122,16 +120,12 @@ class SkyKid {
 			this.cpu.interrupt();
 		if (this.fInterruptEnable1)
 			this.mcu.interrupt();
-		for (let i = 0; i < 800; i++) {
-			this.cpu.execute(5);
-			this.mcu.execute(6);
-		}
+		for (let i = 0; i < 800; i++)
+			this.cpu.execute(5), this.mcu.execute(6);
 		if ((this.ram2[8] & 8) !== 0)
 			this.mcu.interrupt('ocf');
-		for (let i = 0; i < 800; i++) {
-			this.cpu.execute(5);
-			this.mcu.execute(6);
-		}
+		for (let i = 0; i < 800; i++)
+			this.cpu.execute(5), this.mcu.execute(6);
 		return this;
 	}
 
@@ -204,22 +198,16 @@ class SkyKid {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[4] &= ~(1 << 0);
-		}
+		if (this.fCoin)
+			this.in[4] &= ~(1 << 0), --this.fCoin;
 		else
 			this.in[4] |= 1 << 0;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[4] &= ~(1 << 3);
-		}
+		if (this.fStart1P)
+			this.in[4] &= ~(1 << 3), --this.fStart1P;
 		else
 			this.in[4] |= 1 << 3;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[4] &= ~(1 << 4);
-		}
+		if (this.fStart2P)
+			this.in[4] &= ~(1 << 4), --this.fStart2P;
 		else
 			this.in[4] |= 1 << 4;
 		return this;

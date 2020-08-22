@@ -10,32 +10,40 @@ import MC6809 from './mc6809.js';
 let sound;
 
 class PacAndPal {
+	cxScreen = 224;
+	cyScreen = 288;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nPacman = 3;
+	nRank = 'B';
+	nBonus = 'E';
+
+	fPortTest = false;
+	fInterruptEnable0 = false;
+	fInterruptEnable1 = false;
+	fSoundEnable = false;
+	ram = new Uint8Array(0x2400).addBase();
+	port = new Uint8Array(0x20);
+
+	bg = new Uint8Array(0x4000);
+	obj = new Uint8Array(0x10000);
+	bgcolor = Uint8Array.from(BGCOLOR, e => ~e & 0xf | 0x10);
+	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
+	rgb = new Uint32Array(0x20);
+
+	cpu = new MC6809();
+	cpu2 = new MC6809();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 288;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nPacman = 3;
-		this.nRank = 'B';
-		this.nBonus = 'E';
-
-		// CPU周りの初期化
-		this.fPortTest = false;
-		this.fInterruptEnable0 = false;
-		this.fInterruptEnable1 = false;
-		this.fSoundEnable = false;
-
-		this.ram = new Uint8Array(0x2400).addBase();
-		this.port = new Uint8Array(0x20);
-
 		const systemcontrolarea = addr => {
 			switch (addr & 0xff) {
 			case 0x00: // INTERRUPT STOP
@@ -61,7 +69,7 @@ class PacAndPal {
 			}
 		};
 
-		this.cpu = new MC6809(this);
+		// CPU周りの初期化
 		for (let i = 0; i < 0x20; i++) {
 			this.cpu.memorymap[i].base = this.ram.base[i];
 			this.cpu.memorymap[i].write = null;
@@ -78,7 +86,6 @@ class PacAndPal {
 		for (let i = 0; i < 0x60; i++)
 			this.cpu.memorymap[0xa0 + i].base = PRG1.base[i];
 
-		this.cpu2 = new MC6809(this);
 		for (let i = 0; i < 4; i++) {
 			this.cpu2.memorymap[i].read = addr => sound.read(addr);
 			this.cpu2.memorymap[i].write = (addr, data) => sound.write(addr, data);
@@ -88,11 +95,6 @@ class PacAndPal {
 			this.cpu2.memorymap[0xf0 + i].base = PRG2.base[i];
 
 		// Videoの初期化
-		this.bg = new Uint8Array(0x4000);
-		this.obj = new Uint8Array(0x10000);
-		this.bgcolor = Uint8Array.from(BGCOLOR, e => ~e & 0xf | 0x10);
-		this.objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
-		this.rgb = new Uint32Array(0x20);
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
@@ -201,22 +203,16 @@ class PacAndPal {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.port[0] |= 1;
-		}
+		if (this.fCoin)
+			this.port[0] |= 1, --this.fCoin;
 		else
 			this.port[0] &= ~1;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.port[3] |= 4;
-		}
+		if (this.fStart1P)
+			this.port[3] |= 4, --this.fStart1P;
 		else
 			this.port[3] &= ~4;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.port[3] |= 8;
-		}
+		if (this.fStart2P)
+			this.port[3] |= 8, --this.fStart2P;
 		else
 			this.port[3] &= ~8;
 

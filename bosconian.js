@@ -11,56 +11,72 @@ import Z80 from './z80.js';
 let game, sound;
 
 class Bosconian {
+	cxScreen = 224;
+	cyScreen = 285;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 19;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = false;
+	fStart1P = false;
+	fStart2P = false;
+	dwCredit = 0;
+	dwStick = 0;
+	dwScore = 0;
+	dwScore1 = 0;
+	dwScore2 = 0;
+	dwHiScore = 0;
+	dwNext1up = 0;
+	dwNext1up1 = 0;
+	dwNext1up2 = 0;
+	dw1up1 = 0;
+	dw1up2 = 0;
+
+	nMyShip = 3;
+	nBonus = 'F';
+	nRank = 'AUTO';
+	fContinue = true;
+	fAttract = true;
+
+	fInterruptEnable0 = false;
+	fInterruptEnable1 = false;
+	fSoundEnable = false;
+	fKeyDisable = false;
+	fNmiEnable0 = false;
+	fNmiEnable1 = false;
+
+	ram = new Uint8Array(0x1800).fill(0xff).addBase();
+	mmi = new Uint8Array(0x200).fill(0xff).addBase();
+	mmo = new Uint8Array(0x100);
+	count = 0;
+	starport = new Uint8Array(0x100);
+	keyport = new Uint8Array(0x100);
+	scoreport = new Uint8Array(0x100);
+	ioport = new Uint8Array(0x100);
+	dmaport0 = new Uint8Array(0x100);
+	dmaport1 = new Uint8Array(0x100);
+	keytbl = Uint8Array.of(8, 0, 2, 1, 4, 8, 3, 8, 6, 7, 8, 8, 5, 8, 8, 8);
+
+	stars = [];
+	bg = new Uint8Array(0x4000);
+	obj = new Uint8Array(0x4000);
+	bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf | 0x10);
+	objcolor = Uint8Array.from(BGCOLOR, e => e & 0xf);
+	rgb = new Uint32Array(0x80);
+
+	se = [SND12, SND13, SND14, SND15, SND16, SND17, SND18, SND19].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+
+	cpu = [];
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 285;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 19;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = false;
-		this.fStart1P = false;
-		this.fStart2P = false;
-		this.dwCredit = 0;
-		this.dwStick = 0;
-		this.dwScore = 0;
-		this.dwScore1 = 0;
-		this.dwScore2 = 0;
-		this.dwHiScore = 0;
-		this.dwNext1up = 0;
-		this.dwNext1up1 = 0;
-		this.dwNext1up2 = 0;
-		this.dw1up1 = 0;
-		this.dw1up2 = 0;
-		this.nMyShip = 3;
-		this.nBonus = 'F';
-		this.nRank = 'AUTO';
-		this.fContinue = true;
-		this.fAttract = true;
+		for (let i = 0; i < 3; i++)
+			this.cpu.push(new Z80(this));
 
 		// CPU周りの初期化
-		this.fInterruptEnable0 = false;
-		this.fInterruptEnable1 = false;
-		this.fSoundEnable = false;
-		this.fKeyDisable = false;
-		this.fNmiEnable0 = false;
-		this.fNmiEnable1 = false;
-
-		this.ram = new Uint8Array(0x1800).fill(0xff).addBase();
-		this.mmi = new Uint8Array(0x200).fill(0xff).addBase();
-		this.mmo = new Uint8Array(0x100);
-		this.count = 0;
-		this.starport = new Uint8Array(0x100);
-		this.keyport = new Uint8Array(0x100);
-		this.scoreport = new Uint8Array(0x100);
-		this.ioport = new Uint8Array(0x100);
-		this.dmaport0 = new Uint8Array(0x100);
-		this.dmaport1 = new Uint8Array(0x100);
-		this.keytbl = Uint8Array.of(8, 0, 2, 1, 4, 8, 3, 8, 6, 7, 8, 8, 5, 8, 8, 8);
-
 		this.ioport[0] = 0x80;
 		this.ioport[1] = 0x3f;
 		this.ioport[2] = 0x3f;
@@ -74,10 +90,6 @@ class Bosconian {
 		this.mmi[5] = 3; // DIPSW B/A6
 		this.mmi[6] = 2; // DIPSW B/A7
 		this.mmi[7] = 3; // DIPSW B/A8
-
-		this.cpu = [];
-		for (let i = 0; i < 3; i++)
-			this.cpu[i] = new Z80(this);
 
 		// CPU0 ROM AREA SETUP
 		for (let i = 0; i < 0x40; i++)
@@ -129,21 +141,12 @@ class Bosconian {
 		this.cpu[1].memorymap[0x98].write = null;
 
 		// Videoの初期化
-		this.stars = [];
 		for (let i = 0; i < 1024; i++)
 			this.stars.push({x: 0, y: 0, color: 0, blk: 0});
-		this.bg = new Uint8Array(0x4000);
-		this.obj = new Uint8Array(0x4000);
-		this.bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf | 0x10);
-		this.objcolor = Uint8Array.from(BGCOLOR, e => e & 0xf);
-		this.rgb = new Uint32Array(0x80);
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
 		this.initializeStar();
-
-		// 効果音の初期化
-		this.se = [SND12, SND13, SND14, SND15, SND16, SND17, SND18, SND19].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
 
 		// ライトハンドラ
 		function systemctrl0(addr, data, game) {
@@ -169,16 +172,13 @@ class Bosconian {
 					}
 					break;
 				case 3:
-					if ((data & 1) !== 0) {
-						game.cpu[1].enable();
-						game.cpu[2].enable();
-					}
-					else {
-						game.cpu[1].disable();
-						game.cpu[2].disable();
-					}
+					if ((data & 1) !== 0)
+						game.cpu[1].enable(), game.cpu[2].enable();
+					else
+						game.cpu[1].disable(), game.cpu[2].disable();
 					break;
 				}
+				// fallthrough
 			default:
 				game.mmo[addr & 0xff] = data;
 				break;
@@ -229,8 +229,10 @@ class Bosconian {
 					switch (game.cpu[0].c_prime) {
 					case 0x06:
 						game.se[2].start = game.se[2].stop = true;
+						// fallthrough
 					case 0x04:
 						game.se[1].start = game.se[1].stop = true;
+						// fallthrough
 					case 0x02:
 						game.se[0].start = game.se[0].stop = true;
 						break;
@@ -240,6 +242,7 @@ class Bosconian {
 					switch (game.cpu[0].c_prime) {
 					case 0x04:
 						game.se[2].start = game.se[2].stop = true;
+						// fallthrough
 					case 0x02:
 						game.se[1].start = game.se[1].stop = true;
 						break;

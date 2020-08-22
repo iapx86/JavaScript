@@ -11,36 +11,46 @@ import MC68000 from  './mc68000.js';
 let sound;
 
 class Toypop {
+	cxScreen = 224;
+	cyScreen = 288;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = true;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nPino = 3;
+	nBonus = 'A';
+	nRank = 'NORMAL';
+	fAttract = true;
+	fRound = false;
+
+	// CPU周りの初期化
+	fInterruptEnable = false;
+	fInterruptEnable2 = false;
+
+	ram = new Uint8Array(0x2100).addBase();
+	ram2 = new Uint8Array(0x800).addBase();
+	ram3 = new Uint8Array(0x40000).addBase();
+	vram = new Uint8Array(0x10000).addBase();
+	port = new Uint8Array(0x30);
+
+	bg = new Uint8Array(0x8000);
+	obj = new Uint8Array(0x10000);
+	rgb = new Uint32Array(0x100);
+	palette = 0;
+
+	cpu = new MC6809();
+	cpu2 = new MC6809();
+	cpu3 = new MC68000();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 288;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = true;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nPino = 3;
-		this.nBonus = 'A';
-		this.nRank = 'NORMAL';
-		this.fAttract = true;
-		this.fRound = false;
-
 		// CPU周りの初期化
-		this.fInterruptEnable = false;
-		this.fInterruptEnable2 = false;
-
-		this.ram = new Uint8Array(0x2100).addBase();
-		this.ram2 = new Uint8Array(0x800).addBase();
-		this.ram3 = new Uint8Array(0x40000).addBase();
-		this.vram = new Uint8Array(0x10000).addBase();
-		this.port = new Uint8Array(0x30);
-
-		this.cpu = new MC6809(this);
 		for (let i = 0; i < 0x20; i++) {
 			this.cpu.memorymap[i].base = this.ram.base[i];
 			this.cpu.memorymap[i].write = null;
@@ -55,10 +65,7 @@ class Toypop {
 			this.cpu.memorymap[0x68 + i].read = addr => sound.read(addr);
 			this.cpu.memorymap[0x68 + i].write = (addr, data) => sound.write(addr, data);
 		}
-		this.cpu.memorymap[0x70].read = () => {
-			this.fInterruptEnable = true;
-			return 0;
-		};
+		this.cpu.memorymap[0x70].read = () => this.fInterruptEnable = true, 0;
 		this.cpu.memorymap[0x70].write = () => void(this.fInterruptEnable = false);
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[0x80 + i].base = PRG1.base[i];
@@ -68,7 +75,6 @@ class Toypop {
 			this.cpu.memorymap[0x90 + i].write = addr => (addr & 0x800) === 0 ? this.cpu2.enable() : this.cpu2.disable();
 		this.cpu.memorymap[0xa0].write = addr => void(this.palette = addr << 7 & 0x80);
 
-		this.cpu2 = new MC6809(this);
 		for (let i = 0; i < 4; i++) {
 			this.cpu2.memorymap[i].read = addr => sound.read(addr);
 			this.cpu2.memorymap[i].write = (addr, data) => sound.write(addr, data);
@@ -76,7 +82,6 @@ class Toypop {
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[0xe0 + i].base = PRG2.base[i];
 
-		this.cpu3 = new MC68000(this);
 		for (let i = 0; i < 0x80; i++)
 			this.cpu3.memorymap[i].base = PRG3.base[i];
 		for (let i = 0; i < 0x400; i++) {
@@ -89,10 +94,7 @@ class Toypop {
 		}
 		for (let i = 0; i < 0x80; i++) {
 			this.cpu3.memorymap[0x1800 + i].read = addr => this.vram[addr = addr << 1 & 0xfffe] << 4 | this.vram[addr | 1] & 0xf;
-			this.cpu3.memorymap[0x1800 + i].write = (addr, data) => {
-				this.vram[addr = addr << 1 & 0xfffe] = data >> 4;
-				this.vram[addr | 1] = data & 0xf;
-			};
+			this.cpu3.memorymap[0x1800 + i].write = (addr, data) => void(this.vram[addr = addr << 1 & 0xfffe] = data >> 4, this.vram[addr | 1] = data & 0xf);
 		}
 		for (let i = 0; i < 0x500; i++) {
 			this.cpu3.memorymap[0x1900 + i].base = this.vram.base[i & 0xff];
@@ -102,10 +104,6 @@ class Toypop {
 			this.cpu3.memorymap[0x3000 + i].write16 = addr => void(this.fInterruptEnable2 = (addr & 0x80000) === 0);
 
 		// Videoの初期化
-		this.bg = new Uint8Array(0x8000);
-		this.obj = new Uint8Array(0x10000);
-		this.rgb = new Uint32Array(0x100);
-		this.palette = 0;
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
@@ -197,22 +195,16 @@ class Toypop {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.port[4] |= 1 << 0;
-		}
+		if (this.fCoin)
+			this.port[4] |= 1 << 0, --this.fCoin;
 		else
 			this.port[4] &= ~(1 << 0);
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.port[7] |= 1 << 2;
-		}
+		if (this.fStart1P)
+			this.port[7] |= 1 << 2, --this.fStart1P;
 		else
 			this.port[7] &= ~(1 << 2);
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.port[7] |= 1 << 3;
-		}
+		if (this.fStart2P)
+			this.port[7] |= 1 << 3, --this.fStart2P;
 		else
 			this.port[7] &= ~(1 << 3);
 

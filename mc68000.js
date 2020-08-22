@@ -7,27 +7,28 @@
 import Cpu, {dummypage} from './main.js';
 
 export default class MC68000 extends Cpu {
+	d0 = 0;
+	d1 = 0;
+	d2 = 0;
+	d3 = 0;
+	d4 = 0;
+	d5 = 0;
+	d6 = 0;
+	d7 = 0;
+	a0 = 0;
+	a1 = 0;
+	a2 = 0;
+	a3 = 0;
+	a4 = 0;
+	a5 = 0;
+	a6 = 0;
+	a7 = 0;
+	ssp = 0;
+	usp = 0;
+	sr = 0; // sr:t-s--iii ccr:---xnzvc
+
 	constructor(arg = null) {
 		super(arg);
-		this.d0 = 0;
-		this.d1 = 0;
-		this.d2 = 0;
-		this.d3 = 0;
-		this.d4 = 0;
-		this.d5 = 0;
-		this.d6 = 0;
-		this.d7 = 0;
-		this.a0 = 0;
-		this.a1 = 0;
-		this.a2 = 0;
-		this.a3 = 0;
-		this.a4 = 0;
-		this.a5 = 0;
-		this.a6 = 0;
-		this.a7 = 0;
-		this.ssp = 0;
-		this.usp = 0;
-		this.sr = 0; // sr:t-s--iii ccr:---xnzvc
 		this.memorymap.splice(0);
 		for (let i = 0; i < 0x10000; i++)
 			this.memorymap.push({base: dummypage, read: null, read16: null, write: () => {}, write16: null});

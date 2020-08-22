@@ -10,30 +10,37 @@ import MCS6502 from './mcs6502.js';
 let game;
 
 class TankBattalion {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nTank = 3;
+	nBonus = 10000;
+
+	ram = new Uint8Array(0xc00).fill(0xff).addBase();
+	rport = new Uint8Array(0x100).fill(0xff);
+	wport = new Uint8Array(0x100);
+
+	bg = new Uint8Array(0x4000);
+	rgb = new Uint32Array(0x10);
+
+	se = [BANG, FIRE, ENG2, ENG1, BONUS, COIN].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+
+	cpu = new MCS6502();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nTank = 3;
-		this.nBonus = 10000;
-
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0xc00).fill(0xff).addBase();
-		this.rport = new Uint8Array(0x100).fill(0xff);
-		this.wport = new Uint8Array(0x100);
-
 		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
 
-		this.cpu = new MCS6502(this);
 		for (let page = 0; page < 0x100; page++)
 			if (range(page, 0, 0xb, 0x80)) {
 				this.cpu.memorymap[page].base = this.ram.base[page & 0xf];
@@ -45,45 +52,35 @@ class TankBattalion {
 					this.wport[addr & 0xff] = data;
 					switch (addr & 0xff) {
 					case 0x02: // SOUND
-						if (!data)
-							this.se[2].stop = this.se[3].stop = true;
-						break;
+						return void(!data && (this.se[2].stop = this.se[3].stop = true));
 					case 0x08: // COIN
 						this.se[5].stop = true;
-						if (data)
-							this.se[5].start = true; // XXX 7 times
-						break;
+						return void(data && (this.se[5].start = true)); // XXX 7 times
 					case 0x09: // BONUS
 						this.se[4].stop = true;
-						if (data)
-							this.se[4].start = true; // XXX 7 times
-						break;
+						return void(data && (this.se[4].start = true)); // XXX 7 times
 					case 0x0a: // ENGINE(IDLE)
 						if (!this.wport[0x02])
-							break;
+							return;
 						if (data)
 							this.se[2].stop = this.se[3].stop = true;
 						else if (!this.wport[0x0b])
 							this.se[3].start = true;
 						else
 							this.se[2].start = true;
-						break;
+						return;
 					case 0x0b: // ENGINE(RUN)
 						if (!this.wport[0x02] || this.wport[0x0a])
-							break;
+							return;
 						if (!data)
 							this.se[3].start = this.se[2].stop = true;
 						else
 							this.se[2].start = this.se[3].stop = true;
-						break;
+						return;
 					case 0x0c: // FIRE
-						if (data === 0x11)
-							this.se[1].start = this.se[1].stop = true;
-						break;
+						return void(data === 0x11 && (this.se[1].start = this.se[1].stop = true));
 					case 0x0d: // EXPLOSION
-						if (data === 0x1f)
-							this.se[0].start = this.se[0].stop = true;
-						break;
+						return void(data === 0x1f && (this.se[0].start = this.se[0].stop = true));
 					}
 				};
 			}
@@ -94,22 +91,19 @@ class TankBattalion {
 		this.rport[0x1d] = 0x7f;
 
 		// Videoの初期化
-		this.bg = new Uint8Array(0x4000);
-		this.rgb = new Uint32Array(0x10);
 		this.convertRGB();
 		this.convertBG();
 
 		// 効果音の初期化
-		this.se = [BANG, FIRE, ENG2, ENG1, BONUS, COIN].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
 		this.se[2].loop = this.se[3].loop = true;
 	}
 
 	execute() {
+		this.cpu.interrupt();
 		this.cpu.execute(0x0900);
 		if (this.wport[0x0f])
 			this.cpu.non_maskable_interrupt();
 		this.cpu.execute(0x0900);
-		this.cpu.interrupt();
 		return this;
 	}
 
@@ -167,22 +161,16 @@ class TankBattalion {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.rport[0x05] &= ~0x80;
-		}
+		if (this.fCoin)
+			this.rport[0x05] &= ~0x80, --this.fCoin;
 		else
 			this.rport[0x05] |= 0x80;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.rport[0x0d] &= ~0x80;
-		}
+		if (this.fStart1P)
+			this.rport[0x0d] &= ~0x80, --this.fStart1P;
 		else
 			this.rport[0x0d] |= 0x80;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.rport[0x0e] &= ~0x80;
-		}
+		if (this.fStart2P)
+			this.rport[0x0e] &= ~0x80, --this.fStart2P;
 		else
 			this.rport[0x0e] |= 0x80;
 		return this;
@@ -201,37 +189,29 @@ class TankBattalion {
 	}
 
 	up(fDown) {
-		if (fDown) {
-			this.rport[0] &= ~0x80;
-			this.rport[2] |= 0x80;
-		}
+		if (fDown)
+			this.rport[0] &= ~0x80, this.rport[2] |= 0x80;
 		else
 			this.rport[0] |= 0x80;
 	}
 
 	right(fDown) {
-		if (fDown) {
-			this.rport[3] &= ~0x80;
-			this.rport[1] |= 0x80;
-		}
+		if (fDown)
+			this.rport[3] &= ~0x80, this.rport[1] |= 0x80;
 		else
 			this.rport[3] |= 0x80;
 	}
 
 	down(fDown) {
-		if (fDown) {
-			this.rport[2] &= ~0x80;
-			this.rport[0] |= 0x80;
-		}
+		if (fDown)
+			this.rport[2] &= ~0x80, this.rport[0] |= 0x80;
 		else
 			this.rport[2] |= 0x80;
 	}
 
 	left(fDown) {
-		if (fDown) {
-			this.rport[1] &= ~0x80;
-			this.rport[3] |= 0x80;
-		}
+		if (fDown)
+			this.rport[1] &= ~0x80, this.rport[3] |= 0x80;
 		else
 			this.rport[1] |= 0x80;
 	}

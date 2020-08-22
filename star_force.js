@@ -11,37 +11,47 @@ import Z80 from './z80.js';
 let sound;
 
 class StarForce {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = true;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	fTurbo = 0;
+	nLife = 3;
+	fDemoSound = true;
+	nExtend = '50000, 200000, 500000';
+	nDifficulty = 'Normal';
+
+	ram = new Uint8Array(0x3c00).addBase();
+	ram2 = new Uint8Array(0x400).addBase();
+	in = Uint8Array.of(0, 0, 0, 0, 0xc0, 0);
+	count = 0;
+	timer = 0;
+	cpu_irq = false;
+	cpu2_command = 0;
+	pio = {irq: false, fInterruptEnable: false};
+	ctc = {irq: false, fInterruptEnable: false, cmd: 0};
+
+	fg = new Uint8Array(0x8000);
+	bg1 = new Uint8Array(0x10000);
+	bg2 = new Uint8Array(0x10000);
+	bg3 = new Uint8Array(0x8000);
+	obj = new Uint8Array(0x20000);
+	rgb = new Uint32Array(0x200);
+
+	cpu = new Z80();
+	cpu2 = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = true;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.fTurbo = 0;
-		this.nLife = 3;
-		this.fDemoSound = true;
-		this.nExtend = '50000, 200000, 500000';
-		this.nDifficulty = 'Normal';
-
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0x3c00).addBase();
-		this.ram2 = new Uint8Array(0x400).addBase();
-		this.in = Uint8Array.of(0, 0, 0, 0, 0xc0, 0);
-		this.count = 0;
-		this.timer = 0;
-		this.cpu_irq = false;
-		this.cpu2_command = 0;
-		this.pio = {irq: false, fInterruptEnable: false};
-		this.ctc = {irq: false, fInterruptEnable: false, cmd: 0};
-
-		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[i].base = PRG1.base[i];
 		for (let i = 0; i < 0x3c; i++) {
@@ -52,18 +62,14 @@ class StarForce {
 		this.cpu.memorymap[0xd0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 2:
-				this.cpu_irq = false;
-				break;
+				return void(this.cpu_irq = false);
 			case 4:
-				this.cpu2_command = data;
-				this.pio.irq = this.pio.fInterruptEnable;
-				break;
+				return void(this.cpu2_command = data, this.pio.irq = this.pio.fInterruptEnable);
 			}
 		};
 
 		this.cpu.check_interrupt = () => this.cpu_irq && this.cpu.interrupt();
 
-		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
 		for (let i = 0; i < 4; i++) {
@@ -95,24 +101,14 @@ class StarForce {
 		}
 
 		this.cpu2.check_interrupt = () => {
-			if (this.pio.irq && this.cpu2.interrupt(0)) {
-				this.pio.irq = false;
-				return true;
-			}
-			if (this.ctc.irq && this.cpu2.interrupt(10)) {
-				this.ctc.irq = false;
-				return true;
-			}
+			if (this.pio.irq && this.cpu2.interrupt(0))
+				return this.pio.irq = false, true;
+			if (this.ctc.irq && this.cpu2.interrupt(10))
+				return this.ctc.irq = false, true;
 			return false;
 		};
 
 		// Videoの初期化
-		this.fg = new Uint8Array(0x8000);
-		this.bg1 = new Uint8Array(0x10000);
-		this.bg2 = new Uint8Array(0x10000);
-		this.bg3 = new Uint8Array(0x8000);
-		this.obj = new Uint8Array(0x20000);
-		this.rgb = new Uint32Array(0x200);
 		this.convertFG();
 		this.convertBG();
 		this.convertOBJ();
@@ -224,22 +220,16 @@ class StarForce {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[2] |= 1 << 0;
-		}
+		if (this.fCoin)
+			this.in[2] |= 1 << 0, --this.fCoin;
 		else
 			this.in[2] &= ~(1 << 0);
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[2] |= 1 << 2;
-		}
+		if (this.fStart1P)
+			this.in[2] |= 1 << 2, --this.fStart1P;
 		else
 			this.in[2] &= ~(1 << 2);
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[2] |= 1 << 3;
-		}
+		if (this.fStart2P)
+			this.in[2] |= 1 << 3, --this.fStart2P;
 		else
 			this.in[2] &= ~(1 << 3);
 

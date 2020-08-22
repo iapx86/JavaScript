@@ -8,29 +8,35 @@ import {init, loop} from './main.js';
 import I8080 from './i8080.js';
 
 class SpaceChaser {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 256;
+	xOffset = 0;
+	yOffset = 0;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nStock = 3;
+	nRank = 'EASY';
+
+	ram = new Uint8Array(0x4000).addBase();
+	io = new Uint8Array(0x100);
+	cpu_irq = false;
+	cpu_irq2 = false;
+
+	shifter = {shift: 0, reg: 0};
+	background_disable = false;
+	background_select = false;
+
+	cpu = new I8080();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 256;
-		this.xOffset = 0;
-		this.yOffset = 0;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nStock = 3;
-		this.nRank = 'EASY';
-
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0x4000).addBase();
-		this.io = new Uint8Array(0x100);
-		this.cpu_irq = false;
-		this.cpu_irq2 = false;
-
-		this.cpu = new I8080(this);
 		for (let i = 0; i < 0x20; i++)
 			this.cpu.memorymap[i].base = PRG1.base[i];
 		for (let i = 0; i < 8; i++)
@@ -47,42 +53,28 @@ class SpaceChaser {
 		this.cpu.iomap.write = (addr, data) => {
 			switch (addr) {
 			case 0x02:
-				this.shifter.shift = data & 7;
-				break;
+				return void(this.shifter.shift = data & 7);
 			case 0x03:
 //				check_sound3(this, data);
-				this.background_disable = (data & 8) !== 0;
-				this.background_select = (data & 0x10) !== 0;
-				break;
+				return void(this.background_disable = (data & 8) !== 0, this.background_select = (data & 0x10) !== 0);
 			case 0x04:
 				this.io[3] = (data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift)) & 0xff;
-				this.shifter.reg = data;
-				break;
+				return void(this.shifter.reg = data);
 			case 0x05:
 //				check_sound5(this, data);
-				break;
+				return;
 			default:
-				this.io[addr] = data;
-				break;
+				return void(this.io[addr] = data);
 			}
 		};
 
 		this.cpu.check_interrupt = () => {
-			if (this.cpu_irq && this.cpu.interrupt(0xd7)) { // RST 10H
-				this.cpu_irq = false;
-				return true;
-			}
-			if (this.cpu_irq2 && this.cpu.interrupt(0xcf)) { // RST 08H
-				this.cpu_irq2 = false;
-				return true;
-			}
+			if (this.cpu_irq && this.cpu.interrupt(0xd7)) // RST 10H
+				return this.cpu_irq = false, true;
+			if (this.cpu_irq2 && this.cpu.interrupt(0xcf)) // RST 08H
+				return this.cpu_irq2 = false, true;
 			return false;
 		};
-
-		// Videoの初期化
-		this.shifter = {shift: 0, reg: 0};
-		this.background_disable = false;
-		this.background_select = false;
 	}
 
 	execute() {
@@ -138,22 +130,16 @@ class SpaceChaser {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.io[1] &= ~(1 << 7);
-		}
+		if (this.fCoin)
+			this.io[1] &= ~(1 << 7), --this.fCoin;
 		else
 			this.io[1] |= 1 << 7;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.io[1] |= 1 << 6;
-		}
+		if (this.fStart1P)
+			this.io[1] |= 1 << 6, --this.fStart1P;
 		else
 			this.io[1] &= ~(1 << 6);
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.io[1] |= 1 << 5;
-		}
+		if (this.fStart2P)
+			this.io[1] |= 1 << 5, --this.fStart2P;
 		else
 			this.io[1] &= ~(1 << 5);
 		return this;

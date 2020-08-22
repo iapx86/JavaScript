@@ -11,36 +11,43 @@ import Z80 from './z80.js';
 let sound;
 
 class FantasyZone {
+	cxScreen = 224;
+	cyScreen = 320;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = true;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	fTurbo = 0;
+	fDemoSound = true;
+	nLife = 3;
+	nExtraShip = 5000;
+	nRank = 'Normal';
+
+	ram = new Uint8Array(0x10000).addBase();
+	ram2 = new Uint8Array(0x800).addBase();
+	in = Uint8Array.of(0xff, 0xff, 0xff, 0xff, 0xff, 0xfc);
+	fm = {addr: 0, reg: new Uint8Array(0x100), status: 0, timera: 0, timerb: 0};
+	count = 0;
+	command = [];
+
+	bg = new Uint8Array(0x40000);
+	rgb = new Uint32Array(0x800).fill(0xff000000);
+	mode = new Uint8Array(2);
+
+	cpu = new MC68000();
+	cpu2 = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 320;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = true;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.fTurbo = 0;
-		this.fDemoSound = true;
-		this.nLife = 3;
-		this.nExtraShip = 5000;
-		this.nRank = 'Normal';
-
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0x10000).addBase();
-		this.ram2 = new Uint8Array(0x800).addBase();
-		this.in = Uint8Array.of(0xff, 0xff, 0xff, 0xff, 0xff, 0xfc);
-		this.fm = {addr: 0, reg: new Uint8Array(0x100), status: 0, timera: 0, timerb: 0};
-		this.count = 0;
-		this.command = [];
-
 		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
 
-		this.cpu = new MC68000(this);
 		for (let page = 0; page < 0x10000; page++)
 			if (range(page, 0, 0x2ff, 0x3800))
 				this.cpu.memorymap[page].base = PRG1.base[page & 0x3ff];
@@ -61,8 +68,7 @@ class FantasyZone {
 				this.cpu.memorymap[page].write = null;
 				this.cpu.memorymap[page].write16 = (addr, data) => {
 					const offset = addr & 0xffe;
-					this.ram[0xa000 | offset] = data >> 8;
-					this.ram[0xa001 | offset] = data;
+					this.ram[0xa000 | offset] = data >> 8, this.ram[0xa001 | offset] = data;
 					this.rgb[offset >> 1] = (data >> 12 & 1 | data << 1 & 0x1e) * 255 / 31	// Red
 						| (data >> 13 & 1 | data >> 3 & 0x1e) * 255 / 31 << 8				// Green
 						| (data >> 14 & 1 | data >> 7 & 0x1e) * 255 / 31 << 16				// Blue
@@ -95,7 +101,6 @@ class FantasyZone {
 				this.cpu.memorymap[page].write = null;
 			}
 
-		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x80; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
 		this.cpu2.memorymap[0xe8].read = addr => addr === 0xe800 && this.command.length ? this.command.shift() : 0xff;
@@ -110,33 +115,26 @@ class FantasyZone {
 					return (addr & 1) !== 0 ? this.fm.status : 0xff;
 				case 3:
 					return this.command.length ? this.command.shift() : 0xff;
-				default:
-					return 0xff;
 				}
+				return 0xff;
 			};
 			this.cpu2.iomap[i].write = (addr, data) => {
 				if ((addr >> 6 & 3) !== 0)
 					return;
-				switch (addr & 1) {
-				case 0:
+				if ((addr & 1) === 0)
 					return void(this.fm.addr = data);
-				case 1:
-					if (this.fm.addr === 0x14) { // CSM/F RESET/IRQEN/LOAD
-						this.fm.status &= ~(data >> 4 & 3);
-						if ((data & ~this.fm.reg[0x14] & 1) !== 0)
-							this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
-						if ((data & ~this.fm.reg[0x14] & 2) !== 0)
-							this.fm.timerb = this.fm.reg[0x12];
-					}
-					return sound.write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
+				if (this.fm.addr === 0x14) { // CSM/F RESET/IRQEN/LOAD
+					this.fm.status &= ~(data >> 4 & 3);
+					if ((data & ~this.fm.reg[0x14] & 1) !== 0)
+						this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
+					if ((data & ~this.fm.reg[0x14] & 2) !== 0)
+						this.fm.timerb = this.fm.reg[0x12];
 				}
+				return sound.write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
 			};
 		}
 
 		// Videoの初期化
-		this.bg = new Uint8Array(0x40000);
-		this.rgb = new Uint32Array(0x800).fill(0xff000000);
-		this.mode = new Uint8Array(2);
 		this.convertBG();
 	}
 
@@ -228,22 +226,16 @@ class FantasyZone {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[0] &= ~(1 << 3);
-		}
+		if (this.fCoin)
+			this.in[0] &= ~(1 << 3), --this.fCoin;
 		else
 			this.in[0] |= 1 << 3;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[0] &= ~(1 << 4);
-		}
+		if (this.fStart1P)
+			this.in[0] &= ~(1 << 4), --this.fStart1P;
 		else
 			this.in[0] |= 1 << 4;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[0] &= ~(1 << 5);
-		}
+		if (this.fStart2P)
+			this.in[0] &= ~(1 << 5), --this.fStart2P;
 		else
 			this.in[0] |= 1 << 5;
 

@@ -10,37 +10,47 @@ import Z80 from './z80.js';
 let game, sound;
 
 class StrategyX {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nLife = 3;
+
+	fInterruptEnable = false;
+	fSoundEnable = false;
+
+	ram = new Uint8Array(0xd00).addBase();
+	ppi0 = Uint8Array.of(0xff, 0xfc, 0xf1, 0);
+	ppi1 = Uint8Array.of(0, 0, 0xfc, 0);
+	ram2 = new Uint8Array(0x400).addBase();
+	psg = [{addr: 0}, {addr: 0}];
+	count = 0;
+	timer = 0;
+	command = [];
+
+	fBackgroundGreen = false;
+	fBackgroundBlue = false;
+	fBackgroundRed = false;
+	bg = new Uint8Array(0x4000);
+	obj = new Uint8Array(0x4000);
+	rgb = new Uint32Array(0x20);
+
+	cpu = new Z80();
+	cpu2 = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nLife = 3;
-
 		// CPU周りの初期化
-		this.fInterruptEnable = false;
-		this.fSoundEnable = false;
-
-		this.ram = new Uint8Array(0xd00).addBase();
-		this.ppi0 = Uint8Array.of(0xff, 0xfc, 0xf1, 0);
-		this.ppi1 = Uint8Array.of(0, 0, 0xfc, 0);
-		this.ram2 = new Uint8Array(0x400).addBase();
-		this.psg = [{addr: 0}, {addr: 0}];
-		this.count = 0;
-		this.timer = 0;
-		this.command = [];
-
 		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
 
-		this.cpu = new Z80(this);
 		for (let page = 0; page < 0x100; page++)
 			if (range(page, 0, 0x5f))
 				this.cpu.memorymap[page].base = PRG1.base[page & 0x7f];
@@ -83,7 +93,6 @@ class StrategyX {
 					}
 				};
 
-		this.cpu2 = new Z80(this);
 		for (let page = 0; page < 0x100; page++)
 			if (range(page, 0, 0x1f))
 				this.cpu2.memorymap[page].base = PRG2.base[page & 0x1f];
@@ -113,12 +122,6 @@ class StrategyX {
 		}
 
 		// Videoの初期化
-		this.fBackgroundGreen = false;
-		this.fBackgroundBlue = false;
-		this.fBackgroundRed = false;
-		this.bg = new Uint8Array(0x4000);
-		this.obj = new Uint8Array(0x4000);
-		this.rgb = new Uint32Array(0x20);
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
@@ -182,22 +185,16 @@ class StrategyX {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.ppi0[0] &= ~(1 << 7);
-		}
+		if (this.fCoin)
+			this.ppi0[0] &= ~(1 << 7), --this.fCoin;
 		else
 			this.ppi0[0] |= 1 << 7;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.ppi0[1] &= ~(1 << 7);
-		}
+		if (this.fStart1P)
+			this.ppi0[1] &= ~(1 << 7), --this.fStart1P;
 		else
 			this.ppi0[1] |= 1 << 7;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.ppi0[1] &= ~(1 << 6);
-		}
+		if (this.fStart2P)
+			this.ppi0[1] &= ~(1 << 6), --this.fStart2P;
 		else
 			this.ppi0[1] |= 1 << 6;
 		return this;

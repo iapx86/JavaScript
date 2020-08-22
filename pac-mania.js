@@ -13,41 +13,54 @@ import MC6801 from './mc6801.js';
 let sound;
 
 class PacMania {
-	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 288;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = true;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
+	cxScreen = 224;
+	cyScreen = 288;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
 
+	fReset = true;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+
+	// CPU周りの初期化
+	memorymap = [];
+	ram = new Uint8Array(0x18000).addBase();
+	ram2 = new Uint8Array(0x800).addBase();
+	ram3 = new Uint8Array(0x2000).addBase();
+	ram4 = new Uint8Array(0x900).addBase();
+	fm = {addr: 0, reg: new Uint8Array(0x100), status: 0, timera: 0, timerb: 0};
+	in = Uint8Array.of(0xff, 0xff, 0xff, 0xf8);
+	key = new Uint8Array(4);
+	count = 0;
+	bank1 = new Uint16Array(8);
+	bank2 = new Uint16Array(8);
+	bank3 = 0x40;
+	bank4 = 0x80;
+	cpu_irq = false;
+	cpu2_irq = false;
+	cpu2_firq = false;
+	cpu3_irq = false;
+	mcu_irq = false;
+
+	chr = new Uint8Array(0x100000).fill(0xff);
+	obj = new Uint8Array(0x200000).fill(0xf);
+	rgb = new Uint32Array(0x2000).fill(0xff000000);
+	isspace = new Uint8Array(0x4000);
+
+	cpu = new MC6809();
+	cpu2 = new MC6809();
+	cpu3 = new MC6809();
+	mcu = new MC6801();
+
+	constructor() {
 		// CPU周りの初期化
-		this.memorymap = [];
 		for (let i = 0; i < 0x8000; i++)
 			this.memorymap.push({base: dummypage, read: null, write: () => {}, fetch: null});
-		this.ram = new Uint8Array(0x18000).addBase();
-		this.ram2 = new Uint8Array(0x800).addBase();
-		this.ram3 = new Uint8Array(0x2000).addBase();
-		this.ram4 = new Uint8Array(0x900).addBase();
-		this.fm = {addr: 0, reg: new Uint8Array(0x100), status: 0, timera: 0, timerb: 0};
-		this.in = Uint8Array.of(0xff, 0xff, 0xff, 0xf8);
-		this.key = new Uint8Array(4);
-		this.count = 0;
-		this.bank1 = new Uint16Array(8);
-		this.bank2 = new Uint16Array(8);
-		this.bank3 = 0x40;
-		this.bank4 = 0x80;
-		this.cpu_irq = false;
-		this.cpu2_irq = false;
-		this.cpu2_firq = false;
-		this.cpu3_irq = false;
-		this.mcu_irq = false;
 
 		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
 
@@ -119,7 +132,6 @@ class PacMania {
 			else if (range(page, 0x7800, 0x7fff))
 				this.memorymap[page].base = PRG.base[0x200 | page & 0xff];
 
-		this.cpu = new MC6809(this);
 		for (let i = 0; i < 0x20; i++)
 			this.cpu.memorymap[0xe0 + i].write = (addr, data) => {
 				const reg = addr >> 9 & 0xf;
@@ -127,9 +139,11 @@ class PacMania {
 					return this.bankswitch(reg, (addr & 1) === 0 ? data << 13 & 0x6000 | this.bank1[reg] & 0x1fe0 : this.bank1[reg] & 0x6000 | data << 5);
 				switch (reg) {
 				case 8:
-					(data & 1) === 0 ? this.cpu2.disable() : this.cpu2.enable();
-					(data & 1) === 0 ? this.cpu3.disable() : this.cpu3.enable();
-					return (data & 1) === 0 ? this.mcu.disable() : this.mcu.enable();
+					if ((data & 1) === 0)
+						this.cpu2.disable(), this.cpu3.disable(), this.mcu.disable();
+					else
+						this.cpu2.enable(), this.cpu3.enable(), this.mcu.enable();
+					return;
 				case 11:
 					return void(this.cpu_irq = false);
 				case 13:
@@ -141,7 +155,6 @@ class PacMania {
 
 		this.cpu.check_interrupt = () => this.cpu_irq && this.cpu.interrupt();
 
-		this.cpu2 = new MC6809(this);
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[0xe0 + i].write = (addr, data) => {
 				const reg = addr >> 9 & 0xf;
@@ -157,7 +170,6 @@ class PacMania {
 
 		this.cpu2.check_interrupt = () => this.cpu2_irq && this.cpu2.interrupt() || this.cpu2_firq && this.cpu2.fast_interrupt();
 
-		this.cpu3 = new MC6809(this);
 		for (let i = 0; i < 0x40; i++)
 			this.cpu3.memorymap[i].base = SND.base[0x40 + i];
 		this.cpu3.memorymap[0x40].read = addr => addr === 0x4001 ? this.fm.status : 0xff;
@@ -195,16 +207,14 @@ class PacMania {
 
 		this.cpu3.check_interrupt = () => this.cpu3_irq && this.cpu3.interrupt() || (this.fm.status & 3) !== 0 && this.cpu3.fast_interrupt();
 
-		this.mcu = new MC6801(this);
 		this.mcu.memorymap[0].base = this.ram4.base[0];
 		this.mcu.memorymap[0].read = addr => {
+			let data;
 			switch (addr) {
 			case 2:
 				return this.in[3];
 			case 8:
-				const data = this.ram4[8];
-				this.ram4[8] &= ~0xe0;
-				return data;
+				return data = this.ram4[8], this.ram4[8] &= ~0xe0, data;
 			}
 			return this.ram4[addr];
 		};
@@ -241,10 +251,6 @@ class PacMania {
 		this.mcu.check_interrupt = () => this.mcu_irq && this.mcu.interrupt() || (this.ram4[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf');
 
 		// Videoの初期化
-		this.chr = new Uint8Array(0x100000).fill(0xff);
-		this.obj = new Uint8Array(0x200000).fill(0xf);
-		this.rgb = new Uint32Array(0x2000).fill(0xff000000);
-		this.isspace = new Uint8Array(0x4000);
 		this.convertCHR();
 		this.convertOBJ();
 	}
@@ -375,22 +381,16 @@ class PacMania {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[3] &= ~(1 << 6);
-		}
+		if (this.fCoin)
+			this.in[3] &= ~(1 << 6), --this.fCoin;
 		else
 			this.in[3] |= 1 << 6;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[0] &= ~(1 << 7);
-		}
+		if (this.fStart1P)
+			this.in[0] &= ~(1 << 7), --this.fStart1P;
 		else
 			this.in[0] |= 1 << 7;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[1] &= ~(1 << 7);
-		}
+		if (this.fStart2P)
+			this.in[1] &= ~(1 << 7), --this.fStart2P;
 		else
 			this.in[1] |= 1 << 7;
 		return this;

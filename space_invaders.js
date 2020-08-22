@@ -8,31 +8,36 @@ import {init, loop} from './main.js';
 import I8080 from './i8080.js';
 
 class SpaceInvaders {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 256;
+	xOffset = 0;
+	yOffset = 0;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nStock = 3;
+	nExtend = 1000;
+
+	ram = new Uint8Array(0x2000).addBase();
+	io = new Uint8Array(0x100);
+	cpu_irq = false;
+	cpu_irq2 = false;
+
+	shifter = {shift: 0, reg: 0};
+	screen_red = false;
+
+	cpu = new I8080();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 256;
-		this.xOffset = 0;
-		this.yOffset = 0;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nStock = 3;
-		this.nExtend = 1000;
-
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0x2000).addBase();
-		this.io = new Uint8Array(0x100);
-		this.cpu_irq = false;
-		this.cpu_irq2 = false;
-
 		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
 
-		this.cpu = new I8080(this);
 		for (let page = 0; page < 0x100; page++)
 			if (range(page, 0, 0x1f, 0x80))
 				this.cpu.memorymap[page].base = PRG.base[page & 0x1f];
@@ -46,43 +51,31 @@ class SpaceInvaders {
 			case 0x00:
 			case 0x01:
 			case 0x02:
-				this.shifter.shift = data & 7;
-				break;
+				return void(this.shifter.shift = data & 7);
 			case 0x03:
 //				check_sound3(this, data);
-				this.screen_red = (data & 4) !== 0;
-				break;
+				return void(this.screen_red = (data & 4) !== 0);
 			case 0x04:
 				this.io[3] = (data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift)) & 0xff;
-				this.shifter.reg = data;
-				break;
+				return void(this.shifter.reg = data);
 			case 0x05:
 //				check_sound5(this, data);
-				break;
+				return;
 			default:
-				this.io[addr] = data;
-				break;
+				return void(this.io[addr] = data);
 			}
 		};
 
 		this.cpu.check_interrupt = () => {
-			if (this.cpu_irq && this.cpu.interrupt(0xd7)) { // RST 10H
-				this.cpu_irq = false;
-				return true;
-			}
-			if (this.cpu_irq2 && this.cpu.interrupt(0xcf)) { // RST 08H
-				this.cpu_irq2 = false;
-				return true;
-			}
+			if (this.cpu_irq && this.cpu.interrupt(0xd7)) // RST 10H
+				return this.cpu_irq = false, true;
+			if (this.cpu_irq2 && this.cpu.interrupt(0xcf)) // RST 08H
+				return this.cpu_irq2 = false, true;
 			return false;
 		};
 
 		// DIPSW SETUP
 		this.io[1] = 1;
-
-		// Videoの初期化
-		this.shifter = {shift: 0, reg: 0};
-		this.screen_red = false;
 	}
 
 	execute() {
@@ -138,22 +131,16 @@ class SpaceInvaders {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.io[1] &= ~(1 << 0);
-		}
+		if (this.fCoin)
+			this.io[1] &= ~(1 << 0), --this.fCoin;
 		else
 			this.io[1] |= 1 << 0;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.io[1] |= 1 << 2;
-		}
+		if (this.fStart1P)
+			this.io[1] |= 1 << 2, --this.fStart1P;
 		else
 			this.io[1] &= ~(1 << 2);
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.io[1] |= 1 << 1;
-		}
+		if (this.fStart2P)
+			this.io[1] |= 1 << 1, --this.fStart2P;
 		else
 			this.io[1] &= ~(1 << 1);
 		return this;
@@ -203,14 +190,14 @@ class SpaceInvaders {
 
 	makeBitmap(data) {
 		const rgb = Uint32Array.of(
-			0xff000000,	// black
-			0xff0000ff,	// red
-			0xffff0000,	// blue
-			0xffff00ff,	// magenta
-			0xff00ff00,	// green
-			0xff00ffff,	// yellow
-			0xffffff00,	// cyan
-			0xffffffff,	// white
+			0xff000000, // black
+			0xff0000ff, // red
+			0xffff0000, // blue
+			0xffff00ff, // magenta
+			0xff00ff00, // green
+			0xff00ffff, // yellow
+			0xffffff00, // cyan
+			0xffffffff, // white
 		);
 
 		for (let p = 256 * 8 * 31, k = 0x0400, i = 256 >> 3; i !== 0; --i) {

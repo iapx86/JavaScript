@@ -10,29 +10,34 @@ import Z80 from './z80.js';
 let game, sound;
 
 class RoyalMahjong {
+	cxScreen = 240;
+	cyScreen = 256;
+	width = 256;
+	height = 256;
+	xOffset = 0;
+	yOffset = 0;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nPayOutRate = '96%';
+	nMaximumBet = '20';
+
+	ram = new Uint8Array(0x1000).addBase();
+	vram = new Uint8Array(0x8000);
+	in = Uint8Array.of(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0x3f);
+	psg = {addr: 0};
+
+	rgb = new Uint32Array(0x20);
+	palette = 0;
+
+	cpu = new Z80();
+
 	constructor() {
-		this.cxScreen = 240;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 256;
-		this.xOffset = 0;
-		this.yOffset = 0;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nPayOutRate = '96%';
-		this.nMaximumBet = '20';
-
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0x1000).addBase();
-		this.vram = new Uint8Array(0x8000);
-		this.in = Uint8Array.of(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0x3f);
-		this.psg = {addr: 0};
-
-		this.cpu = new Z80(this);
 		for (let i = 0; i < 0x60; i++)
 			this.cpu.memorymap[i].base = PRG.base[i];
 		for (let i = 0; i < 0x10; i++) {
@@ -56,14 +61,11 @@ class RoyalMahjong {
 			this.cpu.iomap[i].write = (addr, data) => {
 				switch (addr & 0xff) {
 				case 0x02:
-					this.psg.addr < 0xe && sound.write(this.psg.addr, data);
-					break;
+					return void(this.psg.addr < 0xe && sound.write(this.psg.addr, data));
 				case 0x03:
-					this.psg.addr = data;
-					break;
+					return void(this.psg.addr = data);
 				case 0x10:
-					this.palette = data << 1 & 0x10;
-					break;
+					return void(this.palette = data << 1 & 0x10);
 				case 0x11:
 					const select = data;
 					data = this.in[0] | 0x3f;
@@ -75,15 +77,12 @@ class RoyalMahjong {
 					for (let i = 0; i < 5; i++)
 						if ((select & 1 << i) === 0)
 							data &= this.in[5 + i];
-					sound.write(0xf, data);
-					break;
+					return sound.write(0xf, data);
 				}
 			};
 		}
 
 		// Videoの初期化
-		this.rgb = new Uint32Array(0x20);
-		this.palette = 0;
 		this.convertRGB();
 	}
 
@@ -183,22 +182,16 @@ class RoyalMahjong {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[5] &= ~(1 << 6);
-		}
+		if (this.fCoin)
+			this.in[5] &= ~(1 << 6), --this.fCoin;
 		else
 			this.in[5] |= 1 << 6;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[0] &= ~(1 << 5);
-		}
+		if (this.fStart1P)
+			this.in[0] &= ~(1 << 5), --this.fStart1P;
 		else
 			this.in[0] |= 1 << 5;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[5] &= ~(1 << 5);
-		}
+		if (this.fStart2P)
+			this.in[5] &= ~(1 << 5), --this.fStart2P;
 		else
 			this.in[5] |= 1 << 5;
 		return this;

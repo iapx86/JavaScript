@@ -12,27 +12,28 @@ import Z80 from './z80.js';
 let game, sound;
 
 class SoundTest {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 256;
+	xOffset = 0;
+	yOffset = 0;
+
+	fReset = true;
+	nSound = 1;
+
+	ram2 = new Uint8Array(0x4000).addBase();
+	vlm = new Uint8Array(0x800).addBase();
+	psg = [{addr: 0}, {addr: 0}];
+	scc = {freq0: 0, freq1: 0, reg0: 0, reg1: 0};
+	vlm_latch = 0;
+	count = 0;
+	timer = 0;
+	command = [];
+	cpu2 = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 256;
-		this.xOffset = 0;
-		this.yOffset = 0;
-		this.fReset = true;
-		this.nSound = 1;
-
 		// CPU周りの初期化
-		this.ram2 = new Uint8Array(0x4000).addBase();
-		this.vlm = new Uint8Array(0x800).addBase();
-		this.psg = [{addr: 0}, {addr: 0}];
-		this.scc = {freq0: 0, freq1: 0, reg0: 0, reg1: 0};
-		this.vlm_latch = 0;
-		this.count = 0;
-		this.timer = 0;
-		this.command = [];
-
-		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
 		for (let i = 0; i < 0x40; i++) {
@@ -135,8 +136,7 @@ class SoundTest {
 	right(fDown = false) {
 		if (fDown)
 			return this;
-		this.nSound = this.nSound + 1;
-		if (this.nSound >= 0x100)
+		if (++this.nSound >= 0x100)
 			this.nSound = 1;
 		return this;
 	}
@@ -148,8 +148,7 @@ class SoundTest {
 	left(fDown = false) {
 		if (fDown)
 			return this;
-		this.nSound = this.nSound - 1;
-		if (this.nSound < 1)
+		if (--this.nSound < 1)
 			this.nSound = 0xff;
 		return this;
 	}

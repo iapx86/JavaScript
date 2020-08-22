@@ -5,20 +5,30 @@
  */
 
 export default class PacManSound {
+	snd;
+	rate;
+	sampleRate;
+	count;
+	resolution;
+	gain;
+	tmpwheel = [];
+	wheel = [];
+	reg = new Uint8Array(0x20);
+	phase = new Uint32Array(3);
+
+	source;
+	gainNode;
+	scriptNode;
+
 	constructor({SND, resolution = 1, gain = 0.1}) {
-		this.ram = new Uint8Array(0x20);
-		this.reg = new Uint8Array(0x20);
-		this.phase = new Uint32Array(3);
 		this.snd = Float32Array.from(SND, e => (e & 0x0f) * 2 / 15 - 1);
 		this.rate = Math.floor(8192 * 48000 / audioCtx.sampleRate);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.count = this.sampleRate - 1;
 		this.resolution = resolution;
 		this.gain = gain;
-		this.tmpwheel = [];
 		for (let i = 0; i < resolution; i++)
 			this.tmpwheel.push([]);
-		this.wheel = [];
 		if (!audioCtx)
 			return;
 		this.source = audioCtx.createBufferSource();
@@ -38,13 +48,8 @@ export default class PacManSound {
 		this.gainNode.gain.value = flag ? 0 : this.gain;
 	}
 
-	read(addr) {
-		return this.ram[addr & 0x1f];
-	}
-
 	write(addr, data, timer = 0) {
-		this.ram[addr &= 0x1f] = data &= 0x0f;
-		this.tmpwheel[timer].push({addr, data});
+		this.tmpwheel[timer].push({addr: addr & 0x1f, data: data & 0xf});
 	}
 
 	update() {

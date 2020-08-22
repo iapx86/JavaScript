@@ -11,62 +11,75 @@ import Z80 from './z80.js';
 let game, sound;
 
 class Galaga {
+	cxScreen = 224;
+	cyScreen = 288;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = false;
+	fStart1P = false;
+	fStart2P = false;
+	dwCoin = 0;
+	dwStick = 0;
+	abStick = Uint8Array.of(0xff, 0xff, 0xfd, 0xff, 0xff, 0xff, 0xfd, 0xfd, 0xf7, 0xf7, 0xff, 0xff, 0xff, 0xf7, 0xff, 0xff);
+	abStick2 = Uint8Array.of(~0, ~1, ~2, ~1, ~4, ~0, ~2, ~2, ~8, ~8, ~0, ~1, ~4, ~8, ~4, ~0);
+	dwButton = 0;
+	nMyShip = 3;
+	nRank = 'NORMAL';
+	nBonus = 'B';
+	fAttract = true;
+
+	fInterruptEnable0 = false;
+	fInterruptEnable1 = false;
+	fNmiEnable = false;
+	fSoundEnable = false;
+	dwMode = 0;
+	ram = new Uint8Array(0x2000).addBase();
+	mmi = new Uint8Array(0x100).fill(0xff);
+	mmo = new Uint8Array(0x100);
+	count = 0;
+	keyport = new Uint8Array(0x100);
+	dmaport = new Uint8Array(0x100).fill(0x10);
+	ioport = new Uint8Array(0x100).fill(0xff);
+	starport = new Uint8Array(0x100).fill(0xff);
+
+	stars = [];
+	fFlip = true;
+	fStarEnable = false;
+	bg = new Uint8Array(0x4000);
+	obj = new Uint8Array(0x10000);
+	bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf | 0x10);
+	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
+	rgb = new Uint32Array(0x80);
+
+	se = [{buf: BOMB, loop: false, start: false, stop: false}];
+
+	cpu = [];
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 288;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = false;
-		this.fStart1P = false;
-		this.fStart2P = false;
-		this.dwCoin = 0;
-		this.dwStick = 0;
-		this.abStick = Uint8Array.of(0xff, 0xff, 0xfd, 0xff, 0xff, 0xff, 0xfd, 0xfd, 0xf7, 0xf7, 0xff, 0xff, 0xff, 0xf7, 0xff, 0xff);
-		this.abStick2 = Uint8Array.of(~0, ~1, ~2, ~1, ~4, ~0, ~2, ~2, ~8, ~8, ~0, ~1, ~4, ~8, ~4, ~0);
-		this.dwButton = 0;
-		this.nMyShip = 3;
-		this.nRank = 'NORMAL';
-		this.nBonus = 'B';
-		this.fAttract = true;
+		for (let i = 0; i < 3; i++)
+			this.cpu.push(new Z80(this));
 
 		// CPU周りの初期化
-		this.fInterruptEnable0 = false;
-		this.fInterruptEnable1 = false;
-		this.fNmiEnable = false;
-		this.fSoundEnable = false;
-		this.dwMode = 0;
 
-		this.ram = new Uint8Array(0x2000).addBase();
-		this.mmi = new Uint8Array(0x100).fill(0xff);
-		this.mmo = new Uint8Array(0x100);
-		this.count = 0;
-		this.keyport = new Uint8Array(0x100);
-		this.dmaport = new Uint8Array(0x100).fill(0x10);
-		this.ioport = new Uint8Array(0x100).fill(0xff);
-		this.starport = new Uint8Array(0x100).fill(0xff);
-
-		this.cpu = [];
-		for (let i = 0; i < 3; i++)
-			this.cpu[i] = new Z80(this);
-
-		/* CPU0 ROM AREA SETUP */
+		// CPU0 ROM AREA SETUP
 		for (let i = 0; i < 0x40; i++)
 			this.cpu[0].memorymap[i].base = PRG1.base[i];
 
-		/* CPU1 ROM AREA SETUP */
-		for (let i = 0; i < 0x10; i++)
+		//CPU1 ROM AREA SETUP
+		for (let i = 0; i < 0x20; i++)
 			this.cpu[1].memorymap[i].base = PRG2.base[i];
 
-		/* CPU2 ROM AREA SETUP */
+		// CPU2 ROM AREA SETUP
 		for (let i = 0; i < 0x10; i++)
 			this.cpu[2].memorymap[i].base = PRG3.base[i];
 
-		/* CPU[012] RAM AREA SETUP */
+		// CPU[012] RAM AREA SETUP
 		for (let i = 0; i < 3; i++) {
 			for (let j = 0; j < 8; j++) {
 				this.cpu[i].memorymap[0x80 + j].base = this.ram.base[j];
@@ -106,23 +119,12 @@ class Galaga {
 		this.mmi[7] = 3; // DIPSW B/A8
 
 		// Videoの初期化
-		this.stars = [];
 		for (let i = 0; i < 1024; i++)
 			this.stars.push({x: 0, y: 0, color: 0, blk: 0});
-		this.fFlip = true;
-		this.fStarEnable = false;
-		this.bg = new Uint8Array(0x4000);
-		this.obj = new Uint8Array(0x10000);
-		this.bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf | 0x10);
-		this.objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
-		this.rgb = new Uint32Array(0x80);
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
 		this.initializeStar();
-
-		// 効果音の初期化
-		this.se = [{buf: BOMB, loop: false, start: false, stop: false}];
 
 		// ライトハンドラ
 		function systemctrl0(addr, data, game) {
@@ -147,16 +149,13 @@ class Galaga {
 					}
 					break;
 				case 3:
-					if (data) {
-						game.cpu[1].enable();
-						game.cpu[2].enable();
-					}
-					else {
-						game.cpu[1].disable();
-						game.cpu[2].disable();
-					}
+					if (data)
+						game.cpu[1].enable(), game.cpu[2].enable();
+					else
+						game.cpu[1].disable(), game.cpu[2].disable();
 					break;
 				}
+				// fallthrough
 			default:
 				game.mmo[addr & 0xff] = data;
 				break;
@@ -229,6 +228,7 @@ class Galaga {
 				break;
 			case 0x07:
 				game.fFlip = !game.fTest && (data & 1) !== 0;
+				// fallthrough
 			default:
 				this.base[addr & 0xff] = data;
 				break;

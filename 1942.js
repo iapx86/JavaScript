@@ -10,36 +10,50 @@ import Z80 from './z80.js';
 let sound;
 
 class _1942 {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = true;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	fTurbo = 0;
+	nBonus = '1st 20000 2nd 80000 every 80000';
+	nLife = 3;
+	nRank = 'Normal';
+
+	ram = new Uint8Array(0x1d00).addBase();
+	ram2 = new Uint8Array(0x800).addBase();
+	in = Uint8Array.of(0xff, 0xff, 0xff, 0xf7, 0xff);
+	psg = [{addr: 0}, {addr: 0}];
+	command = 0;
+	bank = 0x80;
+	timer = 0;
+	cpu_irq = false;
+	cpu_irq2 = false;
+
+	fg = new Uint8Array(0x8000);
+	bg = new Uint8Array(0x20000);
+	obj = new Uint8Array(0x20000);
+	fgcolor = Uint8Array.from(FGCOLOR, e => e & 0xf | 0x80);
+	bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf);
+	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf | 0x40);
+	rgb = new Uint32Array(0x100);
+	dwScroll = 0;
+	palette = 0;
+	frame = 0;
+
+	cpu = new Z80();
+	cpu2 = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = true;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.fTurbo = 0;
-		this.nBonus = '1st 20000 2nd 80000 every 80000';
-		this.nLife = 3;
-		this.nRank = 'Normal';
-
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0x1d00).addBase();
-		this.ram2 = new Uint8Array(0x800).addBase();
-		this.in = Uint8Array.of(0xff, 0xff, 0xff, 0xf7, 0xff);
-		this.psg = [{addr: 0}, {addr: 0}];
-		this.command = 0;
-		this.bank = 0x80;
-		this.timer = 0;
-		this.cpu_irq = false;
-		this.cpu_irq2 = false;
-
-		this.cpu = new Z80(this);
 		for (let i = 0; i < 0xc0; i++)
 			this.cpu.memorymap[i].base = PRG1.base[i];
 		this.cpu.memorymap[0xc0].read = addr => (addr &= 0xff) < 5 ? this.in[addr] : 0xff;
@@ -76,18 +90,13 @@ class _1942 {
 		}
 
 		this.cpu.check_interrupt = () => {
-			if (this.cpu_irq && this.cpu.interrupt(0xd7)) { // RST 10H
-				this.cpu_irq = false;
-				return true;
-			}
-			if (this.cpu_irq2 && this.cpu.interrupt(0xcf)) { // RST 08H
-				this.cpu_irq2 = false;
-				return true;
-			}
+			if (this.cpu_irq && this.cpu.interrupt(0xd7)) // RST 10H
+				return this.cpu_irq = false, true;
+			if (this.cpu_irq2 && this.cpu.interrupt(0xcf)) // RST 08H
+				return this.cpu_irq2 = false, true;
 			return false;
 		};
 
-		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x40; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
 		for (let i = 0; i < 8; i++) {
@@ -113,16 +122,6 @@ class _1942 {
 		};
 
 		// Videoの初期化
-		this.fg = new Uint8Array(0x8000);
-		this.bg = new Uint8Array(0x20000);
-		this.obj = new Uint8Array(0x20000);
-		this.fgcolor = Uint8Array.from(FGCOLOR, e => e & 0xf | 0x80);
-		this.bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf);
-		this.objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf | 0x40);
-		this.rgb = new Uint32Array(0x100);
-		this.dwScroll = 0;
-		this.palette = 0;
-		this.frame = 0;
 		this.convertRGB();
 		this.convertFG();
 		this.convertBG();
@@ -210,22 +209,16 @@ class _1942 {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[0] &= ~(1 << 4);
-		}
+		if (this.fCoin)
+			this.in[0] &= ~(1 << 4), --this.fCoin;
 		else
 			this.in[0] |= 1 << 4;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[0] &= ~(1 << 0);
-		}
+		if (this.fStart1P)
+			this.in[0] &= ~(1 << 0), --this.fStart1P;
 		else
 			this.in[0] |= 1 << 0;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[0] &= ~(1 << 1);
-		}
+		if (this.fStart2P)
+			this.in[0] &= ~(1 << 1), --this.fStart2P;
 		else
 			this.in[0] |= 1 << 1;
 

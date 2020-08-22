@@ -10,32 +10,47 @@ import Z80 from './z80.js';
 let sound;
 
 class Vulgus {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = true;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	fTurbo = 0;
+	nBonus = '20000 60000';
+	nLife = 3;
+
+	ram = new Uint8Array(0x2100).addBase();
+	ram2 = new Uint8Array(0x800).addBase();
+	in = Uint8Array.of(0xff, 0xff, 0xff, 0xff, 0x7f);
+	psg = [{addr: 0}, {addr: 0}];
+	command = 0;
+	timer = 0;
+
+	fg = new Uint8Array(0x8000);
+	bg = new Uint8Array(0x20000);
+	obj = new Uint8Array(0x10000);
+	fgcolor = Uint8Array.from(FGCOLOR, e => e & 0xf | 0x20);
+	bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf);
+	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf | 0x10);
+	rgb = new Uint32Array(0x100);
+	hScroll = 0;
+	vScroll = 0;
+	palette = 0;
+	frame = 0;
+
+	cpu = new Z80();
+	cpu2 = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = true;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.fTurbo = 0;
-		this.nBonus = '20000 60000';
-		this.nLife = 3;
-
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0x2100).addBase();
-		this.ram2 = new Uint8Array(0x800).addBase();
-		this.in = Uint8Array.of(0xff, 0xff, 0xff, 0xff, 0x7f);
-		this.psg = [{addr: 0}, {addr: 0}];
-		this.command = 0;
-		this.timer = 0;
-
-		this.cpu = new Z80(this);
 		for (let i = 0; i < 0xa0; i++)
 			this.cpu.memorymap[i].base = PRG1.base[i];
 		this.cpu.memorymap[0xc0].read = addr => (addr &= 0xff) < 5 ? this.in[addr] : 0xff;
@@ -68,7 +83,6 @@ class Vulgus {
 			this.cpu.memorymap[0xd0 + i].write = null;
 		}
 
-		this.cpu2 = new Z80(this);
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
 		for (let i = 0; i < 8; i++) {
@@ -94,17 +108,6 @@ class Vulgus {
 		};
 
 		// Videoの初期化
-		this.fg = new Uint8Array(0x8000);
-		this.bg = new Uint8Array(0x20000);
-		this.obj = new Uint8Array(0x10000);
-		this.fgcolor = Uint8Array.from(FGCOLOR, e => e & 0xf | 0x20);
-		this.bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf);
-		this.objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf | 0x10);
-		this.rgb = new Uint32Array(0x100);
-		this.hScroll = 0;
-		this.vScroll = 0;
-		this.palette = 0;
-		this.frame = 0;
 		this.convertRGB();
 		this.convertFG();
 		this.convertBG();
@@ -115,10 +118,8 @@ class Vulgus {
 		for (let i = 0; i < 16; i++) {
 			if (i === 0)
 				this.cpu.interrupt(0xd7); // RST 10H
-			if ((i & 1) === 0) {
-				this.timer = i >> 1;
-				this.cpu2.interrupt();
-			}
+			if ((i & 1) === 0)
+				this.timer = i >> 1, this.cpu2.interrupt();
 			Cpu.multiple_execute([this.cpu, this.cpu2], 600);
 		}
 		return this;
@@ -187,22 +188,16 @@ class Vulgus {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[0] &= ~(1 << 4);
-		}
+		if (this.fCoin)
+			this.in[0] &= ~(1 << 4), --this.fCoin;
 		else
 			this.in[0] |= 1 << 4;
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[0] &= ~(1 << 0);
-		}
+		if (this.fStart1P)
+			this.in[0] &= ~(1 << 0), --this.fStart1P;
 		else
 			this.in[0] |= 1 << 0;
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[0] &= ~(1 << 1);
-		}
+		if (this.fStart2P)
+			this.in[0] &= ~(1 << 1), --this.fStart2P;
 		else
 			this.in[0] |= 1 << 1;
 

@@ -10,23 +10,23 @@ import Z80 from './z80.js';
 let game, sound;
 
 class SoundTest {
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 256;
+	xOffset = 0;
+	yOffset = 0;
+
+	fReset = true;
+	nSound = 0;
+
+	fInterruptEnable = false;
+	ram = new Uint8Array(0x2300).addBase();
+	count = 0;
+	cpu = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 256;
-		this.xOffset = 0;
-		this.yOffset = 0;
-		this.fReset = true;
-		this.nSound = 0;
-
 		// CPU周りの初期化
-		this.ram = new Uint8Array(0x2300).addBase();
-		this.fInterruptEnable = false;
-		this.count = 0;
-
-		this.cpu = new Z80(this);
-
 		for (let i = 0; i < 0x30; i++)
 			this.cpu.memorymap[i].base = PRG.base[i];
 		for (let i = 0; i < 8; i++) {
@@ -54,20 +54,15 @@ class SoundTest {
 		this.cpu.breakpoint = addr => {
 			switch (addr) {
 			case 0x0000:
-				this.cpu.pc = 0x0ea5;
-				return;
+				return void(this.cpu.pc = 0x0ea5);
 			case 0x00b8:
-				this.cpu.suspend();
-				return;
+				return this.cpu.suspend();
 			case 0x0119:
-				this.cpu.pc = 0x0139;
-				return;
+				return void(this.cpu.pc = 0x0139);
 			case 0x013c:
-				this.cpu.pc = 0x0154;
-				return;
+				return void(this.cpu.pc = 0x0154);
 			case 0x0159:
-				this.cpu.pc = 0x0181;
-				return;
+				return void(this.cpu.pc = 0x0181);
 			}
 		};
 		this.cpu.set_breakpoint(0x0000);
@@ -123,7 +118,7 @@ class SoundTest {
 	right(fDown = false) {
 		if (fDown)
 			return this;
-		this.nSound = this.nSound + 1 & 0x0f;
+		this.nSound = this.nSound + 1 & 0xf;
 		return this;
 	}
 
@@ -134,7 +129,7 @@ class SoundTest {
 	left(fDown = false) {
 		if (fDown)
 			return this;
-		this.nSound = this.nSound - 1 & 0x0f;
+		this.nSound = this.nSound - 1 & 0xf;
 		return this;
 	}
 

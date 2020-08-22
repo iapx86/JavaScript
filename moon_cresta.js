@@ -11,32 +11,46 @@ import Z80 from './z80.js';
 let game, sound;
 
 class MoonCresta {
+	static decoded = false;
+
+	cxScreen = 224;
+	cyScreen = 256;
+	width = 256;
+	height = 512;
+	xOffset = 16;
+	yOffset = 16;
+
+	fReset = false;
+	fTest = false;
+	fDIPSwitchChanged = true;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
+	nBonus = 30000;
+
+	fInterruptEnable = false;
+	fSoundEnable = false;
+
+	ram = new Uint8Array(0x900).addBase();
+	mmo = new Uint8Array(0x100);
+	in = new Uint8Array(3);
+
+	stars = [];
+	fStarEnable = false;
+	fStarMove = false;
+	bank = 0;
+	bg = new Uint8Array(0x8000);
+	obj = new Uint8Array(0x8000);
+	rgb = new Uint32Array(0x80);
+
+	se = [BOMB, SHOT].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+
+	cpu = new Z80();
+
 	constructor() {
-		this.cxScreen = 224;
-		this.cyScreen = 256;
-		this.width = 256;
-		this.height = 512;
-		this.xOffset = 16;
-		this.yOffset = 16;
-		this.fReset = false;
-		this.fTest = false;
-		this.fDIPSwitchChanged = true;
-		this.fCoin = 0;
-		this.fStart1P = 0;
-		this.fStart2P = 0;
-		this.nBonus = 30000;
-
 		// CPU周りの初期化
-		this.fInterruptEnable = false;
-		this.fSoundEnable = false;
-
-		this.ram = new Uint8Array(0x900).addBase();
-		this.mmo = new Uint8Array(0x100);
-		this.in = new Uint8Array(3);
-
 		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
 
-		this.cpu = new Z80(this);
 		for (let page = 0; page < 0x100; page++)
 			if (range(page, 0, 0x3f))
 				this.cpu.memorymap[page].base = PRG.base[page & 0x3f];
@@ -54,19 +68,18 @@ class MoonCresta {
 			}
 			else if (range(page, 0xa0, 0xa0, 0x07)) {
 				this.cpu.memorymap[page].read = () => this.in[0];
-				this.cpu.memorymap[page].write = (addr, data) => {
-					this.mmo[addr & 7] = data & 1;
-					this.bank = this.mmo[0] | this.mmo[1] << 1;
-				};
+				this.cpu.memorymap[page].write = (addr, data) => { this.mmo[addr & 7] = data & 1, this.bank = this.mmo[0] | this.mmo[1] << 1; };
 			}
 			else if (range(page, 0xa8, 0xa8, 0x07)) {
 				this.cpu.memorymap[page].read = () => this.in[1];
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 7) {
 					case 3: // BOMB
-						return void((data & 1) !== 0 ? (this.se[0].start = true) : (this.se[0].stop = true));
+						(data & 1) !== 0 ? (this.se[0].start = true) : (this.se[0].stop = true);
+						break;
 					case 5: // SHOT
-						return void((data & 1) !== 0 && !this.mmo[addr & 7 | 0x10] && (this.se[1].start = this.se[1].stop = true));
+						(data & 1) !== 0 && !this.mmo[addr & 7 | 0x10] && (this.se[1].start = this.se[1].stop = true);
+						break;
 					}
 					this.mmo[addr & 7 | 0x10] = data & 1;
 				};
@@ -76,10 +89,12 @@ class MoonCresta {
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 7) {
 					case 0:
-						return void(this.fInterruptEnable = (data & 1) !== 0);
+						this.fInterruptEnable = (data & 1) !== 0;
+						break;
 					case 4:
 						this.fSoundEnable === false && (this.mmo[0x30] = 0xff);
-						return void(this.fStarEnable = this.fSoundEnable = (data & 1) !== 0);
+						this.fStarEnable = this.fSoundEnable = (data & 1) !== 0;
+						break;
 					}
 					this.mmo[addr & 7 | 0x20] = data & 1;
 				};
@@ -88,22 +103,12 @@ class MoonCresta {
 				this.cpu.memorymap[page].write = (addr, data) => void(this.mmo[0x30] = data);
 
 		// Videoの初期化
-		this.stars = [];
 		for (let i = 0; i < 1024; i++)
 			this.stars.push({x: 0, y: 0, color: 0});
-		this.fStarEnable = false;
-		this.fStarMove = false;
-		this.bank = 0;
-		this.bg = new Uint8Array(0x8000);
-		this.obj = new Uint8Array(0x8000);
-		this.rgb = new Uint32Array(0x80);
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
 		this.initializeStar();
-
-		// 効果音の初期化
-		this.se = [BOMB, SHOT].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
 	}
 
 	execute() {
@@ -148,22 +153,16 @@ class MoonCresta {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			--this.fCoin;
-			this.in[0] |= 1 << 0;
-		}
+		if (this.fCoin)
+			this.in[0] |= 1 << 0, --this.fCoin;
 		else
 			this.in[0] &= ~(1 << 0);
-		if (this.fStart1P) {
-			--this.fStart1P;
-			this.in[1] |= 1 << 0;
-		}
+		if (this.fStart1P)
+			this.in[1] |= 1 << 0, --this.fStart1P;
 		else
 			this.in[1] &= ~(1 << 0);
-		if (this.fStart2P) {
-			--this.fStart2P;
-			this.in[1] |= 1 << 1;
-		}
+		if (this.fStart2P)
+			this.in[1] |= 1 << 1, --this.fStart2P;
 		else
 			this.in[1] &= ~(1 << 1);
 		return this;
@@ -250,7 +249,7 @@ class MoonCresta {
 	}
 
 	static decodeROM() {
-		if ("decoded" in MoonCresta)
+		if (MoonCresta.decoded)
 			return;
 		for (let i = 0; i < PRG.length; i++) {
 			PRG[i] ^= PRG[i] << 5 & 0x40;

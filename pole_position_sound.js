@@ -5,20 +5,31 @@
  */
 
 export default class PolePositionSound {
+	snd;
+	rate;
+	sampleRate;
+	count;
+	resolution;
+	gain;
+	tmpwheel = [];
+	wheel = [];
+	ram = new Uint8Array(0x400);
+	reg = new Uint8Array(0x40);
+	phase = new Uint32Array(8);
+
+	source;
+	gainNode;
+	scriptNode;
+
 	constructor({SND, resolution = 1, gain = 0.1}) {
-		this.ram = new Uint8Array(0x400);
-		this.reg = new Uint8Array(0x40);
-		this.phase = new Uint32Array(8);
 		this.snd = Float32Array.from(SND, e => (e & 0x0f) * 2 / 15 - 1);
 		this.rate = Math.floor(2048 * 48000 / audioCtx.sampleRate);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.count = this.sampleRate - 1;
 		this.resolution = resolution;
 		this.gain = gain;
-		this.tmpwheel = [];
 		for (let i = 0; i < resolution; i++)
 			this.tmpwheel.push([]);
-		this.wheel = [];
 		if (!audioCtx)
 			return;
 		this.source = audioCtx.createBufferSource();
