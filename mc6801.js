@@ -13,8 +13,8 @@ export default class MC6801 extends Cpu {
 	x = 0;
 	s = 0;
 
-	constructor(arg = null) {
-		super(arg);
+	constructor() {
+		super();
 	}
 
 	reset() {
@@ -39,7 +39,6 @@ export default class MC6801 extends Cpu {
 		case 'sci':
 			return this.pc = this.read16(0xfff0), true;
 		}
-		return true;
 	}
 
 	non_maskable_interrupt() {
@@ -518,7 +517,7 @@ export default class MC6801 extends Cpu {
 		default:
 			this.undefsize = 1;
 			if (this.undef)
-				this.undef(this.arg);
+				this.undef();
 			return;
 		}
 	}
@@ -690,7 +689,7 @@ export default class MC6801 extends Cpu {
 
 	write8(data, addr) {
 		const page = this.memorymap[addr >> 8];
-		!page.write ? void(page.base[addr & 0xff] = data) : page.write(addr, data, this.arg);
+		!page.write ? void(page.base[addr & 0xff] = data) : page.write(addr, data);
 	}
 
 	write16(data, addr) {

@@ -255,21 +255,21 @@ class Grobda {
 			this.ram.set(this.port.subarray(0x10, 0x18), 0x2010);
 			switch (this.ram[0x2008] & 0x0f) {
 			case 5:
-				this.ram[0x2002] = 0x0f;
-				this.ram[0x2006] = 0x0c;
+				this.ram[0x2002] = 0xf;
+				this.ram[0x2006] = 0xc;
 				break;
 			case 8:
 				for (i = 0, p = 0x2009; p < 0x2010; p++)
-					i += this.ram[p] & 0x0f;
-				this.ram[0x2000] = i >> 4 & 0x0f;
-				this.ram[0x2001] = i & 0x0f;
+					i += this.ram[p] & 0xf;
+				this.ram[0x2000] = i >> 4 & 0xf;
+				this.ram[0x2001] = i & 0xf;
 				break;
 			}
 			if ((this.ram[0x2018] & 0x0f) === 8) {
 				for (i = 0, p = 0x2019; p < 0x2020; p++)
-					i += this.ram[p] & 0x0f;
-				this.ram[0x2010] = i >> 4 & 0x0f;
-				this.ram[0x2011] = i & 0x0f;
+					i += this.ram[p] & 0xf;
+				this.ram[0x2010] = i >> 4 & 0xf;
+				this.ram[0x2011] = i & 0xf;
 			}
 		}
 		return this;
@@ -394,12 +394,12 @@ class Grobda {
 		i = 0;
 		while (PRG2[k]) {
 			if (PRG2[k] === 7) {
-				m = ((PRG2[k++] & 0x0f) - 8) * 3 << 9;
+				m = ((PRG2[k++] & 0xf) - 8) * 3 << 9;
 				for (j = 0; j < 13; j++)
 					voicebuf[i++] = m;
 			}
 			else {
-				m = ((PRG2[k] & 0x0f) - 8) * 3 << 9;
+				m = ((PRG2[k] & 0xf) - 8) * 3 << 9;
 				for (j = 0; j < 4; j++)
 					voicebuf[i++] = m;
 				m = ((PRG2[k++] >> 4) - 8) * 3 << 9;

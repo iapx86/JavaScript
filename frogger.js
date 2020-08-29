@@ -27,7 +27,6 @@ class Frogger {
 	fStart2P = 0;
 	nLife = 3;
 
-	// CPU周りの初期化
 	fInterruptEnable = false;
 	fSoundEnable = false;
 

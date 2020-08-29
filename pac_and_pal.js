@@ -122,36 +122,28 @@ class PacAndPal {
 			this.fDIPSwitchChanged = false;
 			switch (this.nBonus) {
 			case 'A':
-				this.port[0x15] &= ~3;
-				this.port[0x16] |= 8;
+				this.port[0x15] &= ~3, this.port[0x16] |= 8;
 				break;
 			case 'B':
-				this.port[0x15] = this.port[0x15] & ~3 | 1;
-				this.port[0x16] &= ~8;
+				this.port[0x15] = this.port[0x15] & ~3 | 1, this.port[0x16] &= ~8;
 				break;
 			case 'C':
-				this.port[0x15] = this.port[0x15] & ~3 | 1;
-				this.port[0x16] |= 8;
+				this.port[0x15] = this.port[0x15] & ~3 | 1, this.port[0x16] |= 8;
 				break;
 			case 'D':
-				this.port[0x15] = this.port[0x15] & ~3 | 2;
-				this.port[0x16] &= ~8;
+				this.port[0x15] = this.port[0x15] & ~3 | 2, this.port[0x16] &= ~8;
 				break;
 			case 'E':
-				this.port[0x15] = this.port[0x15] & ~3 | 2;
-				this.port[0x16] |= 8;
+				this.port[0x15] = this.port[0x15] & ~3 | 2, this.port[0x16] |= 8;
 				break;
 			case 'F':
-				this.port[0x15] |= 3;
-				this.port[0x16] &= ~8;
+				this.port[0x15] |= 3, this.port[0x16] &= ~8;
 				break;
 			case 'G':
-				this.port[0x15] |= 3;
-				this.port[0x16] |= 8;
+				this.port[0x15] |= 3, this.port[0x16] |= 8;
 				break;
 			case 'NONE':
-				this.port[0x15] &= ~3;
-				this.port[0x16] &= ~8;
+				this.port[0x15] &= ~3, this.port[0x16] &= ~8;
 				break;
 			}
 			switch (this.nPacman) {

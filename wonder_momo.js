@@ -29,7 +29,6 @@ class WonderMomo {
 	fAttract = true;
 	fRound = false;
 
-	// CPU周りの初期化
 	ram = new Uint8Array(0x6000).addBase();
 	ram3 = new Uint8Array(0xd00).addBase();
 	fm = {addr: 0};

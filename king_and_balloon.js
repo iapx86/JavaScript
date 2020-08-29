@@ -64,7 +64,7 @@ class KingAndBalloon {
 				else
 					this.se[2].stop = true;
 			}
-			this.mmo[addr & 0x0f] = data;
+			this.mmo[addr & 0xf] = data;
 		};
 		this.cpu.memorymap[0xa8].base = this.ioport.subarray(0x10);
 		this.cpu.memorymap[0xa8].write = (addr, data) => {
@@ -74,11 +74,11 @@ class KingAndBalloon {
 					this.se[0].start = this.se[0].stop = true;
 				break;
 			case 5: // SHOT
-				if ((data & 1) !== 0 && !this.mmo[addr & 0x0f | 0x10])
+				if ((data & 1) !== 0 && !this.mmo[0x10 | addr & 0xf])
 					this.se[1].start = this.se[1].stop = true;
 				break;
 			}
-			this.mmo[addr & 0x0f | 0x10] = data & 1;
+			this.mmo[0x10 | addr & 0xf] = data & 1;
 		};
 		this.cpu.memorymap[0xb0].base = this.ioport.subarray(0x20);
 		this.cpu.memorymap[0xb0].write = (addr, data) => {
@@ -121,10 +121,10 @@ class KingAndBalloon {
 			default:
 				break;
 			}
-			this.mmo[addr & 0x0f | 0x20] = data;
+			this.mmo[0x20 | addr & 0xf] = data;
 		};
 		this.cpu.memorymap[0xb8].write = (addr, data) => {
-			if ((addr & 0x0f) === 0)
+			if ((addr & 0xf) === 0)
 				this.mmo[0x30] = data; // SOUND FREQUENCY
 		};
 
@@ -296,7 +296,7 @@ class KingAndBalloon {
 		i = 0;
 		for (j = 0x700, k = 0x100; j !== 0; --j) {
 			voicebuf[i++] = (VOICE[k] >> 4) - 8 << 10;
-			voicebuf[i++] = (VOICE[k++] & 0x0f) - 8 << 10;
+			voicebuf[i++] = (VOICE[k++] & 0xf) - 8 << 10;
 		}
 		for (j = 0x1200; j !== 0; --j)
 			voicebuf[i++] = 0;
@@ -313,7 +313,7 @@ class KingAndBalloon {
 		i = 0;
 		for (j = 0x800, k = 0x800; j !== 0; --j) {
 			voicebuf[i++] = (VOICE[k] >> 4) - 8 << 10;
-			voicebuf[i++] = (VOICE[k++] & 0x0f) - 8 << 10;
+			voicebuf[i++] = (VOICE[k++] & 0xf) - 8 << 10;
 		}
 		// 5000Hzのオリジナルを11025Hzにコンバート
 		j = k = d = 0;
@@ -328,7 +328,7 @@ class KingAndBalloon {
 		i = 0;
 		for (j = 0x800, k = 0x1000; j !== 0; --j) {
 			voicebuf[i++] = (VOICE[k] >> 4) - 8 << 10;
-			voicebuf[i++] = (VOICE[k++] & 0x0f) - 8 << 10;
+			voicebuf[i++] = (VOICE[k++] & 0xf) - 8 << 10;
 		}
 		// 5000Hzのオリジナルを11025Hzにコンバート
 		j = k = d = 0;

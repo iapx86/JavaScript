@@ -20,8 +20,8 @@ export default class I8080 extends Cpu {
 	sp = 0;
 	iomap = {base: dummypage, read: null, write: () => {}};
 
-	constructor(arg = null) {
-		super(arg);
+	constructor() {
+		super();
 	}
 
 	reset() {
@@ -37,29 +37,21 @@ export default class I8080 extends Cpu {
 		this.iff = 0;
 		switch (vector) {
 		case 0xc7: // RST 00h
-			this.rst(0x00);
-			break;
+			return this.rst(0x00), true;
 		case 0xcf: // RST 08h
-			this.rst(0x08);
-			break;
+			return this.rst(0x08), true;
 		case 0xd7: // RST 10h
-			this.rst(0x10);
-			break;
+			return this.rst(0x10), true;
 		case 0xdf: // RST 18h
-			this.rst(0x18);
-			break;
+			return this.rst(0x18), true;
 		case 0xe7: // RST 20h
-			this.rst(0x20);
-			break;
+			return this.rst(0x20), true;
 		case 0xef: // RST 28h
-			this.rst(0x28);
-			break;
+			return this.rst(0x28), true;
 		case 0xf7: // RST 30h
-			this.rst(0x30);
-			break;
+			return this.rst(0x30), true;
 		case 0xff: // RST 38h
-			this.rst(0x38);
-			break;
+			return this.rst(0x38), true;
 		}
 		return true;
 	}
@@ -559,7 +551,7 @@ export default class I8080 extends Cpu {
 		default:
 			this.undefsize = 1;
 			if (this.undef)
-				this.undef(this.arg);
+				this.undef();
 			return;
 		}
 	}
@@ -654,11 +646,11 @@ export default class I8080 extends Cpu {
 	}
 
 	ioread(addr) {
-		return !this.iomap.read ? this.iomap.base[addr] : this.iomap.read(addr, this.arg);
+		return !this.iomap.read ? this.iomap.base[addr] : this.iomap.read(addr);
 	}
 
 	iowrite(addr, data) {
-		!this.iomap.write ? void(this.iomap.base[addr] = data) : this.iomap.write(addr, data, this.arg);
+		!this.iomap.write ? void(this.iomap.base[addr] = data) : this.iomap.write(addr, data);
 	}
 
 	split(v) {

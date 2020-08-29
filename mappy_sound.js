@@ -81,7 +81,7 @@ export default class MappySound {
 					this.wheel.shift().forEach(({addr, data}) => reg[addr] = data);
 			for (let j = 0; j < 8; j++) {
 				data[i] += this.snd[reg[6 + j * 8] << 1 & 0xe0 | this.phase[j] >>> 27] * (reg[3 + j * 8] & 0x0f) / 15;
-				this.phase[j] += (reg[4 + j * 8] | reg[5 + j * 8] << 8 | reg[6 + j * 8] << 16 & 0xf0000) * this.rate;
+				this.phase[j] = this.phase[j] + (reg[4 + j * 8] | reg[5 + j * 8] << 8 | reg[6 + j * 8] << 16 & 0xf0000) * this.rate | 0;
 			}
 		});
 	}

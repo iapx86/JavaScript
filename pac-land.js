@@ -155,43 +155,39 @@ class PacLand {
 				this.in[0] |= 0x0e;
 				break;
 			case 'B': // 30000 100000 200000 400000 600000 1000000
-				this.in[0] = this.in[0] & ~0x0e | 0x0c;
+				this.in[0] = this.in[0] & ~0xe | 0xc;
 				break;
 			case 'C': // 40000 100000 180000 300000 500000 1000000
-				this.in[0] = this.in[0] & ~0x60 | 0x0a;
+				this.in[0] = this.in[0] & ~0xe | 0xa;
 				break;
 			case 'D': // 30000 80000 every 100000
-				this.in[0] = this.in[0] & ~0x60 | 8;
+				this.in[0] = this.in[0] & ~0xe | 8;
 				break;
 			case 'E': // 50000 150000 every 200000
-				this.in[0] = this.in[0] & ~0x60 | 6;
+				this.in[0] = this.in[0] & ~0xe | 6;
 				break;
 			case 'F': // 30000 80000 150000
-				this.in[0] = this.in[0] & ~0x60 | 4;
+				this.in[0] = this.in[0] & ~0xe | 4;
 				break;
 			case 'G': // 40000 100000 200000
-				this.in[0] = this.in[0] & ~0x60 | 2;
+				this.in[0] = this.in[0] & ~0xe | 2;
 				break;
 			case 'H': // 40000
-				this.in[0] &= ~0x60;
+				this.in[0] &= ~0xe;
 				break;
 			}
 			switch (this.nRank) {
 			case 'A': // Normal
-				this.in[0] |= 1;
-				this.in[1] |= 8;
+				this.in[0] |= 1, this.in[1] |= 8;
 				break;
 			case 'B': // Easy
-				this.in[0] |= 1;
-				this.in[1] &= ~8;
+				this.in[0] |= 1, this.in[1] &= ~8;
 				break;
 			case 'C': // Hard
-				this.in[0] &= ~1;
-				this.in[1] |= 8;
+				this.in[0] &= ~1, this.in[1] |= 8;
 				break;
 			case 'D': // Very Hard
-				this.in[0] &= ~1;
-				this.in[1] &= ~8;
+				this.in[0] &= ~1, this.in[1] &= ~8;
 				break;
 			}
 			if (!this.fTest)

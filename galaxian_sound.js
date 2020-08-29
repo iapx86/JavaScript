@@ -10,6 +10,10 @@ export default class GalaxianSound {
 	gain;
 	channel = {voice: 0, freq: 0, phase: 0};
 
+	source;
+	gainNode;
+	scriptNode;
+
 	constructor({SND, gain = 0.1}) {
 		this.snd = Float32Array.from(SND, e => (e & 0x0f) * 2 / 15 - 1);
 		this.rate = Math.floor(0x10000000 * 48000 / audioCtx.sampleRate);

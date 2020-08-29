@@ -127,7 +127,7 @@ class SoundTest {
 			return;
 		if (bank < 0x200)
 			for (let i = 0; i < 0x40; i++)
-				this.cpu3.memorymap[i].base = SND.base[bank + i];
+				this.cpu3.memorymap[i].base = SND.base[bank | i];
 		else
 			for (let i = 0; i < 0x40; i++)
 				this.cpu3.memorymap[i].base = dummypage;
@@ -139,7 +139,7 @@ class SoundTest {
 			return;
 		if (bank < 0xa00)
 			for (let i = 0; i < 0x80; i++)
-				this.mcu.memorymap[0x40 + i].base = VOI.base[bank + i];
+				this.mcu.memorymap[0x40 + i].base = VOI.base[bank | i];
 		else
 			for (let i = 0; i < 0x80; i++)
 				this.mcu.memorymap[0x40 + i].base = dummypage;

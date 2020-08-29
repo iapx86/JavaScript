@@ -13,8 +13,8 @@ export default class MC6805 extends Cpu {
 	s = 0;
 	irq = false;
 
-	constructor(arg = null) {
-		super(arg);
+	constructor() {
+		super();
 	}
 
 	reset() {
@@ -38,7 +38,6 @@ export default class MC6805 extends Cpu {
 		case 'external':
 			return this.pc = this.read16(0x7fa) & 0x7ff, true;
 		}
-		return true;
 	}
 
 	_execute() {
@@ -467,7 +466,7 @@ export default class MC6805 extends Cpu {
 		default:
 			this.undefsize = 1;
 			if (this.undef)
-				this.undef(this.arg);
+				this.undef();
 			return;
 		}
 	}
@@ -572,7 +571,7 @@ export default class MC6805 extends Cpu {
 
 	fetch() {
 		const page = this.memorymap[this.pc >> 8];
-		const data = !page.fetch ? page.base[this.pc & 0xff] : page.fetch(this.pc, this.arg);
+		const data = !page.fetch ? page.base[this.pc & 0xff] : page.fetch(this.pc);
 		return this.pc = this.pc + 1 & 0x7ff, data;
 	}
 
@@ -588,7 +587,7 @@ export default class MC6805 extends Cpu {
 
 	write8(data, addr) {
 		const page = this.memorymap[addr >> 8];
-		!page.write ? void(page.base[addr & 0xff] = data) : page.write(addr, data, this.arg);
+		!page.write ? void(page.base[addr & 0xff] = data) : page.write(addr, data);
 	}
 }
 

@@ -104,38 +104,30 @@ class WarpAndWarp {
 			this.fDIPSwitchChanged = false;
 			switch (this.nFighter) {
 			case 2:
-				this.ram[0xc22] = 0xfe;
-				this.ram[0xc23] = 0xfe;
+				this.ram[0xc22] = 0xfe, this.ram[0xc23] = 0xfe;
 				break;
 			case 3:
-				this.ram[0xc22] = 0xff;
-				this.ram[0xc23] = 0xfe;
+				this.ram[0xc22] = 0xff, this.ram[0xc23] = 0xfe;
 				break;
 			case 4:
-				this.ram[0xc22] = 0xfe;
-				this.ram[0xc23] = 0xff;
+				this.ram[0xc22] = 0xfe, this.ram[0xc23] = 0xff;
 				break;
 			case 5:
-				this.ram[0xc22] = 0xff;
-				this.ram[0xc23] = 0xff;
+				this.ram[0xc22] = 0xff, this.ram[0xc23] = 0xff;
 				break;
 			}
 			switch (this.nBonus) {
 			case 'A':
-				this.ram[0xc24] = 0xfe;
-				this.ram[0xc25] = 0xfe;
+				this.ram[0xc24] = 0xfe, this.ram[0xc25] = 0xfe;
 				break;
 			case 'B':
-				this.ram[0xc24] = 0xff;
-				this.ram[0xc25] = 0xfe;
+				this.ram[0xc24] = 0xff, this.ram[0xc25] = 0xfe;
 				break;
 			case 'C':
-				this.ram[0xc24] = 0xfe;
-				this.ram[0xc25] = 0xff;
+				this.ram[0xc24] = 0xfe, this.ram[0xc25] = 0xff;
 				break;
 			case 'NOTHING':
-				this.ram[0xc24] = 0xff;
-				this.ram[0xc25] = 0xff;
+				this.ram[0xc24] = 0xff, this.ram[0xc25] = 0xff;
 				break;
 			}
 			if (!this.fTest)
@@ -368,17 +360,24 @@ class WarpAndWarp {
  */
 
 class WarpAndWarpSound {
+	rate;
+	gain;
+	channel = {voice: 0, freq: 0, phase: 0};
+
+	audioBuffer = [];
+	source;
+	gainNode;
+	scriptNode;
+
 	constructor({gain = 0.1} = {}) {
+		this.rate = Math.floor(0x8000000 * (48000 / audioCtx.sampleRate));
+		this.gain = gain;
 		if (!audioCtx)
 			return;
-		this.audioBuffer = [];
 		for (let i = 0; i < 8; i++) {
 			this.audioBuffer[i] = audioCtx.createBuffer(1, 32 * (8 - i), 44100);
 			this.audioBuffer[i].getChannelData(0).fill(1, 0, 16).fill(-1, 16);
 		}
-		this.rate = Math.floor(0x8000000 * (48000 / audioCtx.sampleRate));
-		this.gain = gain;
-		this.channel = {voice: 0, freq: 0, phase: 0};
 		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => {
 			outputBuffer.getChannelData(0).forEach((v, i, data) => {

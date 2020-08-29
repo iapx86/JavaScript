@@ -29,7 +29,6 @@ class MetroCross {
 	fAttract = true;
 	fSelect = false;
 
-	// CPU周りの初期化
 	ram = new Uint8Array(0x4800).addBase();
 	ram2 = new Uint8Array(0x900).addBase();
 	in = new Uint8Array(8).fill(0xff);
@@ -80,11 +79,7 @@ class MetroCross {
 			}
 		};
 
-		this.cpu.check_interrupt = () => {
-			if (this.cpu_irq && this.cpu.interrupt())
-				return this.cpu_irq = false, true;
-			return false;
-		};
+		this.cpu.check_interrupt = () => this.cpu_irq && this.cpu.interrupt() ? (this.cpu_irq = false, true) : false;
 
 		this.mcu.memorymap[0].read = addr => {
 			let data;
@@ -114,11 +109,7 @@ class MetroCross {
 		for (let i = 0; i < 0x10; i++)
 			this.mcu.memorymap[0xf0 + i].base = PRG2I.base[i];
 
-		this.mcu.check_interrupt = () => {
-			if (this.mcu_irq && this.mcu.interrupt())
-				return this.mcu_irq = false, true;
-			return (this.ram2[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf');
-		};
+		this.mcu.check_interrupt = () => this.mcu_irq && this.mcu.interrupt() ? (this.mcu_irq = false, true) : (this.ram2[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf');
 
 		// Videoの初期化
 		this.convertRGB();

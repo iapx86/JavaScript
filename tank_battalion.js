@@ -125,20 +125,16 @@ class TankBattalion {
 			}
 			switch (this.nBonus) {
 			case 'NOTHING':
-				this.rport[0x1b] = 0xff;
-				this.rport[0x1c] = 0xff;
+				this.rport[0x1b] = 0xff, this.rport[0x1c] = 0xff;
 				break;
 			case 20000:
-				this.rport[0x1b] = 0xff;
-				this.rport[0x1c] = 0x7f;
+				this.rport[0x1b] = 0xff, this.rport[0x1c] = 0x7f;
 				break;
 			case 15000:
-				this.rport[0x1b] = 0x7f;
-				this.rport[0x1c] = 0xff;
+				this.rport[0x1b] = 0x7f, this.rport[0x1c] = 0xff;
 				break;
 			case 10000:
-				this.rport[0x1b] = 0x7f;
-				this.rport[0x1c] = 0x7f;
+				this.rport[0x1b] = 0x7f, this.rport[0x1c] = 0x7f;
 				break;
 			}
 			if (!this.fTest)

@@ -31,7 +31,6 @@ class LibbleRabble {
 	fPractice = true;
 	nRank = 'A';
 
-	// CPU周りの初期化
 	fInterruptEnable = false;
 	fInterruptEnable2 = false;
 

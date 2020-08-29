@@ -63,14 +63,14 @@ class SoundTest {
 				}
 			};
 		}
+
+		this.cpu2.check_interrupt = () => (this.fm.status & 3) !== 0 && this.cpu2.interrupt(0xef);
 	}
 
 	execute() {
 		if (this.command.length)
 			this.cpu2.interrupt(0xdf);
 		for (this.count = 0; this.count < 58; this.count++) { // 3579545 / 60 / 1024
-			if ((this.fm.status & 3) !== 0)
-				this.cpu2.interrupt(0xef);
 			this.cpu2.execute(146);
 			if ((this.fm.reg[0x14] & 1) !== 0 && (this.fm.timera += 16) >= 0x400) {
 				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);

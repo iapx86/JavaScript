@@ -125,16 +125,16 @@ class Mappy {
 			this.fDIPSwitchChanged = false;
 			switch (this.nMappy) {
 			case 3:
-				this.port[0x11] &= ~0x0c;
+				this.port[0x11] &= ~0xc;
 				break;
 			case 5:
-				this.port[0x11] = this.port[0x11] & ~0x0c | 4;
+				this.port[0x11] = this.port[0x11] & ~0xc | 4;
 				break;
 			case 1:
-				this.port[0x11] = this.port[0x11] & ~0x0c | 8;
+				this.port[0x11] = this.port[0x11] & ~0xc | 8;
 				break;
 			case 2:
-				this.port[0x11] |= 0x0c;
+				this.port[0x11] |= 0xc;
 				break;
 			}
 			switch (this.nRank) {
@@ -165,36 +165,28 @@ class Mappy {
 			}
 			switch (this.nBonus) {
 			case 'A':
-				this.port[0x10] &= ~8;
-				this.port[0x11] &= ~3;
+				this.port[0x10] &= ~8, this.port[0x11] &= ~3;
 				break;
 			case 'B':
-				this.port[0x10] |= 8;
-				this.port[0x11] &= ~3;
+				this.port[0x10] |= 8, this.port[0x11] &= ~3;
 				break;
 			case 'C':
-				this.port[0x10] &= ~8;
-				this.port[0x11] = this.port[0x11] & ~3 | 1;
+				this.port[0x10] &= ~8, this.port[0x11] = this.port[0x11] & ~3 | 1;
 				break;
 			case 'D':
-				this.port[0x10] |= 8;
-				this.port[0x11] = this.port[0x11] & ~3 | 1;
+				this.port[0x10] |= 8, this.port[0x11] = this.port[0x11] & ~3 | 1;
 				break;
 			case 'E':
-				this.port[0x10] &= ~8;
-				this.port[0x11] = this.port[0x11] & ~3 | 2;
+				this.port[0x10] &= ~8, this.port[0x11] = this.port[0x11] & ~3 | 2;
 				break;
 			case 'F':
-				this.port[0x10] |= 8;
-				this.port[0x11] = this.port[0x11] & ~3 | 2;
+				this.port[0x10] |= 8, this.port[0x11] = this.port[0x11] & ~3 | 2;
 				break;
 			case 'G':
-				this.port[0x10] &= ~8;
-				this.port[0x11] |= 3;
+				this.port[0x10] &= ~8, this.port[0x11] |= 3;
 				break;
 			case 'NOTHING':
-				this.port[0x10] |= 8;
-				this.port[0x11] |= 3;
+				this.port[0x10] |= 8, this.port[0x11] |= 3;
 				break;
 			}
 			if (this.fAttract)

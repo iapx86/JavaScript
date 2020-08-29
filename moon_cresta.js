@@ -89,12 +89,10 @@ class MoonCresta {
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 7) {
 					case 0:
-						this.fInterruptEnable = (data & 1) !== 0;
-						break;
+						return void(this.fInterruptEnable = (data & 1) !== 0);
 					case 4:
 						this.fSoundEnable === false && (this.mmo[0x30] = 0xff);
-						this.fStarEnable = this.fSoundEnable = (data & 1) !== 0;
-						break;
+						return void(this.fStarEnable = this.fSoundEnable = (data & 1) !== 0);
 					}
 					this.mmo[addr & 7 | 0x20] = data & 1;
 				};

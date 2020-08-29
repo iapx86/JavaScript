@@ -25,8 +25,8 @@ export default class I80186 extends Cpu {
 	intmask = false;
 	parity = new Uint32Array(8);
 
-	constructor(arg = null) {
-		super(arg);
+	constructor() {
+		super();
 		this.memorymap.splice(0);
 		for (let i = 0; i < 0x1000; i++)
 			this.memorymap.push({base: dummypage, read: null, read16: null, write: () => {}, write16: null});
@@ -3539,20 +3539,20 @@ export default class I80186 extends Cpu {
 
 	read8(seg, offset) {
 		const addr = (seg << 4) + offset, page = this.memorymap[addr >>> 8 & 0xfff];
-		return page.read ? page.read(addr, this.arg) : page.base[addr & 0xff];
+		return page.read ? page.read(addr) : page.base[addr & 0xff];
 	}
 
 	read16(seg, offset) {
 		if ((offset & 1) !== 0)
 			return this.read8(seg, offset) | this.read8(seg, offset + 1) << 8;
 		const addr = (seg << 4) + offset, page = this.memorymap[addr >>> 8 & 0xfff];
-		return page.read16 ? page.read16(addr, this.arg) : page.read ? page.read(addr, this.arg) | page.read(addr + 1, this.arg) << 8 : page.base[addr & 0xff] | page.base[addr + 1 & 0xff] << 8;
+		return page.read16 ? page.read16(addr) : page.read ? page.read(addr) | page.read(addr + 1) << 8 : page.base[addr & 0xff] | page.base[addr + 1 & 0xff] << 8;
 	}
 
 	write8(seg, offset, data) {
 		const addr = (seg << 4) + offset, page = this.memorymap[addr >>> 8 & 0xfff];
 		if (page.write)
-			page.write(addr, data & 0xff, this.arg);
+			page.write(addr, data & 0xff);
 		else
 			page.base[addr & 0xff] = data;
 	}
@@ -3565,10 +3565,10 @@ export default class I80186 extends Cpu {
 		}
 		const addr = (seg << 4) + offset, page = this.memorymap[addr >>> 8 & 0xfff];
 		if (page.write16)
-			page.write16(addr, data, this.arg);
+			page.write16(addr, data);
 		else if (page.write) {
-			page.write(addr, data & 0xff, this.arg);
-			page.write(addr + 1, data >>> 8, this.arg);
+			page.write(addr, data & 0xff);
+			page.write(addr + 1, data >>> 8);
 		}
 		else {
 			page.base[addr & 0xff] = data;
@@ -3578,20 +3578,20 @@ export default class I80186 extends Cpu {
 
 	ioread8(addr) {
 		const page = this.iomap[addr >>> 8];
-		return page.read ? page.read(addr, this.arg) : page.base[addr & 0xff];
+		return page.read ? page.read(addr) : page.base[addr & 0xff];
 	}
 
 	ioread16(addr) {
 		if ((addr & 1) !== 0)
 			return this.ioread8(addr) | this.read8(addr + 1 & 0xffff) << 8;
 		const page = this.iomap[addr >>> 8];
-		return page.read16 ? page.read16(addr, this.arg) : page.read ? page.read(addr, this.arg) | page.read(addr + 1, this.arg) << 8 : page.base[addr & 0xff] | page.base[addr + 1 & 0xff] << 8;
+		return page.read16 ? page.read16(addr) : page.read ? page.read(addr) | page.read(addr + 1) << 8 : page.base[addr & 0xff] | page.base[addr + 1 & 0xff] << 8;
 	}
 
 	iowrite8(addr, data) {
 		const page = this.iomap[addr >>> 8];
 		if (page.write)
-			page.write(addr, data & 0xff, this.arg);
+			page.write(addr, data & 0xff);
 		else
 			page.base[addr & 0xff] = data;
 	}
@@ -3604,10 +3604,10 @@ export default class I80186 extends Cpu {
 		}
 		const page = this.iomap[addr >>> 8];
 		if (page.write16)
-			page.write16(addr, data, this.arg);
+			page.write16(addr, data);
 		else if (page.write) {
-			page.write(addr, data & 0xff, this.arg);
-			page.write(addr + 1, data >>> 8, this.arg);
+			page.write(addr, data & 0xff);
+			page.write(addr + 1, data >>> 8);
 		}
 		else {
 			page.base[addr & 0xff] = data;

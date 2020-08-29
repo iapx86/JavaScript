@@ -28,7 +28,6 @@ class TankForce {
 	fStart2P = 0;
 	fTurbo = false;
 
-	// CPU周りの初期化
 	memorymap = [];
 	ram = new Uint8Array(0x18000).addBase();
 	ram2 = new Uint8Array(0x800).addBase();
@@ -136,10 +135,9 @@ class TankForce {
 				switch (reg) {
 				case 8:
 					if ((data & 1) === 0)
-						this.cpu2.disable(), this.cpu3.disable(), this.mcu.disable();
+						return this.cpu2.disable(), this.cpu3.disable(), this.mcu.disable();
 					else
-						this.cpu2.enable(), this.cpu3.enable(), this.mcu.enable();
-					return;
+						return this.cpu2.enable(), this.cpu3.enable(), this.mcu.enable();
 				case 11:
 					return void(this.cpu_irq = false);
 				case 13:
@@ -256,12 +254,10 @@ class TankForce {
 			return;
 		if (reg < 7)
 			for (let i = 0; i < 0x20; i++)
-				Object.assign(this.cpu.memorymap[(reg << 5) + i], this.memorymap[bank + i]);
+				this.cpu.memorymap[reg << 5 | i] = this.memorymap[bank | i];
 		else
-			for (let i = 0; i < 0x20; i++) {
-				const {base, read, fetch} = this.memorymap[bank + i];
-				Object.assign(this.cpu.memorymap[0xe0 + i], {base, read, fetch});
-			}
+			for (let i = 0; i < 0x20; i++)
+				this.cpu.memorymap[0xe0 | i].base = this.memorymap[bank | i].base;
 		this.bank1[reg] = bank;
 	}
 
@@ -270,12 +266,10 @@ class TankForce {
 			return;
 		if (reg < 7)
 			for (let i = 0; i < 0x20; i++)
-				Object.assign(this.cpu2.memorymap[(reg << 5) + i], this.memorymap[bank + i]);
+				this.cpu2.memorymap[reg << 5 | i] = this.memorymap[bank | i];
 		else
-			for (let i = 0; i < 0x20; i++) {
-				const {base, read, fetch} = this.memorymap[bank + i];
-				Object.assign(this.cpu2.memorymap[0xe0 + i], {base, read, fetch});
-			}
+			for (let i = 0; i < 0x20; i++)
+				this.cpu2.memorymap[0xe0 | i].base = this.memorymap[bank | i].base;
 		this.bank2[reg] = bank;
 	}
 
@@ -284,7 +278,7 @@ class TankForce {
 			return;
 		if (bank < 0x200)
 			for (let i = 0; i < 0x40; i++)
-				this.cpu3.memorymap[i].base = SND.base[bank + i];
+				this.cpu3.memorymap[i].base = SND.base[bank | i];
 		else
 			for (let i = 0; i < 0x40; i++)
 				this.cpu3.memorymap[i].base = dummypage;
@@ -296,7 +290,7 @@ class TankForce {
 			return;
 		if (bank < 0x400)
 			for (let i = 0; i < 0x80; i++)
-				this.mcu.memorymap[0x40 + i].base = VOI.base[bank + i];
+				this.mcu.memorymap[0x40 + i].base = VOI.base[bank | i];
 		else
 			for (let i = 0; i < 0x80; i++)
 				this.mcu.memorymap[0x40 + i].base = dummypage;

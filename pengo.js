@@ -97,7 +97,7 @@ class Pengo {
 				this.in[1] = this.in[1] & ~0x18 | 0x10;
 				break;
 			case 4:
-				this.in[1] = this.in[1] & ~0x18 | 0x08;
+				this.in[1] = this.in[1] & ~0x18 | 8;
 				break;
 			case 5:
 				this.in[1] &= ~0x18;

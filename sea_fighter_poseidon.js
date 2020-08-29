@@ -147,8 +147,7 @@ class SeaFighterPoseidon {
 					return;
 				for (let i = 0; i < 0x20; i++)
 					this.cpu.memorymap[0x60 + i].base = PRG1.base[bank + i];
-				this.bank = bank;
-				return;
+				return void(this.bank = bank);
 			}
 		};
 		this.cpu.memorymap[0xd6].write = (addr, data) => void(this.mode = data);
@@ -288,7 +287,7 @@ class SeaFighterPoseidon {
 				this.in[2] &= ~0x18;
 				break;
 			case 3:
-				this.in[2] = this.in[2] & ~0x18 | 0x08;
+				this.in[2] = this.in[2] & ~0x18 | 8;
 				break;
 			case 4:
 				this.in[2] = this.in[2] & ~0x18 | 0x10;

@@ -196,36 +196,28 @@ class Phozon {
 			}
 			switch (this.nBonus) {
 			case 'A':
-				this.port[0x10] &= ~2;
-				this.port[0x11] &= ~6;
+				this.port[0x10] &= ~2, this.port[0x11] &= ~6;
 				break;
 			case 'B':
-				this.port[0x10] &= ~2;
-				this.port[0x11] = this.port[0x11] & ~6 | 2;
+				this.port[0x10] &= ~2, this.port[0x11] = this.port[0x11] & ~6 | 2;
 				break;
 			case 'C':
-				this.port[0x10] |= 2;
-				this.port[0x11] &= ~6;
+				this.port[0x10] |= 2, this.port[0x11] &= ~6;
 				break;
 			case 'D':
-				this.port[0x10] |= 2;
-				this.port[0x11] = this.port[0x11] & ~6 | 2;
+				this.port[0x10] |= 2, this.port[0x11] = this.port[0x11] & ~6 | 2;
 				break;
 			case 'E':
-				this.port[0x10] &= ~2;
-				this.port[0x11] = this.port[0x11] & ~6 | 4;
+				this.port[0x10] &= ~2, this.port[0x11] = this.port[0x11] & ~6 | 4;
 				break;
 			case 'F':
-				this.port[0x10] &= ~2;
-				this.port[0x11] |= 6;
+				this.port[0x10] &= ~2, this.port[0x11] |= 6;
 				break;
 			case 'G':
-				this.port[0x10] |= 2;
-				this.port[0x11] = this.port[0x11] & ~6 | 4;
+				this.port[0x10] |= 2, this.port[0x11] = this.port[0x11] & ~6 | 4;
 				break;
 			case 'NONE':
-				this.port[0x10] |= 2;
-				this.port[0x11] |= 6;
+				this.port[0x10] |= 2, this.port[0x11] |= 6;
 				break;
 			}
 			if (!this.fTest)

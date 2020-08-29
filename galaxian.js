@@ -97,12 +97,9 @@ class Galaxian {
 		this.cpu.breakpoint = addr => {
 			switch (addr) {
 			case 0x18c3:
-				if (!this.ram[0x07])
-					this.emulateWave(this.ram[0x021f]);
-				break;
+				return void(!this.ram[0x07] && this.emulateWave(this.ram[0x021f]));
 			case 0x1cc1:
-				this.emulateWave(0);
-				break;
+				return this.emulateWave(0);
 			}
 		};
 		this.cpu.set_breakpoint(0x18c3);

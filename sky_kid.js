@@ -88,11 +88,7 @@ class SkyKid {
 		this.cpu.memorymap[0xa0].write = (addr, data) => void((addr & 0xfe) === 0 && (this.priority = data, this.fFlip = (addr & 1) !== 0));
 
 		this.mcu.memorymap[0].read = addr => addr === 2 ? this.in[this.select] : this.ram2[addr];
-		this.mcu.memorymap[0].write = (addr, data) => {
-			if (addr === 2 && (data & 0xe0) === 0x60)
-				this.select = data & 7;
-			this.ram2[addr] = data;
-		};
+		this.mcu.memorymap[0].write = (addr, data) => void(addr === 2 && (data & 0xe0) === 0x60 && (this.select = data & 7), this.ram2[addr] = data);
 		for (let i = 0; i < 4; i++) {
 			this.mcu.memorymap[0x10 + i].read = addr => sound.read(addr);
 			this.mcu.memorymap[0x10 + i].write = (addr, data) => sound.write(addr, data);

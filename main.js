@@ -459,12 +459,10 @@ export default class Cpu {
 	breakpoint = null;
 	undef = null;
 	undefsize = 0;
-	arg = null;
 
-	constructor(arg = null) {
+	constructor() {
 		for (let i = 0; i < 0x100; i++)
 			this.memorymap.push({base: dummypage, read: null, write: () => {}, fetch: null});
-		this.arg = arg;
 	}
 
 	set_breakpoint(addr) {
@@ -528,10 +526,10 @@ export default class Cpu {
 		for (let i = 0; i < count; i++) {
 			if (!this.fActive)
 				break;
-			if (this.check_interrupt && this.check_interrupt(this.arg) || this.fSuspend)
+			if (this.check_interrupt && this.check_interrupt() || this.fSuspend)
 				continue;
 			if (this.breakpoint && (this.breakpointmap[this.pc >>> 5] & 1 << (this.pc & 0x1f)) !== 0)
-				this.breakpoint(this.pc, this.arg);
+				this.breakpoint(this.pc);
 			this._execute();
 		}
 	}
@@ -541,7 +539,7 @@ export default class Cpu {
 
 	fetch() {
 //		const page = this.memorymap[this.pc >> 8];
-//		const data = !page.fetch ? page.base[this.pc & 0xff] : page.fetch(this.pc, this.arg);
+//		const data = !page.fetch ? page.base[this.pc & 0xff] : page.fetch(this.pc);
 		const data = this.memorymap[this.pc >> 8].base[this.pc & 0xff];
 		this.pc = this.pc + 1 & 0xffff;
 		return data;
@@ -549,12 +547,12 @@ export default class Cpu {
 
 	read(addr) {
 		const page = this.memorymap[addr >> 8];
-		return !page.read ? page.base[addr & 0xff] : page.read(addr, this.arg);
+		return !page.read ? page.base[addr & 0xff] : page.read(addr);
 	}
 
 	write(addr, data) {
 		const page = this.memorymap[addr >> 8];
-		!page.write ? void(page.base[addr & 0xff] = data) : page.write(addr, data, this.arg);
+		!page.write ? void(page.base[addr & 0xff] = data) : page.write(addr, data);
 	}
 }
 

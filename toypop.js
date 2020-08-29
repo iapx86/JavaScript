@@ -30,7 +30,6 @@ class Toypop {
 	fAttract = true;
 	fRound = false;
 
-	// CPU周りの初期化
 	fInterruptEnable = false;
 	fInterruptEnable2 = false;
 

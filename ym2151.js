@@ -287,19 +287,7 @@ class Operator {
 	amon_ = false;
 	param_changed_ = false;
 	mute_ = false;
-	ar_ = 0;
-	dr_ = 0;
-	sr_ = 0;
-	rr_ = 0;
-	key_scale_rate_ = 0;
 	ams_ = FM.amtable[0][0];
-	mute_ = false;
-	keyon_ = false;
-	tl_out_ = 0;
-	multiple_ = 0;
-	detune_ = 0;
-	detune2_ = 0;
-	ms_ = 0;
 
 	constructor() {
 		Operator.tablehasmade || Operator.MakeTable();
@@ -922,8 +910,6 @@ class OPM {
 	pan = new Array(8);
 	ch = [new Channel4, new Channel4, new Channel4, new Channel4, new Channel4, new Channel4, new Channel4, new Channel4];
 	chip = new Chip;
-	lfo_count_ = 0;
-	lfo_count_prev_ = -1;
 
 	constructor() {
 		this.BuildLFOTable();

@@ -16,8 +16,8 @@ export default class MC6809 extends Cpu {
 	u = 0;
 	s = 0;
 
-	constructor(arg = null) {
-		super(arg);
+	constructor() {
+		super();
 	}
 
 	reset() {
@@ -154,7 +154,7 @@ export default class MC6809 extends Cpu {
 			default:
 				this.undefsize = 2;
 				if (this.undef)
-					this.undef(this.arg);
+					this.undef();
 				return;
 			}
 		case 0x11:
@@ -180,7 +180,7 @@ export default class MC6809 extends Cpu {
 			default:
 				this.undefsize = 2;
 				if (this.undef)
-					this.undef(this.arg);
+					this.undef();
 				return;
 			}
 		case 0x12: // NOP
@@ -278,7 +278,7 @@ export default class MC6809 extends Cpu {
 			default:
 				this.undefsize = 2;
 				if (this.undef)
-					this.undef(this.arg);
+					this.undef();
 				return;
 			}
 		case 0x1f: // TFR
@@ -381,7 +381,7 @@ export default class MC6809 extends Cpu {
 			default:
 				this.undefsize = 2;
 				if (this.undef)
-					this.undef(this.arg);
+					this.undef();
 				return;
 			}
 		case 0x20: // BRA
@@ -819,7 +819,7 @@ export default class MC6809 extends Cpu {
 		default:
 			this.undefsize = 1;
 			if (this.undef)
-				this.undef(this.arg);
+				this.undef();
 			return;
 		}
 	}
@@ -1430,7 +1430,7 @@ export default class MC6809 extends Cpu {
 
 	write8(data, addr) {
 		const page = this.memorymap[addr >> 8];
-		!page.write ? void(page.base[addr & 0xff] = data) : page.write(addr, data, this.arg);
+		!page.write ? void(page.base[addr & 0xff] = data) : page.write(addr, data);
 	}
 
 	write16(data, addr) {

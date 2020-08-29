@@ -58,42 +58,136 @@ class DigDug {
 	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf | 0x10);
 	rgb = new Uint32Array(0x20);
 
-	cpu = [];
+	cpu = [new Z80(), new Z80(), new Z80()];
 
 	constructor() {
-		for (let i = 0; i < 3; i++)
-			this.cpu.push(new Z80(this));
-
 		// CPU周りの初期化
-		for (let i = 0; i < 0x40; i++)
-			this.cpu[0].memorymap[i].base = PRG1.base[i];
-		for (let i = 0; i < 0x20; i++)
-			this.cpu[1].memorymap[i].base = PRG2.base[i];
-		for (let i = 0; i < 0x10; i++)
-			this.cpu[2].memorymap[i].base = PRG3.base[i];
-		for (let i = 0; i < 3; i++) {
-			for (let j = 0; j < 8; j++) {
-				this.cpu[i].memorymap[0x80 + j].base = this.ram.base[j];
-				this.cpu[i].memorymap[0x80 + j].write = null;
+		const range = (page, start, end = start, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
+
+		for (let page = 0; page < 0x100; page++)
+			if (range(page, 0, 0x3f))
+				this.cpu[0].memorymap[page].base = PRG1.base[page & 0x3f];
+			else if (range(page, 0x68))
+				this.cpu[0].memorymap[page].write = (addr, data) => {
+					switch (addr & 0xf0) {
+					case 0x00:
+					case 0x10:
+						sound.write(addr, data, this.count);
+						return;
+					case 0x20:
+						switch (addr & 0x0f) {
+						case 0:
+							this.fInterruptEnable0 = (data & 1) !== 0;
+							break;
+						case 1:
+							this.fInterruptEnable1 = (data & 1) !== 0;
+							break;
+						case 2:
+							if (this.mmo[0x22] && !data)
+								this.fInterruptEnable2 = true;
+							break;
+						case 3:
+							if ((data & 1) !== 0)
+								this.cpu[1].enable(), this.cpu[2].enable();
+							else
+								this.cpu[1].disable(), this.cpu[2].disable();
+							break;
+						}
+					}
+					this.mmo[addr & 0xff] = data;
+				};
+			else if (range(page, 0x70)) {
+				this.cpu[0].memorymap[page].base = this.ioport;
+				this.cpu[0].memorymap[page].write = null;
 			}
-			for (let j = 0; j < 4; j++)
-				this.cpu[i].memorymap[0x8c + j].base = this.cpu[i].memorymap[0x88 + j].base = this.ram.base[8 + j];
-			for (let j = 0; j < 4; j++)
-				this.cpu[i].memorymap[0x94 + j].base = this.cpu[i].memorymap[0x90 + j].base = this.ram.base[0x10 + j];
-			for (let j = 0; j < 4; j++)
-				this.cpu[i].memorymap[0x9c + j].base = this.cpu[i].memorymap[0x98 + j].base = this.ram.base[0x18 + j];
-			for (let j = 0; j < 0x18; j++)
-				this.cpu[i].memorymap[0x88 + j].write = null;
-		}
-		this.cpu[0].memorymap[0x68].write = systemctrl;
-		this.cpu[1].memorymap[0x68].write = systemctrl;
-		this.cpu[2].memorymap[0x68].write = systemctrl;
-		this.cpu[0].memorymap[0x70].base = this.ioport;
-		this.cpu[0].memorymap[0x70].write = null;
-		this.cpu[0].memorymap[0x71].base = this.dmaport;
-		this.cpu[0].memorymap[0x71].write = dmactrl;
-		this.cpu[0].memorymap[0xa0].write = systemctrl1;
-		this.cpu[1].memorymap[0xa0].write = systemctrl1;
+			else if (range(page, 0x71)) {
+				this.cpu[0].memorymap[page].base = this.dmaport;
+				this.cpu[0].memorymap[page].write = (addr, data) => {
+					this.dmaport[addr & 0xff] = data;
+					switch (data) {
+					case 0x10:
+						this.fNmiEnable = false;
+						return;
+					case 0x71:
+						if (!this.dwMode)
+							this.ioport[0] = this.dwCoin / 10 << 4 | this.dwCoin % 10;
+						else if (this.fTest)
+							this.ioport[0] = 0;
+						else
+							this.ioport[0] = 0xff;
+						if (this.fTest)
+							this.ioport[2] = this.ioport[1] = this.abStick2[this.dwStick] & ~this.dwButton;
+						else {
+							this.ioport[2] = this.ioport[1] = this.abStick[this.dwStick] & ~this.dwButton;
+							this.dwButton &= 0x20;
+						}
+						break;
+					case 0xa1:
+						this.dwMode = 1;
+						break;
+					case 0xb1:
+						this.dwCoin = 0;
+						this.ioport[2] = this.ioport[1] = this.ioport[0] = 0;
+						break;
+					case 0xc1:
+					case 0xe1:
+						this.dwMode = 0;
+						break;
+					case 0xd2:
+						this.ioport[0] = this.mmi[0];
+						this.ioport[1] = this.mmi[1];
+						break;
+					}
+					this.fNmiEnable = true;
+				};
+			}
+			else if (range(page, 0x80, 0x87)) {
+				this.cpu[0].memorymap[page].base = this.ram.base[page & 7];
+				this.cpu[0].memorymap[page].write = null;
+			}
+			else if (range(page, 0x88, 0x8b, 4)) {
+				this.cpu[0].memorymap[page].base = this.ram.base[8 | page & 3];
+				this.cpu[0].memorymap[page].write = null;
+			}
+			else if (range(page, 0x90, 0x93, 4)) {
+				this.cpu[0].memorymap[page].base = this.ram.base[0x10 | page & 3];
+				this.cpu[0].memorymap[page].write = null;
+			}
+			else if (range(page, 0x98, 0x9b, 4)) {
+				this.cpu[0].memorymap[page].base = this.ram.base[0x18 | page & 3];
+				this.cpu[0].memorymap[page].write = null;
+			}
+			else if (range(page, 0xa0))
+				this.cpu[0].memorymap[0xa0].write = (addr, data) => {
+					switch (addr & 7) {
+					case 0:
+						return void(this.dwBG4Select = this.dwBG4Select & 2 | data & 1);
+					case 1:
+						return void(this.dwBG4Select = this.dwBG4Select & 1 | data << 1 & 2);
+					case 2:
+						return void(this.fBG2Attribute = (data & 1) !== 0);
+					case 3:
+						return void(this.fBG4Disable = (data & 1) !== 0);
+					case 4:
+						return void(this.dwBG4Color = this.dwBG4Color & 2 | data & 1);
+					case 5:
+						return void(this.dwBG4Color = this.dwBG4Color & 1 | data << 1 & 2);
+					case 7:
+						return void(this.fFlip = false);
+					}
+				};
+
+		for (let page = 0; page < 0x100; page++)
+			if (range(page, 0, 0x1f))
+				this.cpu[1].memorymap[page].base = PRG2.base[page & 0x1f];
+			else if (range(page, 0x40, 0xff))
+				this.cpu[1].memorymap[page] = this.cpu[0].memorymap[page];
+
+		for (let page = 0; page < 0x100; page++)
+			if (range(page, 0, 0xf))
+				this.cpu[2].memorymap[page].base = PRG3.base[page & 0xf];
+			else if (range(page, 0x40, 0xff))
+				this.cpu[2].memorymap[page] = this.cpu[0].memorymap[page];
 
 		this.mmi[0] = 0x99; // DIPSW A
 		this.mmi[1] = 0x2e; // DIPSW B
@@ -102,113 +196,6 @@ class DigDug {
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
-
-		// ライトハンドラ
-		function systemctrl(addr, data, game) {
-			switch (addr & 0xf0) {
-			case 0x00:
-			case 0x10:
-				sound.write(addr, data, game.count);
-				return;
-			case 0x20:
-				switch (addr & 0x0f) {
-				case 0:
-					game.fInterruptEnable0 = (data & 1) !== 0;
-					break;
-				case 1:
-					game.fInterruptEnable1 = (data & 1) !== 0;
-					break;
-				case 2:
-					if (game.mmo[0x22] && !data)
-						game.fInterruptEnable2 = true;
-					break;
-				case 3:
-					if ((data & 1) !== 0)
-						game.cpu[1].enable(), game.cpu[2].enable();
-					else
-						game.cpu[1].disable(), game.cpu[2].disable();
-					break;
-				}
-			}
-			game.mmo[addr & 0xff] = data;
-		}
-
-		function systemctrl1(addr, data, game) {
-			switch (addr & 7) {
-			case 0:
-				if ((data & 1) !== 0)
-					game.dwBG4Select |= 1;
-				else
-					game.dwBG4Select &= 2;
-				break;
-			case 1:
-				if ((data & 1) !== 0)
-					game.dwBG4Select |= 2;
-				else
-					game.dwBG4Select &= 1;
-				break;
-			case 2:
-				game.fBG2Attribute = (data & 1) !== 0;
-				break;
-			case 3:
-				game.fBG4Disable = (data & 1) !== 0;
-				break;
-			case 4:
-				if ((data & 1) !== 0)
-					game.dwBG4Color |= 1;
-				else
-					game.dwBG4Color &= 2;
-				break;
-			case 5:
-				if ((data & 1) !== 0)
-					game.dwBG4Color |= 2;
-				else
-					game.dwBG4Color &= 1;
-				break;
-			case 7:
-				game.fFlip = false;
-				break;
-			}
-		}
-
-		function dmactrl(addr, data, game) {
-			this.base[addr & 0xff] = data;
-			switch (data) {
-			case 0x10:
-				game.fNmiEnable = false;
-				return;
-			case 0x71:
-				if (!game.dwMode)
-					game.ioport[0] = game.dwCoin / 10 << 4 | game.dwCoin % 10;
-				else if (game.fTest)
-					game.ioport[0] = 0;
-				else
-					game.ioport[0] = 0xff;
-				if (game.fTest)
-					game.ioport[2] = game.ioport[1] = game.abStick2[game.dwStick] & ~game.dwButton;
-				else {
-					game.ioport[2] = game.ioport[1] = game.abStick[game.dwStick] & ~game.dwButton;
-					game.dwButton &= 0x20;
-				}
-				break;
-			case 0xa1:
-				game.dwMode = 1;
-				break;
-			case 0xb1:
-				game.dwCoin = 0;
-				game.ioport[2] = game.ioport[1] = game.ioport[0] = 0;
-				break;
-			case 0xc1:
-			case 0xe1:
-				game.dwMode = 0;
-				break;
-			case 0xd2:
-				game.ioport[0] = game.mmi[0];
-				game.ioport[1] = game.mmi[1];
-				break;
-			}
-			game.fNmiEnable = true;
-		}
 	}
 
 	execute() {

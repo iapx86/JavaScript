@@ -45,6 +45,9 @@ class Xevious {
 	keyport = 0;
 	keytbl = Uint8Array.of(8, 0, 2, 1, 4, 8, 3, 8, 6, 7, 8, 8, 5, 8, 8, 8);
 
+	maptbl = new Uint16Array(0x8000);
+	mapatr = new Uint8Array(0x8000);
+
 	bg2 = new Uint8Array(0x8000);
 	bg4 = new Uint8Array(0x8000);
 	obj4 = new Uint8Array(0x10000);
@@ -56,232 +59,215 @@ class Xevious {
 
 	se = [VX01, VX02, VX80].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
 
-	cpu = [];
+	cpu = [new Z80(), new Z80(), new Z80()];
 
 	constructor() {
-		for (let i = 0; i < 3; i++)
-			this.cpu.push(new Z80(this));
-
 		// CPU周りの初期化
+		const range = (page, start, end = start, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
 
-		// CPU0 ROM AREA SETUP
-		for (let i = 0; i < 0x40; i++)
-			this.cpu[0].memorymap[i].base = PRG1.base[i];
-
-		//CPU1 ROM AREA SETUP
-		for (let i = 0; i < 0x20; i++)
-			this.cpu[1].memorymap[i].base = PRG2.base[i];
-
-		// CPU2 ROM AREA SETUP
-		for (let i = 0; i < 0x10; i++)
-			this.cpu[2].memorymap[i].base = PRG3.base[i];
-
-		// CPU[012] RAM AREA SETUP
-		for (let i = 0; i < 3; i++) {
-			for (let j = 0; j < 8; j++) {
-				this.cpu[i].memorymap[0x78 + j].base = this.ram.base[j];
-				this.cpu[i].memorymap[0x78 + j].write = null;
-				this.cpu[i].memorymap[0x80 + j].base = this.ram.base[8 + j];
-				this.cpu[i].memorymap[0x80 + j].write = null;
-				this.cpu[i].memorymap[0x90 + j].base = this.ram.base[0x10 + j];
-				this.cpu[i].memorymap[0x90 + j].write = null;
-				this.cpu[i].memorymap[0xa0 + j].base = this.ram.base[0x18 + j];
-				this.cpu[i].memorymap[0xa0 + j].write = null;
-				this.cpu[i].memorymap[0xb0 + j].base = this.ram.base[0x20 + j];
-				this.cpu[i].memorymap[0xb0 + j].write = null;
-				this.cpu[i].memorymap[0xb8 + j].base = this.ram.base[0x28 + j];
-				this.cpu[i].memorymap[0xb8 + j].write = null;
-				this.cpu[i].memorymap[0xc0 + j].base = this.ram.base[0x30 + j];
-				this.cpu[i].memorymap[0xc0 + j].write = null;
-				this.cpu[i].memorymap[0xc8 + j].base = this.ram.base[0x38 + j];
-				this.cpu[i].memorymap[0xc8 + j].write = null;
+		for (let page = 0; page < 0x100; page++)
+			if (range(page, 0, 0x3f))
+				this.cpu[0].memorymap[page].base = PRG1.base[page & 0x3f];
+			else if (range(page, 0x68)) {
+				this.cpu[0].memorymap[page].base = this.mmi;
+				this.cpu[0].memorymap[page].write = (addr, data) => {
+					switch (addr & 0xf0) {
+					case 0x00:
+					case 0x10:
+						break;
+					case 0x20:
+						switch (addr & 0x0f) {
+						case 0:
+							this.fInterruptEnable = (data & 1) !== 0;
+							break;
+						case 1:
+							break;
+						case 2:
+							if (data)
+								this.cpu[1].enable(), this.cpu[2].enable();
+							else
+								this.cpu[1].disable(), this.cpu[2].disable();
+							break;
+						case 3:
+							if (data)
+								this.fSoundEnable = true;
+							else
+								this.fSoundEnable = false, this.se[0].stop = this.se[1].stop = this.se[2].stop = true;
+							break;
+						}
+						// fallthrough
+					default:
+						this.mmo[addr & 0xff] = data;
+						break;
+					}
+				};
 			}
-		}
-		this.cpu[0].memorymap[0x68].base = this.mmi;
-		this.cpu[0].memorymap[0x68].write = systemctrl0;
-		this.cpu[1].memorymap[0x68].base = this.mmi;
-		this.cpu[1].memorymap[0x68].write = systemctrl0;
-		this.cpu[2].memorymap[0x68].base = this.mmi;
-		this.cpu[2].memorymap[0x68].write = systemctrl1;
-		this.cpu[0].memorymap[0x70].base = this.ioport;
-		this.cpu[0].memorymap[0x70].write = ioarea;
-		this.cpu[0].memorymap[0x71].base = this.dmaport;
-		this.cpu[0].memorymap[0x71].write = dmactrl;
-		this.cpu[0].memorymap[0xd0].write = scrollregister;
-		this.cpu[1].memorymap[0xd0].write = scrollregister;
-		this.cpu[1].memorymap[0xf0].base = this.mapreg;
-		this.cpu[1].memorymap[0xf0].write = maparea;
+			else if (range(page, 0x70)) {
+				this.cpu[0].memorymap[page].base = this.ioport;
+				this.cpu[0].memorymap[page].write = (addr, data) => {
+					switch (this.dmaport[0]) {
+					case 0x61: // ?
+						return;
+					case 0x68: // voice
+						if ((addr & 0xf) === 3 && this.fSoundEnable) {
+							this.se[0].stop = this.se[1].stop = this.se[2].stop = true;
+							switch (data) {
+							case 0x01:
+								return void(this.se[0].start = true);
+							case 0x02:
+								return void(this.se[1].start = true);
+							case 0x80:
+								return void(this.se[2].start = true);
+							}
+						}
+						return;
+					case 0xa1: // ?
+						return;
+					case 0x64: // keyctrl
+						switch (data) {
+						case 0x10:
+							return;
+						case 0x80:
+							return void(this.keyport = 5);
+						case 0xe5:
+							return void(this.keyport = 0x95);
+						}
+						return;
+					}
+				};
+			}
+			else if (range(page, 0x71)) {
+				this.cpu[0].memorymap[page].base = this.dmaport;
+				this.cpu[0].memorymap[page].write = (addr, data) => {
+					this.dmaport[addr & 0xff] = data;
+					switch (data) {
+					case 0x10:
+						this.fNmiEnable = false;
+						return;
+					case 0x71:
+						if (this.fTest) {
+							this.ioport[0] = 0x7f;
+							this.ioport[1] = 0xff;
+							this.ioport[2] = 0xff;
+							if ((this.dwStick & 0xf) !== 0 || (this.dwStick & 0x30) !== 0)
+								this.ioport[1] &= 0xf;
+							if ((this.dwStick & 0x20) !== 0)
+								this.mmi[0] &= 0xfe;
+							else
+								this.mmi[0] |= 1;
+						}
+						else if (this.ram[0xdad]) {
+							this.ioport[0] = this.dwCoin / 10 << 4 | this.dwCoin % 10;
+							this.ioport[1] = this.keytbl[this.dwStick & 0x0f] | 0x30;
+							if ((this.dwStick & 0x10) !== 0) {
+								this.ioport[1] &= 0xdf;
+								if ((this.dwStickPrev & 0x10) === 0)
+									this.ioport[1] &= 0xef;
+							}
+							if ((this.dwStick & 0x20) !== 0)
+								this.mmi[0] &= 0xfe;
+							else
+								this.mmi[0] |= 1;
+							this.dwStickPrev = this.dwStick;
+						}
+						else {
+							this.ioport[0] = 0x80;
+							this.ioport[1] = 0x38;
+							this.ioport[2] = 0x38;
+						}
+						break;
+					case 0x74:
+						this.ioport[3] = this.keyport;
+						break;
+					}
+					this.fNmiEnable = true;
+				};
+			}
+			else if (range(page, 0x78, 0x7f)) {
+				this.cpu[0].memorymap[page].base = this.ram.base[page & 7];
+				this.cpu[0].memorymap[page].write = null;
+			}
+			else if (range(page, 0x80, 0x87)) {
+				this.cpu[0].memorymap[page].base = this.ram.base[8 | page & 7];
+				this.cpu[0].memorymap[page].write = null;
+			}
+			else if (range(page, 0x90, 0x97)) {
+				this.cpu[0].memorymap[page].base = this.ram.base[0x10 | page & 7];
+				this.cpu[0].memorymap[page].write = null;
+			}
+			else if (range(page, 0xa0, 0xa7)) {
+				this.cpu[0].memorymap[page].base = this.ram.base[0x18 | page & 7];
+				this.cpu[0].memorymap[page].write = null;
+			}
+			else if (range(page, 0xb0, 0xbf)) {
+				this.cpu[0].memorymap[page].base = this.ram.base[0x20 | page & 0xf];
+				this.cpu[0].memorymap[page].write = null;
+			}
+			else if (range(page, 0xc0, 0xcf)) {
+				this.cpu[0].memorymap[page].base = this.ram.base[0x30 | page & 0xf];
+				this.cpu[0].memorymap[page].write = null;
+			}
+			else if (range(page, 0xd0))
+				this.cpu[0].memorymap[page].write = (addr, data) => {
+					switch (addr & 0xff) {
+					case 0:
+						return void(this.dwScroll = data);
+					case 1:
+						return void(this.dwScroll = data | 0x100);
+					}
+				};
+			else if (range(page, 0xf0)) {
+				this.cpu[0].memorymap[page].base = this.mapreg;
+				this.cpu[0].memorymap[page].write = (addr, data) => {
+					switch (addr & 0xff) {
+					case 0:
+						this.mapaddr = this.mapaddr & 0x7f00 | data;
+						break;
+					case 1:
+						this.mapaddr = this.mapaddr & 0xff | data << 8 & 0x7f00;
+						break;
+					default:
+						return;
+					}
+					let ptr = this.maptbl[this.mapaddr], x = this.mapatr[this.mapaddr];
+					x ^= MAPDATA[ptr] >> 1 & 0x40 | MAPDATA[ptr] << 1 & 0x80;
+					this.mapreg[0] = MAPDATA[ptr] & 0x3f | x;
+					this.mapreg[1] = MAPDATA[0x800 + ptr];
+				};
+			}
+
+		for (let page = 0; page < 0x100; page++)
+			if (range(page, 0, 0x1f))
+				this.cpu[1].memorymap[page].base = PRG2.base[page & 0x1f];
+			else if (range(page, 0x40, 0xff))
+				this.cpu[1].memorymap[page] = this.cpu[0].memorymap[page];
+
+		for (let page = 0; page < 0x100; page++)
+			if (range(page, 0, 0xf))
+				this.cpu[2].memorymap[page].base = PRG3.base[page & 0xf];
+			else if (range(page, 0x40, 0xff))
+				this.cpu[2].memorymap[page] = this.cpu[0].memorymap[page];
+		this.cpu[2].memorymap[0x68] = {base: this.mmi, read: null, write: (addr, data) => {
+			switch (addr & 0xf0) {
+			case 0x00:
+			case 0x10:
+				return sound[0].write(addr, data, this.count);
+			case 0x20:
+				return;
+			default:
+				return void(this.mmo[addr & 0xff] = data);
+			}
+		}, fetch: null};
 
 		// DIPSW SETUP
 		this.mmi.fill(3, 0, 8);
 
-		this.maptbl = new Uint16Array(0x8000);
-		this.mapatr = new Uint8Array(0x8000);
 		this.convertMAP();
 
 		// Videoの初期化
 		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
-
-		// ライトハンドラ
-		function systemctrl0(addr, data, game) {
-			switch (addr & 0xf0) {
-			case 0x00:
-			case 0x10:
-				break;
-			case 0x20:
-				switch (addr & 0x0f) {
-				case 0:
-					game.fInterruptEnable = (data & 1) !== 0;
-					break;
-				case 1:
-					break;
-				case 2:
-					if (data)
-						game.cpu[1].enable(), game.cpu[2].enable();
-					else
-						game.cpu[1].disable(), game.cpu[2].disable();
-					break;
-				case 3:
-					if (data)
-						game.fSoundEnable = true;
-					else {
-						game.fSoundEnable = false;
-						game.se[0].stop = game.se[1].stop = game.se[2].stop = true;
-					}
-					break;
-				}
-				// fallthrough
-			default:
-				game.mmo[addr & 0xff] = data;
-				break;
-			}
-		}
-
-		function systemctrl1(addr, data, game) {
-			switch (addr & 0xf0) {
-			case 0x00:
-			case 0x10:
-				sound[0].write(addr, data, game.count);
-				break;
-			case 0x20:
-				break;
-			default:
-				game.mmo[addr & 0xff] = data;
-				break;
-			}
-		}
-
-		function ioarea(addr, data, game) {
-			switch (game.dmaport[0]) {
-			case 0x61: // ?
-				break;
-			case 0x68: // voice
-				if ((addr & 0x0f) === 0x03 && game.fSoundEnable) {
-					game.se[0].stop = game.se[1].stop = game.se[2].stop = true;
-					switch (data) {
-					case 0x01:
-						game.se[0].start = true;
-						break;
-					case 0x02:
-						game.se[1].start = true;
-						break;
-					case 0x80:
-						game.se[2].start = true;
-						break;
-					}
-				}
-				break;
-			case 0xa1: // ?
-				break;
-			case 0x64: // keyctrl
-				switch (data) {
-				case 0x10:
-					break;
-				case 0x80:
-					game.keyport = 0x05;
-					break;
-				case 0xe5:
-					game.keyport = 0x95;
-					break;
-				}
-				break;
-			}
-		}
-
-		function dmactrl(addr, data, game) {
-			this.base[addr & 0xff] = data;
-			switch (data) {
-			case 0x10:
-				game.fNmiEnable = false;
-				return;
-			case 0x71:
-				if (game.fTest) {
-					game.ioport[0] = 0x7f;
-					game.ioport[1] = 0xff;
-					game.ioport[2] = 0xff;
-					if ((game.dwStick & 0x0f) !== 0 || (game.dwStick & 0x30) !== 0)
-						game.ioport[1] &= 0x0f;
-					if ((game.dwStick & 0x20) !== 0)
-						game.mmi[0] &= 0xfe;
-					else
-						game.mmi[0] |= 1;
-				}
-				else if (game.ram[0xdad]) {
-					game.ioport[0] = game.dwCoin / 10 << 4 | game.dwCoin % 10;
-					game.ioport[1] = game.keytbl[game.dwStick & 0x0f] | 0x30;
-					if ((game.dwStick & 0x10) !== 0) {
-						game.ioport[1] &= 0xdf;
-						if ((game.dwStickPrev & 0x10) === 0)
-							game.ioport[1] &= 0xef;
-					}
-					if ((game.dwStick & 0x20) !== 0)
-						game.mmi[0] &= 0xfe;
-					else
-						game.mmi[0] |= 1;
-					game.dwStickPrev = game.dwStick;
-				}
-				else {
-					game.ioport[0] = 0x80;
-					game.ioport[1] = 0x38;
-					game.ioport[2] = 0x38;
-				}
-				break;
-			case 0x74:
-				game.ioport[3] = game.keyport;
-				break;
-			}
-			game.fNmiEnable = true;
-		}
-
-		function maparea(addr, data, game) {
-			switch (addr & 0xff) {
-			case 0:
-				game.mapaddr = game.mapaddr & 0x7f00 | data;
-				break;
-			case 1:
-				game.mapaddr = game.mapaddr & 0xff | data << 8 & 0x7f00;
-				break;
-			default:
-				return;
-			}
-			let ptr = game.maptbl[game.mapaddr], x = game.mapatr[game.mapaddr];
-			x ^= MAPDATA[ptr] >> 1 & 0x40 | MAPDATA[ptr] << 1 & 0x80;
-			game.mapreg[0] = MAPDATA[ptr] & 0x3f | x;
-			game.mapreg[1] = MAPDATA[0x800 + ptr];
-		}
-
-		function scrollregister(addr, data, game) {
-			switch (addr & 0xff) {
-			case 0:
-				game.dwScroll = data;
-				break;
-			case 1:
-				game.dwScroll = data | 0x100;
-				break;
-			}
-		}
 	}
 
 	execute() {
@@ -315,80 +301,56 @@ class Xevious {
 			this.fDIPSwitchChanged = false;
 			switch (this.nSolvalou) {
 			case 1:
-				this.mmi[5] &= ~2;
-				this.mmi[6] |= 2;
+				this.mmi[5] &= ~2, this.mmi[6] |= 2;
 				break;
 			case 2:
-				this.mmi[5] |= 2;
-				this.mmi[6] &= ~2;
+				this.mmi[5] |= 2, this.mmi[6] &= ~2;
 				break;
 			case 3:
-				this.mmi[5] |= 2;
-				this.mmi[6] |= 2;
+				this.mmi[5] |= 2, this.mmi[6] |= 2;
 				break;
 			case 5:
-				this.mmi[5] &= ~2;
-				this.mmi[6] &= ~2;
+				this.mmi[5] &= ~2, this.mmi[6] &= ~2;
 				break;
 			}
 			switch (this.nRank) {
 			case 'EASY':
-				this.mmi[5] &= ~1;
-				this.mmi[6] |= 1;
+				this.mmi[5] &= ~1, this.mmi[6] |= 1;
 				break;
 			case 'NORMAL':
-				this.mmi[5] |= 1;
-				this.mmi[6] |= 1;
+				this.mmi[5] |= 1, this.mmi[6] |= 1;
 				break;
 			case 'HARD':
-				this.mmi[5] |= 1;
-				this.mmi[6] &= ~1;
+				this.mmi[5] |= 1, this.mmi[6] &= ~1;
 				break;
 			case 'VERY HARD':
-				this.mmi[5] &= ~1;
-				this.mmi[6] &= ~1;
+				this.mmi[5] &= ~1, this.mmi[6] &= ~1;
 				break;
 			}
 			switch (this.nBonus) {
 			case 'A':
-				this.mmi[2] |= 2;
-				this.mmi[3] |= 2;
-				this.mmi[4] |= 2;
+				this.mmi[2] |= 2, this.mmi[3] |= 2, this.mmi[4] |= 2;
 				break;
 			case 'B':
-				this.mmi[2] &= ~2;
-				this.mmi[3] |= 2;
-				this.mmi[4] |= 2;
+				this.mmi[2] &= ~2, this.mmi[3] |= 2, this.mmi[4] |= 2;
 				break;
 			case 'C':
-				this.mmi[2] |= 2;
-				this.mmi[3] &= ~2;
-				this.mmi[4] |= 2;
+				this.mmi[2] |= 2, this.mmi[3] &= ~2, this.mmi[4] |= 2;
 				break;
 			case 'D':
-				this.mmi[2] &= ~2;
-				this.mmi[3] &= ~2;
-				this.mmi[4] |= 2;
+				this.mmi[2] &= ~2, this.mmi[3] &= ~2, this.mmi[4] |= 2;
 				break;
 			case 'E':
-				this.mmi[2] |= 2;
-				this.mmi[3] |= 2;
-				this.mmi[4] &= ~2;
+				this.mmi[2] |= 2, this.mmi[3] |= 2, this.mmi[4] &= ~2;
 				break;
 			case 'F':
-				this.mmi[2] &= ~2;
-				this.mmi[3] |= 2;
-				this.mmi[4] &= ~2;
+				this.mmi[2] &= ~2, this.mmi[3] |= 2, this.mmi[4] &= ~2;
 				break;
 			case 'G':
-				this.mmi[2] |= 2;
-				this.mmi[3] &= ~2;
-				this.mmi[4] &= ~2;
+				this.mmi[2] |= 2, this.mmi[3] &= ~2, this.mmi[4] &= ~2;
 				break;
 			case 'NONE':
-				this.mmi[2] &= ~2;
-				this.mmi[3] &= ~2;
-				this.mmi[4] &= ~2;
+				this.mmi[2] &= ~2, this.mmi[3] &= ~2, this.mmi[4] &= ~2;
 				break;
 			}
 			if (!this.fTest)

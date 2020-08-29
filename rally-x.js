@@ -90,10 +90,7 @@ class RallyX {
 			};
 		}
 		for (let i = 0; i < 0x100; i++)
-			this.cpu.iomap[i].write = (addr, data) => {
-				if ((addr & 0xff) === 0)
-					this.vector = data, this.cpu_irq = false;
-			};
+			this.cpu.iomap[i].write = (addr, data) => void((addr & 0xff) === 0 && (this.vector = data, this.cpu_irq = false));
 
 		this.cpu.check_interrupt = () => this.cpu_irq && this.cpu.interrupt(this.vector);
 
@@ -140,7 +137,7 @@ class RallyX {
 					this.mmi[0x100] &= ~0x38;
 					break;
 				default:
-					this.mmi[0x100] = this.mmi[0x100] & ~0x38 | 0x08;
+					this.mmi[0x100] = this.mmi[0x100] & ~0x38 | 8;
 					break;
 				}
 				break;

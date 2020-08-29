@@ -13,8 +13,8 @@ export default class MCS6502 extends Cpu {
 	sp = 0;
 	ccr = 0; // ccr:nv1bdizc
 
-	constructor(arg = null) {
-		super(arg);
+	constructor() {
+		super();
 	}
 
 	reset() {
@@ -345,7 +345,7 @@ export default class MCS6502 extends Cpu {
 		default:
 			this.undefsize = 1;
 			if (this.undef)
-				this.undef(this.arg);
+				this.undef();
 			return;
 		}
 	}

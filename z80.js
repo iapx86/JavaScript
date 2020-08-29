@@ -35,8 +35,8 @@ export default class Z80 extends Cpu {
 	sp = 0;
 	iomap = [];
 
-	constructor(arg = null) {
-		super(arg);
+	constructor() {
+		super();
 		for (let i = 0; i < 0x100; i++)
 			this.iomap.push({base: dummypage, read: null, write: () => {}});
 	}
@@ -57,37 +57,27 @@ export default class Z80 extends Cpu {
 		case 0:
 			switch (vector) {
 			case 0xc7: // RST 00h
-				this.rst(0x00);
-				break;
+				return this.rst(0x00), true;
 			case 0xcf: // RST 08h
-				this.rst(0x08);
-				break;
+				return this.rst(0x08), true;
 			case 0xd7: // RST 10h
-				this.rst(0x10);
-				break;
+				return this.rst(0x10), true;
 			case 0xdf: // RST 18h
-				this.rst(0x18);
-				break;
+				return this.rst(0x18), true;
 			case 0xe7: // RST 20h
-				this.rst(0x20);
-				break;
+				return this.rst(0x20), true;
 			case 0xef: // RST 28h
-				this.rst(0x28);
-				break;
+				return this.rst(0x28), true;
 			case 0xf7: // RST 30h
-				this.rst(0x30);
-				break;
+				return this.rst(0x30), true;
 			case 0xff: // RST 38h
-				this.rst(0x38);
-				break;
+				return this.rst(0x38), true;
 			}
 			break;
 		case 1:
-			this.rst(0x38);
-			break;
+			return this.rst(0x38), true;
 		case 2:
-			this.rst(this.read16(vector & 0xff | this.i << 8));
-			break;
+			return this.rst(this.read16(vector & 0xff | this.i << 8)), true;
 		}
 		return true;
 	}
@@ -1124,7 +1114,7 @@ export default class Z80 extends Cpu {
 		default:
 			this.undefsize = 2;
 			if (this.undef)
-				this.undef(this.arg);
+				this.undef();
 			return;
 		}
 	}
@@ -1353,7 +1343,7 @@ export default class Z80 extends Cpu {
 			default:
 				this.undefsize = 4;
 				if (this.undef)
-					this.undef(this.arg);
+					this.undef();
 				return;
 			}
 		case 0xe1: // POP IX
@@ -1369,7 +1359,7 @@ export default class Z80 extends Cpu {
 		default:
 			this.undefsize = 2;
 			if (this.undef)
-				this.undef(this.arg);
+				this.undef();
 			return;
 		}
 	}
@@ -1493,7 +1483,7 @@ export default class Z80 extends Cpu {
 		default:
 			this.undefsize = 2;
 			if (this.undef)
-				this.undef(this.arg);
+				this.undef();
 			return;
 		}
 	}
@@ -1722,7 +1712,7 @@ export default class Z80 extends Cpu {
 			default:
 				this.undefsize = 4;
 				if (this.undef)
-					this.undef(this.arg);
+					this.undef();
 				return;
 			}
 		case 0xe1: // POP IY
@@ -1738,7 +1728,7 @@ export default class Z80 extends Cpu {
 		default:
 			this.undefsize = 2;
 			if (this.undef)
-				this.undef(this.arg);
+				this.undef();
 			return;
 		}
 	}
@@ -1968,12 +1958,12 @@ export default class Z80 extends Cpu {
 
 	ioread(h, l) {
 		const page = this.iomap[h];
-		return !page.read ? page.base[l] : page.read(l | h << 8, this.arg);
+		return !page.read ? page.base[l] : page.read(l | h << 8);
 	}
 
 	iowrite(h, l, data) {
 		const page = this.iomap[h];
-		!page.write ? void(page.base[l] = data) : page.write(l | h << 8, data, this.arg);
+		!page.write ? void(page.base[l] = data) : page.write(l | h << 8, data);
 	}
 
 	split(v) {

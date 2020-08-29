@@ -59,54 +59,158 @@ class Galaga {
 
 	se = [{buf: BOMB, loop: false, start: false, stop: false}];
 
-	cpu = [];
+	cpu = [new Z80(), new Z80(), new Z80()];
 
 	constructor() {
-		for (let i = 0; i < 3; i++)
-			this.cpu.push(new Z80(this));
-
 		// CPU周りの初期化
+		const range = (page, start, end = start, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
 
-		// CPU0 ROM AREA SETUP
-		for (let i = 0; i < 0x40; i++)
-			this.cpu[0].memorymap[i].base = PRG1.base[i];
-
-		//CPU1 ROM AREA SETUP
-		for (let i = 0; i < 0x20; i++)
-			this.cpu[1].memorymap[i].base = PRG2.base[i];
-
-		// CPU2 ROM AREA SETUP
-		for (let i = 0; i < 0x10; i++)
-			this.cpu[2].memorymap[i].base = PRG3.base[i];
-
-		// CPU[012] RAM AREA SETUP
-		for (let i = 0; i < 3; i++) {
-			for (let j = 0; j < 8; j++) {
-				this.cpu[i].memorymap[0x80 + j].base = this.ram.base[j];
-				this.cpu[i].memorymap[0x80 + j].write = null;
+		for (let page = 0; page < 0x100; page++)
+			if (range(page, 0, 0x3f))
+				this.cpu[0].memorymap[page].base = PRG1.base[page & 0x3f];
+			else if (range(page, 0x68)) {
+				this.cpu[0].memorymap[page].base = this.mmi;
+				this.cpu[0].memorymap[page].write = (addr, data) => {
+					switch (addr & 0xf0) {
+					case 0x00:
+					case 0x10:
+						break;
+					case 0x20:
+						switch (addr & 0x0f) {
+						case 0:
+							this.fInterruptEnable0 = (data & 1) !== 0;
+							break;
+						case 1:
+							this.fInterruptEnable1 = (data & 1) !== 0;
+							break;
+						case 2:
+							if (data)
+								this.fSoundEnable = true;
+							else
+								this.fSoundEnable = false, this.se[0].stop = true;
+							break;
+						case 3:
+							if (data)
+								this.cpu[1].enable(), this.cpu[2].enable();
+							else
+								this.cpu[1].disable(), this.cpu[2].disable();
+							break;
+						}
+						// fallthrough
+					default:
+						this.mmo[addr & 0xff] = data;
+						break;
+					}
+				};
 			}
-			for (let j = 0; j < 4; j++) {
-				this.cpu[i].memorymap[0x88 + j].base = this.ram.base[8 + j];
-				this.cpu[i].memorymap[0x88 + j].write = null;
-				this.cpu[i].memorymap[0x90 + j].base = this.ram.base[0x0c + j];
-				this.cpu[i].memorymap[0x90 + j].write = null;
-				this.cpu[i].memorymap[0x98 + j].base = this.ram.base[0x10 + j];
-				this.cpu[i].memorymap[0x98 + j].write = null;
+			else if (range(page, 0x70))
+				this.cpu[0].memorymap[page].base = this.ioport;
+			else if (range(page, 0x71)) {
+				this.cpu[0].memorymap[page].base = this.dmaport;
+				this.cpu[0].memorymap[page].write = (addr, data) => {
+					this.dmaport[addr & 0xff] = data;
+					switch (data) {
+					case 0x10:
+						this.fNmiEnable = false;
+						return;
+					case 0x71:
+						if (!this.dwMode)
+							this.ioport[0] = this.dwCoin / 10 << 4 | this.dwCoin % 10;
+						else if (this.fTest)
+							this.ioport[0] = 0;
+						else
+							this.ioport[0] = 0xff;
+						if (this.fTest)
+							this.ioport[2] = this.ioport[1] = this.abStick2[this.dwStick] & ~this.dwButton;
+						else {
+							this.ioport[2] = this.ioport[1] = this.abStick[this.dwStick] & ~this.dwButton;
+							this.dwButton &= 0x20;
+						}
+						break;
+					case 0xa1:
+						this.dwMode = 1;
+						break;
+					case 0xa8:
+						this.se[0].start = this.se[0].stop = true;
+						break;
+					case 0xb1:
+						this.dwCoin = 0;
+						this.ioport[2] = this.ioport[1] = this.ioport[0] = 0;
+						break;
+					case 0xc1:
+						this.dwMode = 0;
+						break;
+					case 0xe1:
+						this.dwMode = 0;
+						this.ram[0x11b8] = this.ram[0x11b7] = this.ram[0x11b6] = this.ram[0x11b5] = 0;
+						break;
+					case 0xd2:
+						this.ioport[0] = this.mmi[0];
+						this.ioport[1] = this.mmi[1];
+						break;
+					}
+					this.fNmiEnable = true;
+				};
 			}
-		}
-		this.cpu[0].memorymap[0x68].base = this.mmi;
-		this.cpu[0].memorymap[0x68].write = systemctrl0;
-		this.cpu[1].memorymap[0x68].base = this.mmi;
-		this.cpu[1].memorymap[0x68].write = systemctrl0;
-		this.cpu[2].memorymap[0x68].base = this.mmi;
-		this.cpu[2].memorymap[0x68].write = systemctrl1;
+			else if (range(page, 0x80, 0x87)) {
+				this.cpu[0].memorymap[page].base = this.ram.base[page & 7];
+				this.cpu[0].memorymap[page].write = null;
+			}
+			else if (range(page, 0x88, 0x8b, 4)) {
+				this.cpu[0].memorymap[page].base = this.ram.base[8 | page & 3];
+				this.cpu[0].memorymap[page].write = null;
+			}
+			else if (range(page, 0x90, 0x93, 4)) {
+				this.cpu[0].memorymap[page].base = this.ram.base[0xc | page & 3];
+				this.cpu[0].memorymap[page].write = null;
+			}
+			else if (range(page, 0x98, 0x9b, 4)) {
+				this.cpu[0].memorymap[page].base = this.ram.base[0x10 | page & 3];
+				this.cpu[0].memorymap[page].write = null;
+			}
+			else if (range(page, 0xa0)) {
+				this.cpu[0].memorymap[page].base = this.starport;
+				this.cpu[0].memorymap[page].write = (addr, data) => {
+					switch (addr & 0xff) {
+					case 0x05:
+						this.fStarEnable = (data & 1) !== 0;
+						break;
+					case 0x07:
+						this.fFlip = !this.fTest && (data & 1) !== 0;
+						// fallthrough
+					default:
+						this.starport[addr & 0xff] = data;
+						break;
+					}
+				};
+			}
+			else if (range(page, 0xb1))
+				this.cpu[0].memorymap[page].base = this.keyport;
 
-		this.cpu[0].memorymap[0x70].base = this.ioport;
-		this.cpu[0].memorymap[0x71].base = this.dmaport;
-		this.cpu[0].memorymap[0x71].write = dmactrl;
-		this.cpu[0].memorymap[0xa0].base = this.starport;
-		this.cpu[0].memorymap[0xa0].write = starctrl;
-		this.cpu[0].memorymap[0xb1].base = this.keyport;
+		for (let page = 0; page < 0x100; page++)
+			if (range(page, 0, 0x1f))
+				this.cpu[1].memorymap[page].base = PRG2.base[page & 0x1f];
+			else if (range(page, 0x40, 0xff))
+				this.cpu[1].memorymap[page] = this.cpu[0].memorymap[page];
+
+		for (let page = 0; page < 0x100; page++)
+			if (range(page, 0, 0xf))
+				this.cpu[2].memorymap[page].base = PRG3.base[page & 0xf];
+			else if (range(page, 0x40, 0xff))
+				this.cpu[2].memorymap[page] = this.cpu[0].memorymap[page];
+		this.cpu[2].memorymap[0x68] = {base: this.mmi, read: null, write: (addr, data) => {
+			switch (addr & 0xf0) {
+			case 0x00:
+			case 0x10:
+				sound[0].write(addr, data, this.count);
+				break;
+			case 0x20:
+				break;
+			default:
+				this.mmo[addr & 0xff] = data;
+				break;
+			}
+		}, fetch: null};
 
 		// DIPSW SETUP A:0x01 B:0x02
 		this.mmi[0] = 3; // DIPSW B/A1
@@ -125,115 +229,6 @@ class Galaga {
 		this.convertBG();
 		this.convertOBJ();
 		this.initializeStar();
-
-		// ライトハンドラ
-		function systemctrl0(addr, data, game) {
-			switch (addr & 0xf0) {
-			case 0x00:
-			case 0x10:
-				break;
-			case 0x20:
-				switch (addr & 0x0f) {
-				case 0:
-					game.fInterruptEnable0 = (data & 1) !== 0;
-					break;
-				case 1:
-					game.fInterruptEnable1 = (data & 1) !== 0;
-					break;
-				case 2:
-					if (data)
-						game.fSoundEnable = true;
-					else {
-						game.fSoundEnable = false;
-						game.se[0].stop = true;
-					}
-					break;
-				case 3:
-					if (data)
-						game.cpu[1].enable(), game.cpu[2].enable();
-					else
-						game.cpu[1].disable(), game.cpu[2].disable();
-					break;
-				}
-				// fallthrough
-			default:
-				game.mmo[addr & 0xff] = data;
-				break;
-			}
-		}
-
-		function systemctrl1(addr, data, game) {
-			switch (addr & 0xf0) {
-			case 0x00:
-			case 0x10:
-				sound[0].write(addr, data, game.count);
-				break;
-			case 0x20:
-				break;
-			default:
-				game.mmo[addr & 0xff] = data;
-				break;
-			}
-		}
-
-		function dmactrl(addr, data, game) {
-			this.base[addr & 0xff] = data;
-			switch (data) {
-			case 0x10:
-				game.fNmiEnable = false;
-				return;
-			case 0x71:
-				if (!game.dwMode)
-					game.ioport[0] = game.dwCoin / 10 << 4 | game.dwCoin % 10;
-				else if (game.fTest)
-					game.ioport[0] = 0;
-				else
-					game.ioport[0] = 0xff;
-				if (game.fTest)
-					game.ioport[2] = game.ioport[1] = game.abStick2[game.dwStick] & ~game.dwButton;
-				else {
-					game.ioport[2] = game.ioport[1] = game.abStick[game.dwStick] & ~game.dwButton;
-					game.dwButton &= 0x20;
-				}
-				break;
-			case 0xa1:
-				game.dwMode = 1;
-				break;
-			case 0xa8:
-				game.se[0].start = game.se[0].stop = true;
-				break;
-			case 0xb1:
-				game.dwCoin = 0;
-				game.ioport[2] = game.ioport[1] = game.ioport[0] = 0;
-				break;
-			case 0xc1:
-				game.dwMode = 0;
-				break;
-			case 0xe1:
-				game.dwMode = 0;
-				game.ram[0x11b8] = game.ram[0x11b7] = game.ram[0x11b6] = game.ram[0x11b5] = 0;
-				break;
-			case 0xd2:
-				game.ioport[0] = game.mmi[0];
-				game.ioport[1] = game.mmi[1];
-				break;
-			}
-			game.fNmiEnable = true;
-		}
-
-		function starctrl(addr, data, game) {
-			switch (addr & 0xff) {
-			case 0x05:
-				game.fStarEnable = (data & 1) !== 0;
-				break;
-			case 0x07:
-				game.fFlip = !game.fTest && (data & 1) !== 0;
-				// fallthrough
-			default:
-				this.base[addr & 0xff] = data;
-				break;
-			}
-		}
 	}
 
 	execute() {
@@ -270,80 +265,56 @@ class Galaga {
 			this.fDIPSwitchChanged = false;
 			switch (this.nMyShip) {
 			case 2:
-				this.mmi[6] &= ~1;
-				this.mmi[7] &= ~1;
+				this.mmi[6] &= ~1, this.mmi[7] &= ~1;
 				break;
 			case 3:
-				this.mmi[6] &= ~1;
-				this.mmi[7] |= 1;
+				this.mmi[6] &= ~1, this.mmi[7] |= 1;
 				break;
 			case 4:
-				this.mmi[6] |= 1;
-				this.mmi[7] &= ~1;
+				this.mmi[6] |= 1, this.mmi[7] &= ~1;
 				break;
 			case 5:
-				this.mmi[6] |= 1;
-				this.mmi[7] |= 1;
+				this.mmi[6] |= 1, this.mmi[7] |= 1;
 				break;
 			}
 			switch (this.nRank) {
 			case 'EASY':
-				this.mmi[0] |= 2;
-				this.mmi[1] |= 2;
+				this.mmi[0] |= 2, this.mmi[1] |= 2;
 				break;
 			case 'NORMAL':
-				this.mmi[0] &= ~2;
-				this.mmi[1] &= ~2;
+				this.mmi[0] &= ~2, this.mmi[1] &= ~2;
 				break;
 			case 'HARD':
-				this.mmi[0] |= 2;
-				this.mmi[1] &= ~2;
+				this.mmi[0] |= 2, this.mmi[1] &= ~2;
 				break;
 			case 'VERY HARD':
-				this.mmi[0] &= ~2;
-				this.mmi[1] |= 2;
+				this.mmi[0] &= ~2, this.mmi[1] |= 2;
 				break;
 			}
 			switch (this.nBonus) {
 			case 'A':
-				this.mmi[3] &= ~1;
-				this.mmi[4] &= ~1;
-				this.mmi[5] |= 1;
+				this.mmi[3] &= ~1, this.mmi[4] &= ~1, this.mmi[5] |= 1;
 				break;
 			case 'B':
-				this.mmi[3] &= ~1;
-				this.mmi[4] |= 1;
-				this.mmi[5] &= ~1;
+				this.mmi[3] &= ~1, this.mmi[4] |= 1, this.mmi[5] &= ~1;
 				break;
 			case 'C':
-				this.mmi[3] &= ~1;
-				this.mmi[4] |= 1;
-				this.mmi[5] |= 1;
+				this.mmi[3] &= ~1, this.mmi[4] |= 1, this.mmi[5] |= 1;
 				break;
 			case 'D':
-				this.mmi[3] |= 1;
-				this.mmi[4] &= ~1;
-				this.mmi[5] &= ~1;
+				this.mmi[3] |= 1, this.mmi[4] &= ~1, this.mmi[5] &= ~1;
 				break;
 			case 'E':
-				this.mmi[3] |= 1;
-				this.mmi[4] &= ~1;
-				this.mmi[5] |= 1;
+				this.mmi[3] |= 1, this.mmi[4] &= ~1, this.mmi[5] |= 1;
 				break;
 			case 'F':
-				this.mmi[3] |= 1;
-				this.mmi[4] |= 1;
-				this.mmi[5] &= ~1;
+				this.mmi[3] |= 1, this.mmi[4] |= 1, this.mmi[5] &= ~1;
 				break;
 			case 'G':
-				this.mmi[3] |= 1;
-				this.mmi[4] |= 1;
-				this.mmi[5] |= 1;
+				this.mmi[3] |= 1, this.mmi[4] |= 1, this.mmi[5] |= 1;
 				break;
 			case 'NONE':
-				this.mmi[3] &= ~1;
-				this.mmi[4] &= ~1;
-				this.mmi[5] &= ~1;
+				this.mmi[3] &= ~1, this.mmi[4] &= ~1, this.mmi[5] &= ~1;
 				break;
 			}
 			if (this.fAttract)

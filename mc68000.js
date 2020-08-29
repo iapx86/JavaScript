@@ -27,8 +27,8 @@ export default class MC68000 extends Cpu {
 	usp = 0;
 	sr = 0; // sr:t-s--iii ccr:---xnzvc
 
-	constructor(arg = null) {
-		super(arg);
+	constructor() {
+		super();
 		this.memorymap.splice(0);
 		for (let i = 0; i < 0x10000; i++)
 			this.memorymap.push({base: dummypage, read: null, read16: null, write: () => {}, write16: null});
@@ -10908,17 +10908,17 @@ export default class MC68000 extends Cpu {
 
 	read8(addr) {
 		const page = this.memorymap[addr >> 8 & 0xffff];
-		return page.read ? page.read(addr, this.arg) : page.base[addr & 0xff];
+		return page.read ? page.read(addr) : page.base[addr & 0xff];
 	}
 
 	read16(addr) {
 		const page = this.memorymap[addr >> 8 & 0xffff];
-		return page.read16 ? page.read16(addr, this.arg) : page.read ? page.read(addr, this.arg) << 8 | page.read(addr + 1 | 0, this.arg) : page.base[addr & 0xff] << 8 | page.base[addr + 1 & 0xff];
+		return page.read16 ? page.read16(addr) : page.read ? page.read(addr) << 8 | page.read(addr + 1 | 0) : page.base[addr & 0xff] << 8 | page.base[addr + 1 & 0xff];
 	}
 
 	read16s(addr) {
 		const page = this.memorymap[addr >> 8 & 0xffff];
-		const data = page.read16 ? page.read16(addr, this.arg) : page.read ? page.read(addr, this.arg) << 8 | page.read(addr + 1 | 0, this.arg) : page.base[addr & 0xff] << 8 | page.base[addr + 1 & 0xff];
+		const data = page.read16 ? page.read16(addr) : page.read ? page.read(addr) << 8 | page.read(addr + 1 | 0) : page.base[addr & 0xff] << 8 | page.base[addr + 1 & 0xff];
 		return data << 16 >> 16;
 	}
 
@@ -10930,7 +10930,7 @@ export default class MC68000 extends Cpu {
 	write8(data, addr) {
 		const page = this.memorymap[addr >> 8 & 0xffff];
 		if (page.write)
-			page.write(addr, data & 0xff, this.arg);
+			page.write(addr, data & 0xff);
 		else
 			page.base[addr & 0xff] = data;
 	}
@@ -10938,9 +10938,9 @@ export default class MC68000 extends Cpu {
 	write16(data, addr) {
 		const page = this.memorymap[addr >> 8 & 0xffff];
 		if (page.write16)
-			page.write16(addr, data & 0xffff, this.arg);
+			page.write16(addr, data & 0xffff);
 		else if (page.write)
-			page.write(addr, data >> 8 & 0xff, this.arg), page.write(addr + 1 | 0, data & 0xff, this.arg);
+			page.write(addr, data >> 8 & 0xff), page.write(addr + 1 | 0, data & 0xff);
 		else
 			page.base[addr & 0xff] = data >> 8, page.base[addr + 1 & 0xff] = data;
 	}
