@@ -200,7 +200,7 @@ function success(zip) {
 	PRG = new Uint8Array(zip.files['rtypej/rt_r-l1-.3c'].inflate().split('').map(c => c.charCodeAt(0)));
 	init({
 		game: game = new SoundTest(),
-		sound: sound = new YM2151({clock: 3579545, resolution: 58}),
+		sound: sound = new YM2151({clock: 3579545, resolution: 58, gain: 2}),
 	});
 	game.initial = true;
 	canvas.addEventListener('click', e => {

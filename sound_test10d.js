@@ -201,7 +201,7 @@ function success(zip) {
 	zip.files['mrheli/mh_c-l1-.ic36'].inflate().split('').forEach((c, i) => PRG[i << 1] = c.charCodeAt(0));
 	init({
 		game: game = new SoundTest(),
-		sound: sound = new YM2151({clock: 3579545, resolution: 58}),
+		sound: sound = new YM2151({clock: 3579545, resolution: 58, gain: 2}),
 	});
 	game.initial = true;
 	canvas.addEventListener('click', e => {

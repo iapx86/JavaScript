@@ -213,7 +213,7 @@ function success(zip) {
 	PCM = new Uint8Array(zip.files['ic14.4c'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	init({
 		game: game = new SoundTest(),
-		sound: sound = new YM2151({clock: 3579545, resolution: 58}),
+		sound: sound = new YM2151({clock: 3579545, resolution: 58, gain: 2}),
 	});
 	game.initial = true;
 	canvas.addEventListener('click', e => {
