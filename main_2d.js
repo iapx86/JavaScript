@@ -154,11 +154,7 @@ Uint8Array.prototype.addBase = function () {
 };
 
 if (!Array.prototype.fill)
-	Array.prototype.fill = function (value, start, end) {
-		if (start === undefined)
-			start = 0;
-		if (end === undefined)
-			end = this.length;
+	Array.prototype.fill = function (value, start = 0, end = this.length) {
 		for (let i = start; i < end; i++)
 			this[i] = value;
 		return this;
@@ -173,9 +169,7 @@ if (!Array.prototype.find)
 	};
 
 if (!Uint8Array.prototype.copyWithin)
-	Uint8Array.prototype.copyWithin = function (target, start, end) {
-		if (end === undefined)
-			end = this.length;
+	Uint8Array.prototype.copyWithin = function (target, start, end = this.length) {
 		for (let i = start; i < end; i++)
 			this[target - start + i] = this[i];
 	};
@@ -189,11 +183,7 @@ if (!Uint8Array.prototype.every)
 	};
 
 if (!Uint8Array.prototype.fill)
-	Uint8Array.prototype.fill = function (value, start, end) {
-		if (start === undefined)
-			start = 0;
-		if (end === undefined)
-			end = this.length;
+	Uint8Array.prototype.fill = function (value, start = 0, end = this.length) {
 		for (let i = start; i < end; i++)
 			this[i] = value;
 		return this;
@@ -210,20 +200,21 @@ if (!Uint8Array.from)
 		return typed_array;
 	};
 
+if (!Uint16Array.prototype.fill)
+	Uint16Array.prototype.fill = function (value, start = 0, end = this.length) {
+		for (let i = start; i < end; i++)
+			this[i] = value;
+		return this;
+	};
+
 if (!Uint32Array.prototype.copyWithin)
-	Uint32Array.prototype.copyWithin = function (target, start, end) {
-		if (end === undefined)
-			end = this.length;
+	Uint32Array.prototype.copyWithin = function (target, start, end = this.length) {
 		for (let i = start; i < end; i++)
 			this[target - start + i] = this[i];
 	};
 
 if (!Uint32Array.prototype.fill)
-	Uint32Array.prototype.fill = function (value, start, end) {
-		if (start === undefined)
-			start = 0;
-		if (end === undefined)
-			end = this.length;
+	Uint32Array.prototype.fill = function (value, start = 0, end = this.length) {
 		for (let i = start; i < end; i++)
 			this[i] = value;
 		return this;
