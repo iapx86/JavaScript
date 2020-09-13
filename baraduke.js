@@ -5,10 +5,10 @@
  */
 
 import C30 from './c30.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
-let sound;
+let game, sound;
 
 class Baraduke {
 	cxScreen = 224;
@@ -17,6 +17,7 @@ class Baraduke {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = true;
 
 	fReset = true;
 	fTest = false;
@@ -793,11 +794,9 @@ function success(zip) {
 	OBJ = new Uint8Array((zip.files['bd1_9.8k'].inflate() + zip.files['bd1_10.8l'].inflate() + zip.files['bd1_11.8m'].inflate() + zip.files['bd1_12.8n'].inflate()).split('').map(c => c.charCodeAt(0)));
 	GREEN = new Uint8Array(zip.files['bd1-1.1n'].inflate().split('').map(c => c.charCodeAt(0)));
 	RED = new Uint8Array(zip.files['bd1-2.2m'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new Baraduke(),
-		sound: sound = new C30({resolution: 400}),
-		rotate: true,
-	});
-	loop();
+	game = new Baraduke();
+	sound = new C30({resolution: 400});
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

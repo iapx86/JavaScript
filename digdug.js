@@ -5,9 +5,9 @@
  */
 
 import PacManSound from './pac-man_sound.js';
-import Cpu, {init, loop} from './main.js';
+import Cpu, {init} from './main.js';
 import Z80 from './z80.js';
-let sound;
+let game, sound;
 
 class DigDug {
 	cxScreen = 224;
@@ -16,6 +16,7 @@ class DigDug {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -1158,10 +1159,9 @@ function success(zip) {
 	OBJCOLOR = new Uint8Array(zip.files['136007.111'].inflate().split('').map(c => c.charCodeAt(0)));
 	BGCOLOR = new Uint8Array(zip.files['136007.112'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['136007.110'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new DigDug(),
-		sound: sound = new PacManSound({SND, resolution: 2}),
-	});
-	loop();
+	game = new DigDug();
+	sound = new PacManSound({SND, resolution: 2});
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

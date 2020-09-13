@@ -6,7 +6,7 @@
 
 import PacManSound from './pac-man_sound.js';
 import SoundEffect from './sound_effect.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -17,6 +17,7 @@ class NewRallyX {
 	height = 512;
 	xOffset = 16;
 	yOffset = 19;
+	rotate = true;
 
 	fReset = false;
 	fTest = false;
@@ -1277,14 +1278,12 @@ function success(zip) {
 	RGB = new Uint8Array(zip.files['nrx1-1.11n'].inflate().split('').map(c => c.charCodeAt(0)));
 	COLOR = new Uint8Array(zip.files['nrx1-7.8p'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['rx1-5.3p'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: game = new NewRallyX(),
-		sound: sound = [
-			new PacManSound({SND}),
-			new SoundEffect({se: game.se, freq: 11025, gain: 9 / 16}),
-		],
-		rotate: true,
-	});
-	loop();
+	game = new NewRallyX();
+	sound = [
+		new PacManSound({SND}),
+		new SoundEffect({se: game.se, freq: 11025, gain: 9 / 16}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

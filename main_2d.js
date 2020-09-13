@@ -4,32 +4,26 @@
  *
  */
 
-export const canvas = document.getElementById('canvas');
+const volume0 = 'data:image/png;base64,\
+iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAC4jAAAuIwF4pT92AAAAeElEQVR42u3XywrAIAxE0fz/T09XXRRaTCvDnYoBV7o4\
+oHlYkopctQF/B5yBAEQCRAJEAkQBRmEDdGMaMBtvUvOy7wSok7oOwBPi9rwL0M4YJ6BVsJYGoFeAPkI8DT8VIrwUxzajmHYcM5BEjGQRQ2nEWL5/RmsADqNJ\
+E6QZh85dAAAAAElFTkSuQmCC\
+';
+const volume1 = 'data:image/png;base64,\
+iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAC4jAAAuIwF4pT92AAAAfklEQVR42u2XwQrAIAxD+/8/nZ12GrhoWoolBS9SyEOl\
+iQEgOlcY4HaAt1oAQAIs+zLEofRmiEMBzhAH+TYkgL9i7/2zrwozAGAA1IrTU6gECOYUDGAAA4ydA9uTsHIUS16gmlGaG+7acVkeOAkk6YlIiWQtoXRuLPfP\
+aAbAA72UT2ikWgrdAAAAAElFTkSuQmCC\
+';
+let game, sound, imageData, data;
+const cxScreen = canvas.width, cyScreen = canvas.height;
 const ctx = canvas.getContext('2d');
-const cxScreen = canvas.width;
-const cyScreen = canvas.height;
-const button = new Image();
-let state = '';
+let button, state = '';
 
 (window.onresize = () => {
 	const zoom = Math.max(1, Math.min(Math.floor(window.innerWidth / cxScreen), Math.floor(window.innerHeight / cyScreen)));
 	canvas.style.width = cxScreen * zoom + 'px';
 	canvas.style.height = cyScreen * zoom + 'px';
 })();
-
-let game, sound, imageData, data;
-
-const volume0 = 'data:image/png;base64,\
-iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAC4jAAAuIwF4pT92AAAAeElEQVR42u3XywrAIAxE0fz/T09XXRRaTCvDnYoBV7o4\
-oHlYkopctQF/B5yBAEQCRAJEAkQBRmEDdGMaMBtvUvOy7wSok7oOwBPi9rwL0M4YJ6BVsJYGoFeAPkI8DT8VIrwUxzajmHYcM5BEjGQRQ2nEWL5/RmsADqNJ\
-E6QZh85dAAAAAElFTkSuQmCC\
-';
-
-const volume1 = 'data:image/png;base64,\
-iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAC4jAAAuIwF4pT92AAAAfklEQVR42u2XwQrAIAxD+/8/nZ12GrhoWoolBS9SyEOl\
-iQEgOlcY4HaAt1oAQAIs+zLEofRmiEMBzhAH+TYkgL9i7/2zrwozAGAA1IrTU6gECOYUDGAAA4ydA9uTsHIUS16gmlGaG+7acVkeOAkk6YlIiWQtoXRuLPfP\
-aAbAA72UT2ikWgrdAAAAAElFTkSuQmCC\
-';
 
 export function init({keydown, keyup, ...args} = {}) {
 	({game, sound} = args);
@@ -38,104 +32,88 @@ export function init({keydown, keyup, ...args} = {}) {
 	document.addEventListener('keydown', keydown ? keydown : e => {
 		switch (e.keyCode) {
 		case 37: // left
-			game.left(true);
-			break;
+			return void('left' in game && game.left(true));
 		case 38: // up
-			game.up(true);
-			break;
+			return void('up' in game && game.up(true));
 		case 39: // right
-			game.right(true);
-			break;
+			return void('right' in game && game.right(true));
 		case 40: // down
-			game.down(true);
-			break;
+			return void('down' in game && game.down(true));
 		case 48: // '0'
-			game.coin();
-			break;
+			return void('coin' in game && game.coin());
 		case 49: // '1'
-			game.start1P();
-			break;
+			return void('start1P' in game && game.start1P());
 		case 50: // '2'
-			game.start2P();
-			break;
+			return void('start2P' in game && game.start2P());
 		case 77: // 'M'
 			if (!audioCtx)
-				break;
+				return;
 			if (audioCtx.state === 'suspended')
 				audioCtx.resume().catch();
 			else if (audioCtx.state === 'running')
 				audioCtx.suspend().catch();
-			break;
+			return;
 		case 82: // 'R'
-			game.reset();
-			break;
+			return game.reset();
 		case 84: // 'T'
 			if ((game.fTest = !game.fTest) === true)
 				game.fReset = true;
-			break;
+			return;
 		case 32: // space
 		case 88: // 'X'
-			game.triggerA(true);
-			break;
+			return void('triggerA' in game && game.triggerA(true));
 		case 90: // 'Z'
-			game.triggerB(true);
-			break;
+			return void('triggerB' in game && game.triggerB(true));
 		}
 	});
 	document.addEventListener('keyup', keyup ? keyup : e => {
 		switch (e.keyCode) {
 		case 37: // left
-			game.left(false);
-			break;
+			return void('left' in game && game.left(false));
 		case 38: // up
-			game.up(false);
-			break;
+			return void('up' in game && game.up(false));
 		case 39: // right
-			game.right(false);
-			break;
+			return void('right' in game && game.right(false));
 		case 40: // down
-			game.down(false);
-			break;
+			return void('down' in game && game.down(false));
 		case 32: // space
 		case 88: // 'X'
-			game.triggerA(false);
-			break;
+			return void('triggerA' in game && game.triggerA(false));
 		case 90: // 'Z'
-			game.triggerB(false);
-			break;
+			return void('triggerB' in game && game.triggerB(false));
 		}
 	});
-	if (!audioCtx)
-		return;
-	(button.update = () => {
-		button.src = audioCtx.state === 'suspended' ? volume0 : volume1;
-		button.alt = 'audio state: ' + audioCtx.state;
-	})();
-	audioCtx.onstatechange = button.update;
-	document.body.appendChild(button);
-	button.addEventListener('click', () => {
-		if (audioCtx.state === 'suspended')
-			audioCtx.resume().catch();
-		else if (audioCtx.state === 'running')
+	if (audioCtx) {
+		button = new Image();
+		(button.update = () => {
+			button.src = audioCtx.state === 'suspended' ? volume0 : volume1;
+			button.alt = 'audio state: ' + audioCtx.state;
+		})();
+		audioCtx.onstatechange = button.update;
+		document.body.appendChild(button);
+		button.addEventListener('click', () => {
+			if (audioCtx.state === 'suspended')
+				audioCtx.resume().catch();
+			else if (audioCtx.state === 'running')
+				audioCtx.suspend().catch();
+		});
+		window.addEventListener('blur', () => {
+			state = audioCtx.state;
 			audioCtx.suspend().catch();
-	});
-	window.addEventListener('blur', () => {
-		state = audioCtx.state;
-		audioCtx.suspend().catch();
-	});
-	window.addEventListener('focus', () => {
-		if (state === 'running')
-			audioCtx.resume().catch();
-	});
-}
-
-export function loop() {
-	if (sound)
-		Array.isArray(sound) ? sound.forEach(s => s.update(game)) : sound.update(game);
-	updateGamepad(game);
-	game.updateStatus().updateInput().execute().makeBitmap(data);
-	ctx.putImageData(imageData, -game.xOffset, -game.yOffset);
-	requestAnimationFrame(loop);
+		});
+		window.addEventListener('focus', () => {
+			if (state === 'running')
+				audioCtx.resume().catch();
+		});
+	}
+	void function loop() {
+		if (sound)
+			Array.isArray(sound) ? sound.forEach(s => s.update(game)) : sound.update(game);
+		updateGamepad(game);
+		game.updateStatus().updateInput().execute().makeBitmap(data);
+		ctx.putImageData(imageData, -game.xOffset, -game.yOffset);
+		requestAnimationFrame(loop);
+	}();
 }
 
 /*

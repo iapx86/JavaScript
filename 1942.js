@@ -5,9 +5,9 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import Cpu, {init, loop} from './main.js';
+import Cpu, {init} from './main.js';
 import Z80 from './z80.js';
-let sound;
+let game, sound;
 
 class _1942 {
 	cxScreen = 224;
@@ -16,6 +16,7 @@ class _1942 {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = true;
 	fTest = false;
@@ -518,13 +519,12 @@ function success(zip) {
 	FGCOLOR = new Uint8Array(zip.files['sb-0.f1'].inflate().split('').map(c => c.charCodeAt(0)));
 	BGCOLOR = new Uint8Array(zip.files['sb-4.d6'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJCOLOR = new Uint8Array(zip.files['sb-8.k3'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new _1942(),
-		sound: sound = [
-			new AY_3_8910({clock: 1500000, resolution: 4}),
-			new AY_3_8910({clock: 1500000, resolution: 4}),
-		]
-	});
-	loop();
+	game = new _1942();
+	sound = [
+		new AY_3_8910({clock: 1500000, resolution: 4}),
+		new AY_3_8910({clock: 1500000, resolution: 4}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

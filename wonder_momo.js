@@ -7,10 +7,10 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import Namco63701X from './namco_63701x.js';
-import Cpu, {init, loop} from './main.js';
+import Cpu, {init} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
-let sound;
+let game, sound;
 
 class WonderMomo {
 	cxScreen = 224;
@@ -19,6 +19,7 @@ class WonderMomo {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = true;
 
 	fReset = true;
 	fTest = false;
@@ -684,15 +685,13 @@ function success(zip) {
 	PCM = zip.files['wm1_17.f3'].inflate() + zip.files['wm1_17.f3'].inflate() + zip.files['wm1_18.h3'].inflate();
 	PCM += zip.files['wm1_18.h3'].inflate() + zip.files['wm1_19.k3'].inflate() + zip.files['wm1_19.k3'].inflate();
 	PCM = new Uint8Array((PCM + zip.files['wm1_20.m3'].inflate() + zip.files['wm1_20.m3'].inflate()).split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new WonderMomo(),
-		sound: sound = [
-			new YM2151({clock: 3579580}),
-			new C30(),
-			new Namco63701X({PCM, clock: 6000000}),
-		],
-		rotate: true,
-	});
-	loop();
+	game = new WonderMomo();
+	sound = [
+		new YM2151({clock: 3579580}),
+		new C30(),
+		new Namco63701X({PCM, clock: 6000000}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

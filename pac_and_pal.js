@@ -5,9 +5,9 @@
  */
 
 import MappySound from './mappy_sound.js';
-import Cpu, {init, loop} from './main.js';
+import Cpu, {init} from './main.js';
 import MC6809 from './mc6809.js';
-let sound;
+let game, sound;
 
 class PacAndPal {
 	cxScreen = 224;
@@ -16,6 +16,7 @@ class PacAndPal {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -579,10 +580,9 @@ function success(zip) {
 	BGCOLOR = new Uint8Array(zip.files['pap1-5.4e'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJCOLOR = new Uint8Array(zip.files['pap1-4.3l'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['pap1-3.3m'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new PacAndPal(),
-		sound: sound = new MappySound({SND}),
-	});
-	loop();
+	game = new PacAndPal();
+	sound = new MappySound({SND});
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

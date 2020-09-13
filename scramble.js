@@ -5,9 +5,9 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
-let sound;
+let game, sound;
 
 class Scramble {
 	cxScreen = 224;
@@ -16,6 +16,7 @@ class Scramble {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -91,14 +92,14 @@ class Scramble {
 					if ((addr & 0x0200) !== 0)
 						switch (addr & 3) {
 						case 0:
-							return this.command.push(data);
+							return void this.command.push(data);
 						case 1:
-							return (this.fSoundEnable = (data & 0x10) === 0);
+							return void(this.fSoundEnable = (data & 0x10) === 0);
 						case 2:
 							this.state = this.state << 4 & 0xff0 | data & 0x0f;
 							const index = [0xf09, 0xa49, 0x319, 0x5c9].indexOf(this.state);
 							if (index < 0)
-								break;
+								return;
 							this.ppi1[2] = [0xff, 0xbf, 0x4f, 0x6f][index];
 							this.ppi0[2] = this.ppi0[2] & ~0xa0 | this.ppi1[2] & 0x80 | this.ppi1[2] >> 2 & 0x20;
 							return;
@@ -544,13 +545,12 @@ function success(zip) {
 	PRG2 = new Uint8Array((zip.files['ot1.5c'].inflate() + zip.files['ot2.5d'].inflate() + zip.files['ot3.5e'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	BG = new Uint8Array((zip.files['c2.5f'].inflate() + zip.files['c1.5h'].inflate()).split('').map(c => c.charCodeAt(0)));
 	RGB = new Uint8Array(zip.files['c01s.6e'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new Scramble(),
-		sound: sound = [
-			new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.2}),
-			new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.2}),
-		],
-	});
-	loop();
+	game = new Scramble();
+	sound = [
+		new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.2}),
+		new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.2}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

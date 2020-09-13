@@ -6,7 +6,7 @@
 
 import PacManSound from './pac-man_sound.js';
 import SoundEffect from './sound_effect.js';
-import Cpu, {init, loop} from './main.js';
+import Cpu, {init} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -17,6 +17,7 @@ class Galaga {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -1678,13 +1679,12 @@ function success(zip) {
 	BGCOLOR = new Uint8Array(zip.files['prom-4.2n'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJCOLOR = new Uint8Array(zip.files['prom-3.1c'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['prom-1.1d'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: game = new Galaga(),
-		sound: sound = [
-			new PacManSound({SND, resolution: 2}),
-			new SoundEffect({se: game.se, freq: 11025, gain: 0.5}),
-		],
-	});
-	loop();
+	game = new Galaga();
+	sound = [
+		new PacManSound({SND, resolution: 2}),
+		new SoundEffect({se: game.se, freq: 11025, gain: 0.5}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

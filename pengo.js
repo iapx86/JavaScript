@@ -5,9 +5,9 @@
  */
 
 import PacManSound from './pac-man_sound.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
-let sound;
+let game, sound;
 
 class Pengo {
 	cxScreen = 224;
@@ -16,6 +16,7 @@ class Pengo {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -500,10 +501,9 @@ function success(zip) {
 	RGB = new Uint8Array(zip.files['pr1633.78'].inflate().split('').map(c => c.charCodeAt(0)));
 	COLOR = new Uint8Array(zip.files['pr1634.88'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['pr1635.51'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new Pengo(),
-		sound: sound = new PacManSound({SND}),
-	});
-	loop();
+	game = new Pengo();
+	sound = new PacManSound({SND});
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

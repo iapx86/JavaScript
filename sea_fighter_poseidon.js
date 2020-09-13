@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import SoundEffect from './sound_effect.js';
-import Cpu, {init, loop} from './main.js';
+import Cpu, {init} from './main.js';
 import Z80 from './z80.js';
 import MC6805 from './mc6805.js';
 const pcmtable = [0xa26, 0xa34, 0xa73, 0xa81, 0xa8f, 0xaa5, 0xaeb, 0xb09];
@@ -19,6 +19,7 @@ class SeaFighterPoseidon {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = true;
 
 	fReset = false;
 	fTest = false;
@@ -60,13 +61,13 @@ class SeaFighterPoseidon {
 	colorbank = new Uint8Array(2);
 	mode = 0;
 
-	se = pcm.map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+	se;
 
 	cpu = new Z80();
 	cpu2 = new Z80();
 	mcu = new MC6805();
 
-	constructor() {
+	constructor(rate) {
 		// CPU周りの初期化
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[i].base = PRG1.base[i];
@@ -260,6 +261,10 @@ class SeaFighterPoseidon {
 		for (let i = 0; i < 4; i++)
 			this.layer.push(new Uint8Array(this.width * this.height));
 		this.convertPRI();
+
+		// 効果音の初期化
+		SeaFighterPoseidon.convertPCM(rate);
+		this.se = pcm.map(buf => ({buf: buf, loop: false, start: false, stop: false}));
 	}
 
 	execute() {
@@ -454,8 +459,8 @@ class SeaFighterPoseidon {
 		}
 	}
 
-	static convertPCM() {
-		const clock = 3000000, rate = 48000;
+	static convertPCM(rate) {
+		const clock = 3000000;
 
 		for (let idx = 0; idx < pcmtable.length; idx++) {
 			const desc1 = pcmtable[idx];
@@ -836,18 +841,15 @@ function success(zip) {
 	PRG3 = new Uint8Array(zip.files['a14-12'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	GFX = new Uint8Array((zip.files['a14-06.4'].inflate() + zip.files['a14-07.5'].inflate() + zip.files['a14-08.9'].inflate() + zip.files['a14-09.10'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	PRI = new Uint8Array(zip.files['eb16.22'].inflate().split('').map(c => c.charCodeAt(0)));
-	SeaFighterPoseidon.convertPCM();
-	init({
-		game: game = new SeaFighterPoseidon(),
-		sound: sound = [
-			new AY_3_8910({clock: 1500000, resolution: 3}),
-			new AY_3_8910({clock: 1500000, resolution: 3}),
-			new AY_3_8910({clock: 1500000, resolution: 3}),
-			new AY_3_8910({clock: 1500000, resolution: 3}),
-			new SoundEffect({se: game.se, freq: 48000, gain: 0.2}),
-		],
-		rotate: true,
-	});
-	loop();
+	game = new SeaFighterPoseidon(48000);
+	sound = [
+		new AY_3_8910({clock: 1500000, resolution: 3}),
+		new AY_3_8910({clock: 1500000, resolution: 3}),
+		new AY_3_8910({clock: 1500000, resolution: 3}),
+		new AY_3_8910({clock: 1500000, resolution: 3}),
+		new SoundEffect({se: game.se, freq: 48000, gain: 0.2}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

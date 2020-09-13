@@ -6,7 +6,7 @@
 
 import GalaxianSound from './galaxian_sound.js';
 import SoundEffect from './sound_effect.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -17,6 +17,7 @@ class KingAndBalloon {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -134,6 +135,7 @@ class KingAndBalloon {
 		this.convertOBJ();
 
 		// 効果音の初期化
+		KingAndBalloon.convertVOICE();
 		this.se[2].loop = this.se[3].loop = true;
 	}
 
@@ -1816,14 +1818,12 @@ function success(zip) {
 	PRG = new Uint8Array((zip.files['prg1.7f'].inflate() + zip.files['prg2.7j'].inflate() + zip.files['prg3.7l'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	BG = new Uint8Array((zip.files['chg1.1h'].inflate() + zip.files['chg2.1k'].inflate()).split('').map(c => c.charCodeAt(0)));
 	RGB = new Uint8Array(zip.files['kb2-1'].inflate().split('').map(c => c.charCodeAt(0)));
-	KingAndBalloon.convertVOICE();
-	init({
-		game: game = new KingAndBalloon(),
-		sound: sound = [
-			new GalaxianSound({SND}),
-			new SoundEffect({se: game.se, freq: 11025, gain: 0.5}),
-		],
-	});
-	loop();
+	game = new KingAndBalloon();
+	sound = [
+		new GalaxianSound({SND}),
+		new SoundEffect({se: game.se, freq: 11025, gain: 0.5}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

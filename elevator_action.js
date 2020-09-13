@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import SoundEffect from './sound_effect.js';
-import Cpu, {init, loop} from './main.js';
+import Cpu, {init} from './main.js';
 import Z80 from './z80.js';
 import MC6805 from './mc6805.js';
 const pcmtable = [0xd2d, 0xdca, 0xe09, 0xe6f, 0xe85];
@@ -19,6 +19,7 @@ class ElevatorAction {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = true;
 
 	fReset = false;
 	fTest = false;
@@ -61,13 +62,13 @@ class ElevatorAction {
 	colorbank = new Uint8Array(2);
 	mode = 0;
 
-	se = pcm.map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+	se;
 
 	cpu = new Z80();
 	cpu2 = new Z80();
 	mcu = new MC6805();
 
-	constructor() {
+	constructor(rate) {
 		// CPU周りの初期化
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[i].base = PRG1.base[i];
@@ -254,6 +255,10 @@ class ElevatorAction {
 		for (let i = 0; i < 4; i++)
 			this.layer.push(new Uint8Array(this.width * this.height));
 		this.convertPRI();
+
+		// 効果音の初期化
+		ElevatorAction.convertPCM(rate);
+		this.se = pcm.map(buf => ({buf: buf, loop: false, start: false, stop: false}));
 	}
 
 	execute() {
@@ -476,8 +481,8 @@ class ElevatorAction {
 		}
 	}
 
-	static convertPCM() {
-		const clock = 3000000, rate = 48000;
+	static convertPCM(rate) {
+		const clock = 3000000;
 
 		for (let idx = 0; idx < pcmtable.length; idx++) {
 			const desc1 = pcmtable[idx];
@@ -859,18 +864,15 @@ function success(zip) {
 	GFX = zip.files['ea_20.2732.ic1'].inflate() + zip.files['ea_21.2732.ic2'].inflate() + zip.files['ea_22.2732.ic3'].inflate() + zip.files['ea_23.2732.ic4'].inflate() + zip.files['ea_24.2732.ic5'].inflate();
 	GFX = new Uint8Array((GFX + zip.files['ea_25.2732.ic6'].inflate() + zip.files['ea_26.2732.ic7'].inflate() + zip.files['ea_27.2732.ic8'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	PRI = new Uint8Array(zip.files['eb16.ic22'].inflate().split('').map(c => c.charCodeAt(0)));
-	ElevatorAction.convertPCM();
-	init({
-		game: game = new ElevatorAction(),
-		sound: sound = [
-			new AY_3_8910({clock: 1500000, resolution: 3}),
-			new AY_3_8910({clock: 1500000, resolution: 3}),
-			new AY_3_8910({clock: 1500000, resolution: 3}),
-			new AY_3_8910({clock: 1500000, resolution: 3}),
-			new SoundEffect({se: game.se, freq: 48000, gain: 0.2}),
-		],
-		rotate: true,
-	});
-	loop();
+	game = new ElevatorAction(48000);
+	sound = [
+		new AY_3_8910({clock: 1500000, resolution: 3}),
+		new AY_3_8910({clock: 1500000, resolution: 3}),
+		new AY_3_8910({clock: 1500000, resolution: 3}),
+		new AY_3_8910({clock: 1500000, resolution: 3}),
+		new SoundEffect({se: game.se, freq: 48000, gain: 0.2}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

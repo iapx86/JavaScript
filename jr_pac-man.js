@@ -5,9 +5,9 @@
  */
 
 import PacManSound from './pac-man_sound.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
-let sound;
+let game, sound;
 
 class JrPacMan {
 	static patched = false;
@@ -18,6 +18,7 @@ class JrPacMan {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -77,6 +78,8 @@ class JrPacMan {
 			this.cpu.memorymap[0x80 + i].base = PRG.base[0x40 + i];
 		for (let i = 0; i < 0x100; i++)
 			this.cpu.iomap[i].write = (addr, data) => void((addr & 0xff) === 0 && (this.vector = data));
+
+		JrPacMan.patchROM();
 
 		// Videoの初期化
 		this.convertRGB();
@@ -560,11 +563,9 @@ function success(zip) {
 	RGB_H = new Uint8Array(zip.files['a290-27axv-cxhd.9f'].inflate().split('').map(c => c.charCodeAt(0)));
 	COLOR = new Uint8Array(zip.files['a290-27axv-axhd.9p'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['a290-27axv-dxhd.7p'].inflate().split('').map(c => c.charCodeAt(0)));
-	JrPacMan.patchROM();
-	init({
-		game: new JrPacMan(),
-		sound: sound = new PacManSound({SND}),
-	});
-	loop();
+	game = new JrPacMan();
+	sound = new PacManSound({SND});
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

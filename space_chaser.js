@@ -4,8 +4,9 @@
  *
  */
 
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import I8080 from './i8080.js';
+let game;
 
 class SpaceChaser {
 	cxScreen = 224;
@@ -14,6 +15,7 @@ class SpaceChaser {
 	height = 256;
 	xOffset = 0;
 	yOffset = 0;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -47,7 +49,7 @@ class SpaceChaser {
 		}
 		for (let i = 0; i < 0x20; i++) {
 			this.cpu.memorymap[0xc0 + i].base = this.ram.base[0x20 + i];
-			this.cpu.memorymap[0xc0 + i].write = (addr, data) => void(this.ram[0x2000 + (addr & 0x1f9f)] = data);
+			this.cpu.memorymap[0xc0 + i].write = (addr, data) => void(this.ram[0x2000 | addr & 0x1f9f] = data);
 		}
 		this.cpu.iomap.base = this.io;
 		this.cpu.iomap.write = (addr, data) => {
@@ -58,7 +60,7 @@ class SpaceChaser {
 //				check_sound3(this, data);
 				return void(this.background_disable = (data & 8) !== 0, this.background_select = (data & 0x10) !== 0);
 			case 0x04:
-				this.io[3] = (data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift)) & 0xff;
+				this.io[3] = data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift);
 				return void(this.shifter.reg = data);
 			case 0x05:
 //				check_sound5(this, data);
@@ -271,7 +273,8 @@ function success(zip) {
 	PRG1 = new Uint8Array((PRG1 + zip.files['rt18.bin'].inflate() + zip.files['rt19.bin'].inflate() + zip.files['rt20.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	PRG2 = new Uint8Array((zip.files['rt21.bin'].inflate() + zip.files['rt22.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	MAP = new Uint8Array(zip.files['rt06.ic2'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({game: new SpaceChaser()});
-	loop();
+	game = new SpaceChaser();
+	canvas.addEventListener('click', () => game.coin());
+	init({game});
 }
 

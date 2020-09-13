@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -16,6 +16,7 @@ class StrategyX {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = true;
 
 	fReset = false;
 	fTest = false;
@@ -572,15 +573,12 @@ function success(zip) {
 	BG = new Uint8Array((zip.files['5f_c2.bin'].inflate() + zip.files['5h_c1.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
 	RGB = new Uint8Array(zip.files['strategy.6e'].inflate().split('').map(c => c.charCodeAt(0)));
 	MAP = new Uint8Array(zip.files['strategy.10k'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: game = new StrategyX(),
-		sound: sound = [
-			new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.2}),
-			new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.2}),
-		],
-		rotate: true,
-		keydown, keyup
-	});
-	loop();
+	game = new StrategyX();
+	sound = [
+		new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.2}),
+		new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.2}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound, keydown, keyup});
 }
 

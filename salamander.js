@@ -7,10 +7,10 @@
 import YM2151 from './ym2151.js';
 import K007232 from './k007232.js';
 import VLM5030 from './vlm5030.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import MC68000 from  './mc68000.js';
 import Z80 from './z80.js';
-let sound;
+let game, sound;
 
 class Salamander {
 	cxScreen = 224;
@@ -19,6 +19,7 @@ class Salamander {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = true;
 
 	fReset = true;
 	fTest = false;
@@ -585,15 +586,13 @@ function success(zip) {
 	PRG2 = new Uint8Array(zip.files['587-d09.11j'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	VLM = new Uint8Array(zip.files['587-d08.8g'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	SND = new Uint8Array(zip.files['587-c01.10a'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new Salamander(),
-		sound: sound = [
-			new YM2151({clock: 14318180 / 4, resolution: 58, gain: 10}),
-			new K007232({SND, clock: 14318180 / 4, resolution: 58, gain: 0.5}),
-			new VLM5030({VLM, clock: 14318180 / 4, gain: 5}),
-		],
-		rotate: true,
-	});
-	loop();
+	game = new Salamander();
+	sound = [
+		new YM2151({clock: 14318180 / 4, resolution: 58, gain: 10}),
+		new K007232({SND, clock: 14318180 / 4, resolution: 58, gain: 0.5}),
+		new VLM5030({VLM, clock: 14318180 / 4, gain: 5}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

@@ -4,8 +4,9 @@
  *
  */
 
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import I8080 from './i8080.js';
+let game;
 
 class SpaceInvaders {
 	cxScreen = 224;
@@ -14,6 +15,7 @@ class SpaceInvaders {
 	height = 256;
 	xOffset = 0;
 	yOffset = 0;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -56,7 +58,7 @@ class SpaceInvaders {
 //				check_sound3(this, data);
 				return void(this.screen_red = (data & 4) !== 0);
 			case 0x04:
-				this.io[3] = (data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift)) & 0xff;
+				this.io[3] = data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift);
 				return void(this.shifter.reg = data);
 			case 0x05:
 //				check_sound5(this, data);
@@ -261,7 +263,8 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 function success(zip) {
 	PRG = new Uint8Array((zip.files['sicv/cv17.36'].inflate() + zip.files['sicv/cv18.35'].inflate() + zip.files['sicv/cv19.34'].inflate() + zip.files['sicv/cv20.33'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	MAP = new Uint8Array(zip.files['sicv/cv01.1'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({game: new SpaceInvaders()});
-	loop();
+	game = new SpaceInvaders();
+	canvas.addEventListener('click', () => game.coin());
+	init({game});
 }
 

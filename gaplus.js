@@ -6,7 +6,7 @@
 
 import MappySound from './mappy_sound.js';
 import SoundEffect from './sound_effect.js';
-import Cpu, {init, loop} from './main.js';
+import Cpu, {init} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -17,6 +17,7 @@ class Gaplus {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -1545,13 +1546,12 @@ function success(zip) {
 	OBJCOLOR_L = new Uint8Array(zip.files['gp2-6.6p'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJCOLOR_H = new Uint8Array(zip.files['gp2-5.6n'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['gp2-4.3f'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: game = new Gaplus(),
-		sound: sound = [
-			new MappySound({SND}),
-			new SoundEffect({se: game.se, freq: 11025, gain: 0.75}),
-		],
-	});
-	loop();
+	game = new Gaplus();
+	sound = [
+		new MappySound({SND}),
+		new SoundEffect({se: game.se, freq: 11025, gain: 0.75}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -16,6 +16,7 @@ class RoyalMahjong {
 	height = 256;
 	xOffset = 0;
 	yOffset = 0;
+	rotate = true;
 
 	fReset = false;
 	fTest = false;
@@ -433,12 +434,9 @@ function success(zip) {
 	PRG = zip.files['1.p1'].inflate() + zip.files['2.p2'].inflate() + zip.files['3.p3'].inflate() + zip.files['4.p4'].inflate();
 	PRG = new Uint8Array((PRG + zip.files['5.p5'].inflate() + zip.files['6.p6'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	RGB = new Uint8Array(zip.files['18s030n.6k'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: game = new RoyalMahjong(),
-		sound: sound = new AY_3_8910({clock: 1536000, gain: 0.2}),
-		rotate: true,
-		keydown, keyup
-	});
-	loop();
+	game = new RoyalMahjong();
+	sound = new AY_3_8910({clock: 1536000, gain: 0.2});
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound, keydown, keyup});
 }
 

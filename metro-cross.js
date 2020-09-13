@@ -5,10 +5,10 @@
  */
 
 import C30 from './c30.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
-let sound;
+let game, sound;
 
 class MetroCross {
 	cxScreen = 224;
@@ -17,6 +17,7 @@ class MetroCross {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = true;
 
 	fReset = true;
 	fTest = false;
@@ -753,11 +754,9 @@ function success(zip) {
 	OBJ = new Uint8Array((zip.files['mc1-8.8k'].inflate() + zip.files['mc1-9.8l'].inflate()).split('').map(c => c.charCodeAt(0)));
 	GREEN = new Uint8Array(zip.files['mc1-1.1n'].inflate().split('').map(c => c.charCodeAt(0)));
 	RED = new Uint8Array(zip.files['mc1-2.2m'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new MetroCross(),
-		sound: sound = new C30(),
-		rotate: true,
-	});
-	loop();
+	game = new MetroCross();
+	sound = new C30();
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

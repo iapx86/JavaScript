@@ -5,10 +5,10 @@
  */
 
 import C30 from './c30.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
-let sound;
+let game, sound;
 
 class PacLand {
 	cxScreen = 224;
@@ -17,6 +17,7 @@ class PacLand {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = true;
 
 	fReset = true;
 	fTest = false;
@@ -906,11 +907,9 @@ function success(zip) {
 	FGCOLOR = new Uint8Array(zip.files['pl1-5.5t'].inflate().split('').map(c => c.charCodeAt(0)));
 	BGCOLOR = new Uint8Array(zip.files['pl1-4.4n'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJCOLOR = new Uint8Array(zip.files['pl1-3.6l'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new PacLand(),
-		sound: sound = new C30(),
-		rotate: true,
-	});
-	loop();
+	game = new PacLand();
+	sound = new C30();
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

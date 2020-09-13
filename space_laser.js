@@ -4,8 +4,9 @@
  *
  */
 
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import I8080 from './i8080.js';
+let game;
 
 class SpaceLaser {
 	cxScreen = 224;
@@ -14,6 +15,7 @@ class SpaceLaser {
 	height = 256;
 	xOffset = 0;
 	yOffset = 0;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -53,7 +55,7 @@ class SpaceLaser {
 //				this.screen_red = (data & 4) !== 0;
 				return;
 			case 0x04:
-				this.io[3] = (data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift)) & 0xff;
+				this.io[3] = data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift);
 				return void(this.shifter.reg = data);
 			case 0x05:
 //				check_sound5(this, data);
@@ -178,8 +180,7 @@ class SpaceLaser {
 		for (let p = 256 * 8 * 31, k = 0x0400, i = 256 >> 3; i !== 0; --i) {
 			for (let j = 224 >> 2; j !== 0; k += 0x80, p += 4, --j) {
 //				const color = rgb[this.screen_red ? 1 : MAP[k >> 3 & 0x3e0 | k & 0x1f] & 7];
-				const color = rgb[7];
-				const back = rgb[0];
+				const color = rgb[7], back = rgb[0];
 				let a = this.ram[k];
 				data[p + 7 * 256] = (a & 1) !== 0 ? color : back;
 				data[p + 6 * 256] = (a & 2) !== 0 ? color : back;
@@ -236,7 +237,8 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 
 function success(zip) {
 	PRG = new Uint8Array((zip.files['la01'].inflate() + zip.files['la02'].inflate() + zip.files['la03'].inflate() + zip.files['la04'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	init({game: new SpaceLaser()});
-	loop();
+	game = new SpaceLaser();
+	canvas.addEventListener('click', () => game.coin());
+	init({game});
 }
 

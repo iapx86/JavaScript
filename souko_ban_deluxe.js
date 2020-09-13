@@ -7,10 +7,10 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import Dac8Bit2Ch from './dac_8bit_2ch.js';
-import Cpu, {dummypage, init, loop} from './main.js';
+import Cpu, {dummypage, init} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
-let sound;
+let game, sound;
 
 class SoukoBanDeluxe {
 	cxScreen = 224;
@@ -19,6 +19,7 @@ class SoukoBanDeluxe {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = true;
 
 	fReset = true;
 	fTest = false;
@@ -802,15 +803,13 @@ function success(zip) {
 	CHR = zip.files['sb1_chr0.bin'].inflate() + zip.files['sb1_chr1.bin'].inflate() + zip.files['sb1_chr2.bin'].inflate();
 	CHR = new Uint8Array((CHR + zip.files['sb1_chr3.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
 	OBJ = new Uint8Array(zip.files['sb1_obj0.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new SoukoBanDeluxe(),
-		sound: sound = [
-			new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
-			new C30({clock: 49152000 / 2048 / 2, resolution: 58}),
-			new Dac8Bit2Ch({resolution: 100, gain: 0.5}),
-		],
-		rotate: true,
-	});
-	loop();
+	game = new SoukoBanDeluxe();
+	sound = [
+		new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
+		new C30({clock: 49152000 / 2048 / 2, resolution: 58}),
+		new Dac8Bit2Ch({resolution: 100, gain: 0.5}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

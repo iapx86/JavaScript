@@ -6,7 +6,7 @@
 
 import PacManSound from './pac-man_sound.js';
 import SoundEffect from './sound_effect.js';
-import Cpu, {init, loop, dummypage} from './main.js';
+import Cpu, {dummypage, init} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -17,6 +17,7 @@ class Bosconian {
 	height = 512;
 	xOffset = 16;
 	yOffset = 19;
+	rotate = true;
 
 	fReset = false;
 	fTest = false;
@@ -3987,14 +3988,12 @@ function success(zip) {
 	RGB = new Uint8Array(zip.files['bos1-6.6b'].inflate().split('').map(c => c.charCodeAt(0)));
 	BGCOLOR = new Uint8Array(zip.files['bos1-5.4m'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['bos1-1.1d'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: game = new Bosconian(),
-		sound: sound = [
-			new PacManSound({SND, resolution: 2}),
-			new SoundEffect({se: game.se, freq: 11025, gain: 0.5}),
-		],
-		rotate: true,
-	});
-	loop();
+	game = new Bosconian();
+	sound = [
+		new PacManSound({SND, resolution: 2}),
+		new SoundEffect({se: game.se, freq: 11025, gain: 0.5}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

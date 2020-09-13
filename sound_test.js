@@ -5,7 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
-import {init, loop, canvas} from './main.js';
+import {init} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -16,6 +16,7 @@ class SoundTest {
 	height = 256;
 	xOffset = 0;
 	yOffset = 0;
+	rotate = false;
 
 	fReset = true;
 	nSound = 0;
@@ -155,10 +156,8 @@ window.addEventListener('load', () => {
 function success(zip) {
 	PRG2 = new Uint8Array(zip.files['2c.rom'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	SND = new Uint8Array(zip.files['lr1-4.3d'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: game = new SoundTest(),
-		sound: sound = new MappySound({SND}),
-	});
+	game = new SoundTest();
+	sound = new MappySound({SND});
 	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
@@ -169,6 +168,6 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
-	loop();
+	init({game, sound});
 }
 

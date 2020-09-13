@@ -5,9 +5,9 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
-let sound;
+let game, sound;
 
 class ZigZag {
 	cxScreen = 224;
@@ -16,6 +16,7 @@ class ZigZag {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -495,10 +496,9 @@ function success(zip) {
 	BG = new Uint8Array((zip.files['zz_6.1h'].inflate().substring(0, 0x800) + zip.files['zz_5.1k'].inflate().substring(0, 0x800)).split('').map(c => c.charCodeAt(0)));
 	OBJ = new Uint8Array((zip.files['zz_6.1h'].inflate().substring(0x800) + zip.files['zz_5.1k'].inflate().substring(0x800)).split('').map(c => c.charCodeAt(0)));
 	RGB = new Uint8Array(zip.files['zzbpr_e9.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new ZigZag(),
-		sound: sound = new AY_3_8910({clock: 1843200}),
-	});
-	loop();
+	game = new ZigZag();
+	sound = new AY_3_8910({clock: 1843200});
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

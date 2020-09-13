@@ -5,9 +5,9 @@
  */
 
 import SoundEffect from './sound_effect.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import I8080 from './i8080.js';
-let game;
+let game, sound;
 
 class WarpAndWarp {
 	cxScreen = 224;
@@ -16,6 +16,7 @@ class WarpAndWarp {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -3592,13 +3593,12 @@ window.addEventListener('load', () => $.ajax({url, success, error: () => alert(u
 function success(zip) {
 	PRG = new Uint8Array((zip.files['ww1_prg1.s10'].inflate() + zip.files['ww1_prg2.s8'].inflate() + zip.files['ww1_prg3.s4'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	BG = new Uint8Array(zip.files['ww1_chg1.s12'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	init({
-		game: game = new WarpAndWarp(),
-		sound: [
-			new WarpAndWarpSound(),
-			new SoundEffect({se: game.se, freq: 22050, gain:0.5}),
-		],
-	});
-	loop();
+	game = new WarpAndWarp();
+	sound = [
+		new WarpAndWarpSound(),
+		new SoundEffect({se: game.se, freq: 22050, gain:0.5}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

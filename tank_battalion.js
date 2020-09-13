@@ -5,9 +5,9 @@
  */
 
 import SoundEffect from  './sound_effect.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import MCS6502 from './mcs6502.js';
-let game;
+let game, sound;
 
 class TankBattalion {
 	cxScreen = 224;
@@ -16,6 +16,7 @@ class TankBattalion {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -3342,10 +3343,9 @@ function success(zip) {
 	PRG = new Uint8Array((zip.files['tb1-1.1a'].inflate() + zip.files['tb1-2.1b'].inflate() + zip.files['tb1-3.1c'].inflate() + zip.files['tb1-4.1d'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	BG = new Uint8Array(zip.files['tb1-5.2k'].inflate().split('').map(c => c.charCodeAt(0)));
 	RGB = new Uint8Array(zip.files['bct1-1.l3'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: game = new TankBattalion(),
-		sound: new SoundEffect({se: game.se, freq: 22050, gain: 0.5}),
-	});
-	loop();
+	game = new TankBattalion();
+	sound = new SoundEffect({se: game.se, freq: 22050, gain: 0.5});
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

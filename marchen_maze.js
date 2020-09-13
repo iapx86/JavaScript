@@ -7,10 +7,10 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import Dac8Bit2Ch from './dac_8bit_2ch.js';
-import Cpu, {dummypage, init, loop} from './main.js';
+import Cpu, {dummypage, init} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
-let sound;
+let game, sound;
 
 class MarchenMaze {
 	cxScreen = 224;
@@ -19,6 +19,7 @@ class MarchenMaze {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = true;
 
 	fReset = true;
 	fTest = false;
@@ -825,15 +826,13 @@ function success(zip) {
 	OBJ = zip.files['mm_obj-0.bin'].inflate() + zip.files['mm_obj-1.bin'].inflate() + zip.files['mm_obj-2.bin'].inflate();
 	OBJ = new Uint8Array((OBJ + zip.files['mm_obj-3.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
 	NVRAM = new Uint8Array(zip.files['mmaze.nv'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new MarchenMaze(),
-		sound: sound = [
-			new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
-			new C30({clock: 49152000 / 2048 / 2, resolution: 58}),
-			new Dac8Bit2Ch({resolution: 100, gain: 0.5}),
-		],
-		rotate: true,
-	});
-	loop();
+	game = new MarchenMaze();
+	sound = [
+		new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
+		new C30({clock: 49152000 / 2048 / 2, resolution: 58}),
+		new Dac8Bit2Ch({resolution: 100, gain: 0.5}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

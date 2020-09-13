@@ -5,7 +5,7 @@
  */
 
 import YM2151 from './ym2151.js';
-import {init, loop, canvas} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -16,6 +16,7 @@ class SoundTest {
 	height = 256;
 	xOffset = 0;
 	yOffset = 0;
+	rotate = false;
 
 	fReset = true;
 	nSound = 1;
@@ -199,10 +200,8 @@ window.addEventListener('load', () => {
 function success(zip) {
 	zip.files['xmultiplm72/xm_c-h0-.ic40'].inflate().split('').forEach((c, i) => PRG[1 | i << 1] = c.charCodeAt(0));
 	zip.files['xmultiplm72/xm_c-l0-.ic37'].inflate().split('').forEach((c, i) => PRG[i << 1] = c.charCodeAt(0));
-	init({
-		game: game = new SoundTest(),
-		sound: sound = new YM2151({clock: 3579545, resolution: 58, gain: 2}),
-	});
+	game = new SoundTest();
+	sound = new YM2151({clock: 3579545, resolution: 58, gain: 2});
 	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
@@ -213,6 +212,6 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
-	loop();
+	init({game, sound});
 }
 

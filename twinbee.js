@@ -7,7 +7,7 @@
 import AY_3_8910 from './ay-3-8910.js';
 import K005289 from './k005289.js';
 import VLM5030 from './vlm5030.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import MC68000 from  './mc68000.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -19,6 +19,7 @@ class TwinBee {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = true;
 	fTest = false;
@@ -623,15 +624,14 @@ function success(zip) {
 	zip.files['412-a05.12l'].inflate().split('').forEach((c, i) => PRG1[0x10001 + (i << 1)] = c.charCodeAt(0));
 	PRG2 = new Uint8Array(zip.files['400-e03.5l'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	SND = new Uint8Array((zip.files['400-a01.fse'].inflate() + zip.files['400-a02.fse'].inflate()).split('').map(c => c.charCodeAt(0)));
-	init({
-		game: game = new TwinBee(),
-		sound: sound = [
-			new AY_3_8910({clock: 14318180 / 8, resolution: 58, gain: 0.3}),
-			new AY_3_8910({clock: 14318180 / 8, resolution: 58, gain: 0.3}),
-			new K005289({SND, clock: 14318180 / 4, resolution: 58, gain: 0.3}),
-			new VLM5030({VLM: game.vlm, clock: 14318180 / 4, gain: 5}),
-		],
-	});
-	loop();
+	game = new TwinBee();
+	sound = [
+		new AY_3_8910({clock: 14318180 / 8, resolution: 58, gain: 0.3}),
+		new AY_3_8910({clock: 14318180 / 8, resolution: 58, gain: 0.3}),
+		new K005289({SND, clock: 14318180 / 4, resolution: 58, gain: 0.3}),
+		new VLM5030({VLM: game.vlm, clock: 14318180 / 4, gain: 5}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

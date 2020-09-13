@@ -5,7 +5,7 @@
  */
 
 import PolePositionSound from './pole_position_sound.js';
-import {init, loop, canvas} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -16,6 +16,7 @@ class SoundTest {
 	height = 256;
 	xOffset = 0;
 	yOffset = 0;
+	rotate = false;
 
 	fReset = true;
 	nSound = 0;
@@ -43,7 +44,7 @@ class SoundTest {
 		}
 		this.cpu.memorymap[0x90].base = this.ram.base[0x20];
 		this.cpu.memorymap[0x90].write = null;
-		this.cpu.memorymap[0x91].page = this.ram.base[0x21];
+		this.cpu.memorymap[0x91].base = this.ram.base[0x21];
 		this.cpu.memorymap[0x91].write = null;
 		this.cpu.memorymap[0xa0].write = (addr, data) => {
 			if ((addr & 0xff) === 0)
@@ -162,12 +163,10 @@ class SoundTest {
 			reg[i] = sound.read(0x3c0 + i);
 
 		for (let i = 0; i < 8; i++) {
-			const vol = reg[2 + i * 4] >> 4 || reg[3 + i * 4] >> 4 || reg[3 + i * 4] & 0x0f || reg[0x23 + i * 4] >> 4;
-			if (vol === 0)
-				continue;
 			const freq = reg[i * 4] << 1 | reg[1 + i * 4] << 9;
+			const vol = reg[2 + i * 4] >> 4 || reg[3 + i * 4] >> 4 || reg[3 + i * 4] & 0x0f || reg[0x23 + i * 4] >> 4;
 			const pitch = Math.floor(Math.log2(freq * 48000 / (1 << 21) / 440) * 12 + 45.5);
-			if (pitch < 0 || pitch >= 12 * 8)
+			if (vol === 0 || pitch < 0 || pitch >= 12 * 8)
 				continue;
 			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
 		}
@@ -203,10 +202,8 @@ window.addEventListener('load', () => {
 function success(zip) {
 	PRG = new Uint8Array((zip.files['pp4_9.6h'].inflate() + zip.files['pp4_10.5h'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	SND = new Uint8Array(zip.files['pp1-5.3b'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	init({
-		game: game = new SoundTest(),
-		sound: sound = new PolePositionSound({SND, resolution: 2}),
-	});
+	game = new SoundTest();
+	sound = new PolePositionSound({SND, resolution: 2});
 	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
@@ -217,6 +214,6 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
-	loop();
+	init({game, sound});
 }
 

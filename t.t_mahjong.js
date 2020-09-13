@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import Cpu, {init, loop} from './main.js';
+import Cpu, {init} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -16,6 +16,7 @@ class TTMahjong {
 	height = 256;
 	xOffset = 0;
 	yOffset = 0;
+	rotate = true;
 
 	fReset = false;
 	fTest = false;
@@ -308,12 +309,9 @@ function success(zip) {
 	PRG2 = new Uint8Array((zip.files['ju01'].inflate() + zip.files['ju02'].inflate() + zip.files['ju08'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	COLOR1 = new Uint8Array(zip.files['ju03'].inflate().split('').map(c => c.charCodeAt(0)));
 	COLOR2 = new Uint8Array(zip.files['ju09'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: game = new TTMahjong(),
-		sound: sound = new AY_3_8910({clock: 1250000, gain: 0.2}),
-		rotate: true,
-		keydown, keyup,
-	});
-	loop();
+	game = new TTMahjong();
+	sound = new AY_3_8910({clock: 1250000, gain: 0.2});
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound, keydown, keyup});
 }
 

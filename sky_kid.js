@@ -5,10 +5,10 @@
  */
 
 import C30 from './c30.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
-let sound;
+let game, sound;
 
 class SkyKid {
 	cxScreen = 224;
@@ -17,6 +17,7 @@ class SkyKid {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = true;
 
 	fReset = true;
 	fTest = false;
@@ -820,11 +821,9 @@ function success(zip) {
 	BLUE = new Uint8Array(zip.files['sk1-3.2r'].inflate().split('').map(c => c.charCodeAt(0)));
 	BGCOLOR = new Uint8Array(zip.files['sk1-4.5n'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJCOLOR = new Uint8Array(zip.files['sk1-5.6n'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new SkyKid(),
-		sound: sound = new C30(),
-		rotate: true,
-	});
-	loop();
+	game = new SkyKid();
+	sound = new C30();
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

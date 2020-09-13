@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import SoundEffect from './sound_effect.js';
-import Cpu, {init, loop} from './main.js';
+import Cpu, {init} from './main.js';
 import Z80 from './z80.js';
 let game, sound, pcm = [];
 
@@ -17,6 +17,7 @@ class TimeTunnel {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = true;
 
 	fReset = false;
 	fTest = false;
@@ -54,12 +55,12 @@ class TimeTunnel {
 	colorbank = new Uint8Array(2);
 	mode = 0;
 
-	se = pcm.map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+	se;
 
 	cpu = new Z80();
 	cpu2 = new Z80();
 
-	constructor() {
+	constructor(rate) {
 		// CPU周りの初期化
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[i].base = PRG1.base[i];
@@ -225,6 +226,10 @@ class TimeTunnel {
 		for (let i = 0; i < 4; i++)
 			this.layer.push(new Uint8Array(this.width * this.height));
 		this.convertPRI();
+
+		// 効果音の初期化
+		TimeTunnel.convertPCM(rate);
+		this.se = pcm.map(buf => ({buf: buf, loop: false, start: false, stop: false}));
 	}
 
 	execute() {
@@ -415,8 +420,8 @@ class TimeTunnel {
 		}
 	}
 
-	static convertPCM() {
-		const clock = 3000000, rate = 48000;
+	static convertPCM(rate) {
+		const clock = 3000000;
 
 		for (let idx = 1; idx < 16; idx++) {
 			const desc1 = PRG2[0x05f3 + idx * 2] | PRG2[0x05f3 + idx * 2 + 1] << 8;
@@ -796,18 +801,15 @@ function success(zip) {
 	GFX = zip.files['un11.1'].inflate() + zip.files['un12.2'].inflate() + zip.files['un13.3'].inflate() + zip.files['un14.4'].inflate() + zip.files['un15.5'].inflate();
 	GFX = new Uint8Array((GFX + zip.files['un16.6'].inflate() + zip.files['un17.7'].inflate() + zip.files['un18.8'].inflate()).split('').map(c => c.charCodeAt(0)));
 	PRI = new Uint8Array(zip.files['eb16.22'].inflate().split('').map(c => c.charCodeAt(0)));
-	TimeTunnel.convertPCM();
-	init({
-		game: game = new TimeTunnel(),
-		sound: sound = [
-			new AY_3_8910({clock: 1500000, resolution: 3}),
-			new AY_3_8910({clock: 1500000, resolution: 3}),
-			new AY_3_8910({clock: 1500000, resolution: 3}),
-			new AY_3_8910({clock: 1500000, resolution: 3}),
-			new SoundEffect({se: game.se, freq: 48000, gain: 0.2}),
-		],
-		rotate: true,
-	});
-	loop();
+	game = new TimeTunnel(48000);
+	sound = [
+		new AY_3_8910({clock: 1500000, resolution: 3}),
+		new AY_3_8910({clock: 1500000, resolution: 3}),
+		new AY_3_8910({clock: 1500000, resolution: 3}),
+		new AY_3_8910({clock: 1500000, resolution: 3}),
+		new SoundEffect({se: game.se, freq: 48000, gain: 0.2}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

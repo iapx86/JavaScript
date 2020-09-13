@@ -7,10 +7,10 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import Dac8Bit2Ch from './dac_8bit_2ch.js';
-import Cpu, {dummypage, init, loop} from './main.js';
+import Cpu, {dummypage, init} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
-let sound;
+let game, sound;
 
 class Galaga88 {
 	cxScreen = 224;
@@ -19,6 +19,7 @@ class Galaga88 {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = true;
 	fTest = false;
@@ -818,14 +819,13 @@ function success(zip) {
 	CHR = new Uint8Array((CHR + zip.files['g8_chr-3.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
 	OBJ = zip.files['g8_obj-0.bin'].inflate() + zip.files['g8_obj-1.bin'].inflate() + zip.files['g8_obj-2.bin'].inflate() + zip.files['g8_obj-3.bin'].inflate();
 	OBJ = new Uint8Array((OBJ + zip.files['g8_obj-4.bin'].inflate() + zip.files['g8_obj-5.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new Galaga88(),
-		sound: sound = [
-			new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
-			new C30({clock: 49152000 / 2048 / 2, resolution: 58}),
-			new Dac8Bit2Ch({resolution: 100, gain: 0.5}),
-		],
-	});
-	loop();
+	game = new Galaga88();
+	sound = [
+		new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
+		new C30({clock: 49152000 / 2048 / 2, resolution: 58}),
+		new Dac8Bit2Ch({resolution: 100, gain: 0.5}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

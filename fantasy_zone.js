@@ -5,10 +5,10 @@
  */
 
 import YM2151 from './ym2151.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import MC68000 from  './mc68000.js';
 import Z80 from './z80.js';
-let sound;
+let game, sound;
 
 class FantasyZone {
 	cxScreen = 224;
@@ -17,6 +17,7 @@ class FantasyZone {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = true;
 
 	fReset = true;
 	fTest = false;
@@ -603,11 +604,9 @@ function success(zip) {
 	zip.files['epr-7394.23'].inflate().split('').forEach((c, i) => OBJ[0x20001 | i << 1] = c.charCodeAt(0));
 	zip.files['epr-7398.24'].inflate().split('').forEach((c, i) => OBJ[0x20000 | i << 1] = c.charCodeAt(0));
 	PRG2 = new Uint8Array(zip.files['epr-7535a.12'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	init({
-		game: new FantasyZone(),
-		sound: sound = new YM2151({clock: 4000000, resolution: 65}),
-		rotate: true,
-	});
-	loop();
+	game = new FantasyZone();
+	sound = new YM2151({clock: 4000000, resolution: 65});
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

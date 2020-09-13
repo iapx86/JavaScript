@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import SoundEffect from  './sound_effect.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -17,6 +17,7 @@ class JumpBug {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -1658,13 +1659,12 @@ function success(zip) {
 	BG = zip.files['jbl'].inflate() + zip.files['jbn'].inflate() + zip.files['jbm'].inflate() + zip.files['jbi'].inflate();
 	BG = new Uint8Array((BG + zip.files['jbk'].inflate() + zip.files['jbj'].inflate()).split('').map(c => c.charCodeAt(0)));
 	RGB = new Uint8Array(zip.files['l06_prom.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: game = new JumpBug(),
-		sound: sound = [
-			new AY_3_8910({clock: 1536000}),
-			new SoundEffect({se: game.se, freq: 11025, gain: 0.3}),
-		],
-	});
-	loop();
+	game = new JumpBug();
+	sound = [
+		new AY_3_8910({clock: 1536000}),
+		new SoundEffect({se: game.se, freq: 11025, gain: 0.3}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

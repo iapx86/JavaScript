@@ -5,9 +5,9 @@
  */
 
 import MappySound from './mappy_sound.js';
-import Cpu, {init, loop} from './main.js';
+import Cpu, {init} from './main.js';
 import MC6809 from './mc6809.js';
-let sound;
+let game, sound;
 
 class Mappy {
 	cxScreen = 224;
@@ -16,6 +16,7 @@ class Mappy {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -664,10 +665,9 @@ function success(zip) {
 	BGCOLOR = new Uint8Array(zip.files['mp1-6.4c'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJCOLOR = new Uint8Array(zip.files['mp1-7.5k'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['mp1-3.3m'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new Mappy(),
-		sound: sound = new MappySound({SND}),
-	});
-	loop();
+	game = new Mappy();
+	sound = new MappySound({SND});
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

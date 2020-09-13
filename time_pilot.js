@@ -5,9 +5,9 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
-let sound;
+let game, sound;
 
 class TimePilot {
 	cxScreen = 224;
@@ -16,6 +16,7 @@ class TimePilot {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -726,13 +727,12 @@ function success(zip) {
 	RGB_L = new Uint8Array(zip.files['timeplt.b5'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJCOLOR = new Uint8Array(zip.files['timeplt.e9'].inflate().split('').map(c => c.charCodeAt(0)));
 	BGCOLOR = new Uint8Array(zip.files['timeplt.e12'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new TimePilot(),
-		sound: sound = [
-			new AY_3_8910({clock: 14318181 / 8, resolution: 58, gain: 0.2}),
-			new AY_3_8910({clock: 14318181 / 8, resolution: 58, gain: 0.2}),
-		],
-	});
-	loop();
+	game = new TimePilot();
+	sound = [
+		new AY_3_8910({clock: 14318181 / 8, resolution: 58, gain: 0.2}),
+		new AY_3_8910({clock: 14318181 / 8, resolution: 58, gain: 0.2}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

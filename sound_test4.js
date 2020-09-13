@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
-import {init, loop, canvas} from './main.js';
+import {init} from './main.js';
 import MC6801 from './mc6801.js';
 let game, sound;
 
@@ -17,6 +17,7 @@ class SoundTest {
 	height = 256;
 	xOffset = 0;
 	yOffset = 0;
+	rotate = false;
 
 	fReset = true;
 	nSound = 0;
@@ -199,13 +200,11 @@ window.addEventListener('load', () => {
 function success(zip) {
 	PRG3 = new Uint8Array(zip.files['hm1_3.6b'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	PRG3I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	init({
-		game: game = new SoundTest(),
-		sound: sound = [
-			new YM2151({clock: 3579580}),
-			new C30(),
-		],
-	});
+	game = new SoundTest();
+	sound = [
+		new YM2151({clock: 3579580}),
+		new C30(),
+	];
 	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
@@ -216,6 +215,6 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
-	loop();
+	init({game, sound});
 }
 

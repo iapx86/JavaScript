@@ -5,9 +5,9 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import Cpu, {init, loop} from './main.js';
+import Cpu, {init} from './main.js';
 import Z80 from './z80.js';
-let sound;
+let game, sound;
 
 class Vulgus {
 	cxScreen = 224;
@@ -16,6 +16,7 @@ class Vulgus {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = true;
 	fTest = false;
@@ -496,13 +497,12 @@ function success(zip) {
 	FGCOLOR = new Uint8Array(zip.files['d1.bin'].inflate().split('').map(c => c.charCodeAt(0)));
 	BGCOLOR = new Uint8Array(zip.files['c9.bin'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJCOLOR = new Uint8Array(zip.files['j2.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new Vulgus(),
-		sound: sound = [
-			new AY_3_8910({clock: 1500000, resolution: 8}),
-			new AY_3_8910({clock: 1500000, resolution: 8}),
-		],
-	});
-	loop();
+	game = new Vulgus();
+	sound = [
+		new AY_3_8910({clock: 1500000, resolution: 8}),
+		new AY_3_8910({clock: 1500000, resolution: 8}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

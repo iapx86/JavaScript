@@ -6,7 +6,7 @@
 
 import GalaxianSound from './galaxian_sound.js';
 import SoundEffect from './sound_effect.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -17,6 +17,7 @@ class Galaxian {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -2745,13 +2746,12 @@ function success(zip) {
 	PRG = new Uint8Array((PRG + zip.files['7l'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	BG = new Uint8Array((zip.files['1h.bin'].inflate() + zip.files['1k.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
 	RGB = new Uint8Array(zip.files['6l.bpr'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: game = new Galaxian(),
-		sound: sound = [
-			new GalaxianSound({SND}),
-			new SoundEffect({se: game.se, freq: 11025, gain: 0.5}),
-		],
-	});
-	loop();
+	game = new Galaxian();
+	sound = [
+		new GalaxianSound({SND}),
+		new SoundEffect({se: game.se, freq: 11025, gain: 0.5}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

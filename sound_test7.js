@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import K007232 from './k007232.js';
 import VLM5030 from './vlm5030.js';
-import {init, loop, canvas} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -18,6 +18,7 @@ class SoundTest {
 	height = 256;
 	xOffset = 0;
 	yOffset = 0;
+	rotate = false;
 
 	fReset = true;
 	nSound = 1;
@@ -142,7 +143,7 @@ class SoundTest {
 	left(fDown = false) {
 		if (fDown)
 			return this;
-		if (++this.nSound < 1)
+		if (--this.nSound < 1)
 			this.nSound = 0xff;
 		return this;
 	}
@@ -206,14 +207,12 @@ function success(zip) {
 	PRG2 = new Uint8Array(zip.files['587-d09.11j'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	VLM = new Uint8Array(zip.files['587-d08.8g'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	SND = new Uint8Array(zip.files['587-c01.10a'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: game = new SoundTest(),
-		sound: sound = [
-			new YM2151({clock: 14318180 / 4, resolution: 58, gain: 10}),
-			new K007232({SND, clock: 14318180 / 4, resolution: 58, gain: 0.5}),
-			new VLM5030({VLM, clock: 14318180 / 4, gain: 5}),
-		],
-	});
+	game = new SoundTest();
+	sound = [
+		new YM2151({clock: 14318180 / 4, resolution: 58, gain: 10}),
+		new K007232({SND, clock: 14318180 / 4, resolution: 58, gain: 0.5}),
+		new VLM5030({VLM, clock: 14318180 / 4, gain: 5}),
+	];
 	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
@@ -224,6 +223,6 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
-	loop();
+	init({game, sound});
 }
 

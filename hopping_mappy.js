@@ -6,10 +6,10 @@
 
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
-import Cpu, {init, loop} from './main.js';
+import Cpu, {init} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
-let sound;
+let game, sound;
 
 class HoppingMappy {
 	cxScreen = 224;
@@ -18,6 +18,7 @@ class HoppingMappy {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = true;
 
 	fReset = true;
 	fTest = false;
@@ -687,14 +688,12 @@ function success(zip) {
 	BGADDR = new Uint8Array(zip.files['hm1-5.6u'].inflate().split('').map(c => c.charCodeAt(0)));
 	PRG3 = new Uint8Array(zip.files['hm1_3.6b'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	PRG3I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	init({
-		game: new HoppingMappy(),
-		sound: sound = [
-			new YM2151({clock: 3579580}),
-			new C30(),
-		],
-		rotate: true,
-	});
-	loop();
+	game = new HoppingMappy();
+	sound = [
+		new YM2151({clock: 3579580}),
+		new C30(),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

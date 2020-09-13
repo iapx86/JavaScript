@@ -5,9 +5,9 @@
  */
 
 import PacManSound from './pac-man_sound.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
-let sound;
+let game, sound;
 
 class KorosukeRoller {
 	cxScreen = 224;
@@ -16,6 +16,7 @@ class KorosukeRoller {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -537,10 +538,9 @@ function success(zip) {
 	RGB = new Uint8Array(zip.files['82s123.7f'].inflate().split('').map(c => c.charCodeAt(0)));
 	COLOR = new Uint8Array(zip.files['2s140.4a'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['82s126.1m'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new KorosukeRoller(),
-		sound: sound = new PacManSound({SND}),
-	});
-	loop();
+	game = new KorosukeRoller();
+	sound = new PacManSound({SND});
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

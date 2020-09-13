@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import Dac8Bit2Ch from './dac_8bit_2ch.js';
-import {dummypage, init, loop, canvas} from './main.js';
+import {dummypage, init} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -19,8 +19,9 @@ class SoundTest {
 	height = 256;
 	xOffset = 0;
 	yOffset = 0;
-	fReset = true;
+	rotate = false;
 
+	fReset = true;
 	nSound = 0;
 	command = [];
 
@@ -342,14 +343,12 @@ function success(zip) {
 	SND = new Uint8Array(zip.files['tf1_snd0.bin'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	MCU = new Uint8Array(zip.files['cus64-64a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	VOI = new Uint8Array((zip.files['tf1_voi0.bin'].inflate() + zip.files['tf1_voi1.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	init({
-		game: game = new SoundTest(),
-		sound: sound = [
-			new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
-			new C30({clock: 49152000 / 2048 / 2, resolution: 58}),
-			new Dac8Bit2Ch({resolution: 100, gain: 0.5}),
-		],
-	});
+	game = new SoundTest();
+	sound = [
+		new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
+		new C30({clock: 49152000 / 2048 / 2, resolution: 58}),
+		new Dac8Bit2Ch({resolution: 100, gain: 0.5}),
+	];
 	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
@@ -360,6 +359,6 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
-	loop();
+	init({game, sound});
 }
 

@@ -6,7 +6,7 @@
 
 import GalaxianSound from './galaxian_sound.js';
 import SoundEffect from './sound_effect.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -19,6 +19,7 @@ class MoonCresta {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -99,6 +100,8 @@ class MoonCresta {
 			}
 			else if (range(page, 0xb8, 0xb8, 0x07))
 				this.cpu.memorymap[page].write = (addr, data) => void(this.mmo[0x30] = data);
+
+		MoonCresta.decodeROM();
 
 		// Videoの初期化
 		for (let i = 0; i < 1024; i++)
@@ -1630,14 +1633,12 @@ function success(zip) {
 	PRG = new Uint8Array((PRG + zip.files['mc6.8d'].inflate() + zip.files['mc7.8e'].inflate() + zip.files['mc8'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	BG = new Uint8Array((zip.files['mcs_b'].inflate() + zip.files['mcs_d'].inflate() + zip.files['mcs_a'].inflate() + zip.files['mcs_c'].inflate()).split('').map(c => c.charCodeAt(0)));
 	RGB = new Uint8Array(zip.files['mmi6331.6l'].inflate().split('').map(c => c.charCodeAt(0)));
-	MoonCresta.decodeROM();
-	init({
-		game: game = new MoonCresta(),
-		sound: sound = [
-			new GalaxianSound({SND}),
-			new SoundEffect({se: game.se, freq: 11025, gain: 0.5}),
-		],
-	});
-	loop();
+	game = new MoonCresta();
+	sound = [
+		new GalaxianSound({SND}),
+		new SoundEffect({se: game.se, freq: 11025, gain: 0.5}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

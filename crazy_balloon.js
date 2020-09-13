@@ -4,8 +4,9 @@
  *
  */
 
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
+let game;
 
 class CrazyBalloon {
 	cxScreen = 224;
@@ -14,6 +15,7 @@ class CrazyBalloon {
 	height = 256;
 	xOffset = 0;
 	yOffset = 0;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -27,7 +29,6 @@ class CrazyBalloon {
 	fInterruptEnable = false;
 	ram = new Uint8Array(0x0c00).addBase();
 	io = new Uint8Array(0x100);
-	cpu = new Z80();
 
 	bg = new Uint8Array(0x4000);
 	obj = new Uint8Array(0x4000);
@@ -38,6 +39,8 @@ class CrazyBalloon {
 		0xff005555, 0xff005500, 0xff000055, 0xff000000,
 	);
 	objctrl = new Uint8Array(3);
+
+	cpu = new Z80();
 
 	constructor() {
 		// CPU周りの初期化
@@ -102,18 +105,16 @@ class CrazyBalloon {
 			this.fDIPSwitchChanged = false;
 			switch (this.nLife) {
 			case 2:
-				this.io[0] &= ~0x0c;
+				this.io[0] &= ~0xc;
 				break;
 			case 3:
-				this.io[0] |= 4;
-				this.io[0] &= ~8;
+				this.io[0] = this.io[0] & ~0xc | 4;
 				break;
 			case 4:
-				this.io[0] &= ~4;
-				this.io[0] |= 8;
+				this.io[0] = this.io[0] & ~0xc | 8;
 				break;
 			case 5:
-				this.io[0] |= 0x0c;
+				this.io[0] |= 0xc;
 				break;
 			}
 			switch (this.nBonus) {
@@ -350,7 +351,8 @@ function success(zip) {
 	PRG = new Uint8Array((PRG + zip.files['cl05.bin'].inflate() + zip.files['cl06.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	BG = new Uint8Array(zip.files['cl07.bin'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJ = new Uint8Array(zip.files['cl08.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({game: new CrazyBalloon()});
-	loop();
+	game = new CrazyBalloon();
+	canvas.addEventListener('click', () => game.coin());
+	init({game});
 }
 

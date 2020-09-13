@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import Cpu, {init, loop} from './main.js';
+import Cpu, {init} from './main.js';
 import Z80 from './z80.js';
 import MC6805 from './mc6805.js';
 let game, sound;
@@ -17,6 +17,7 @@ class ChacknPop {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = true;
 
 	fReset = false;
 	fTest = false;
@@ -590,15 +591,12 @@ function success(zip) {
 	BG = new Uint8Array((zip.files['ao4_09.ic98'].inflate() + zip.files['ao4_10.ic97'].inflate()).split('').map(c => c.charCodeAt(0)));
 	RGB_L = new Uint8Array(zip.files['ao4-11.ic96'].inflate().split('').map(c => c.charCodeAt(0)));
 	RGB_H = new Uint8Array(zip.files['ao4-12.ic95'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: game = new ChacknPop(),
-		sound: sound = [
-			new AY_3_8910({clock: 1500000}),
-			new AY_3_8910({clock: 1500000}),
-		],
-		rotate: true,
-		keydown, keyup,
-	});
-	loop();
+	game = new ChacknPop();
+	sound = [
+		new AY_3_8910({clock: 1500000}),
+		new AY_3_8910({clock: 1500000}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound, keydown, keyup});
 }
 

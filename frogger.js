@@ -5,9 +5,9 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
-let sound;
+let game, sound;
 
 class Frogger {
 	static decoded = false;
@@ -18,6 +18,7 @@ class Frogger {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -106,6 +107,8 @@ class Frogger {
 					this.psg.addr = data;
 			};
 		}
+
+		Frogger.decodeROM();
 
 		// Videoの初期化
 		this.convertRGB();
@@ -472,11 +475,9 @@ function success(zip) {
 	PRG2 = new Uint8Array((zip.files['frogger.608'].inflate() + zip.files['frogger.609'].inflate() + zip.files['frogger.610'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	BG = new Uint8Array((zip.files['frogger.607'].inflate() + zip.files['frogger.606'].inflate()).split('').map(c => c.charCodeAt(0)));
 	RGB = new Uint8Array(zip.files['pr-91.6l'].inflate().split('').map(c => c.charCodeAt(0)));
-	Frogger.decodeROM();
-	init({
-		game: new Frogger(),
-		sound: sound = new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.4}),
-	});
-	loop();
+	game = new Frogger();
+	sound = new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.4});
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

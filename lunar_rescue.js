@@ -4,8 +4,9 @@
  *
  */
 
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import I8080 from './i8080.js';
+let game;
 
 class LunarRescue {
 	cxScreen = 224;
@@ -14,6 +15,7 @@ class LunarRescue {
 	height = 256;
 	xOffset = 0;
 	yOffset = 0;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -58,7 +60,7 @@ class LunarRescue {
 //				check_sound3(this, data);
 				return void(this.screen_red = (data & 4) !== 0);
 			case 0x04:
-				this.io[3] = (data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift)) & 0xff;
+				this.io[3] = data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift);
 				return void(this.shifter.reg = data);
 			case 0x05:
 //				check_sound5(this, data);
@@ -264,7 +266,8 @@ function success(zip) {
 	PRG1 = new Uint8Array((zip.files['lrescue.1'].inflate() + zip.files['lrescue.2'].inflate() + zip.files['lrescue.3'].inflate() + zip.files['lrescue.4'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	PRG2 = new Uint8Array((zip.files['lrescue.5'].inflate() + zip.files['lrescue.6'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	MAP = new Uint8Array(zip.files['7643-1.cpu'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({game: new LunarRescue()});
-	loop();
+	game = new LunarRescue();
+	canvas.addEventListener('click', () => game.coin());
+	init({game});
 }
 

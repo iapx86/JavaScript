@@ -5,7 +5,7 @@
  */
 
 import C30 from './c30.js';
-import {init, loop, canvas} from './main.js';
+import {init} from './main.js';
 import MC6801 from './mc6801.js';
 let game, sound;
 
@@ -16,6 +16,7 @@ class SoundTest {
 	height = 256;
 	xOffset = 0;
 	yOffset = 0;
+	rotate = false;
 
 	fReset = true;
 	nSound = 0;
@@ -177,10 +178,8 @@ window.addEventListener('load', () => {
 function success(zip) {
 	PRG2 = new Uint8Array(zip.files['pl1_7.3e'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
 	PRG2I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	init({
-		game: game = new SoundTest(),
-		sound: sound = new C30(),
-	});
+	game = new SoundTest();
+	sound = new C30();
 	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
@@ -191,6 +190,6 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
-	loop();
+	init({game, sound});
 }
 

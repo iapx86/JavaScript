@@ -5,10 +5,10 @@
  */
 
 import MappySound from './mappy_sound.js';
-import Cpu, {init, loop} from './main.js';
+import Cpu, {init} from './main.js';
 import MC6809 from './mc6809.js';
 import MC68000 from  './mc68000.js';
-let sound;
+let game, sound;
 
 class Toypop {
 	cxScreen = 224;
@@ -17,6 +17,7 @@ class Toypop {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = true;
 
 	fReset = true;
 	fTest = false;
@@ -590,11 +591,9 @@ function success(zip) {
 	BGCOLOR = new Uint8Array(zip.files['tp1-4.5l'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJCOLOR = new Uint8Array(zip.files['tp1-5.2p'].inflate().split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['tp1-6.3d'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new Toypop(),
-		sound: sound = new MappySound({SND}),
-		rotate: true,
-	});
-	loop();
+	game = new Toypop();
+	sound = new MappySound({SND});
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 

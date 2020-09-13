@@ -5,7 +5,7 @@
  */
 
 import YM2151 from './ym2151.js';
-import {init, loop, canvas} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -16,6 +16,7 @@ class SoundTest {
 	height = 256;
 	xOffset = 0;
 	yOffset = 0;
+	rotate = false;
 
 	fReset = true;
 	nSound = 0;
@@ -198,10 +199,8 @@ window.addEventListener('load', () => {
 
 function success(zip) {
 	PRG = new Uint8Array(zip.files['rtypej/rt_r-l1-.3c'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: game = new SoundTest(),
-		sound: sound = new YM2151({clock: 3579545, resolution: 58, gain: 2}),
-	});
+	game = new SoundTest();
+	sound = new YM2151({clock: 3579545, resolution: 58, gain: 2});
 	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
@@ -212,6 +211,6 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
-	loop();
+	init({game, sound});
 }
 

@@ -4,8 +4,9 @@
  *
  */
 
-import {init, loop} from './main.js';
+import {init} from './main.js';
 import I8080 from './i8080.js';
+let game;
 
 class Polaris {
 	cxScreen = 224;
@@ -14,6 +15,7 @@ class Polaris {
 	height = 256;
 	xOffset = 0;
 	yOffset = 0;
+	rotate = false;
 
 	fReset = false;
 	fTest = false;
@@ -44,7 +46,7 @@ class Polaris {
 		}
 		for (let i = 0; i < 0x20; i++) {
 			this.cpu.memorymap[0xc0 + i].base = this.ram.base[0x20 + i];
-			this.cpu.memorymap[0xc0 + i].write = (addr, data) => void(this.ram[0x2000 + (addr & 0x1f9f)] = data);
+			this.cpu.memorymap[0xc0 + i].write = (addr, data) => void(this.ram[0x2000 | addr & 0x1f9f] = data);
 		}
 		this.cpu.iomap.base = this.io;
 		this.cpu.iomap.write = (addr, data) => {
@@ -52,7 +54,7 @@ class Polaris {
 			case 0x00:
 				return void(this.shifter.shift = data & 7);
 			case 0x03:
-				this.io[3] = (data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift)) & 0xff;
+				this.io[3] = data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift);
 				return void(this.shifter.reg = data);
 			default:
 //				this.io[addr] = data;
@@ -257,7 +259,8 @@ function success(zip) {
 	PRG2 = new Uint8Array((zip.files['ps05.32'].inflate() + zip.files['ps10.38'].inflate() + zip.files['ps26'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
 	MAP = new Uint8Array(zip.files['ps08.1b'].inflate().split('').map(c => c.charCodeAt(0)));
 	OBJ = new Uint8Array(zip.files['ps07.2c'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({game: new Polaris()});
-	loop();
+	game = new Polaris();
+	canvas.addEventListener('click', () => game.coin());
+	init({game});
 }
 

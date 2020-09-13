@@ -82,7 +82,7 @@ export default class PolePositionSound {
 			for (let j = 2; j < 8; j++) {
 				const vol = reg[2 + j * 4] >> 4 || reg[3 + j * 4] >> 4 || reg[3 + j * 4] & 0x0f || reg[0x23 + j * 4] >> 4;
 				data[i] += this.snd[reg[0x23 + j * 4] << 5 & 0xe0 | this.phase[j] >>> 27] * vol / 15;
-				this.phase[j] += (reg[j * 4] << 1 | reg[1 + j * 4] << 9) * this.rate;
+				this.phase[j] = this.phase[j] + (reg[j * 4] << 1 | reg[1 + j * 4] << 9) * this.rate | 0;
 			}
 		});
 	}

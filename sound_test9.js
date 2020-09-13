@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import SegaPCM from './sega_pcm.js';
-import {init, loop, canvas} from './main.js';
+import {init} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -17,6 +17,7 @@ class SoundTest {
 	height = 256;
 	xOffset = 0;
 	yOffset = 0;
+	rotate = false;
 
 	fReset = true;
 	nSound = 0;
@@ -203,13 +204,11 @@ function success(zip) {
 	PCM += zip.files['opr-10191.68'].inflate() + zip.files['opr-10191.68'].inflate() + zip.files['opr-10190.69'].inflate() + zip.files['opr-10190.69'].inflate();
 	PCM += zip.files['opr-10189.70'].inflate() + zip.files['opr-10189.70'].inflate() + zip.files['opr-10188.71'].inflate() + zip.files['opr-10188.71'].inflate();
 	PCM = new Uint8Array((PCM + '\xff'.repeat(0x20000)).split('').map(c => c.charCodeAt(0)));
-	init({
-		game: game = new SoundTest(),
-		sound: sound = [
-			new YM2151({clock: 4000000, resolution: 65}),
-			new SegaPCM({PCM, clock: 4000000, resolution: 65}),
-		],
-	});
+	game = new SoundTest();
+	sound = [
+		new YM2151({clock: 4000000, resolution: 65}),
+		new SegaPCM({PCM, clock: 4000000, resolution: 65}),
+	];
 	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
@@ -220,6 +219,6 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
-	loop();
+	init({game, sound});
 }
 

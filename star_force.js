@@ -6,9 +6,9 @@
 
 import SN76489 from './sn76489.js';
 import SenjyoSound from './senjyo_sound.js';
-import Cpu, {init, loop} from './main.js';
+import Cpu, {init} from './main.js';
 import Z80 from './z80.js';
-let sound;
+let game, sound;
 
 class StarForce {
 	cxScreen = 224;
@@ -17,6 +17,7 @@ class StarForce {
 	height = 512;
 	xOffset = 16;
 	yOffset = 16;
+	rotate = false;
 
 	fReset = true;
 	fTest = false;
@@ -662,15 +663,14 @@ function success(zip) {
 	BG3 = new Uint8Array((zip.files['18.10pq'].inflate()+ zip.files['17.9pq'].inflate() + zip.files['16.8pq'].inflate()).split('').map(c => c.charCodeAt(0)));
 	OBJ = new Uint8Array((zip.files['6.10lm'].inflate()+ zip.files['5.9lm'].inflate() + zip.files['4.8lm'].inflate()).split('').map(c => c.charCodeAt(0)));
 	SND = new Uint8Array(zip.files['07b.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	init({
-		game: new StarForce(),
-		sound: sound = [
-			new SN76489({clock: 2000000, resolution: 3}),
-			new SN76489({clock: 2000000, resolution: 3}),
-			new SN76489({clock: 2000000, resolution: 3}),
-			new SenjyoSound({SND, clock: 2000000, resolution: 3}),
-		],
-	});
-	loop();
+	game = new StarForce();
+	sound = [
+		new SN76489({clock: 2000000, resolution: 3}),
+		new SN76489({clock: 2000000, resolution: 3}),
+		new SN76489({clock: 2000000, resolution: 3}),
+		new SenjyoSound({SND, clock: 2000000, resolution: 3}),
+	];
+	canvas.addEventListener('click', () => game.coin());
+	init({game, sound});
 }
 
