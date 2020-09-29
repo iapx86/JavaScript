@@ -22,7 +22,7 @@ export default class PolePositionSound {
 	scriptNode;
 
 	constructor({SND, resolution = 1, gain = 0.1}) {
-		this.snd = Float32Array.from(SND, e => (e & 0x0f) * 2 / 15 - 1);
+		this.snd = Float32Array.from(SND, e => (e & 0xf) * 2 / 15 - 1);
 		this.rate = Math.floor(2048 * 48000 / audioCtx.sampleRate);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.count = this.sampleRate - 1;
@@ -80,7 +80,7 @@ export default class PolePositionSound {
 				if (this.wheel.length)
 					this.wheel.shift().forEach(({addr, data}) => reg[addr] = data);
 			for (let j = 2; j < 8; j++) {
-				const vol = reg[2 + j * 4] >> 4 || reg[3 + j * 4] >> 4 || reg[3 + j * 4] & 0x0f || reg[0x23 + j * 4] >> 4;
+				const vol = reg[2 + j * 4] >> 4 || reg[3 + j * 4] >> 4 || reg[3 + j * 4] & 0xf || reg[0x23 + j * 4] >> 4;
 				data[i] += this.snd[reg[0x23 + j * 4] << 5 & 0xe0 | this.phase[j] >>> 27] * vol / 15;
 				this.phase[j] = this.phase[j] + (reg[j * 4] << 1 | reg[1 + j * 4] << 9) * this.rate | 0;
 			}

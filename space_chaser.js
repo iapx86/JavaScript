@@ -58,7 +58,7 @@ class SpaceChaser {
 				return void(this.shifter.shift = data & 7);
 			case 0x03:
 //				check_sound3(this, data);
-				return void(this.background_disable = (data & 8) !== 0, this.background_select = (data & 0x10) !== 0);
+				return this.background_disable = (data & 8) !== 0, void(this.background_select = (data & 0x10) !== 0);
 			case 0x04:
 				this.io[3] = data << this.shifter.shift | this.shifter.reg >> (8 - this.shifter.shift);
 				return void(this.shifter.reg = data);

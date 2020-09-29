@@ -22,7 +22,7 @@ export default class MappySound {
 	scriptNode;
 
 	constructor({SND, resolution = 1, gain = 0.1}) {
-		this.snd = Float32Array.from(SND, e => (e & 0x0f) * 2 / 15 - 1);
+		this.snd = Float32Array.from(SND, e => (e & 0xf) * 2 / 15 - 1);
 		this.rate = Math.floor(2048 * 48000 / audioCtx.sampleRate);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.count = this.sampleRate - 1;
@@ -80,7 +80,7 @@ export default class MappySound {
 				if (this.wheel.length)
 					this.wheel.shift().forEach(({addr, data}) => reg[addr] = data);
 			for (let j = 0; j < 8; j++) {
-				data[i] += this.snd[reg[6 + j * 8] << 1 & 0xe0 | this.phase[j] >>> 27] * (reg[3 + j * 8] & 0x0f) / 15;
+				data[i] += this.snd[reg[6 + j * 8] << 1 & 0xe0 | this.phase[j] >>> 27] * (reg[3 + j * 8] & 0xf) / 15;
 				this.phase[j] = this.phase[j] + (reg[4 + j * 8] | reg[5 + j * 8] << 8 | reg[6 + j * 8] << 16 & 0xf0000) * this.rate | 0;
 			}
 		});

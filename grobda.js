@@ -64,7 +64,7 @@ class Grobda {
 			case 0x03: // INTERRUPT START
 				return void(this.fInterruptEnable0 = true);
 			case 0x06: // SND STOP
-				return void(this.fSoundEnable = false, this.se[0].stop = true);
+				return this.fSoundEnable = false, void(this.se[0].stop = true);
 			case 0x07: // SND START
 				return void(this.fSoundEnable = true);
 			case 0x08: // PORT TEST START

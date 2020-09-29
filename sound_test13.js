@@ -195,7 +195,7 @@ function success(zip) {
 	SND = new Uint8Array(0x20000);
 	game = new SoundTest();
 	sound = [
-		new YM2151({clock: 3579545, resolution: 58, gain: 2}),
+		new YM2151({clock: 3579545, resolution: 58, gain: 3}),
 		new K007232({SND, clock: 3579545, resolution: 58, gain: 0.2}),
 	];
 	game.initial = true;

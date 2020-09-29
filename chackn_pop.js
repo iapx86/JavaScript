@@ -78,7 +78,7 @@ class ChacknPop {
 		this.cpu.memorymap[0x88].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0x00:
-				return void(this.mcu_command = data, this.mcu_flag |= 1, this.mcu.irq = true);
+				return this.mcu_command = data, this.mcu_flag |= 1, void(this.mcu.irq = true);
 			case 0x04:
 				return void(this.psg[0].addr = data);
 			case 0x05:

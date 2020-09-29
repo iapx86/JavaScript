@@ -65,7 +65,7 @@ class StarForce {
 			case 2:
 				return void(this.cpu_irq = false);
 			case 4:
-				return void(this.cpu2_command = data, this.pio.irq = this.pio.fInterruptEnable);
+				return this.cpu2_command = data, void(this.pio.irq = this.pio.fInterruptEnable);
 			}
 		};
 

@@ -55,12 +55,12 @@ export default class AY_3_8910 {
 	}
 
 	read(addr) {
-		return this.ram[addr & 0x0f];
+		return this.ram[addr & 0xf];
 	}
 
 	write(addr, data, timer = 0) {
-		this.ram[addr &= 0x0f] = data;
-		if (addr >= 0x0e)
+		this.ram[addr &= 0xf] = data;
+		if (addr >= 0xe)
 			return;
 		this.tmpwheel[timer].push({addr, data});
 	}
@@ -88,7 +88,7 @@ export default class AY_3_8910 {
 			const evol = (~this.step ^ ((((etype ^ etype >> 1) & this.step >> 4 ^ ~etype >> 2) & 1) - 1)) & (~etype >> 3 & this.step >> 4 & 1) - 1 & 15;
 			this.channel.forEach((ch, j) => {
 				ch.freq = reg[j * 2] | reg[1 + j * 2] << 8 & 0xf00;
-				const vol = (reg[8 + j] >> 4 & 1) !== 0 ? evol : reg[8 + j] & 0x0f;
+				const vol = (reg[8 + j] >> 4 & 1) !== 0 ? evol : reg[8 + j] & 0xf;
 				data[i] += (((ch.freq === 0 | reg[7] >> j | ch.output) & (reg[7] >> j + 3 | this.rng) & 1) * 2 - 1) * (vol ? Math.pow(10, (vol - 15) / 10) : 0);
 			});
 			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {

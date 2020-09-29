@@ -77,10 +77,10 @@ export default class SN76496 {
 					this.wheel.shift().forEach(e => this.regwrite(e));
 			this.channel.forEach((ch, j) => {
 				ch.freq = reg[j * 2];
-				const vol = ~reg[j * 2 + 1] & 0x0f;
+				const vol = ~reg[j * 2 + 1] & 0xf;
 				data[i] += ((ch.output & 1) * 2 - 1) * (vol ? Math.pow(10, (vol - 15) / 10) : 0);
 			});
-			const nfreq = (reg[6] & 3) === 3 ? this.channel[2].freq << 1 : 4 << (reg[6] & 3), nvol = ~reg[7] & 0x0f;
+			const nfreq = (reg[6] & 3) === 3 ? this.channel[2].freq << 1 : 4 << (reg[6] & 3), nvol = ~reg[7] & 0xf;
 			data[i] += ((this.rng & 1) * 2 - 1) * (nvol ? Math.pow(10, (nvol - 15) / 10) : 0);
 			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {
 				this.channel.forEach(ch => {
@@ -95,9 +95,9 @@ export default class SN76496 {
 
 	regwrite(data) {
 		if ((data & 0x80) !== 0)
-			this.addr = data >> 4 & 7, this.reg[this.addr] = this.reg[this.addr] & 0x3f0 | data & 0x0f;
+			this.addr = data >> 4 & 7, this.reg[this.addr] = this.reg[this.addr] & 0x3f0 | data & 0xf;
 		else
-			this.reg[this.addr] = this.reg[this.addr] & 0x0f | data << 4 & 0x3f0;
+			this.reg[this.addr] = this.reg[this.addr] & 0xf | data << 4 & 0x3f0;
 		if (this.addr === 6)
 			this.rng = 0x10000;
 	}

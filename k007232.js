@@ -5,6 +5,8 @@
  */
 
 export default class K007232 {
+	base;
+	limit;
 	snd;
 	rate;
 	sampleRate;
@@ -16,13 +18,14 @@ export default class K007232 {
 	reg = new Uint8Array(14);
 	cycles = 0;
 	channel = [];
-	vol = 0;
 
 	source;
 	gainNode;
 	scriptNode;
 
 	constructor({SND, clock, resolution = 1, gain = 0.1}) {
+		this.base = SND;
+		this.limit = Math.min(SND.length, 0x20000);
 		this.snd = Float32Array.from(SND, e => (e & 0x7f) * 2 / 127 - 1);
 		this.rate = Math.floor(clock / 128);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
@@ -32,7 +35,7 @@ export default class K007232 {
 		for (let i = 0; i < resolution; i++)
 			this.tmpwheel.push([]);
 		for (let i = 0; i < 2; i++)
-			this.channel.push({play: false, addr: 0});
+			this.channel.push({play: false, addr: 0, bank: 0, vol: 0});
 		if (!audioCtx)
 			return;
 		this.source = audioCtx.createBufferSource();
@@ -67,6 +70,10 @@ export default class K007232 {
 		this.tmpwheel[timer].push({addr, data});
 	}
 
+	set_bank(bank0, bank1, timer = 0) {
+		this.tmpwheel[timer].push({addr: 16, data: bank0}, {addr: 17, data: bank1});
+	}
+
 	update() {
 		if (audioCtx) {
 			if (this.wheel.length > this.resolution) {
@@ -86,14 +93,14 @@ export default class K007232 {
 			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
 				if (this.wheel.length)
 					this.wheel.shift().forEach(e => this.regwrite(e));
-			this.channel.forEach(ch => ch.play && (data[i] += this.snd[ch.addr >> 12] * this.vol));
+			this.channel.forEach(ch => ch.play && (data[i] += this.snd[ch.bank | ch.addr >> 12] * ch.vol));
 			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate)
 				this.channel.forEach((ch, j) => {
 					if (!ch.play)
 						return;
 					const rate = Math.floor(0x20000 / (0x200 - (reg[j * 6] | reg[1 + j * 6] << 8 & 0x100)));
 					for (let addr = (ch.addr >> 12) + 1, addr1 = (ch.addr += rate) >> 12; addr <= addr1; addr++)
-						if (addr >= SND.length || (SND[addr] & 0x80) !== 0) {
+						if (addr >= this.limit || this.base[ch.bank | addr] >= 0x80) {
 							if ((reg[13] & 1 << j) !== 0)
 								ch.addr = (reg[2 + j * 6] | reg[3 + j * 6] << 8 | reg[4 + j * 6] << 16 & 0x10000) << 12;
 							else
@@ -109,15 +116,19 @@ export default class K007232 {
 		switch (addr) {
 		case 5:
 			this.channel[0].addr = (reg[2] | reg[3] << 8 | reg[4] << 16 & 0x10000) << 12;
-			this.channel[0].play = this.channel[0].addr >> 12 < this.snd.length;
+			this.channel[0].play = this.channel[0].addr >> 12 < this.limit && this.base[this.channel[0].bank | this.channel[0].addr >> 12] < 0x80;
 			break;
 		case 11:
 			this.channel[1].addr = (reg[8] | reg[9] << 8 | reg[10] << 16 & 0x10000) << 12;
-			this.channel[1].play = this.channel[1].addr >> 12 < this.snd.length;
+			this.channel[1].play = this.channel[1].addr >> 12 < this.limit && this.base[this.channel[1].bank | this.channel[1].addr >> 12] < 0x80;
 			break;
 		case 12:
-			this.vol = ((data & 0xf) + (data >> 4)) / 30;
+			this.channel[0].vol = (data >> 4) / 15, this.channel[1].vol = (data & 0xf) / 15;
 			break;
+		case 16:
+			return void(this.channel[0].bank = data << 17);
+		case 17:
+			return void(this.channel[1].bank = data << 17);
 		}
 		reg[addr] = data;
 	}

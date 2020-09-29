@@ -21,7 +21,7 @@ export default class PacManSound {
 	scriptNode;
 
 	constructor({SND, resolution = 1, gain = 0.1}) {
-		this.snd = Float32Array.from(SND, e => (e & 0x0f) * 2 / 15 - 1);
+		this.snd = Float32Array.from(SND, e => (e & 0xf) * 2 / 15 - 1);
 		this.rate = Math.floor(8192 * 48000 / audioCtx.sampleRate);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.count = this.sampleRate - 1;

@@ -139,9 +139,9 @@ class SeaFighterPoseidon {
 			case 0xa:
 				return void(this.gfxaddr = this.gfxaddr & 0xff | data << 8);
 			case 0xb:
-				return void(this.cpu2_command = data, this.cpu2_flag = 1, this.cpu2_nmi = true);
+				return this.cpu2_command = data, this.cpu2_flag = 1, void(this.cpu2_nmi = true);
 			case 0xc:
-				return void(this.cpu2_flag2 = data & 1, this.cpu2_nmi2 = (data & 1) !== 0);
+				return this.cpu2_flag2 = data & 1, void(this.cpu2_nmi2 = (data & 1) !== 0);
 			case 0xe:
 				const bank = (data >> 2 & 0x20) + 0x60;
 				if (bank === this.bank)

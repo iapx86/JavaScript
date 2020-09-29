@@ -99,6 +99,29 @@ export function init({keydown, keyup, ...args} = {}) {
 	gl.bufferData(gl.ARRAY_BUFFER, textureCoordinates, gl.STATIC_DRAW);
 	gl.vertexAttribPointer(aTextureCoordHandle, 2, gl.FLOAT, false, 0, 0);
 	gl.enableVertexAttribArray(aTextureCoordHandle);
+	if (audioCtx) {
+		button = new Image();
+		(button.update = () => {
+			button.src = audioCtx.state === 'suspended' ? volume0 : volume1;
+			button.alt = 'audio state: ' + audioCtx.state;
+		})();
+		audioCtx.onstatechange = button.update;
+		document.body.appendChild(button);
+		button.addEventListener('click', () => {
+			if (audioCtx.state === 'suspended')
+				audioCtx.resume().catch();
+			else if (audioCtx.state === 'running')
+				audioCtx.suspend().catch();
+		});
+		window.addEventListener('blur', () => {
+			state = audioCtx.state;
+			audioCtx.suspend().catch();
+		});
+		window.addEventListener('focus', () => {
+			if (state === 'running')
+				audioCtx.resume().catch();
+		});
+	}
 	document.addEventListener('keydown', keydown ? keydown : e => {
 		switch (e.keyCode) {
 		case 37: // left
@@ -153,29 +176,6 @@ export function init({keydown, keyup, ...args} = {}) {
 			return void('triggerB' in game && game.triggerB(false));
 		}
 	});
-	if (audioCtx) {
-		button = new Image();
-		(button.update = () => {
-			button.src = audioCtx.state === 'suspended' ? volume0 : volume1;
-			button.alt = 'audio state: ' + audioCtx.state;
-		})();
-		audioCtx.onstatechange = button.update;
-		document.body.appendChild(button);
-		button.addEventListener('click', () => {
-			if (audioCtx.state === 'suspended')
-				audioCtx.resume().catch();
-			else if (audioCtx.state === 'running')
-				audioCtx.suspend().catch();
-		});
-		window.addEventListener('blur', () => {
-			state = audioCtx.state;
-			audioCtx.suspend().catch();
-		});
-		window.addEventListener('focus', () => {
-			if (state === 'running')
-				audioCtx.resume().catch();
-		});
-	}
 	void function loop() {
 		if (sound)
 			Array.isArray(sound) ? sound.forEach(s => s.update(game)) : sound.update(game);

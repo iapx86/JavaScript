@@ -209,8 +209,8 @@ function success(zip) {
 	SND = new Uint8Array(zip.files['587-c01.10a'].inflate().split('').map(c => c.charCodeAt(0)));
 	game = new SoundTest();
 	sound = [
-		new YM2151({clock: 14318180 / 4, resolution: 58, gain: 10}),
-		new K007232({SND, clock: 14318180 / 4, resolution: 58, gain: 0.5}),
+		new YM2151({clock: 14318180 / 4, resolution: 58, gain: 5}),
+		new K007232({SND, clock: 14318180 / 4, resolution: 58, gain: 0.2}),
 		new VLM5030({VLM, clock: 14318180 / 4, gain: 5}),
 	];
 	game.initial = true;
