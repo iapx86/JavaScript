@@ -5,7 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -140,25 +140,15 @@ class SoundTest {
  */
 
 const key = [];
-const url = 'liblrabl.zip';
 let SND, PRG2;
 
-window.addEventListener('load', () => {
+void function () {
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
-
-function success(zip) {
-	PRG2 = new Uint8Array(zip.files['2c.rom'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	SND = new Uint8Array(zip.files['lr1-4.3d'].inflate().split('').map(c => c.charCodeAt(0)));
-	game = new SoundTest();
-	sound = new MappySound({SND});
-	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -168,6 +158,14 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
+}();
+
+read('liblrabl.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG2 = zip.decompress('2c.rom').addBase();
+	SND = zip.decompress('lr1-4.3d');
+	game = new SoundTest();
+	sound = new MappySound({SND});
+	game.initial = true;
 	init({game, sound});
-}
+});
 

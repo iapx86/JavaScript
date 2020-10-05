@@ -4,7 +4,7 @@
  *
  */
 
-import {init} from './main.js';
+import {init, read} from './main.js';
 import I8080 from './i8080.js';
 let game;
 
@@ -230,15 +230,12 @@ class SpaceLaser {
  *
  */
 
-const url = 'spclaser.zip';
 let PRG;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG = new Uint8Array((zip.files['la01'].inflate() + zip.files['la02'].inflate() + zip.files['la03'].inflate() + zip.files['la04'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+read('spclaser.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = Uint8Array.concat(...['la01', 'la02', 'la03', 'la04'].map(e => zip.decompress(e))).addBase();
 	game = new SpaceLaser();
 	canvas.addEventListener('click', () => game.coin());
 	init({game});
-}
+});
 

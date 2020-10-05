@@ -6,7 +6,7 @@
 
 import GalaxianSound from './galaxian_sound.js';
 import SoundEffect from './sound_effect.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -1808,16 +1808,13 @@ Lfkm+t/50vr8+j37Evz9+/n7t/wd/eP8Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkA
 const HELP = new Int16Array((0x700 * 2 + 0x1200) * 11025 / 5000 | 0);
 const THANKYOU = new Int16Array(0x800 * 2 * 11025 / 5000 | 0);
 const BYEBYE = new Int16Array(0x800 * 2 * 11025 / 5000 | 0);
-const url = 'kingball.zip';
 let BG, RGB, PRG, VOICE;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	VOICE = new Uint8Array((zip.files['kingballj/kbj1.ic4'].inflate() + zip.files['kingballj/kbj2.ic5'].inflate() + zip.files['kingballj/kbj3.ic6'].inflate()).split('').map(c => c.charCodeAt(0)));
-	PRG = new Uint8Array((zip.files['prg1.7f'].inflate() + zip.files['prg2.7j'].inflate() + zip.files['prg3.7l'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array((zip.files['chg1.1h'].inflate() + zip.files['chg2.1k'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['kb2-1'].inflate().split('').map(c => c.charCodeAt(0)));
+read('kingball.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	VOICE = Uint8Array.concat(...['kingballj/kbj1.ic4', 'kingballj/kbj2.ic5', 'kingballj/kbj3.ic6'].map(e => zip.decompress(e)));
+	PRG = Uint8Array.concat(...['prg1.7f', 'prg2.7j', 'prg3.7l'].map(e => zip.decompress(e))).addBase();
+	BG = Uint8Array.concat(...['chg1.1h', 'chg2.1k'].map(e => zip.decompress(e)));
+	RGB = zip.decompress('kb2-1');
 	game = new KingAndBalloon();
 	sound = [
 		new GalaxianSound({SND}),
@@ -1825,5 +1822,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

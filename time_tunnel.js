@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import SoundEffect from './sound_effect.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound, pcm = [];
 
@@ -789,18 +789,14 @@ class TimeTunnel {
  *
  */
 
-const url = 'timetunl.zip';
 let PRG1, PRG2, GFX, PRI;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = zip.files['un01.69'].inflate() + zip.files['un02.68'].inflate() + zip.files['un03.67'].inflate() + zip.files['un04.66'].inflate() + zip.files['un05.65'].inflate() + zip.files['un06.64'].inflate();
-	PRG1 = new Uint8Array((PRG1 + zip.files['un07.55'].inflate() + zip.files['un08.54'].inflate() + zip.files['un09.53'].inflate() + zip.files['un10.52'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['un19.70'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	GFX = zip.files['un11.1'].inflate() + zip.files['un12.2'].inflate() + zip.files['un13.3'].inflate() + zip.files['un14.4'].inflate() + zip.files['un15.5'].inflate();
-	GFX = new Uint8Array((GFX + zip.files['un16.6'].inflate() + zip.files['un17.7'].inflate() + zip.files['un18.8'].inflate()).split('').map(c => c.charCodeAt(0)));
-	PRI = new Uint8Array(zip.files['eb16.22'].inflate().split('').map(c => c.charCodeAt(0)));
+read('timetunl.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['un01.69', 'un02.68', 'un03.67', 'un04.66', 'un05.65'].map(e => zip.decompress(e)));
+	PRG1 = Uint8Array.concat(PRG1, ...['un06.64', 'un07.55', 'un08.54', 'un09.53', 'un10.52'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('un19.70').addBase();
+	GFX = Uint8Array.concat(...['un11.1', 'un12.2', 'un13.3', 'un14.4', 'un15.5', 'un16.6', 'un17.7', 'un18.8'].map(e => zip.decompress(e)));
+	PRI = zip.decompress('eb16.22');
 	game = new TimeTunnel(48000);
 	sound = [
 		new AY_3_8910({clock: 1500000, resolution: 3}),
@@ -811,5 +807,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

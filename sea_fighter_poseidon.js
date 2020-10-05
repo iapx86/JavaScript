@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import SoundEffect from './sound_effect.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import Z80 from './z80.js';
 import MC6805 from './mc6805.js';
 const pcmtable = [0xa26, 0xa34, 0xa73, 0xa81, 0xa8f, 0xaa5, 0xaeb, 0xb09];
@@ -829,18 +829,14 @@ class SeaFighterPoseidon {
  *
  */
 
-const url = 'sfposeid.zip';
 let PRG1, PRG2, PRG3, GFX, PRI;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = zip.files['a14-01.1'].inflate() + zip.files['a14-02.2'].inflate() + zip.files['a14-03.3'].inflate() + zip.files['a14-04.6'].inflate();
-	PRG1 = new Uint8Array((PRG1 + zip.files['a14-05.7'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array((zip.files['a14-10.70'].inflate() + zip.files['a14-11.71'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG3 = new Uint8Array(zip.files['a14-12'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	GFX = new Uint8Array((zip.files['a14-06.4'].inflate() + zip.files['a14-07.5'].inflate() + zip.files['a14-08.9'].inflate() + zip.files['a14-09.10'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRI = new Uint8Array(zip.files['eb16.22'].inflate().split('').map(c => c.charCodeAt(0)));
+read('sfposeid.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['a14-01.1', 'a14-02.2', 'a14-03.3', 'a14-04.6', 'a14-05.7'].map(e => zip.decompress(e))).addBase();
+	PRG2 = Uint8Array.concat(...['a14-10.70', 'a14-11.71'].map(e => zip.decompress(e))).addBase();
+	PRG3 = zip.decompress('a14-12').addBase();
+	GFX = Uint8Array.concat(...['a14-06.4', 'a14-07.5', 'a14-08.9', 'a14-09.10'].map(e => zip.decompress(e))).addBase();
+	PRI = zip.decompress('eb16.22');
 	game = new SeaFighterPoseidon(48000);
 	sound = [
 		new AY_3_8910({clock: 1500000, resolution: 3}),
@@ -851,5 +847,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

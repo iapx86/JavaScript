@@ -5,7 +5,7 @@
  */
 
 import YM2151 from './ym2151.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -197,25 +197,15 @@ class SoundTest {
  */
 
 const key = [];
-const url = 'imgfight.zip';
 const PRG = new Uint8Array(0x40000);
 
-window.addEventListener('load', () => {
+void function () {
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
-
-function success(zip) {
-	zip.files['if-c-h3.bin'].inflate().split('').forEach((c, i) => PRG[1 | i << 1] = c.charCodeAt(0));
-	zip.files['if-c-l3.bin'].inflate().split('').forEach((c, i) => PRG[i << 1] = c.charCodeAt(0));
-	game = new SoundTest();
-	sound = new YM2151({clock: 3579545, resolution: 58, gain: 2});
-	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -225,6 +215,14 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
+}();
+
+read('imgfight.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	zip.decompress('if-c-h3.bin').forEach((e, i) => PRG[1 | i << 1] = e);
+	zip.decompress('if-c-l3.bin').forEach((e, i) => PRG[i << 1] = e);
+	game = new SoundTest();
+	sound = new YM2151({clock: 3579545, resolution: 58, gain: 2});
+	game.initial = true;
 	init({game, sound});
-}
+});
 

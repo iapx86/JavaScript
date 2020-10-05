@@ -143,7 +143,7 @@ module.exports = {
 			use: [{
 				loader: 'babel-loader',
 				options: {
-					presets: [['@babel/preset-env', {modules: false, targets: {ie: '11'}}]],
+					presets: [['@babel/preset-env', {modules: false, targets: 'defaults'}]],
 					plugins: [['@babel/plugin-proposal-class-properties', { loose: true }]],
 				}
 			}]

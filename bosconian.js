@@ -6,7 +6,7 @@
 
 import PacManSound from './pac-man_sound.js';
 import SoundEffect from './sound_effect.js';
-import Cpu, {dummypage, init} from './main.js';
+import Cpu, {dummypage, init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -3974,20 +3974,17 @@ vf+5/4n/hf+u/7X/yf+z/7P/wf+6/5v/xv/R/7T/4v/Z/73/3P+1/6z/r/+z/5H/\
  *
  */
 
-const url = 'bosco.zip';
 let PRG1, PRG2, PRG3, RGB, SND, BGCOLOR, BG, OBJ;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['bos3_1.3n'].inflate() + zip.files['bos1_2.3m'].inflate() + zip.files['bos1_3.3l'].inflate() + zip.files['bos1_4b.3k'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array((zip.files['bos1_5c.3j'].inflate() + zip.files['bos3_6.3h'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG3 = new Uint8Array(zip.files['bos1_7.3e'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array(zip.files['bos1_14.5d'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array(zip.files['bos1_13.5e'].inflate().split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['bos1-6.6b'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['bos1-5.4m'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['bos1-1.1d'].inflate().split('').map(c => c.charCodeAt(0)));
+read('bosco.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['bos3_1.3n', 'bos1_2.3m', 'bos1_3.3l', 'bos1_4b.3k'].map(e => zip.decompress(e))).addBase();
+	PRG2 = Uint8Array.concat(...['bos1_5c.3j', 'bos3_6.3h'].map(e => zip.decompress(e))).addBase();
+	PRG3 = zip.decompress('bos1_7.3e').addBase();
+	BG = zip.decompress('bos1_14.5d');
+	OBJ = zip.decompress('bos1_13.5e');
+	RGB = zip.decompress('bos1-6.6b');
+	BGCOLOR = zip.decompress('bos1-5.4m');
+	SND = zip.decompress('bos1-1.1d');
 	game = new Bosconian();
 	sound = [
 		new PacManSound({SND, resolution: 2}),
@@ -3995,5 +3992,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

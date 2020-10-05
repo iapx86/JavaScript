@@ -4,7 +4,7 @@
  *
  */
 
-import {init} from './main.js';
+import {init, read} from './main.js';
 import I8080 from './i8080.js';
 let game;
 
@@ -263,18 +263,15 @@ class SpaceChaser {
  *
  */
 
-const url = 'schaser.zip';
 let PRG1, PRG2, MAP;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = zip.files['rt13.bin'].inflate() + zip.files['rt14.bin'].inflate() + zip.files['rt15.bin'].inflate() + zip.files['rt16.bin'].inflate() + zip.files['rt17.bin'].inflate();
-	PRG1 = new Uint8Array((PRG1 + zip.files['rt18.bin'].inflate() + zip.files['rt19.bin'].inflate() + zip.files['rt20.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array((zip.files['rt21.bin'].inflate() + zip.files['rt22.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	MAP = new Uint8Array(zip.files['rt06.ic2'].inflate().split('').map(c => c.charCodeAt(0)));
+read('schaser.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['rt13.bin', 'rt14.bin', 'rt15.bin', 'rt16.bin', 'rt17.bin'].map(e => zip.decompress(e)));
+	PRG1 = Uint8Array.concat(PRG1, ...['rt18.bin', 'rt19.bin', 'rt20.bin'].map(e => zip.decompress(e))).addBase();
+	PRG2 = Uint8Array.concat(...['rt21.bin', 'rt22.bin'].map(e => zip.decompress(e))).addBase();
+	MAP = zip.decompress('rt06.ic2');
 	game = new SpaceChaser();
 	canvas.addEventListener('click', () => game.coin());
 	init({game});
-}
+});
 

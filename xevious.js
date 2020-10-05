@@ -6,7 +6,7 @@
 
 import PacManSound from './pac-man_sound.js';
 import SoundEffect from './sound_effect.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -2084,29 +2084,26 @@ AAAAAAAAAQABAAEAAQABAAEAAAAAAAAA//////7//v/+//7//f/9//3//f/8//v/+//7//v/+v/6//r/
  *
  */
 
-const url = 'xevious.zip';
 let BG2, BG4, OBJ4, OBJ8, BGCOLOR_H, BGCOLOR_L, OBJCOLOR_H, OBJCOLOR_L, RED, GREEN, BLUE, SND, PRG1, PRG2, PRG3, MAPTBL, MAPDATA;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['xvi_1.3p'].inflate() + zip.files['xvi_2.3m'].inflate() + zip.files['xvi_3.2m'].inflate() + zip.files['xvi_4.2l'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array((zip.files['xvi_5.3f'].inflate() + zip.files['xvi_6.3j'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG3 = new Uint8Array(zip.files['xvi_7.2c'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG2 = new Uint8Array(zip.files['xvi_12.3b'].inflate().split('').map(c => c.charCodeAt(0)));
-	BG4 = new Uint8Array((zip.files['xvi_13.3c'].inflate() + zip.files['xvi_14.3d'].inflate()).split('').map(c => c.charCodeAt(0)));
-	OBJ8 = new Uint8Array((zip.files['xvi_15.4m'].inflate() + zip.files['xvi_17.4p'].inflate() + zip.files['xvi_18.4r'].inflate()).split('').map(c => c.charCodeAt(0)));
-	OBJ4 = new Uint8Array(zip.files['xvi_16.4n'].inflate().split('').map(c => c.charCodeAt(0)));
-	MAPTBL = new Uint8Array((zip.files['xvi_9.2a'].inflate() + zip.files['xvi_10.2b'].inflate()).split('').map(c => c.charCodeAt(0)));
-	MAPDATA = new Uint8Array(zip.files['xvi_11.2c'].inflate().split('').map(c => c.charCodeAt(0)));
-	RED = new Uint8Array(zip.files['xvi-8.6a'].inflate().split('').map(c => c.charCodeAt(0)));
-	GREEN = new Uint8Array(zip.files['xvi-9.6d'].inflate().split('').map(c => c.charCodeAt(0)));
-	BLUE = new Uint8Array(zip.files['xvi-10.6e'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR_L = new Uint8Array(zip.files['xvi-7.4h'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR_H = new Uint8Array(zip.files['xvi-6.4f'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR_L = new Uint8Array(zip.files['xvi-4.3l'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR_H = new Uint8Array(zip.files['xvi-5.3m'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['xvi-2.7n'].inflate().split('').map(c => c.charCodeAt(0)));
+read('xevious.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['xvi_1.3p', 'xvi_2.3m', 'xvi_3.2m', 'xvi_4.2l'].map(e => zip.decompress(e))).addBase();
+	PRG2 = Uint8Array.concat(...['xvi_5.3f', 'xvi_6.3j'].map(e => zip.decompress(e))).addBase();
+	PRG3 = zip.decompress('xvi_7.2c').addBase();
+	BG2 = zip.decompress('xvi_12.3b');
+	BG4 = Uint8Array.concat(...['xvi_13.3c', 'xvi_14.3d'].map(e => zip.decompress(e)));
+	OBJ8 = Uint8Array.concat(...['xvi_15.4m', 'xvi_17.4p', 'xvi_18.4r'].map(e => zip.decompress(e)));
+	OBJ4 = zip.decompress('xvi_16.4n');
+	MAPTBL = Uint8Array.concat(...['xvi_9.2a', 'xvi_10.2b'].map(e => zip.decompress(e)));
+	MAPDATA = zip.decompress('xvi_11.2c');
+	RED = zip.decompress('xvi-8.6a');
+	GREEN = zip.decompress('xvi-9.6d');
+	BLUE = zip.decompress('xvi-10.6e');
+	BGCOLOR_L = zip.decompress('xvi-7.4h');
+	BGCOLOR_H = zip.decompress('xvi-6.4f');
+	OBJCOLOR_L = zip.decompress('xvi-4.3l');
+	OBJCOLOR_H = zip.decompress('xvi-5.3m');
+	SND = zip.decompress('xvi-2.7n');
 	game = new Xevious();
 	sound = [
 		new PacManSound({SND, resolution: 2}),
@@ -2114,5 +2111,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

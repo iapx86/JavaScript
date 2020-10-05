@@ -5,7 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -651,23 +651,20 @@ class Mappy {
  *
  */
 
-const url = 'mappy.zip';
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['mappyj/mp1_3.1d'].inflate() + zip.files['mp1_2.1c'].inflate() + zip.files['mappyj/mp1_1.1b'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['mp1_4.1k'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array(zip.files['mp1_5.3b'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array((zip.files['mp1_7.3n'].inflate() + zip.files['mp1_6.3m'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['mp1-5.5b'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['mp1-6.4c'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['mp1-7.5k'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['mp1-3.3m'].inflate().split('').map(c => c.charCodeAt(0)));
+read('mappy.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['mappyj/mp1_3.1d', 'mp1_2.1c', 'mappyj/mp1_1.1b'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('mp1_4.1k').addBase();
+	BG = zip.decompress('mp1_5.3b');
+	OBJ = Uint8Array.concat(...['mp1_7.3n', 'mp1_6.3m'].map(e => zip.decompress(e)));
+	RGB = zip.decompress('mp1-5.5b');
+	BGCOLOR = zip.decompress('mp1-6.4c');
+	OBJCOLOR = zip.decompress('mp1-7.5k');
+	SND = zip.decompress('mp1-3.3m');
 	game = new Mappy();
 	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

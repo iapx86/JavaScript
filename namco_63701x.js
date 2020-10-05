@@ -23,8 +23,6 @@ export default class Namco63701X {
 		this.gain = gain;
 		for (let i = 0; i < 2; i++)
 			this.channel.push({select: 0, play: false, pos: 0, vol: 0, count: 0});
-		if (!audioCtx)
-			return;
 		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
@@ -37,8 +35,6 @@ export default class Namco63701X {
 	}
 
 	mute(flag) {
-		if (!audioCtx)
-			return;
 		this.gainNode.gain.value = flag ? 0 : this.gain;
 	}
 

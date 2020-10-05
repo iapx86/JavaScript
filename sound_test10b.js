@@ -5,7 +5,7 @@
  */
 
 import YM2151 from './ym2151.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -196,25 +196,15 @@ class SoundTest {
  */
 
 const key = [];
-const url = 'rtype2.zip';
 let PRG2, PCM;
 
-window.addEventListener('load', () => {
+void function () {
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
-
-function success(zip) {
-	PRG2 = new Uint8Array(zip.files['ic17.4f'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PCM = new Uint8Array(zip.files['ic14.4c'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	game = new SoundTest();
-	sound = new YM2151({clock: 3579545, resolution: 58, gain: 2});
-	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -224,6 +214,14 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
+}();
+
+read('rtype2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG2 = zip.decompress('ic17.4f').addBase();
+	PCM = zip.decompress('ic14.4c');
+	game = new SoundTest();
+	sound = new YM2151({clock: 3579545, resolution: 58, gain: 2});
+	game.initial = true;
 	init({game, sound});
-}
+});
 

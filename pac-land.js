@@ -5,7 +5,7 @@
  */
 
 import C30 from './c30.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -888,28 +888,24 @@ class PacLand {
  *
  */
 
-const url = 'pacland.zip';
 let PRG1, PRG2, PRG2I, FG, BG, OBJ, RED, BLUE, FGCOLOR, BGCOLOR, OBJCOLOR;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = zip.files['paclandj/pl6_01.8b'].inflate() + zip.files['paclandj/pl6_02.8d'].inflate() + zip.files['pl1_3.8e'].inflate() + zip.files['pl1_4.8f'].inflate();
-	PRG1 = new Uint8Array((PRG1 + zip.files['pl1_5.8h'].inflate() + zip.files['paclandj/pl1_6.8j'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['pl1_7.3e'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	FG = new Uint8Array(zip.files['paclandj/pl6_12.6n'].inflate().split('').map(c => c.charCodeAt(0)));
-	BG = new Uint8Array(zip.files['paclandj/pl1_13.6t'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = zip.files['paclandj/pl1_9b.6f'].inflate() + zip.files['paclandj/pl1_8.6e'].inflate() + zip.files['paclandj/pl1_10b.7e'].inflate();
-	OBJ = new Uint8Array((OBJ + zip.files['paclandj/pl1_11.7f'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RED = new Uint8Array(zip.files['pl1-2.1t'].inflate().split('').map(c => c.charCodeAt(0)));
-	BLUE = new Uint8Array(zip.files['pl1-1.1r'].inflate().split('').map(c => c.charCodeAt(0)));
-	FGCOLOR = new Uint8Array(zip.files['pl1-5.5t'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['pl1-4.4n'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['pl1-3.6l'].inflate().split('').map(c => c.charCodeAt(0)));
+read('pacland.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['paclandj/pl6_01.8b', 'paclandj/pl6_02.8d', 'pl1_3.8e'].map(e => zip.decompress(e)));
+	PRG1 = Uint8Array.concat(PRG1, ...['pl1_4.8f', 'pl1_5.8h', 'paclandj/pl1_6.8j'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('pl1_7.3e').addBase();
+	PRG2I = zip.decompress('cus60-60a1.mcu').addBase();
+	FG = zip.decompress('paclandj/pl6_12.6n');
+	BG = zip.decompress('paclandj/pl1_13.6t');
+	OBJ = Uint8Array.concat(...['paclandj/pl1_9b.6f', 'paclandj/pl1_8.6e', 'paclandj/pl1_10b.7e', 'paclandj/pl1_11.7f'].map(e => zip.decompress(e)));
+	RED = zip.decompress('pl1-2.1t');
+	BLUE = zip.decompress('pl1-1.1r');
+	FGCOLOR = zip.decompress('pl1-5.5t');
+	BGCOLOR = zip.decompress('pl1-4.4n');
+	OBJCOLOR = zip.decompress('pl1-3.6l');
 	game = new PacLand();
 	sound = new C30();
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

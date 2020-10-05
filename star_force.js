@@ -6,7 +6,7 @@
 
 import SN76489 from './sn76489.js';
 import SenjyoSound from './senjyo_sound.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -649,20 +649,17 @@ class StarForce {
  *
  */
 
-const url = 'starforc.zip';
 let PRG1, PRG2, FG, BG1, BG2, BG3, OBJ, SND;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['3.3p'].inflate() + zip.files['2.3mn'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['1.3hj'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	FG = new Uint8Array((zip.files['7.2fh'].inflate()+ zip.files['8.3fh'].inflate() + zip.files['9.3fh'].inflate()).split('').map(c => c.charCodeAt(0)));
-	BG1 = new Uint8Array((zip.files['15.10jk'].inflate()+ zip.files['14.9jk'].inflate() + zip.files['13.8jk'].inflate()).split('').map(c => c.charCodeAt(0)));
-	BG2 = new Uint8Array((zip.files['12.10de'].inflate()+ zip.files['11.9de'].inflate() + zip.files['10.8de'].inflate()).split('').map(c => c.charCodeAt(0)));
-	BG3 = new Uint8Array((zip.files['18.10pq'].inflate()+ zip.files['17.9pq'].inflate() + zip.files['16.8pq'].inflate()).split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array((zip.files['6.10lm'].inflate()+ zip.files['5.9lm'].inflate() + zip.files['4.8lm'].inflate()).split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['07b.bin'].inflate().split('').map(c => c.charCodeAt(0)));
+read('starforc.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['3.3p', '2.3mn'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('1.3hj').addBase();
+	FG = Uint8Array.concat(...['7.2fh', '8.3fh', '9.3fh'].map(e => zip.decompress(e)));
+	BG1 = Uint8Array.concat(...['15.10jk', '14.9jk', '13.8jk'].map(e => zip.decompress(e)));
+	BG2 = Uint8Array.concat(...['12.10de', '11.9de', '10.8de'].map(e => zip.decompress(e)));
+	BG3 = Uint8Array.concat(...['18.10pq', '17.9pq', '16.8pq'].map(e => zip.decompress(e)));
+	OBJ = Uint8Array.concat(...['6.10lm', '5.9lm', '4.8lm'].map(e => zip.decompress(e)));
+	SND = zip.decompress('07b.bin');
 	game = new StarForce();
 	sound = [
 		new SN76489({clock: 2000000, resolution: 3}),
@@ -672,5 +669,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

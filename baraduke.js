@@ -5,7 +5,7 @@
  */
 
 import C30 from './c30.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -780,23 +780,20 @@ class Baraduke {
  *
  */
 
-const url = 'aliensec.zip';
 let PRG1, PRG2, PRG2I, FG, BG, OBJ, GREEN, RED;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['bd1_3.9c'].inflate() + zip.files['baraduke/bd1_1.9a'].inflate() + zip.files['baraduke/bd1_2.9b'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['baraduke/bd1_4b.3b'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	FG = new Uint8Array(zip.files['bd1_5.3j'].inflate().split('').map(c => c.charCodeAt(0)));
-	BG = new Uint8Array((zip.files['baraduke/bd1_8.4p'].inflate() + zip.files['bd1_7.4n'].inflate() + zip.files['baraduke/bd1_6.4m'].inflate()).split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array((zip.files['bd1_9.8k'].inflate() + zip.files['bd1_10.8l'].inflate() + zip.files['bd1_11.8m'].inflate() + zip.files['bd1_12.8n'].inflate()).split('').map(c => c.charCodeAt(0)));
-	GREEN = new Uint8Array(zip.files['bd1-1.1n'].inflate().split('').map(c => c.charCodeAt(0)));
-	RED = new Uint8Array(zip.files['bd1-2.2m'].inflate().split('').map(c => c.charCodeAt(0)));
+read('aliensec.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['bd1_3.9c', 'baraduke/bd1_1.9a', 'baraduke/bd1_2.9b'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('baraduke/bd1_4b.3b').addBase();
+	PRG2I = zip.decompress('cus60-60a1.mcu').addBase();
+	FG = zip.decompress('bd1_5.3j');
+	BG = Uint8Array.concat(...['baraduke/bd1_8.4p', 'bd1_7.4n', 'baraduke/bd1_6.4m'].map(e => zip.decompress(e)));
+	OBJ = Uint8Array.concat(...['bd1_9.8k', 'bd1_10.8l', 'bd1_11.8m', 'bd1_12.8n'].map(e => zip.decompress(e)));
+	GREEN = zip.decompress('bd1-1.1n');
+	RED = zip.decompress('bd1-2.2m');
 	game = new Baraduke();
 	sound = new C30({resolution: 400});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

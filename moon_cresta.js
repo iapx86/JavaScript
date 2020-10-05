@@ -6,7 +6,7 @@
 
 import GalaxianSound from './galaxian_sound.js';
 import SoundEffect from './sound_effect.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -1623,16 +1623,12 @@ AP8A/wD/AP8A/wD/AP8A/wD/\
  *
  */
 
-const url = 'mooncrst.zip';
 let BG, RGB, PRG;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG = zip.files['mc1'].inflate() + zip.files['mc2'].inflate() + zip.files['mc3'].inflate() + zip.files['mc4'].inflate() + zip.files['mc5.7r'].inflate();
-	PRG = new Uint8Array((PRG + zip.files['mc6.8d'].inflate() + zip.files['mc7.8e'].inflate() + zip.files['mc8'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array((zip.files['mcs_b'].inflate() + zip.files['mcs_d'].inflate() + zip.files['mcs_a'].inflate() + zip.files['mcs_c'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['mmi6331.6l'].inflate().split('').map(c => c.charCodeAt(0)));
+read('mooncrst.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = Uint8Array.concat(...['mc1', 'mc2', 'mc3', 'mc4', 'mc5.7r', 'mc6.8d', 'mc7.8e', 'mc8'].map(e => zip.decompress(e))).addBase();
+	BG = Uint8Array.concat(...['mcs_b', 'mcs_d', 'mcs_a', 'mcs_c'].map(e => zip.decompress(e)));
+	RGB = zip.decompress('mmi6331.6l');
 	game = new MoonCresta();
 	sound = [
 		new GalaxianSound({SND}),
@@ -1640,5 +1636,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

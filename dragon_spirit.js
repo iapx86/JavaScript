@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import Dac8Bit2Ch from './dac_8bit_2ch.js';
-import Cpu, {dummypage, init} from './main.js';
+import Cpu, {dummypage, init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -809,25 +809,18 @@ class DragonSpirit {
  *
  */
 
-const url = 'dspirit.zip';
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	SND = new Uint8Array((zip.files['ds1_s0.bin'].inflate() + zip.files['ds1_s1.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG = zip.files['ds1_p0.bin'].inflate() + zip.files['ds1_p1.bin'].inflate() + zip.files['ds1_p2.bin'].inflate();
-	PRG += zip.files['ds1_p3.bin'].inflate() + zip.files['ds1_p4.bin'].inflate() + zip.files['ds1_p5.bin'].inflate();
-	PRG = new Uint8Array((PRG + zip.files['ds3_p6.bin'].inflate() + zip.files['ds3_p7.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	MCU = new Uint8Array(zip.files['cus64-64a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	VOI = zip.files['ds1_v0.bin'].inflate() + zip.files['ds1_v0.bin'].inflate() + zip.files['ds_voi-1.bin'].inflate() + zip.files['ds_voi-2.bin'].inflate();
-	VOI = new Uint8Array((VOI + zip.files['ds_voi-3.bin'].inflate() + zip.files['ds_voi-4.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	CHR8 = new Uint8Array(zip.files['ds_chr-8.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	CHR = zip.files['ds_chr-0.bin'].inflate() + zip.files['ds_chr-1.bin'].inflate() + zip.files['ds_chr-2.bin'].inflate();
-	CHR += zip.files['ds_chr-3.bin'].inflate() + zip.files['ds_chr-4.bin'].inflate() + zip.files['ds_chr-5.bin'].inflate();
-	CHR = new Uint8Array((CHR + zip.files['ds_chr-6.bin'].inflate() + zip.files['ds_chr-7.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
-	OBJ = zip.files['ds_obj-0.bin'].inflate() + zip.files['ds_obj-1.bin'].inflate() + zip.files['ds_obj-2.bin'].inflate() + zip.files['ds_obj-3.bin'].inflate();
-	OBJ = new Uint8Array((OBJ + zip.files['ds1_o4.bin'].inflate() + zip.files['ds1_o4.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
+read('dspirit.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	SND = Uint8Array.concat(...['ds1_s0.bin', 'ds1_s1.bin'].map(e => zip.decompress(e))).addBase();
+	PRG = Uint8Array.concat(...['ds1_p0.bin', 'ds1_p1.bin', 'ds1_p2.bin', 'ds1_p3.bin', 'ds1_p4.bin'].map(e => zip.decompress(e)));
+	PRG = Uint8Array.concat(PRG, ...['ds1_p5.bin', 'ds3_p6.bin', 'ds3_p7.bin'].map(e => zip.decompress(e))).addBase();
+	MCU = zip.decompress('cus64-64a1.mcu').addBase();
+	VOI = Uint8Array.concat(...['ds1_v0.bin', 'ds1_v0.bin', 'ds_voi-1.bin', 'ds_voi-2.bin', 'ds_voi-3.bin', 'ds_voi-4.bin'].map(e => zip.decompress(e))).addBase();
+	CHR8 = zip.decompress('ds_chr-8.bin');
+	CHR = Uint8Array.concat(...['ds_chr-0.bin', 'ds_chr-1.bin', 'ds_chr-2.bin', 'ds_chr-3.bin'].map(e => zip.decompress(e)));
+	CHR = Uint8Array.concat(CHR, ...['ds_chr-4.bin', 'ds_chr-5.bin', 'ds_chr-6.bin', 'ds_chr-7.bin'].map(e => zip.decompress(e)));
+	OBJ = Uint8Array.concat(...['ds_obj-0.bin', 'ds_obj-1.bin', 'ds_obj-2.bin', 'ds_obj-3.bin', 'ds1_o4.bin', 'ds1_o4.bin'].map(e => zip.decompress(e)));
 	game = new DragonSpirit();
 	sound = [
 		new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
@@ -836,5 +829,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

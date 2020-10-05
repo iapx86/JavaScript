@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -673,24 +673,21 @@ class SkyKidDeluxe {
  *
  */
 
-const url = 'skykiddx.zip';
 let PRG1, PRG2, BG1, BG2, OBJ, RED, BLUE, BGCOLOR, OBJCOLOR, BGADDR, PRG3, PRG3I;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['sk3_2.9d'].inflate() + zip.files['sk3_1b.9c'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['sk3_3.12c'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG1 = new Uint8Array((zip.files['sk3_9.7r'].inflate() + zip.files['sk3_10.7s'].inflate()).split('').map(c => c.charCodeAt(0)));
-	BG2 = new Uint8Array((zip.files['sk3_7.4r'].inflate() + zip.files['sk3_8.4s'].inflate()).split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array((zip.files['sk3_5.12h'].inflate() + zip.files['sk3_6.12k'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RED = new Uint8Array(zip.files['sk3-1.3r'].inflate().split('').map(c => c.charCodeAt(0)));
-	BLUE = new Uint8Array(zip.files['sk3-2.3s'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['sk3-3.4v'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['sk3-4.5v'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGADDR = new Uint8Array(zip.files['sk3-5.6u'].inflate().split('').map(c => c.charCodeAt(0)));
-	PRG3 = new Uint8Array(zip.files['sk3_4.6b'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PRG3I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+read('skykiddx.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['sk3_2.9d', 'sk3_1b.9c'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('sk3_3.12c').addBase();
+	BG1 = Uint8Array.concat(...['sk3_9.7r', 'sk3_10.7s'].map(e => zip.decompress(e)));
+	BG2 = Uint8Array.concat(...['sk3_7.4r', 'sk3_8.4s'].map(e => zip.decompress(e)));
+	OBJ = Uint8Array.concat(...['sk3_5.12h', 'sk3_6.12k'].map(e => zip.decompress(e)));
+	RED = zip.decompress('sk3-1.3r');
+	BLUE = zip.decompress('sk3-2.3s');
+	BGCOLOR = zip.decompress('sk3-3.4v');
+	OBJCOLOR = zip.decompress('sk3-4.5v');
+	BGADDR = zip.decompress('sk3-5.6u');
+	PRG3 = zip.decompress('sk3_4.6b').addBase();
+	PRG3I = zip.decompress('cus60-60a1.mcu').addBase();
 	game = new SkyKidDeluxe();
 	sound = [
 		new YM2151({clock: 3579580}),
@@ -698,5 +695,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

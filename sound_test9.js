@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import SegaPCM from './sega_pcm.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -185,31 +185,15 @@ class SoundTest {
  */
 
 const key = [];
-const url = 'outrun.zip';
 let PRG3, PCM;
 
-window.addEventListener('load', () => {
+void function () {
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
-
-function success(zip) {
-	PRG3 = new Uint8Array(zip.files['epr-10187.88'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PCM = zip.files['opr-10193.66'].inflate() + zip.files['opr-10193.66'].inflate() + zip.files['opr-10192.67'].inflate() + zip.files['opr-10192.67'].inflate();
-	PCM += zip.files['opr-10191.68'].inflate() + zip.files['opr-10191.68'].inflate() + zip.files['opr-10190.69'].inflate() + zip.files['opr-10190.69'].inflate();
-	PCM += zip.files['opr-10189.70'].inflate() + zip.files['opr-10189.70'].inflate() + zip.files['opr-10188.71'].inflate() + zip.files['opr-10188.71'].inflate();
-	PCM = new Uint8Array((PCM + '\xff'.repeat(0x20000)).split('').map(c => c.charCodeAt(0)));
-	game = new SoundTest();
-	sound = [
-		new YM2151({clock: 4000000, resolution: 65}),
-		new SegaPCM({PCM, clock: 4000000, resolution: 65}),
-	];
-	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -219,6 +203,19 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
+}();
+
+read('outrun.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG3 = zip.decompress('epr-10187.88').addBase();
+	PCM = Uint8Array.concat(...['opr-10193.66', 'opr-10193.66', 'opr-10192.67', 'opr-10192.67', 'opr-10191.68'].map(e => zip.decompress(e)));
+	PCM = Uint8Array.concat(PCM, ...['opr-10191.68', 'opr-10190.69', 'opr-10190.69', 'opr-10189.70', 'opr-10189.70'].map(e => zip.decompress(e)));
+	PCM = Uint8Array.concat(PCM, ...['opr-10188.71', 'opr-10188.71'].map(e => zip.decompress(e)), new Uint8Array(0x20000).fill(0xff));
+	game = new SoundTest();
+	sound = [
+		new YM2151({clock: 4000000, resolution: 65}),
+		new SegaPCM({PCM, clock: 4000000, resolution: 65}),
+	];
+	game.initial = true;
 	init({game, sound});
-}
+});
 

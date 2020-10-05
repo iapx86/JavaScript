@@ -4,7 +4,7 @@
  *
  */
 
-import {init} from './main.js';
+import {init, read} from './main.js';
 import I8080 from './i8080.js';
 let game;
 
@@ -257,17 +257,14 @@ class LunarRescue {
  *
  */
 
-const url = 'lrescue.zip';
 let PRG1, PRG2, MAP;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['lrescue.1'].inflate() + zip.files['lrescue.2'].inflate() + zip.files['lrescue.3'].inflate() + zip.files['lrescue.4'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array((zip.files['lrescue.5'].inflate() + zip.files['lrescue.6'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	MAP = new Uint8Array(zip.files['7643-1.cpu'].inflate().split('').map(c => c.charCodeAt(0)));
+read('lrescue.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['lrescue.1', 'lrescue.2', 'lrescue.3', 'lrescue.4'].map(e => zip.decompress(e))).addBase();
+	PRG2 = Uint8Array.concat(...['lrescue.5', 'lrescue.6'].map(e => zip.decompress(e))).addBase();
+	MAP = zip.decompress('7643-1.cpu');
 	game = new LunarRescue();
 	canvas.addEventListener('click', () => game.coin());
 	init({game});
-}
+});
 

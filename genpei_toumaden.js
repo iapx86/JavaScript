@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import Namco63701X from './namco_63701x.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -688,27 +688,23 @@ class GenpeiToumaDen {
  *
  */
 
-const url = 'genpeitd.zip';
 let PRG1, PRG2, BG1, BG2, OBJ, RED, BLUE, BGCOLOR, OBJCOLOR, BGADDR, PRG3, PRG3I, PCM;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['gt1_10b.f1'].inflate() + zip.files['gt1_1b.9c'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['gt1_2.12c'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG1 = new Uint8Array((zip.files['gt1_7.7r'].inflate() + zip.files['gt1_6.7s'].inflate()).split('').map(c => c.charCodeAt(0)));
-	BG2 = new Uint8Array((zip.files['gt1_5.4r'].inflate() + zip.files['gt1_4.4s'].inflate()).split('').map(c => c.charCodeAt(0)));
-	OBJ = zip.files['gt1_11.12h'].inflate() + zip.files['gt1_12.12k'].inflate() + zip.files['gt1_13.12l'].inflate() + zip.files['gt1_14.12m'].inflate();
-	OBJ += zip.files['gt1_15.12p'].inflate() + zip.files['gt1_16.12r'].inflate() + zip.files['gt1_8.12t'].inflate() + zip.files['gt1_8.12t'].inflate();
-	OBJ = new Uint8Array((OBJ + zip.files['gt1_9.12u'].inflate() + zip.files['gt1_9.12u'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RED = new Uint8Array(zip.files['gt1-1.3r'].inflate().split('').map(c => c.charCodeAt(0)));
-	BLUE = new Uint8Array(zip.files['gt1-2.3s'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['gt1-3.4v'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['gt1-4.5v'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGADDR = new Uint8Array(zip.files['gt1-5.6u'].inflate().split('').map(c => c.charCodeAt(0)));
-	PRG3 = new Uint8Array(zip.files['gt1_3.6b'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PRG3I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PCM = new Uint8Array((zip.files['gt1_17.f3'].inflate() + zip.files['gt1_18.h3'].inflate() + zip.files['gt1_19.k3'].inflate()).split('').map(c => c.charCodeAt(0)));
+read('genpeitd.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['gt1_10b.f1', 'gt1_1b.9c'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('gt1_2.12c').addBase();
+	BG1 = Uint8Array.concat(...['gt1_7.7r', 'gt1_6.7s'].map(e => zip.decompress(e)));
+	BG2 = Uint8Array.concat(...['gt1_5.4r', 'gt1_4.4s'].map(e => zip.decompress(e)));
+	OBJ = Uint8Array.concat(...['gt1_11.12h', 'gt1_12.12k', 'gt1_13.12l', 'gt1_14.12m', 'gt1_15.12p'].map(e => zip.decompress(e)));
+	OBJ = Uint8Array.concat(OBJ, ...['gt1_16.12r', 'gt1_8.12t', 'gt1_8.12t', 'gt1_9.12u', 'gt1_9.12u'].map(e => zip.decompress(e)));
+	RED = zip.decompress('gt1-1.3r');
+	BLUE = zip.decompress('gt1-2.3s');
+	BGCOLOR = zip.decompress('gt1-3.4v');
+	OBJCOLOR = zip.decompress('gt1-4.5v');
+	BGADDR = zip.decompress('gt1-5.6u');
+	PRG3 = zip.decompress('gt1_3.6b').addBase();
+	PRG3I = zip.decompress('cus60-60a1.mcu').addBase();
+	PCM = Uint8Array.concat(...['gt1_17.f3', 'gt1_18.h3', 'gt1_19.k3'].map(e => zip.decompress(e)));
 	game = new GenpeiToumaDen();
 	sound = [
 		new YM2151({clock: 3579580}),
@@ -717,5 +713,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

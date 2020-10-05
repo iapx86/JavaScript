@@ -5,7 +5,7 @@
  */
 
 import PacManSound from './pac-man_sound.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -549,23 +549,19 @@ class JrPacMan {
  *
  */
 
-const url = 'jrpacman.zip';
 let BG, COLOR, OBJ, RGB_L, RGB_H, PRG, SND;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG = zip.files['jrp8d.8d'].inflate() + zip.files['jrp8e.8e'].inflate() + zip.files['jrp8h.8h'].inflate() + zip.files['jrp8j.8j'].inflate();
-	PRG = new Uint8Array((PRG + zip.files['jrp8k.8k'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array(zip.files['jrp2c.2c'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array(zip.files['jrp2e.2e'].inflate().split('').map(c => c.charCodeAt(0)));
-	RGB_L = new Uint8Array(zip.files['a290-27axv-bxhd.9e'].inflate().split('').map(c => c.charCodeAt(0)));
-	RGB_H = new Uint8Array(zip.files['a290-27axv-cxhd.9f'].inflate().split('').map(c => c.charCodeAt(0)));
-	COLOR = new Uint8Array(zip.files['a290-27axv-axhd.9p'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['a290-27axv-dxhd.7p'].inflate().split('').map(c => c.charCodeAt(0)));
+read('jrpacman.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = Uint8Array.concat(...['jrp8d.8d', 'jrp8e.8e', 'jrp8h.8h', 'jrp8j.8j', 'jrp8k.8k'].map(e => zip.decompress(e))).addBase();
+	BG = zip.decompress('jrp2c.2c');
+	OBJ = zip.decompress('jrp2e.2e');
+	RGB_L = zip.decompress('a290-27axv-bxhd.9e');
+	RGB_H = zip.decompress('a290-27axv-cxhd.9f');
+	COLOR = zip.decompress('a290-27axv-axhd.9p');
+	SND = zip.decompress('a290-27axv-dxhd.7p');
 	game = new JrPacMan();
 	sound = new PacManSound({SND});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

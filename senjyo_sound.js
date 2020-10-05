@@ -30,8 +30,6 @@ export default class SenjyoSound {
 		this.gain = gain;
 		for (let i = 0; i < resolution; i++)
 			this.tmpwheel.push([]);
-		if (!audioCtx)
-			return;
 		this.source = audioCtx.createBufferSource();
 		this.biquadFilter = audioCtx.createBiquadFilter();
 		this.biquadFilter.type = 'bandpass';
@@ -53,14 +51,12 @@ export default class SenjyoSound {
 	}
 
 	update() {
-		if (audioCtx) {
-			if (this.wheel.length > this.resolution) {
-				while (this.wheel.length)
-					this.wheel.shift().forEach(e => this.regwrite(e));
-				this.count = this.sampleRate - 1;
-			}
-			this.tmpwheel.forEach(e => this.wheel.push(e));
+		if (this.wheel.length > this.resolution) {
+			while (this.wheel.length)
+				this.wheel.shift().forEach(e => this.regwrite(e));
+			this.count = this.sampleRate - 1;
 		}
+		this.tmpwheel.forEach(e => this.wheel.push(e));
 		for (let i = 0; i < this.resolution; i++)
 			this.tmpwheel[i] = [];
 	}

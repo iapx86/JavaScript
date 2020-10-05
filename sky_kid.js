@@ -5,7 +5,7 @@
  */
 
 import C30 from './c30.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -804,26 +804,23 @@ class SkyKid {
  *
  */
 
-const url = 'skykid.zip';
 let PRG1, PRG2, PRG2I, FG, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['sk2_2.6c'].inflate() + zip.files['sk1-1c.6b'].inflate() + zip.files['sk1_3.6d'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['sk2_4.3c'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2I = new Uint8Array(zip.files['cus63-63a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	FG = new Uint8Array(zip.files['sk1_6.6l'].inflate().split('').map(c => c.charCodeAt(0)));
-	BG = new Uint8Array(zip.files['sk1_5.7e'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array((zip.files['sk1_8.10n'].inflate() + zip.files['sk1_7.10m'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RED = new Uint8Array(zip.files['sk1-1.2n'].inflate().split('').map(c => c.charCodeAt(0)));
-	GREEN = new Uint8Array(zip.files['sk1-2.2p'].inflate().split('').map(c => c.charCodeAt(0)));
-	BLUE = new Uint8Array(zip.files['sk1-3.2r'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['sk1-4.5n'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['sk1-5.6n'].inflate().split('').map(c => c.charCodeAt(0)));
+read('skykid.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['sk2_2.6c', 'sk1-1c.6b', 'sk1_3.6d'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('sk2_4.3c').addBase();
+	PRG2I = zip.decompress('cus63-63a1.mcu').addBase();
+	FG = zip.decompress('sk1_6.6l');
+	BG = zip.decompress('sk1_5.7e');
+	OBJ = Uint8Array.concat(...['sk1_8.10n', 'sk1_7.10m'].map(e => zip.decompress(e)));
+	RED = zip.decompress('sk1-1.2n');
+	GREEN = zip.decompress('sk1-2.2p');
+	BLUE = zip.decompress('sk1-3.2r');
+	BGCOLOR = zip.decompress('sk1-4.5n');
+	OBJCOLOR = zip.decompress('sk1-5.6n');
 	game = new SkyKid();
 	sound = new C30();
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

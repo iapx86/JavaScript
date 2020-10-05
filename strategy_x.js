@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -478,80 +478,60 @@ class StrategyX {
 }
 
 const keydown = e => {
-	switch (e.keyCode) {
-	case 37: // left
-		game.left(true);
-		break;
-	case 38: // up
-		game.up(true);
-		break;
-	case 39: // right
-		game.right(true);
-		break;
-	case 40: // down
-		game.down(true);
-		break;
-	case 48: // '0'
-		game.coin();
-		break;
-	case 49: // '1'
-		game.start1P();
-		break;
-	case 50: // '2'
-		game.start2P();
-		break;
-	case 77: // 'M'
-		if (!audioCtx)
-			break;
+	switch (e.code) {
+	case 'ArrowLeft':
+		return void game.left(true);
+	case 'ArrowUp':
+		return void game.up(true);
+	case 'ArrowRight':
+		return void game.right(true);
+	case 'ArrowDown':
+		return void game.down(true);
+	case 'Digit0':
+		return void game.coin();
+	case 'Digit1':
+		return void game.start1P();
+	case 'Digit2':
+		return void game.start2P();
+	case 'KeyM': // MUTE
 		if (audioCtx.state === 'suspended')
 			audioCtx.resume().catch();
 		else if (audioCtx.state === 'running')
 			audioCtx.suspend().catch();
-		break;
-	case 82: // 'R'
-		game.reset();
-		break;
-	case 84: // 'T'
+		return;
+	case 'KeyR':
+		return void game.reset();
+	case 'KeyT':
 		if ((game.fTest = !game.fTest) === true)
 			game.fReset = true;
-		break;
-	case 67: // 'C'
-		game.triggerB(true);
-		break;
-	case 32: // space
-	case 88: // 'X'
-		game.triggerA(true);
-		break;
-	case 90: // 'Z'
-		game.triggerX(true);
-		break;
+		return;
+	case 'KeyC':
+		return void game.triggerB(true);
+	case 'Space':
+	case 'KeyX':
+		return void game.triggerA(true);
+	case 'KeyZ':
+		return void game.triggerX(true);
 	}
 };
 
 const keyup = e => {
-	switch (e.keyCode) {
-	case 37: // left
-		game.left(false);
-		break;
-	case 38: // up
-		game.up(false);
-		break;
-	case 39: // right
-		game.right(false);
-		break;
-	case 40: // down
-		game.down(false);
-		break;
-	case 67: // 'C'
-		game.triggerB(false);
-		break;
-	case 32: // space
-	case 88: // 'X'
-		game.triggerA(false);
-		break;
-	case 90: // 'Z'
-		game.triggerX(false);
-		break;
+	switch (e.code) {
+	case 'ArrowLeft':
+		return void game.left(false);
+	case 'ArrowUp':
+		return void game.up(false);
+	case 'ArrowRight':
+		return void game.right(false);
+	case 'ArrowDown':
+		return void game.down(false);
+	case 'KeyC':
+		return void game.triggerB(false);
+	case 'Space':
+	case 'KeyX':
+		return void game.triggerA(false);
+	case 'KeyZ':
+		return void game.triggerX(false);
 	}
 };
 
@@ -561,18 +541,14 @@ const keyup = e => {
  *
  */
 
-const url = 'stratgyx.zip';
 let BG, RGB, PRG1, PRG2, MAP;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = zip.files['2c_1.bin'].inflate() + zip.files['2e_2.bin'].inflate() + zip.files['2f_3.bin'].inflate() + zip.files['2h_4.bin'].inflate();
-	PRG1 = new Uint8Array((PRG1 + zip.files['2j_5.bin'].inflate() + zip.files['2l_6.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array((zip.files['s1.bin'].inflate() + zip.files['s2.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array((zip.files['5f_c2.bin'].inflate() + zip.files['5h_c1.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['strategy.6e'].inflate().split('').map(c => c.charCodeAt(0)));
-	MAP = new Uint8Array(zip.files['strategy.10k'].inflate().split('').map(c => c.charCodeAt(0)));
+read('stratgyx.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['2c_1.bin', '2e_2.bin', '2f_3.bin', '2h_4.bin', '2j_5.bin', '2l_6.bin'].map(e => zip.decompress(e))).addBase();
+	PRG2 = Uint8Array.concat(...['s1.bin', 's2.bin'].map(e => zip.decompress(e))).addBase();
+	BG = Uint8Array.concat(...['5f_c2.bin', '5h_c1.bin'].map(e => zip.decompress(e)));
+	RGB = zip.decompress('strategy.6e');
+	MAP = zip.decompress('strategy.10k');
 	game = new StrategyX();
 	sound = [
 		new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.2}),
@@ -580,5 +556,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound, keydown, keyup});
-}
+});
 

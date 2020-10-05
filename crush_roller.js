@@ -5,7 +5,7 @@
  */
 
 import PacManSound from './pac-man_sound.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -521,21 +521,18 @@ class CrushRoller {
  *
  */
 
-const url = 'crush.zip';
 let BG, COLOR, OBJ, RGB, PRG, SND;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG = new Uint8Array((zip.files['crushkrl.6e'].inflate() + zip.files['crushkrl.6f'].inflate() + zip.files['crushkrl.6h'].inflate() + zip.files['crushkrl.6j'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array(zip.files['maketrax.5e'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array(zip.files['maketrax.5f'].inflate().split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['82s123.7f'].inflate().split('').map(c => c.charCodeAt(0)));
-	COLOR = new Uint8Array(zip.files['2s140.4a'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['82s126.1m'].inflate().split('').map(c => c.charCodeAt(0)));
+read('crush.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = Uint8Array.concat(...['crushkrl.6e', 'crushkrl.6f', 'crushkrl.6h', 'crushkrl.6j'].map(e => zip.decompress(e))).addBase();
+	BG = zip.decompress('maketrax.5e');
+	OBJ = zip.decompress('maketrax.5f');
+	RGB = zip.decompress('82s123.7f');
+	COLOR = zip.decompress('2s140.4a');
+	SND = zip.decompress('82s126.1m');
 	game = new CrushRoller();
 	sound = new PacManSound({SND});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

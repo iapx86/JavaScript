@@ -5,7 +5,7 @@
  */
 
 import SoundEffect from './sound_effect.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import I8080 from './i8080.js';
 let game, sound;
 
@@ -373,8 +373,6 @@ class WarpAndWarpSound {
 	constructor({gain = 0.1} = {}) {
 		this.rate = Math.floor(0x8000000 * (48000 / audioCtx.sampleRate));
 		this.gain = gain;
-		if (!audioCtx)
-			return;
 		for (let i = 0; i < 8; i++) {
 			this.audioBuffer[i] = audioCtx.createBuffer(1, 32 * (8 - i), 44100);
 			this.audioBuffer[i].getChannelData(0).fill(1, 0, 16).fill(-1, 16);
@@ -397,8 +395,6 @@ class WarpAndWarpSound {
 	}
 
 	update(game) {
-		if (!audioCtx)
-			return;
 		const ram = game.ram;
 		if ((ram[0xd20] & 0x0f) !== 0x0f && (ram[0xd10] & 0x3f) !== 0 && ram[0xd20] !== 0x2d) {
 			this.channel.voice = ram[0xd20] >> 1 & 7;
@@ -3585,14 +3581,11 @@ CAABAP7/AwD7//r/9//3//n/8P/5//D/8P/5//3/8v/z/+//+P/8//H/+v/z//b/9P/4//L/+P/1//P/
  *
  */
 
-const url = 'warpwarp.zip';
 let PRG, BG;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG = new Uint8Array((zip.files['ww1_prg1.s10'].inflate() + zip.files['ww1_prg2.s8'].inflate() + zip.files['ww1_prg3.s4'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array(zip.files['ww1_chg1.s12'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+read('warpwarp.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = Uint8Array.concat(...['ww1_prg1.s10', 'ww1_prg2.s8', 'ww1_prg3.s4'].map(e => zip.decompress(e))).addBase();
+	BG = zip.decompress('ww1_chg1.s12').addBase();
 	game = new WarpAndWarp();
 	sound = [
 		new WarpAndWarpSound(),
@@ -3600,5 +3593,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

@@ -5,7 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -590,23 +590,20 @@ class DigDugII {
  *
  */
 
-const url = 'digdug2.zip';
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['d23_3.1d'].inflate() + zip.files['d23_1.1b'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['d21_4.1k'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array(zip.files['d21_5.3b'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array((zip.files['d21_7.3n'].inflate() + zip.files['d21_6.3m'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['d21-5.5b'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['d21-6.4c'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['d21-7.5k'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['d21-3.3m'].inflate().split('').map(c => c.charCodeAt(0)));
+read('digdug2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['d23_3.1d', 'd23_1.1b'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('d21_4.1k').addBase();
+	BG = zip.decompress('d21_5.3b');
+	OBJ = Uint8Array.concat(...['d21_7.3n', 'd21_6.3m'].map(e => zip.decompress(e)));
+	RGB = zip.decompress('d21-5.5b');
+	BGCOLOR = zip.decompress('d21-6.4c');
+	OBJCOLOR = zip.decompress('d21-7.5k');
+	SND = zip.decompress('d21-3.3m');
 	game = new DigDugII();
 	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

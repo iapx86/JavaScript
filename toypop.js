@@ -5,7 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC68000 from  './mc68000.js';
 let game, sound;
@@ -572,28 +572,25 @@ class Toypop {
  *
  */
 
-const url = 'toypop.zip';
 const PRG3 = new Uint8Array(0x8000).addBase();
 let PRG1, PRG2, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR, SND;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['tp1-2.5b'].inflate() + zip.files['tp1-1.5c'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['tp1-3.2c'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	zip.files['tp1-4.8c'].inflate().split('').forEach((c, i) => PRG3[i << 1] = c.charCodeAt(0));
-	zip.files['tp1-5.10c'].inflate().split('').forEach((c, i) => PRG3[1 | i << 1] = c.charCodeAt(0));
-	BG = new Uint8Array(zip.files['tp1-7.5p'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array(zip.files['tp1-6.9t'].inflate().split('').map(c => c.charCodeAt(0)));
-	RED = new Uint8Array(zip.files['tp1-3.1r'].inflate().split('').map(c => c.charCodeAt(0)));
-	GREEN = new Uint8Array(zip.files['tp1-2.1s'].inflate().split('').map(c => c.charCodeAt(0)));
-	BLUE = new Uint8Array(zip.files['tp1-1.1t'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['tp1-4.5l'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['tp1-5.2p'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['tp1-6.3d'].inflate().split('').map(c => c.charCodeAt(0)));
+read('toypop.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['tp1-2.5b', 'tp1-1.5c'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('tp1-3.2c').addBase();
+	zip.decompress('tp1-4.8c').forEach((e, i) => PRG3[i << 1] = e);
+	zip.decompress('tp1-5.10c').forEach((e, i) => PRG3[1 | i << 1] = e);
+	BG = zip.decompress('tp1-7.5p');
+	OBJ = zip.decompress('tp1-6.9t');
+	RED = zip.decompress('tp1-3.1r');
+	GREEN = zip.decompress('tp1-2.1s');
+	BLUE = zip.decompress('tp1-1.1t');
+	BGCOLOR = zip.decompress('tp1-4.5l');
+	OBJCOLOR = zip.decompress('tp1-5.2p');
+	SND = zip.decompress('tp1-6.3d');
 	game = new Toypop();
 	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

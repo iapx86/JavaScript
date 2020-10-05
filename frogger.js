@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -465,19 +465,16 @@ class Frogger {
  *
  */
 
-const url = 'frogger.zip';
 let BG, RGB, PRG1, PRG2;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['frogger.26'].inflate() + zip.files['frogger.27'].inflate() + zip.files['frsm3.7'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array((zip.files['frogger.608'].inflate() + zip.files['frogger.609'].inflate() + zip.files['frogger.610'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array((zip.files['frogger.607'].inflate() + zip.files['frogger.606'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['pr-91.6l'].inflate().split('').map(c => c.charCodeAt(0)));
+read('frogger.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['frogger.26', 'frogger.27', 'frsm3.7'].map(e => zip.decompress(e))).addBase();
+	PRG2 = Uint8Array.concat(...['frogger.608', 'frogger.609', 'frogger.610'].map(e => zip.decompress(e))).addBase();
+	BG = Uint8Array.concat(...['frogger.607', 'frogger.606'].map(e => zip.decompress(e)));
+	RGB = zip.decompress('pr-91.6l');
 	game = new Frogger();
 	sound = new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.4});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

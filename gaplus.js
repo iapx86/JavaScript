@@ -6,7 +6,7 @@
 
 import MappySound from './mappy_sound.js';
 import SoundEffect from './sound_effect.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -1527,25 +1527,22 @@ MQAxAE0AUABGAEIALwArADkAJwAxAEMASwAtADAAOwA1AFQASQA7AD8AOQA3ADcA\
  *
  */
 
-const url = 'gaplus.zip';
 let SND, BGCOLOR, OBJCOLOR_H, OBJCOLOR_L, RED, BLUE, GREEN, BG, OBJ4, OBJ8, PRG1, PRG2, PRG3;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['gp2-4.8d'].inflate() + zip.files['gp2-3b.8c'].inflate() + zip.files['gp2-2b.8b'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array((zip.files['gp2-8.11d'].inflate() + zip.files['gp2-7.11c'].inflate() + zip.files['gp2-6.11b'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG3 = new Uint8Array(zip.files['gp2-1.4b'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array(zip.files['gp2-5.8s'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ8 = new Uint8Array((zip.files['gp2-11.11p'].inflate() + zip.files['gp2-10.11n'].inflate() + zip.files['gp2-9.11m'].inflate()).split('').map(c => c.charCodeAt(0)));
-	OBJ4 = new Uint8Array(zip.files['gp2-12.11r'].inflate().split('').map(c => c.charCodeAt(0)));
-	RED = new Uint8Array(zip.files['gp2-3.1p'].inflate().split('').map(c => c.charCodeAt(0)));
-	GREEN = new Uint8Array(zip.files['gp2-1.1n'].inflate().split('').map(c => c.charCodeAt(0)));
-	BLUE = new Uint8Array(zip.files['gp2-2.2n'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['gp2-7.6s'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR_L = new Uint8Array(zip.files['gp2-6.6p'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR_H = new Uint8Array(zip.files['gp2-5.6n'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['gp2-4.3f'].inflate().split('').map(c => c.charCodeAt(0)));
+read('gaplus.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['gp2-4.8d', 'gp2-3b.8c', 'gp2-2b.8b'].map(e => zip.decompress(e))).addBase();
+	PRG2 = Uint8Array.concat(...['gp2-8.11d', 'gp2-7.11c', 'gp2-6.11b'].map(e => zip.decompress(e))).addBase();
+	PRG3 = zip.decompress('gp2-1.4b').addBase();
+	BG = zip.decompress('gp2-5.8s');
+	OBJ8 = Uint8Array.concat(...['gp2-11.11p', 'gp2-10.11n', 'gp2-9.11m'].map(e => zip.decompress(e)));
+	OBJ4 = zip.decompress('gp2-12.11r');
+	RED = zip.decompress('gp2-3.1p');
+	GREEN = zip.decompress('gp2-1.1n');
+	BLUE = zip.decompress('gp2-2.2n');
+	BGCOLOR = zip.decompress('gp2-7.6s');
+	OBJCOLOR_L = zip.decompress('gp2-6.6p');
+	OBJCOLOR_H = zip.decompress('gp2-5.6n');
+	SND = zip.decompress('gp2-4.3f');
 	game = new Gaplus();
 	sound = [
 		new MappySound({SND}),
@@ -1553,5 +1550,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

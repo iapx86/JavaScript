@@ -6,7 +6,7 @@
 
 import PacManSound from './pac-man_sound.js';
 import SoundEffect from './sound_effect.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -1265,19 +1265,17 @@ z//f//3/9f///w==\
  *
  */
 
-const url = 'nrallyx.zip';
 let SND, BGOBJ, COLOR, RGB, PRG;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG = zip.files['nrx_prg1.1d'].inflate().slice(0, 0x800) + zip.files['nrx_prg2.1e'].inflate().slice(0, 0x800) + zip.files['nrx_prg1.1d'].inflate().slice(0x800);
-	PRG += zip.files['nrx_prg2.1e'].inflate().slice(0x800) + zip.files['nrx_prg3.1k'].inflate().slice(0, 0x800) + zip.files['nrx_prg4.1l'].inflate().slice(0, 0x800);
-	PRG = new Uint8Array((PRG + zip.files['nrx_prg3.1k'].inflate().slice(0x800) + zip.files['nrx_prg4.1l'].inflate().slice(0x800)).split('').map(c => c.charCodeAt(0))).addBase();
-	BGOBJ = new Uint8Array((zip.files['nrx_chg1.8e'].inflate() + zip.files['nrx_chg2.8d'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['nrx1-1.11n'].inflate().split('').map(c => c.charCodeAt(0)));
-	COLOR = new Uint8Array(zip.files['nrx1-7.8p'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['rx1-5.3p'].inflate().split('').map(c => c.charCodeAt(0)));
+read('nrallyx.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = Uint8Array.concat(...['nrx_prg1.1d', 'nrx_prg2.1e'].map(e => zip.decompress(e).subarray(0, 0x800)));
+	PRG = Uint8Array.concat(PRG, ...['nrx_prg1.1d', 'nrx_prg2.1e'].map(e => zip.decompress(e).subarray(0x800)));
+	PRG = Uint8Array.concat(PRG, ...['nrx_prg3.1k', 'nrx_prg4.1l'].map(e => zip.decompress(e).subarray(0, 0x800)));
+	PRG = Uint8Array.concat(PRG, ...['nrx_prg3.1k', 'nrx_prg4.1l'].map(e => zip.decompress(e).subarray(0x800))).addBase();
+	BGOBJ = Uint8Array.concat(...['nrx_chg1.8e', 'nrx_chg2.8d'].map(e => zip.decompress(e)));
+	RGB = zip.decompress('nrx1-1.11n');
+	COLOR = zip.decompress('nrx1-7.8p');
+	SND = zip.decompress('rx1-5.3p');
 	game = new NewRallyX();
 	sound = [
 		new PacManSound({SND}),
@@ -1285,5 +1283,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

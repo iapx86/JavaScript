@@ -5,7 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC68000 from  './mc68000.js';
 let game, sound;
@@ -661,28 +661,25 @@ class LibbleRabble {
  *
  */
 
-const url = 'liblrabl.zip';
 const PRG3 = new Uint8Array(0x8000).addBase();
 let PRG1, PRG2, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR, SND;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['5b.rom'].inflate() + zip.files['5c.rom'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['2c.rom'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	zip.files['8c.rom'].inflate().split('').forEach((c, i) => PRG3[i << 1] = c.charCodeAt(0));
-	zip.files['10c.rom'].inflate().split('').forEach((c, i) => PRG3[1 | i << 1] = c.charCodeAt(0));
-	BG = new Uint8Array(zip.files['5p.rom'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array(zip.files['9t.rom'].inflate().split('').map(c => c.charCodeAt(0)));
-	RED = new Uint8Array(zip.files['lr1-3.1r'].inflate().split('').map(c => c.charCodeAt(0)));
-	GREEN = new Uint8Array(zip.files['lr1-2.1s'].inflate().split('').map(c => c.charCodeAt(0)));
-	BLUE = new Uint8Array(zip.files['lr1-1.1t'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['lr1-5.5l'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['lr1-6.2p'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['lr1-4.3d'].inflate().split('').map(c => c.charCodeAt(0)));
+read('liblrabl.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['5b.rom', '5c.rom'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('2c.rom').addBase();
+	zip.decompress('8c.rom').forEach((e, i) => PRG3[i << 1] = e);
+	zip.decompress('10c.rom').forEach((e, i) => PRG3[1 | i << 1] = e);
+	BG = zip.decompress('5p.rom');
+	OBJ = zip.decompress('9t.rom');
+	RED = zip.decompress('lr1-3.1r');
+	GREEN = zip.decompress('lr1-2.1s');
+	BLUE = zip.decompress('lr1-1.1t');
+	BGCOLOR = zip.decompress('lr1-5.5l');
+	OBJCOLOR = zip.decompress('lr1-6.2p');
+	SND = zip.decompress('lr1-4.3d');
 	game = new LibbleRabble();
 	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

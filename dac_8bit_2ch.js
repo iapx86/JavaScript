@@ -25,8 +25,6 @@ export default class Dac8Bit2Ch {
 		this.tmpwheel = [new Uint8Array(resolution).fill(0x80), new Uint8Array(resolution).fill(0x80)];
 		for (let i = 0; i < 2; i++)
 			this.channel.push({output: 0, gain: 1});
-		if (!audioCtx)
-			return;
 		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
@@ -39,8 +37,6 @@ export default class Dac8Bit2Ch {
 	}
 
 	mute(flag) {
-		if (!audioCtx)
-			return;
 		this.gainNode.gain.value = flag ? 0 : this.gain;
 	}
 
@@ -49,11 +45,9 @@ export default class Dac8Bit2Ch {
 	}
 
 	update() {
-		if (audioCtx) {
-			if (this.wheel.length >= 2)
-				this.wheel.splice(0), this.position = 0;
-			this.wheel.push(this.tmpwheel);
-		}
+		if (this.wheel.length >= 2)
+			this.wheel.splice(0), this.position = 0;
+		this.wheel.push(this.tmpwheel);
 		this.tmpwheel = [new Uint8Array(this.resolution).fill(0x80), new Uint8Array(this.resolution).fill(0x80)];
 	}
 

@@ -5,7 +5,7 @@
  */
 
 import YM2151 from './ym2151.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import MC68000 from  './mc68000.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -583,30 +583,27 @@ class FantasyZone {
  *
  */
 
-const url = 'fantzone.zip';
 const PRG1 = new Uint8Array(0x30000).addBase(), OBJ = new Uint8Array(0x30000);
 let BG, PRG2;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	zip.files['epr-7385a.43'].inflate().split('').forEach((c, i) => PRG1[i << 1] = c.charCodeAt(0));
-	zip.files['epr-7382a.26'].inflate().split('').forEach((c, i) => PRG1[1 | i << 1] = c.charCodeAt(0));
-	zip.files['epr-7386a.42'].inflate().split('').forEach((c, i) => PRG1[0x10000 | i << 1] = c.charCodeAt(0));
-	zip.files['epr-7383a.25'].inflate().split('').forEach((c, i) => PRG1[0x10001 | i << 1] = c.charCodeAt(0));
-	zip.files['epr-7387.41'].inflate().split('').forEach((c, i) => PRG1[0x20000 | i << 1] = c.charCodeAt(0));
-	zip.files['epr-7384.24'].inflate().split('').forEach((c, i) => PRG1[0x20001 | i << 1] = c.charCodeAt(0));
-	BG = new Uint8Array((zip.files['epr-7388.95'].inflate() + zip.files['epr-7389.94'].inflate() + zip.files['epr-7390.93'].inflate()).split('').map(c => c.charCodeAt(0)));
-	zip.files['epr-7392.10'].inflate().split('').forEach((c, i) => OBJ[1 | i << 1] = c.charCodeAt(0));
-	zip.files['epr-7396.11'].inflate().split('').forEach((c, i) => OBJ[i << 1] = c.charCodeAt(0));
-	zip.files['epr-7393.17'].inflate().split('').forEach((c, i) => OBJ[0x10001 | i << 1] = c.charCodeAt(0));
-	zip.files['epr-7397.18'].inflate().split('').forEach((c, i) => OBJ[0x10000 | i << 1] = c.charCodeAt(0));
-	zip.files['epr-7394.23'].inflate().split('').forEach((c, i) => OBJ[0x20001 | i << 1] = c.charCodeAt(0));
-	zip.files['epr-7398.24'].inflate().split('').forEach((c, i) => OBJ[0x20000 | i << 1] = c.charCodeAt(0));
-	PRG2 = new Uint8Array(zip.files['epr-7535a.12'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+read('fantzone.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	zip.decompress('epr-7385a.43').forEach((e, i) => PRG1[i << 1] = e);
+	zip.decompress('epr-7382a.26').forEach((e, i) => PRG1[1 | i << 1] = e);
+	zip.decompress('epr-7386a.42').forEach((e, i) => PRG1[0x10000 | i << 1] = e);
+	zip.decompress('epr-7383a.25').forEach((e, i) => PRG1[0x10001 | i << 1] = e);
+	zip.decompress('epr-7387.41').forEach((e, i) => PRG1[0x20000 | i << 1] = e);
+	zip.decompress('epr-7384.24').forEach((e, i) => PRG1[0x20001 | i << 1] = e);
+	BG = Uint8Array.concat(...['epr-7388.95', 'epr-7389.94', 'epr-7390.93'].map(e => zip.decompress(e)));
+	zip.decompress('epr-7392.10').forEach((e, i) => OBJ[1 | i << 1] = e);
+	zip.decompress('epr-7396.11').forEach((e, i) => OBJ[i << 1] = e);
+	zip.decompress('epr-7393.17').forEach((e, i) => OBJ[0x10001 | i << 1] = e);
+	zip.decompress('epr-7397.18').forEach((e, i) => OBJ[0x10000 | i << 1] = e);
+	zip.decompress('epr-7394.23').forEach((e, i) => OBJ[0x20001 | i << 1] = e);
+	zip.decompress('epr-7398.24').forEach((e, i) => OBJ[0x20000 | i << 1] = e);
+	PRG2 = zip.decompress('epr-7535a.12').addBase();
 	game = new FantasyZone();
 	sound = new YM2151({clock: 4000000, resolution: 65});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

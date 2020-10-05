@@ -6,7 +6,7 @@
 
 import PacManSound from './pac-man_sound.js';
 import SoundEffect from './sound_effect.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -1664,21 +1664,18 @@ UP9M/1L/Zf8=\
  *
  */
 
-const url = 'galaga.zip';
 let BG, OBJ, BGCOLOR, OBJCOLOR, RGB, SND, PRG1, PRG2, PRG3;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['gg1_1b.3p'].inflate() + zip.files['gg1_2b.3m'].inflate() + zip.files['gg1_3.2m'].inflate() + zip.files['gg1_4b.2l'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['gg1_5b.3f'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PRG3 = new Uint8Array(zip.files['gg1_7b.2c'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array(zip.files['gg1_9.4l'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array((zip.files['gg1_11.4d'].inflate() + zip.files['gg1_10.4f'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['prom-5.5n'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['prom-4.2n'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['prom-3.1c'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['prom-1.1d'].inflate().split('').map(c => c.charCodeAt(0)));
+read('galaga.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['gg1_1b.3p', 'gg1_2b.3m', 'gg1_3.2m', 'gg1_4b.2l'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('gg1_5b.3f').addBase();
+	PRG3 = zip.decompress('gg1_7b.2c').addBase();
+	BG = zip.decompress('gg1_9.4l');
+	OBJ = Uint8Array.concat(...['gg1_11.4d', 'gg1_10.4f'].map(e => zip.decompress(e)));
+	RGB = zip.decompress('prom-5.5n');
+	BGCOLOR = zip.decompress('prom-4.2n');
+	OBJCOLOR = zip.decompress('prom-3.1c');
+	SND = zip.decompress('prom-1.1d');
 	game = new Galaga();
 	sound = [
 		new PacManSound({SND, resolution: 2}),
@@ -1686,5 +1683,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

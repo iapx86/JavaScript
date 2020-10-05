@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import MC6801 from './mc6801.js';
 let game, sound;
 
@@ -195,28 +195,15 @@ class SoundTest {
  */
 
 const key = [];
-const url = 'wndrmomo.zip';
 let PRG3, PRG3I;
 
-window.addEventListener('load', () => {
+void function () {
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
-
-function success(zip) {
-	PRG3 = new Uint8Array(zip.files['wm1_3.6b'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PRG3I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	game = new SoundTest();
-	sound = [
-		new YM2151({clock: 3579580}),
-		new C30(),
-	];
-	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -226,6 +213,17 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
+}();
+
+read('wndrmomo.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG3 = zip.decompress('wm1_3.6b').addBase();
+	PRG3I = zip.decompress('cus60-60a1.mcu').addBase();
+	game = new SoundTest();
+	sound = [
+		new YM2151({clock: 3579580}),
+		new C30(),
+	];
+	game.initial = true;
 	init({game, sound});
-}
+});
 

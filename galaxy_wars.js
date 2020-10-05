@@ -4,7 +4,7 @@
  *
  */
 
-import {init} from './main.js';
+import {init, read} from './main.js';
 import I8080 from './i8080.js';
 let game;
 
@@ -260,16 +260,13 @@ class GalaxyWars {
  *
  */
 
-const url = 'galxwars.zip';
 let PRG1, PRG2;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['univgw3.0'].inflate() + zip.files['univgw4.1'].inflate() + zip.files['univgw5.2'].inflate() + zip.files['univgw6.3'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array((zip.files['univgw1.4'].inflate() + zip.files['univgw2.5'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
+read('galxwars.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['univgw3.0', 'univgw4.1', 'univgw5.2', 'univgw6.3'].map(e => zip.decompress(e))).addBase();
+	PRG2 = Uint8Array.concat(...['univgw1.4', 'univgw2.5'].map(e => zip.decompress(e))).addBase();
 	game = new GalaxyWars();
 	canvas.addEventListener('click', () => game.coin());
 	init({game});
-}
+});
 

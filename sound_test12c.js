@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import Dac8Bit2Ch from './dac_8bit_2ch.js';
-import {dummypage, init} from './main.js';
+import {dummypage, init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -326,33 +326,15 @@ class SoundTest {
  */
 
 const key = [];
-const url = 'galaga88.zip';
 let SND, MCU, VOI;
 
-window.addEventListener('load', () => {
+void function () {
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
-
-function success(zip) {
-	SND = new Uint8Array((zip.files['g81_s0.bin'].inflate() + zip.files['g81_s1.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	MCU = new Uint8Array(zip.files['cus64-64a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	VOI = zip.files['g81_v0.bin'].inflate() + zip.files['g81_v0.bin'].inflate() + zip.files['g81_v1.bin'].inflate() + zip.files['g81_v1.bin'].inflate();
-	VOI += zip.files['g81_v2.bin'].inflate() + zip.files['g81_v2.bin'].inflate() + zip.files['g81_v3.bin'].inflate() + zip.files['g81_v3.bin'].inflate();
-	VOI += zip.files['g81_v4.bin'].inflate() + zip.files['g81_v4.bin'].inflate() + zip.files['g81_v5.bin'].inflate() + zip.files['g81_v5.bin'].inflate();
-	VOI = new Uint8Array(VOI.split('').map(c => c.charCodeAt(0))).addBase();
-	game = new SoundTest();
-	sound = [
-		new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
-		new C30({clock: 49152000 / 2048 / 2, resolution: 58}),
-		new Dac8Bit2Ch({resolution: 100, gain: 0.5}),
-	];
-	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -362,6 +344,20 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
+}();
+
+read('galaga88.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	SND = Uint8Array.concat(...['g81_s0.bin', 'g81_s1.bin'].map(e => zip.decompress(e))).addBase();
+	MCU = zip.decompress('cus64-64a1.mcu').addBase();
+	VOI = Uint8Array.concat(...['g81_v0.bin', 'g81_v0.bin', 'g81_v1.bin', 'g81_v1.bin', 'g81_v2.bin', 'g81_v2.bin', 'g81_v3.bin'].map(e => zip.decompress(e)));
+	VOI = Uint8Array.concat(VOI, ...['g81_v3.bin', 'g81_v4.bin', 'g81_v4.bin', 'g81_v5.bin', 'g81_v5.bin'].map(e => zip.decompress(e))).addBase();
+	game = new SoundTest();
+	sound = [
+		new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
+		new C30({clock: 49152000 / 2048 / 2, resolution: 58}),
+		new Dac8Bit2Ch({resolution: 100, gain: 0.5}),
+	];
+	game.initial = true;
 	init({game, sound});
-}
+});
 

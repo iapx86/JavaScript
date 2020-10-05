@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import Dac8Bit2Ch from './dac_8bit_2ch.js';
-import Cpu, {dummypage, init} from './main.js';
+import Cpu, {dummypage, init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -800,25 +800,17 @@ class Galaga88 {
  *
  */
 
-const url = 'galaga88.zip';
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	SND = new Uint8Array((zip.files['g81_s0.bin'].inflate() + zip.files['g81_s1.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG = zip.files['g81_p0.bin'].inflate() + zip.files['g81_p1.bin'].inflate() + zip.files['g81_p5.bin'].inflate() + zip.files['galaga88j/g81_p6.bin'].inflate();
-	PRG = new Uint8Array((PRG + zip.files['galaga88j/g81_p7.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	MCU = new Uint8Array(zip.files['cus64-64a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	VOI = zip.files['g81_v0.bin'].inflate() + zip.files['g81_v0.bin'].inflate() + zip.files['g81_v1.bin'].inflate() + zip.files['g81_v1.bin'].inflate();
-	VOI += zip.files['g81_v2.bin'].inflate() + zip.files['g81_v2.bin'].inflate() + zip.files['g81_v3.bin'].inflate() + zip.files['g81_v3.bin'].inflate();
-	VOI += zip.files['g81_v4.bin'].inflate() + zip.files['g81_v4.bin'].inflate() + zip.files['g81_v5.bin'].inflate() + zip.files['g81_v5.bin'].inflate();
-	VOI = new Uint8Array(VOI.split('').map(c => c.charCodeAt(0))).addBase();
-	CHR8 = new Uint8Array(zip.files['g8_chr-8.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	CHR = zip.files['g8_chr-0.bin'].inflate() + zip.files['g8_chr-1.bin'].inflate() + zip.files['g8_chr-2.bin'].inflate();
-	CHR = new Uint8Array((CHR + zip.files['g8_chr-3.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
-	OBJ = zip.files['g8_obj-0.bin'].inflate() + zip.files['g8_obj-1.bin'].inflate() + zip.files['g8_obj-2.bin'].inflate() + zip.files['g8_obj-3.bin'].inflate();
-	OBJ = new Uint8Array((OBJ + zip.files['g8_obj-4.bin'].inflate() + zip.files['g8_obj-5.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
+read('galaga88.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	SND = Uint8Array.concat(...['g81_s0.bin', 'g81_s1.bin'].map(e => zip.decompress(e))).addBase();
+	PRG = Uint8Array.concat(...['g81_p0.bin', 'g81_p1.bin', 'g81_p5.bin', 'galaga88j/g81_p6.bin', 'galaga88j/g81_p7.bin'].map(e => zip.decompress(e))).addBase();
+	MCU = zip.decompress('cus64-64a1.mcu').addBase();
+	VOI = Uint8Array.concat(...['g81_v0.bin', 'g81_v0.bin', 'g81_v1.bin', 'g81_v1.bin', 'g81_v2.bin', 'g81_v2.bin', 'g81_v3.bin'].map(e => zip.decompress(e)));
+	VOI = Uint8Array.concat(VOI, ...['g81_v3.bin', 'g81_v4.bin', 'g81_v4.bin', 'g81_v5.bin', 'g81_v5.bin'].map(e => zip.decompress(e))).addBase();
+	CHR8 = zip.decompress('g8_chr-8.bin');
+	CHR = Uint8Array.concat(...['g8_chr-0.bin', 'g8_chr-1.bin', 'g8_chr-2.bin', 'g8_chr-3.bin'].map(e => zip.decompress(e)));
+	OBJ = Uint8Array.concat(...['g8_obj-0.bin', 'g8_obj-1.bin', 'g8_obj-2.bin', 'g8_obj-3.bin', 'g8_obj-4.bin', 'g8_obj-5.bin'].map(e => zip.decompress(e)));
 	game = new Galaga88();
 	sound = [
 		new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
@@ -827,5 +819,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

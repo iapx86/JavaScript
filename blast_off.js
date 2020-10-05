@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import Dac8Bit2Ch from './dac_8bit_2ch.js';
-import Cpu, {dummypage, init} from './main.js';
+import Cpu, {dummypage, init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -800,23 +800,17 @@ class BlastOff {
  *
  */
 
-const url = 'blastoff.zip';
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	SND = new Uint8Array((zip.files['bo1-snd0.bin'].inflate() + zip.files['bo1-snd1.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG = new Uint8Array((zip.files['bo1_prg6.bin'].inflate() + zip.files['bo1prg7b.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	MCU = new Uint8Array(zip.files['cus64-64a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	VOI = zip.files['bo_voi-0.bin'].inflate() + zip.files['bo_voi-1.bin'].inflate();
-	VOI = new Uint8Array((VOI + zip.files['bo_voi-2.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	CHR8 = new Uint8Array(zip.files['bo_chr-8.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	CHR = zip.files['bo_chr-0.bin'].inflate() + zip.files['bo_chr-1.bin'].inflate() + zip.files['bo_chr-2.bin'].inflate();
-	CHR += zip.files['bo_chr-3.bin'].inflate() + zip.files['bo_chr-4.bin'].inflate() + zip.files['bo_chr-5.bin'].inflate();
-	CHR = new Uint8Array((CHR + '\xff'.repeat(0x20000) + zip.files['bo_chr-7.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
-	OBJ = zip.files['bo_obj-0.bin'].inflate() + zip.files['bo_obj-1.bin'].inflate() + zip.files['bo_obj-2.bin'].inflate();
-	OBJ = new Uint8Array((OBJ + zip.files['bo_obj-3.bin'].inflate() + zip.files['bo1_obj4.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
+read('blastoff.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	SND = Uint8Array.concat(...['bo1-snd0.bin', 'bo1-snd1.bin'].map(e => zip.decompress(e))).addBase();
+	PRG = Uint8Array.concat(...['bo1_prg6.bin', 'bo1prg7b.bin'].map(e => zip.decompress(e))).addBase();
+	MCU = zip.decompress('cus64-64a1.mcu').addBase();
+	VOI = Uint8Array.concat(...['bo_voi-0.bin', 'bo_voi-1.bin', 'bo_voi-2.bin'].map(e => zip.decompress(e))).addBase();
+	CHR8 = zip.decompress('bo_chr-8.bin');
+	CHR = Uint8Array.concat(...['bo_chr-0.bin', 'bo_chr-1.bin', 'bo_chr-2.bin', 'bo_chr-3.bin', 'bo_chr-4.bin'].map(e => zip.decompress(e)));
+	CHR = Uint8Array.concat(CHR, zip.decompress('bo_chr-5.bin'), new Uint8Array(0x20000).fill(0xff), zip.decompress('bo_chr-7.bin'));
+	OBJ = Uint8Array.concat(...['bo_obj-0.bin', 'bo_obj-1.bin', 'bo_obj-2.bin', 'bo_obj-3.bin', 'bo1_obj4.bin'].map(e => zip.decompress(e)));
 	game = new BlastOff();
 	sound = [
 		new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
@@ -825,5 +819,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

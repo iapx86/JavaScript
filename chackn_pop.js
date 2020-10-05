@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import Z80 from './z80.js';
 import MC6805 from './mc6805.js';
 let game, sound;
@@ -501,74 +501,56 @@ class ChacknPop {
 }
 
 const keydown = e => {
-	switch (e.keyCode) {
-	case 37: // left
-		game.left(true);
-		break;
-	case 38: // up
-		game.up(true);
-		break;
-	case 39: // right
-		game.right(true);
-		break;
-	case 40: // down
-		game.down(true);
-		break;
-	case 48: // '0'
-		game.coin();
-		break;
-	case 49: // '1'
-		game.start1P();
-		break;
-	case 50: // '2'
-		game.start2P();
-		break;
-	case 77: // 'M'
-		if (!audioCtx)
-			break;
+	switch (e.code) {
+	case 'ArrowLeft':
+		return void game.left(true);
+	case 'ArrowUp':
+		return void game.up(true);
+	case 'ArrowRight':
+		return void game.right(true);
+	case 'ArrowDown':
+		return void game.down(true);
+	case 'Digit0':
+		return void game.coin();
+	case 'Digit1':
+		return void game.start1P();
+	case 'Digit2':
+		return void game.start2P();
+	case 'KeyM': // MUTE
 		if (audioCtx.state === 'suspended')
 			audioCtx.resume().catch();
 		else if (audioCtx.state === 'running')
 			audioCtx.suspend().catch();
-		break;
-	case 82: // 'R'
-		game.reset();
-		break;
-	case 84: // 'T'
+		return;
+	case 'KeyR':
+		return void game.reset();
+	case 'KeyT':
 		if ((game.fTest = !game.fTest) === true)
 			game.fReset = true;
-		break;
-	case 32: // space
-	case 88: // 'X'
-		game.triggerB(true);
-		break;
-	case 90: // 'Z'
-		game.triggerA(true);
-		break;
+		return;
+	case 'Space':
+	case 'KeyX':
+		return void game.triggerB(true);
+	case 'KeyZ':
+		return void game.triggerA(true);
 	}
 };
 
 const keyup = e => {
-	switch (e.keyCode) {
-	case 37: // left
-		game.left(false);
-		break;
-	case 38: // up
-		game.up(false);
-		break;
-	case 39: // right
-		game.right(false);
-		break;
-	case 40: // down
-		game.down(false);
-		break;
-	case 32: // space
-	case 88: // 'X'
-		game.triggerB(false);
-		break;
-	case 90: // 'Z'
-		game.triggerA(false);
-		break;
+	switch (e.code) {
+	case 'ArrowLeft':
+		return void game.left(false);
+	case 'ArrowUp':
+		return void game.up(false);
+	case 'ArrowRight':
+		return void game.right(false);
+	case 'ArrowDown':
+		return void game.down(false);
+	case 'Space':
+	case 'KeyX':
+		return void game.triggerB(false);
+	case 'KeyZ':
+		return void game.triggerA(false);
 	}
 };
 
@@ -578,19 +560,15 @@ const keyup = e => {
  *
  */
 
-const url = 'chaknpop.zip';
 let PRG1, PRG2, OBJ, BG, RGB_L, RGB_H;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = zip.files['ao4_01.ic28'].inflate() + zip.files['ao4_02.ic27'].inflate() + zip.files['ao4_03.ic26'].inflate();
-	PRG1 = new Uint8Array((PRG1 + zip.files['ao4_04.ic25'].inflate() + zip.files['ao4_05.ic3'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['ao4_06.ic23'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	OBJ = new Uint8Array((zip.files['ao4_08.ic14'].inflate() + zip.files['ao4_07.ic15'].inflate()).split('').map(c => c.charCodeAt(0)));
-	BG = new Uint8Array((zip.files['ao4_09.ic98'].inflate() + zip.files['ao4_10.ic97'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RGB_L = new Uint8Array(zip.files['ao4-11.ic96'].inflate().split('').map(c => c.charCodeAt(0)));
-	RGB_H = new Uint8Array(zip.files['ao4-12.ic95'].inflate().split('').map(c => c.charCodeAt(0)));
+read('chaknpop.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['ao4_01.ic28', 'ao4_02.ic27', 'ao4_03.ic26', 'ao4_04.ic25', 'ao4_05.ic3'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('ao4_06.ic23').addBase();
+	OBJ = Uint8Array.concat(...['ao4_08.ic14', 'ao4_07.ic15'].map(e => zip.decompress(e)));
+	BG = Uint8Array.concat(...['ao4_09.ic98', 'ao4_10.ic97'].map(e => zip.decompress(e)));
+	RGB_L = zip.decompress('ao4-11.ic96');
+	RGB_H = zip.decompress('ao4-12.ic95');
 	game = new ChacknPop();
 	sound = [
 		new AY_3_8910({clock: 1500000}),
@@ -598,5 +576,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound, keydown, keyup});
-}
+});
 

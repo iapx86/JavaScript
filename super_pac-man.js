@@ -5,7 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -618,23 +618,20 @@ class SuperPacMan {
  *
  */
 
-const url = 'superpac.zip';
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['sp1-2.1c'].inflate() + zip.files['sp1-1.1b'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['spc-3.1k'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array(zip.files['sp1-6.3c'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array(zip.files['spv-2.3f'].inflate().split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['superpac.4c'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['superpac.4e'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['superpac.3l'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['superpac.3m'].inflate().split('').map(c => c.charCodeAt(0)));
+read('superpac.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['sp1-2.1c', 'sp1-1.1b'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('spc-3.1k').addBase();
+	BG = zip.decompress('sp1-6.3c');
+	OBJ = zip.decompress('spv-2.3f');
+	RGB = zip.decompress('superpac.4c');
+	BGCOLOR = zip.decompress('superpac.4e');
+	OBJCOLOR = zip.decompress('superpac.3l');
+	SND = zip.decompress('superpac.3m');
 	game = new SuperPacMan();
 	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

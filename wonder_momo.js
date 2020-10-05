@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import Namco63701X from './namco_63701x.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -662,29 +662,24 @@ class WonderMomo {
  *
  */
 
-const url = 'wndrmomo.zip';
 let PRG1, PRG2, BG1, BG2, OBJ, RED, BLUE, BGCOLOR, OBJCOLOR, BGADDR, PRG3, PRG3I, PCM;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['wm1_16.f1'].inflate() + zip.files['wm1_1.9c'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['wm1_2.12c'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG1 = new Uint8Array((zip.files['wm1_6.7r'].inflate() + zip.files['wm1_7.7s'].inflate()).split('').map(c => c.charCodeAt(0)));
-	BG2 = new Uint8Array((zip.files['wm1_4.4r'].inflate() + zip.files['wm1_5.4s'].inflate()).split('').map(c => c.charCodeAt(0)));
-	OBJ = zip.files['wm1_8.12h'].inflate() + zip.files['wm1_9.12k'].inflate() + zip.files['wm1_10.12l'].inflate();
-	OBJ += zip.files['wm1_11.12m'].inflate() + zip.files['wm1_12.12p'].inflate() + zip.files['wm1_13.12r'].inflate();
-	OBJ = new Uint8Array((OBJ + zip.files['wm1_14.12t'].inflate() +	zip.files['wm1_15.12u'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RED = new Uint8Array(zip.files['wm1-1.3r'].inflate().split('').map(c => c.charCodeAt(0)));
-	BLUE = new Uint8Array(zip.files['wm1-2.3s'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['wm1-3.4v'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['wm1-4.5v'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGADDR = new Uint8Array(zip.files['wm1-5.6u'].inflate().split('').map(c => c.charCodeAt(0)));
-	PRG3 = new Uint8Array(zip.files['wm1_3.6b'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PRG3I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PCM = zip.files['wm1_17.f3'].inflate() + zip.files['wm1_17.f3'].inflate() + zip.files['wm1_18.h3'].inflate();
-	PCM += zip.files['wm1_18.h3'].inflate() + zip.files['wm1_19.k3'].inflate() + zip.files['wm1_19.k3'].inflate();
-	PCM = new Uint8Array((PCM + zip.files['wm1_20.m3'].inflate() + zip.files['wm1_20.m3'].inflate()).split('').map(c => c.charCodeAt(0)));
+read('wndrmomo.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['wm1_16.f1', 'wm1_1.9c'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('wm1_2.12c').addBase();
+	BG1 = Uint8Array.concat(...['wm1_6.7r', 'wm1_7.7s'].map(e => zip.decompress(e)));
+	BG2 = Uint8Array.concat(...['wm1_4.4r', 'wm1_5.4s'].map(e => zip.decompress(e)));
+	OBJ = Uint8Array.concat(...['wm1_8.12h', 'wm1_9.12k', 'wm1_10.12l', 'wm1_11.12m'].map(e => zip.decompress(e)));
+	OBJ = Uint8Array.concat(OBJ, ...['wm1_12.12p', 'wm1_13.12r', 'wm1_14.12t', 'wm1_15.12u'].map(e => zip.decompress(e)));
+	RED = zip.decompress('wm1-1.3r');
+	BLUE = zip.decompress('wm1-2.3s');
+	BGCOLOR = zip.decompress('wm1-3.4v');
+	OBJCOLOR = zip.decompress('wm1-4.5v');
+	BGADDR = zip.decompress('wm1-5.6u');
+	PRG3 = zip.decompress('wm1_3.6b').addBase();
+	PRG3I = zip.decompress('cus60-60a1.mcu').addBase();
+	PCM = Uint8Array.concat(...['wm1_17.f3', 'wm1_17.f3','wm1_18.h3', 'wm1_18.h3'].map(e => zip.decompress(e)));
+	PCM = Uint8Array.concat(PCM, ...['wm1_19.k3', 'wm1_19.k3', 'wm1_20.m3', 'wm1_20.m3'].map(e => zip.decompress(e)));
 	game = new WonderMomo();
 	sound = [
 		new YM2151({clock: 3579580}),
@@ -693,5 +688,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

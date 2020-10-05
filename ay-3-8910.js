@@ -35,8 +35,6 @@ export default class AY_3_8910 {
 			this.tmpwheel.push([]);
 		for (let i = 0; i < 3; i++)
 			this.channel.push({freq: 0, count: 0, output: 0});
-		if (!audioCtx)
-			return;
 		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
@@ -49,8 +47,6 @@ export default class AY_3_8910 {
 	}
 
 	mute(flag) {
-		if (!audioCtx)
-			return;
 		this.gainNode.gain.value = flag ? 0 : this.gain;
 	}
 
@@ -66,14 +62,12 @@ export default class AY_3_8910 {
 	}
 
 	update() {
-		if (audioCtx) {
-			if (this.wheel.length > this.resolution) {
-				while (this.wheel.length)
-					this.wheel.shift().forEach(e => this.regwrite(e));
-				this.count = this.sampleRate - 1;
-			}
-			this.tmpwheel.forEach(e => this.wheel.push(e));
+		if (this.wheel.length > this.resolution) {
+			while (this.wheel.length)
+				this.wheel.shift().forEach(e => this.regwrite(e));
+			this.count = this.sampleRate - 1;
 		}
+		this.tmpwheel.forEach(e => this.wheel.push(e));
 		for (let i = 0; i < this.resolution; i++)
 			this.tmpwheel[i] = [];
 	}

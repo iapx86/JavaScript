@@ -4,7 +4,7 @@
  *
  */
 
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game;
 
@@ -341,18 +341,14 @@ class CrazyBalloon {
  *
  */
 
-const url = 'crbaloon.zip';
 let PRG, BG, OBJ;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG = zip.files['cl01.bin'].inflate() + zip.files['cl02.bin'].inflate() + zip.files['cl03.bin'].inflate() + zip.files['cl04.bin'].inflate();
-	PRG = new Uint8Array((PRG + zip.files['cl05.bin'].inflate() + zip.files['cl06.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array(zip.files['cl07.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array(zip.files['cl08.bin'].inflate().split('').map(c => c.charCodeAt(0)));
+read('crbaloon.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = Uint8Array.concat(...['cl01.bin', 'cl02.bin', 'cl03.bin', 'cl04.bin', 'cl05.bin', 'cl06.bin'].map(e => zip.decompress(e))).addBase();
+	BG = zip.decompress('cl07.bin');
+	OBJ = zip.decompress('cl08.bin');
 	game = new CrazyBalloon();
 	canvas.addEventListener('click', () => game.coin());
 	init({game});
-}
+});
 

@@ -5,7 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -720,24 +720,21 @@ class Phozon {
  *
  */
 
-const url = 'phozon.zip';
 let PRG1, PRG2, PRG3, RGB, SND, BG, BGCOLOR, OBJ, OBJCOLOR;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['6e.rom'].inflate() + zip.files['6h.rom'].inflate() + zip.files['6c.rom'].inflate() + zip.files['6d.rom'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['3b.rom'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PRG3 = new Uint8Array(zip.files['9r.rom'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array((zip.files['7j.rom'].inflate() + zip.files['8j.rom'].inflate()).split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array(zip.files['5t.rom'].inflate().split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array((zip.files['green.prm'].inflate() + zip.files['red.prm'].inflate() + zip.files['blue.prm'].inflate()).split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['chr.prm'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['sprite.prm'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['sound.prm'].inflate().split('').map(c => c.charCodeAt(0)));
+read('phozon.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['6e.rom', '6h.rom', '6c.rom', '6d.rom'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('3b.rom').addBase();
+	PRG3 = zip.decompress('9r.rom').addBase();
+	BG = Uint8Array.concat(...['7j.rom', '8j.rom'].map(e => zip.decompress(e)));
+	OBJ = zip.decompress('5t.rom');
+	RGB = Uint8Array.concat(...['green.prm', 'red.prm', 'blue.prm'].map(e => zip.decompress(e)));
+	BGCOLOR = zip.decompress('chr.prm');
+	OBJCOLOR = zip.decompress('sprite.prm');
+	SND = zip.decompress('sound.prm');
 	game = new Phozon();
 	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

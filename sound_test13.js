@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import K007232 from './k007232.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -177,28 +177,15 @@ class SoundTest {
  */
 
 const key = [];
-const url = 'cuebrick.zip';
 let PRG3, SND;
 
-window.addEventListener('load', () => {
+void function () {
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
-
-function success(zip) {
-	PRG3 = new Uint8Array(zip.files['cuebrickj/903_d03.10a'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	SND = new Uint8Array(0x20000);
-	game = new SoundTest();
-	sound = [
-		new YM2151({clock: 3579545, resolution: 58, gain: 3}),
-		new K007232({SND, clock: 3579545, resolution: 58, gain: 0.2}),
-	];
-	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -208,6 +195,17 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
+}();
+
+read('cuebrick.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG3 = zip.decompress('cuebrickj/903_d03.10a').addBase();
+	SND = new Uint8Array(0x20000);
+	game = new SoundTest();
+	sound = [
+		new YM2151({clock: 3579545, resolution: 58, gain: 3}),
+		new K007232({SND, clock: 3579545, resolution: 58, gain: 0.2}),
+	];
+	game.initial = true;
 	init({game, sound});
-}
+});
 

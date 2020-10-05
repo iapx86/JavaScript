@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -680,26 +680,22 @@ class TheReturnOfIshtar {
  *
  */
 
-const url = 'roishtar.zip';
 let PRG1, PRG2, BG1, BG2, OBJ, RED, BLUE, BGCOLOR, OBJCOLOR, BGADDR, PRG3, PRG3I;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['ri1_2.9d'].inflate() + zip.files['ri1_1c.9c'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['ri1_3.12c'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG1 = new Uint8Array((zip.files['ri1_14.7r'].inflate() + zip.files['ri1_15.7s'].inflate()).split('').map(c => c.charCodeAt(0)));
-	BG2 = new Uint8Array((zip.files['ri1_12.4r'].inflate() + zip.files['ri1_13.4s'].inflate()).split('').map(c => c.charCodeAt(0)));
-	OBJ = zip.files['ri1_5.12h'].inflate() + zip.files['ri1_6.12k'].inflate() + zip.files['ri1_7.12l'].inflate();
-	OBJ += zip.files['ri1_8.12m'].inflate()+ zip.files['ri1_9.12p'].inflate() + zip.files['ri1_10.12r'].inflate();
-	OBJ = new Uint8Array((OBJ + zip.files['ri1_11.12t'].inflate() + '\xff'.repeat(0x8000)).split('').map(c => c.charCodeAt(0)));
-	RED = new Uint8Array(zip.files['ri1-1.3r'].inflate().split('').map(c => c.charCodeAt(0)));
-	BLUE = new Uint8Array(zip.files['ri1-2.3s'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['ri1-3.4v'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['ri1-4.5v'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGADDR = new Uint8Array(zip.files['ri1-5.6u'].inflate().split('').map(c => c.charCodeAt(0)));
-	PRG3 = new Uint8Array(zip.files['ri1_4.6b'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PRG3I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+read('roishtar.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['ri1_2.9d', 'ri1_1c.9c'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('ri1_3.12c').addBase();
+	BG1 = Uint8Array.concat(...['ri1_14.7r', 'ri1_15.7s'].map(e => zip.decompress(e)));
+	BG2 = Uint8Array.concat(...['ri1_12.4r', 'ri1_13.4s'].map(e => zip.decompress(e)));
+	OBJ = Uint8Array.concat(...['ri1_5.12h', 'ri1_6.12k', 'ri1_7.12l', 'ri1_8.12m', 'ri1_9.12p', 'ri1_10.12r', 'ri1_11.12t'].map(e => zip.decompress(e)));
+	OBJ = Uint8Array.concat(OBJ, new Uint8Array(0x8000).fill(0xff));
+	RED = zip.decompress('ri1-1.3r');
+	BLUE = zip.decompress('ri1-2.3s');
+	BGCOLOR = zip.decompress('ri1-3.4v');
+	OBJCOLOR = zip.decompress('ri1-4.5v');
+	BGADDR = zip.decompress('ri1-5.6u');
+	PRG3 = zip.decompress('ri1_4.6b').addBase();
+	PRG3I = zip.decompress('cus60-60a1.mcu').addBase();
 	game = new TheReturnOfIshtar();
 	sound = [
 		new YM2151({clock: 3579580}),
@@ -707,5 +703,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

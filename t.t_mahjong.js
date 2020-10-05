@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -150,146 +150,102 @@ class TTMahjong {
 }
 
 const keydown = e => {
-	switch (e.keyCode) {
-	case 48: // '0' COIN
-		game.coin();
-		break;
-	case 49: // '1'
-		game.start1P();
-		break;
-	case 50: // '2'
-		game.start2P();
-		break;
-	case 53: // '5' KAN
-		game.in[0] |= 1 << 4;
-		break;
-	case 54: // '6' PON
-		game.in[3] |= 1 << 3;
-		break;
-	case 55: // '7' CHI
-		game.in[2] |= 1 << 3;
-		break;
-	case 56: // '8' REACH
-		game.in[1] |= 1 << 4;
-		break;
-	case 57: // '9' RON
-		game.in[2] |= 1 << 4;
-		break;
-	case 65: // 'A'
-		game.in[0] |= 1 << 0;
-		break;
-	case 66: // 'B'
-		game.in[1] |= 1 << 0;
-		break;
-	case 67: // 'C'
-		game.in[2] |= 1 << 0;
-		break;
-	case 68: // 'D'
-		game.in[3] |= 1 << 0;
-		break;
-	case 69: // 'E'
-		game.in[0] |= 1 << 1;
-		break;
-	case 70: // 'F'
-		game.in[1] |= 1 << 1;
-		break;
-	case 71: // 'G'
-		game.in[2] |= 1 << 1;
-		break;
-	case 72: // 'H'
-		game.in[3] |= 1 << 1;
-		break;
-	case 73: // 'I'
-		game.in[0] |= 1 << 2;
-		break;
-	case 74: // 'J'
-		game.in[1] |= 1 << 2;
-		break;
-	case 75: // 'K'
-		game.in[2] |= 1 << 2;
-		break;
-	case 76: // 'L'
-		game.in[3] |= 1 << 2;
-		break;
-	case 77: // 'M'
-		game.in[0] |= 1 << 3;
-		break;
-	case 78: // 'N'
-		game.in[1] |= 1 << 3;
-		break;
-	case 82: // 'R' RESET
-		game.reset();
-		break;
-	case 86: // 'V' MUTE
-		if (!audioCtx)
-			break;
+	switch (e.code) {
+	case 'Digit0':
+		return void game.coin();
+	case 'Digit1':
+		return void game.start1P();
+	case 'Digit2':
+		return void game.start2P();
+	case 'Digit5': // KAN
+		return void(game.in[0] |= 1 << 4);
+	case 'Digit6': // PON
+		return void(game.in[3] |= 1 << 3);
+	case 'Digit7': // CHI
+		return void(game.in[2] |= 1 << 3);
+	case 'Digit8': // REACH
+		return void(game.in[1] |= 1 << 4);
+	case 'Digit9': // RON
+		return void(game.in[2] |= 1 << 4);
+	case 'KeyA':
+		return void(game.in[0] |= 1 << 0);
+	case 'KeyB':
+		return void(game.in[1] |= 1 << 0);
+	case 'KeyC':
+		return void(game.in[2] |= 1 << 0);
+	case 'KeyD':
+		return void(game.in[3] |= 1 << 0);
+	case 'KeyE':
+		return void(game.in[0] |= 1 << 1);
+	case 'KeyF':
+		return void(game.in[1] |= 1 << 1);
+	case 'KeyG':
+		return void(game.in[2] |= 1 << 1);
+	case 'KeyH':
+		return void(game.in[3] |= 1 << 1);
+	case 'KeyI':
+		return void(game.in[0] |= 1 << 2);
+	case 'KeyJ':
+		return void(game.in[1] |= 1 << 2);
+	case 'KeyK':
+		return void(game.in[2] |= 1 << 2);
+	case 'KeyL':
+		return void(game.in[3] |= 1 << 2);
+	case 'KeyM':
+		return void(game.in[0] |= 1 << 3);
+	case 'KeyN':
+		return void(game.in[1] |= 1 << 3);
+	case 'KeyR':
+		return void game.reset();
+	case 'KeyV': // MUTE
 		if (audioCtx.state === 'suspended')
 			audioCtx.resume().catch();
 		else if (audioCtx.state === 'running')
 			audioCtx.suspend().catch();
-		break;
+		return;
 	}
 };
 
 const keyup = e => {
-	switch (e.keyCode) {
-	case 53: // '5' KAN
-		game.in[0] &= ~(1 << 4);
-		break;
-	case 54: // '6' PON
-		game.in[3] &= ~(1 << 3);
-		break;
-	case 55: // '7' CHI
-		game.in[2] &= ~(1 << 3);
-		break;
-	case 56: // '8' REACH
-		game.in[1] &= ~(1 << 4);
-		break;
-	case 57: // '9' RON
-		game.in[2] &= ~(1 << 4);
-		break;
-	case 65: // 'A'
-		game.in[0] &= ~(1 << 0);
-		break;
-	case 66: // 'B'
-		game.in[1] &= ~(1 << 0);
-		break;
-	case 67: // 'C'
-		game.in[2] &= ~(1 << 0);
-		break;
-	case 68: // 'D'
-		game.in[3] &= ~(1 << 0);
-		break;
-	case 69: // 'E'
-		game.in[0] &= ~(1 << 1);
-		break;
-	case 70: // 'F'
-		game.in[1] &= ~(1 << 1);
-		break;
-	case 71: // 'G'
-		game.in[2] &= ~(1 << 1);
-		break;
-	case 72: // 'H'
-		game.in[3] &= ~(1 << 1);
-		break;
-	case 73: // 'I'
-		game.in[0] &= ~(1 << 2);
-		break;
-	case 74: // 'J'
-		game.in[1] &= ~(1 << 2);
-		break;
-	case 75: // 'K'
-		game.in[2] &= ~(1 << 2);
-		break;
-	case 76: // 'L'
-		game.in[3] &= ~(1 << 2);
-		break;
-	case 77: // 'M'
-		game.in[0] &= ~(1 << 3);
-		break;
-	case 78: // 'N'
-		game.in[1] &= ~(1 << 3);
-		break;
+	switch (e.code) {
+	case 'Digit5': // KAN
+		return void(game.in[0] &= ~(1 << 4));
+	case 'Digit6': // PON
+		return void(game.in[3] &= ~(1 << 3));
+	case 'Digit7': // CHI
+		return void(game.in[2] &= ~(1 << 3));
+	case 'Digit8': // REACH
+		return void(game.in[1] &= ~(1 << 4));
+	case 'Digit9': // RON
+		return void(game.in[2] &= ~(1 << 4));
+	case 'KeyA':
+		return void(game.in[0] &= ~(1 << 0));
+	case 'KeyB':
+		return void(game.in[1] &= ~(1 << 0));
+	case 'KeyC':
+		return void(game.in[2] &= ~(1 << 0));
+	case 'KeyD':
+		return void(game.in[3] &= ~(1 << 0));
+	case 'KeyE':
+		return void(game.in[0] &= ~(1 << 1));
+	case 'KeyF':
+		return void(game.in[1] &= ~(1 << 1));
+	case 'KeyG':
+		return void(game.in[2] &= ~(1 << 1));
+	case 'KeyH':
+		return void(game.in[3] &= ~(1 << 1));
+	case 'KeyI':
+		return void(game.in[0] &= ~(1 << 2));
+	case 'KeyJ':
+		return void(game.in[1] &= ~(1 << 2));
+	case 'KeyK':
+		return void(game.in[2] &= ~(1 << 2));
+	case 'KeyL':
+		return void(game.in[3] &= ~(1 << 2));
+	case 'KeyM':
+		return void(game.in[0] &= ~(1 << 3));
+	case 'KeyN':
+		return void(game.in[1] &= ~(1 << 3));
 	}
 };
 
@@ -299,19 +255,16 @@ const keyup = e => {
  *
  */
 
-const url = 'ttmahjng.zip';
 let PRG1, PRG2, COLOR1, COLOR2;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['ju04'].inflate() + zip.files['ju05'].inflate() + zip.files['ju06'].inflate() + zip.files['ju07'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array((zip.files['ju01'].inflate() + zip.files['ju02'].inflate() + zip.files['ju08'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	COLOR1 = new Uint8Array(zip.files['ju03'].inflate().split('').map(c => c.charCodeAt(0)));
-	COLOR2 = new Uint8Array(zip.files['ju09'].inflate().split('').map(c => c.charCodeAt(0)));
+read('ttmahjng.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['ju04', 'ju05', 'ju06', 'ju07'].map(e => zip.decompress(e))).addBase();
+	PRG2 = Uint8Array.concat(...['ju01', 'ju02', 'ju08'].map(e => zip.decompress(e))).addBase();
+	COLOR1 = zip.decompress('ju03');
+	COLOR2 = zip.decompress('ju09');
 	game = new TTMahjong();
 	sound = new AY_3_8910({clock: 1250000, gain: 0.2});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound, keydown, keyup});
-}
+});
 

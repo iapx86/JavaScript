@@ -33,8 +33,6 @@ export default class K054539 {
 			this.tmpwheel.push([]);
 		for (let i = 0; i < 8; i++)
 			this.channel.push({play: false, output: 0, addr: 0, frac: 0});
-		if (!audioCtx)
-			return;
 		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
@@ -69,14 +67,12 @@ export default class K054539 {
 	}
 
 	update() {
-		if (audioCtx) {
-			if (this.wheel.length > this.resolution) {
-				while (this.wheel.length)
-					this.wheel.shift().forEach(e => this.regwrite(e));
-				this.count = this.sampleRate - 1;
-			}
-			this.tmpwheel.forEach(e => this.wheel.push(e));
+		if (this.wheel.length > this.resolution) {
+			while (this.wheel.length)
+				this.wheel.shift().forEach(e => this.regwrite(e));
+			this.count = this.sampleRate - 1;
 		}
+		this.tmpwheel.forEach(e => this.wheel.push(e));
 		for (let i = 0; i < this.resolution; i++)
 			this.tmpwheel[i] = [];
 	}

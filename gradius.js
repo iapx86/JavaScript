@@ -7,7 +7,7 @@
 import AY_3_8910 from './ay-3-8910.js';
 import K005289 from './k005289.js';
 import VLM5030 from './vlm5030.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import MC68000 from  './mc68000.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -613,80 +613,60 @@ class Gradius {
 }
 
 const keydown = e => {
-	switch (e.keyCode) {
-	case 37: // left
-		game.left(true);
-		break;
-	case 38: // up
-		game.up(true);
-		break;
-	case 39: // right
-		game.right(true);
-		break;
-	case 40: // down
-		game.down(true);
-		break;
-	case 48: // '0'
-		game.coin();
-		break;
-	case 49: // '1'
-		game.start1P();
-		break;
-	case 50: // '2'
-		game.start2P();
-		break;
-	case 67: // 'C'
-		game.triggerX(true);
-		break;
-	case 77: // 'M'
-		if (!audioCtx)
-			break;
+	switch (e.code) {
+	case 'ArrowLeft':
+		return void game.left(true);
+	case 'ArrowUp':
+		return void game.up(true);
+	case 'ArrowRight':
+		return void game.right(true);
+	case 'ArrowDown':
+		return void game.down(true);
+	case 'Digit0':
+		return void game.coin();
+	case 'Digit1':
+		return void game.start1P();
+	case 'Digit2':
+		return void game.start2P();
+	case 'KeyC':
+		return void game.triggerX(true);
+	case 'KeyM': // MUTE
 		if (audioCtx.state === 'suspended')
 			audioCtx.resume().catch();
 		else if (audioCtx.state === 'running')
 			audioCtx.suspend().catch();
-		break;
-	case 82: // 'R'
-		game.reset();
-		break;
-	case 84: // 'T'
+		return;
+	case 'KeyR':
+		return void game.reset();
+	case 'KeyT':
 		if ((game.fTest = !game.fTest) === true)
 			game.fReset = true;
-		break;
-	case 32: // space
-	case 88: // 'X'
-		game.triggerA(true);
-		break;
-	case 90: // 'Z'
-		game.triggerB(true);
-		break;
+		return;
+	case 'Space':
+	case 'KeyX':
+		return void game.triggerA(true);
+	case 'KeyZ':
+		return void game.triggerB(true);
 	}
 };
 
 const keyup = e => {
-	switch (e.keyCode) {
-	case 37: // left
-		game.left(false);
-		break;
-	case 38: // up
-		game.up(false);
-		break;
-	case 39: // right
-		game.right(false);
-		break;
-	case 40: // down
-		game.down(false);
-		break;
-	case 67: // 'C'
-		game.triggerX(false);
-		break;
-	case 32: // space
-	case 88: // 'X'
-		game.triggerA(false);
-		break;
-	case 90: // 'Z'
-		game.triggerB(false);
-		break;
+	switch (e.code) {
+	case 'ArrowLeft':
+		return void game.left(false);
+	case 'ArrowUp':
+		return void game.up(false);
+	case 'ArrowRight':
+		return void game.right(false);
+	case 'ArrowDown':
+		return void game.down(false);
+	case 'KeyC':
+		return void game.triggerX(false);
+	case 'Space':
+	case 'KeyX':
+		return void game.triggerA(false);
+	case 'KeyZ':
+		return void game.triggerB(false);
 	}
 };
 
@@ -696,19 +676,16 @@ const keyup = e => {
  *
  */
 
-const url = 'nemesis.zip';
 const PRG1 = new Uint8Array(0x50000).addBase();
 let PRG2, SND;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	zip.files['gradius/400-a06.15l'].inflate().split('').forEach((c, i) => PRG1[i << 1] = c.charCodeAt(0));
-	zip.files['gradius/400-a04.10l'].inflate().split('').forEach((c, i) => PRG1[1 + (i << 1)] = c.charCodeAt(0));
-	zip.files['gradius/456-a07.17l'].inflate().split('').forEach((c, i) => PRG1[0x10000 + (i << 1)] = c.charCodeAt(0));
-	zip.files['gradius/456-a05.12l'].inflate().split('').forEach((c, i) => PRG1[0x10001 + (i << 1)] = c.charCodeAt(0));
-	PRG2 = new Uint8Array(zip.files['gradius/400-e03.5l'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	SND = new Uint8Array((zip.files['400-a01.fse'].inflate() + zip.files['400-a02.fse'].inflate()).split('').map(c => c.charCodeAt(0)));
+read('nemesis.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	zip.decompress('gradius/400-a06.15l').forEach((e, i) => PRG1[i << 1] = e);
+	zip.decompress('gradius/400-a04.10l').forEach((e, i) => PRG1[1 + (i << 1)] = e);
+	zip.decompress('gradius/456-a07.17l').forEach((e, i) => PRG1[0x10000 + (i << 1)] = e);
+	zip.decompress('gradius/456-a05.12l').forEach((e, i) => PRG1[0x10001 + (i << 1)] = e);
+	PRG2 = zip.decompress('gradius/400-e03.5l').addBase();
+	SND = Uint8Array.concat(...['400-a01.fse', '400-a02.fse'].map(e => zip.decompress(e)));
 	game = new Gradius();
 	sound = [
 		new AY_3_8910({clock: 14318180 / 8, resolution: 58, gain: 0.3}),
@@ -718,5 +695,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound, keydown, keyup});
-}
+});
 

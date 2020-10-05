@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import K007232 from './k007232.js';
 import VLM5030 from './vlm5030.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import MC68000 from  './mc68000.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -572,20 +572,17 @@ class Salamander {
  *
  */
 
-const url = 'salamand.zip';
 const PRG1 = new Uint8Array(0x60000).addBase();
 let PRG2, VLM, SND;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	zip.files['587-d02.18b'].inflate().split('').forEach((c, i) => PRG1[i << 1] = c.charCodeAt(0));
-	zip.files['587-d05.18c'].inflate().split('').forEach((c, i) => PRG1[1 + (i << 1)] = c.charCodeAt(0));
-	zip.files['587-c03.17b'].inflate().split('').forEach((c, i) => PRG1[0x20000 + (i << 1)] = c.charCodeAt(0));
-	zip.files['587-c06.17c'].inflate().split('').forEach((c, i) => PRG1[0x20001 + (i << 1)] = c.charCodeAt(0));
-	PRG2 = new Uint8Array(zip.files['587-d09.11j'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	VLM = new Uint8Array(zip.files['587-d08.8g'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	SND = new Uint8Array(zip.files['587-c01.10a'].inflate().split('').map(c => c.charCodeAt(0)));
+read('salamand.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	zip.decompress('587-d02.18b').forEach((e, i) => PRG1[i << 1] = e);
+	zip.decompress('587-d05.18c').forEach((e, i) => PRG1[1 + (i << 1)] = e);
+	zip.decompress('587-c03.17b').forEach((e, i) => PRG1[0x20000 + (i << 1)] = e);
+	zip.decompress('587-c06.17c').forEach((e, i) => PRG1[0x20001 + (i << 1)] = e);
+	PRG2 = zip.decompress('587-d09.11j').addBase();
+	VLM = zip.decompress('587-d08.8g');
+	SND = zip.decompress('587-c01.10a');
 	game = new Salamander();
 	sound = [
 		new YM2151({clock: 14318180 / 4, resolution: 58, gain: 5}),
@@ -594,5 +591,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

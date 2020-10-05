@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -534,17 +534,13 @@ class Scramble {
  *
  */
 
-const url = 'scramble.zip';
 let BG, RGB, PRG1, PRG2;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = zip.files['s1.2d'].inflate() + zip.files['s2.2e'].inflate() + zip.files['s3.2f'].inflate() + zip.files['s4.2h'].inflate() + zip.files['s5.2j'].inflate();
-	PRG1 = new Uint8Array((PRG1 + zip.files['s6.2l'].inflate() + zip.files['s7.2m'].inflate() + zip.files['s8.2p'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array((zip.files['ot1.5c'].inflate() + zip.files['ot2.5d'].inflate() + zip.files['ot3.5e'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array((zip.files['c2.5f'].inflate() + zip.files['c1.5h'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['c01s.6e'].inflate().split('').map(c => c.charCodeAt(0)));
+read('scramble.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['s1.2d', 's2.2e', 's3.2f', 's4.2h', 's5.2j', 's6.2l', 's7.2m', 's8.2p'].map(e => zip.decompress(e))).addBase();
+	PRG2 = Uint8Array.concat(...['ot1.5c', 'ot2.5d', 'ot3.5e',].map(e => zip.decompress(e))).addBase();
+	BG = Uint8Array.concat(...['c2.5f', 'c1.5h'].map(e => zip.decompress(e)));
+	RGB = zip.decompress('c01s.6e');
 	game = new Scramble();
 	sound = [
 		new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.2}),
@@ -552,5 +548,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

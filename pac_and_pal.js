@@ -5,7 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -566,23 +566,20 @@ class PacAndPal {
  *
  */
 
-const url = 'pacnpal.zip';
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['pap1-3b.1d'].inflate() + zip.files['pap1-2b.1c'].inflate() + zip.files['pap3-1.1b'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['pap1-4.1k'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array(zip.files['pap1-6.3c'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array(zip.files['pap1-5.3f'].inflate().split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['pap1-6.4c'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['pap1-5.4e'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['pap1-4.3l'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['pap1-3.3m'].inflate().split('').map(c => c.charCodeAt(0)));
+read('pacnpal.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['pap1-3b.1d', 'pap1-2b.1c', 'pap3-1.1b'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('pap1-4.1k').addBase();
+	BG = zip.decompress('pap1-6.3c');
+	OBJ = zip.decompress('pap1-5.3f');
+	RGB = zip.decompress('pap1-6.4c');
+	BGCOLOR = zip.decompress('pap1-5.4e');
+	OBJCOLOR = zip.decompress('pap1-4.3l');
+	SND = zip.decompress('pap1-3.3m');
 	game = new PacAndPal();
 	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

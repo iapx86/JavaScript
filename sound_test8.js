@@ -5,7 +5,7 @@
  */
 
 import YM2151 from './ym2151.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -181,24 +181,15 @@ class SoundTest {
  */
 
 const key = [];
-const url = 'fantzone.zip';
 let PRG2;
 
-window.addEventListener('load', () => {
+void function () {
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
-
-function success(zip) {
-	PRG2 = new Uint8Array(zip.files['fantzone1/epr-7535.12'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	game = new SoundTest();
-	sound = new YM2151({clock: 4000000, resolution: 65});
-	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -208,6 +199,13 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
+}();
+
+read('fantzone.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG2 = zip.decompress('fantzone1/epr-7535.12').addBase();
+	game = new SoundTest();
+	sound = new YM2151({clock: 4000000, resolution: 65});
+	game.initial = true;
 	init({game, sound});
-}
+});
 

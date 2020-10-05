@@ -5,7 +5,7 @@
  */
 
 import YM2151 from './ym2151.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -184,24 +184,15 @@ class SoundTest {
  */
 
 const key = [];
-const url = 'rtype.zip';
 let PRG;
 
-window.addEventListener('load', () => {
+void function () {
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
-
-function success(zip) {
-	PRG = new Uint8Array(zip.files['rtypej/rt_r-l1-.3c'].inflate().split('').map(c => c.charCodeAt(0)));
-	game = new SoundTest();
-	sound = new YM2151({clock: 3579545, resolution: 58, gain: 2});
-	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -211,6 +202,13 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
+}();
+
+read('rtype.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = zip.decompress('rtypej/rt_r-l1-.3c');
+	game = new SoundTest();
+	sound = new YM2151({clock: 3579545, resolution: 58, gain: 2});
+	game.initial = true;
 	init({game, sound});
-}
+});
 

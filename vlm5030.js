@@ -43,8 +43,6 @@ export default class VLM5030 {
 		this.gain = gain;
 		this.cycles = sampleRate - 1;
 		this.k1 = this.k0;
-		if (!audioCtx)
-			return;
 		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
@@ -57,8 +55,6 @@ export default class VLM5030 {
 	}
 
 	mute(flag) {
-		if (!audioCtx)
-			return;
 		this.gainNode.gain.value = flag ? 0 : this.gain;
 	}
 
@@ -66,8 +62,6 @@ export default class VLM5030 {
 	}
 
 	rst(data) {
-		if (!audioCtx)
-			return this;
 		if (this.BSY) {
 			this.BSY = 0;
 			this.offset = 0;
@@ -88,8 +82,6 @@ export default class VLM5030 {
 	}
 
 	st(data) {
-		if (!audioCtx)
-			return this;
 		const offset = data & 0xfe | data << 8 & 0x100;
 		this.offset = (this.base[offset] << 8 | this.base[offset + 1]) & this.base.length - 1;
 		this.scount = [40, 30, 20, 20, 40, 60, 50, 50][this.param >> 3 & 7];

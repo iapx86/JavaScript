@@ -5,7 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -579,23 +579,20 @@ class TheTowerOfDruaga {
  *
  */
 
-const url = 'todruaga.zip';
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['td2_3.1d'].inflate() + zip.files['td2_1.1b'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['td1_4.1k'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array(zip.files['td1_5.3b'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array((zip.files['td1_7.3n'].inflate() + zip.files['td1_6.3m'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['td1-5.5b'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['td1-6.4c'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['td1-7.5k'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['td1-3.3m'].inflate().split('').map(c => c.charCodeAt(0)));
+read('todruaga.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['td2_3.1d', 'td2_1.1b'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('td1_4.1k').addBase();
+	BG = zip.decompress('td1_5.3b');
+	OBJ = Uint8Array.concat(...['td1_7.3n', 'td1_6.3m'].map(e => zip.decompress(e)));
+	RGB = zip.decompress('td1-5.5b');
+	BGCOLOR = zip.decompress('td1-6.4c');
+	OBJCOLOR = zip.decompress('td1-7.5k');
+	SND = zip.decompress('td1-3.3m');
 	game = new TheTowerOfDruaga();
 	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

@@ -5,7 +5,7 @@
  */
 
 import PacManSound from './pac-man_sound.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -488,22 +488,19 @@ class Pengo {
  *
  */
 
-const url = 'pengo.zip';
 let BG, COLOR, OBJ, RGB, PRG, SND;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG = zip.files['pengo3u/ep5120.8'].inflate() + zip.files['pengo3u/ep5121.7'].inflate() + zip.files['pengo3u/ep5122.15'].inflate() + zip.files['pengo3u/ep5123.14'].inflate() + zip.files['pengo2u/ep5124.21'].inflate();
-	PRG = new Uint8Array((PRG + zip.files['pengo3u/ep5125.20'].inflate() + zip.files['pengo2u/ep5126.32'].inflate() + zip.files['pengo3u/ep5127.31'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array((zip.files['ep1640.92'].inflate().substring(0, 0x1000) + zip.files['ep1695.105'].inflate().substring(0, 0x1000)).split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array((zip.files['ep1640.92'].inflate().substring(0x1000) + zip.files['ep1695.105'].inflate().substring(0x1000)).split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['pr1633.78'].inflate().split('').map(c => c.charCodeAt(0)));
-	COLOR = new Uint8Array(zip.files['pr1634.88'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['pr1635.51'].inflate().split('').map(c => c.charCodeAt(0)));
+read('pengo.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = Uint8Array.concat(...['pengo3u/ep5120.8', 'pengo3u/ep5121.7', 'pengo3u/ep5122.15', 'pengo3u/ep5123.14'].map(e => zip.decompress(e)));
+	PRG = Uint8Array.concat(PRG, ...['pengo2u/ep5124.21', 'pengo3u/ep5125.20', 'pengo2u/ep5126.32', 'pengo3u/ep5127.31'].map(e => zip.decompress(e))).addBase();
+	BG = Uint8Array.concat(...['ep1640.92', 'ep1695.105'].map(e => zip.decompress(e).subarray(0, 0x1000)));
+	OBJ = Uint8Array.concat(...['ep1640.92', 'ep1695.105'].map(e => zip.decompress(e).subarray(0x1000)));
+	RGB = zip.decompress('pr1633.78');
+	COLOR = zip.decompress('pr1634.88');
+	SND = zip.decompress('pr1635.51');
 	game = new Pengo();
 	sound = new PacManSound({SND});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -486,19 +486,16 @@ class ZigZag {
  *
  */
 
-const url = 'zigzagb.zip';
 let BG, OBJ, RGB, PRG;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG = new Uint8Array((zip.files['zz_d1.7l'].inflate() + zip.files['zz_d2.7k'].inflate() + zip.files['zz_d4.7f'].inflate() + zip.files['zz_d3.7h'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array((zip.files['zz_6.1h'].inflate().substring(0, 0x800) + zip.files['zz_5.1k'].inflate().substring(0, 0x800)).split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array((zip.files['zz_6.1h'].inflate().substring(0x800) + zip.files['zz_5.1k'].inflate().substring(0x800)).split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['zzbpr_e9.bin'].inflate().split('').map(c => c.charCodeAt(0)));
+read('zigzagb.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = Uint8Array.concat(...['zz_d1.7l', 'zz_d2.7k', 'zz_d4.7f', 'zz_d3.7h'].map(e => zip.decompress(e))).addBase();
+	BG = Uint8Array.concat(...['zz_6.1h', 'zz_5.1k'].map(e => zip.decompress(e).subarray(0, 0x800)));
+	OBJ = Uint8Array.concat(...['zz_6.1h', 'zz_5.1k'].map(e => zip.decompress(e).subarray(0x800)));
+	RGB = zip.decompress('zzbpr_e9.bin');
 	game = new ZigZag();
 	sound = new AY_3_8910({clock: 1843200});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

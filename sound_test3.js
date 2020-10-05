@@ -5,7 +5,7 @@
  */
 
 import PolePositionSound from './pole_position_sound.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -186,25 +186,15 @@ class SoundTest {
  */
 
 const key = [];
-const url = 'polepos2.zip';
 let PRG, SND;
 
-window.addEventListener('load', () => {
+void function () {
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
-
-function success(zip) {
-	PRG = new Uint8Array((zip.files['pp4_9.6h'].inflate() + zip.files['pp4_10.5h'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	SND = new Uint8Array(zip.files['pp1-5.3b'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	game = new SoundTest();
-	sound = new PolePositionSound({SND, resolution: 2});
-	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -214,6 +204,14 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
+}();
+
+read('polepos2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = Uint8Array.concat(...['pp4_9.6h', 'pp4_10.5h'].map(e => zip.decompress(e))).addBase();
+	SND = zip.decompress('pp1-5.3b');
+	game = new SoundTest();
+	sound = new PolePositionSound({SND, resolution: 2});
+	game.initial = true;
 	init({game, sound});
-}
+});
 

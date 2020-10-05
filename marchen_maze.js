@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import Dac8Bit2Ch from './dac_8bit_2ch.js';
-import Cpu, {dummypage, init} from './main.js';
+import Cpu, {dummypage, init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -809,23 +809,17 @@ class MarchenMaze {
  *
  */
 
-const url = 'mmaze.zip';
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ, NVRAM;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	SND = new Uint8Array((zip.files['mm_snd-0.bin'].inflate() + zip.files['mm_snd-1.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG = zip.files['mm_prg-0.bin'].inflate() + zip.files['mm_prg-1.bin'].inflate() + zip.files['mm_prg-2.bin'].inflate();
-	PRG = new Uint8Array((PRG + zip.files['mm1_p6.bin'].inflate() + zip.files['mm1_p7.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	MCU = new Uint8Array(zip.files['cus64-64a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	VOI = new Uint8Array((zip.files['mm_voi-0.bin'].inflate() + zip.files['mm_voi-1.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	CHR8 = new Uint8Array(zip.files['mm_chr-8.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	CHR = zip.files['mm_chr-0.bin'].inflate() + zip.files['mm_chr-1.bin'].inflate() + zip.files['mm_chr-2.bin'].inflate() + zip.files['mm_chr-3.bin'].inflate();
-	CHR = new Uint8Array((CHR + zip.files['mm_chr-4.bin'].inflate() + zip.files['mm_chr-5.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
-	OBJ = zip.files['mm_obj-0.bin'].inflate() + zip.files['mm_obj-1.bin'].inflate() + zip.files['mm_obj-2.bin'].inflate();
-	OBJ = new Uint8Array((OBJ + zip.files['mm_obj-3.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
-	NVRAM = new Uint8Array(zip.files['mmaze.nv'].inflate().split('').map(c => c.charCodeAt(0)));
+read('mmaze.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	SND = Uint8Array.concat(...['mm_snd-0.bin', 'mm_snd-1.bin'].map(e => zip.decompress(e))).addBase();
+	PRG = Uint8Array.concat(...['mm_prg-0.bin', 'mm_prg-1.bin', 'mm_prg-2.bin', 'mm1_p6.bin', 'mm1_p7.bin'].map(e => zip.decompress(e))).addBase();
+	MCU = zip.decompress('cus64-64a1.mcu').addBase();
+	VOI = Uint8Array.concat(...['mm_voi-0.bin', 'mm_voi-1.bin'].map(e => zip.decompress(e))).addBase();
+	CHR8 = zip.decompress('mm_chr-8.bin');
+	CHR = Uint8Array.concat(...['mm_chr-0.bin', 'mm_chr-1.bin', 'mm_chr-2.bin', 'mm_chr-3.bin', 'mm_chr-4.bin', 'mm_chr-5.bin'].map(e => zip.decompress(e)));
+	OBJ = Uint8Array.concat(...['mm_obj-0.bin', 'mm_obj-1.bin', 'mm_obj-2.bin', 'mm_obj-3.bin'].map(e => zip.decompress(e)));
+	NVRAM = zip.decompress('mmaze.nv');
 	game = new MarchenMaze();
 	sound = [
 		new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
@@ -834,5 +828,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

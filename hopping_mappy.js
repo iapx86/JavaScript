@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -670,24 +670,21 @@ class HoppingMappy {
  *
  */
 
-const url = 'hopmappy.zip';
 let PRG1, PRG2, BG1, BG2, OBJ, RED, BLUE, BGCOLOR, OBJCOLOR, BGADDR, PRG3, PRG3I;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array(zip.files['hm1_1.9c'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['hm1_2.12c'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG1 = new Uint8Array(zip.files['hm1_6.7r'].inflate().split('').map(c => c.charCodeAt(0)));
-	BG2 = new Uint8Array(zip.files['hm1_5.4r'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array(zip.files['hm1_4.12h'].inflate().split('').map(c => c.charCodeAt(0)));
-	RED = new Uint8Array(zip.files['hm1-1.3r'].inflate().split('').map(c => c.charCodeAt(0)));
-	BLUE = new Uint8Array(zip.files['hm1-2.3s'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['hm1-3.4v'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['hm1-4.5v'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGADDR = new Uint8Array(zip.files['hm1-5.6u'].inflate().split('').map(c => c.charCodeAt(0)));
-	PRG3 = new Uint8Array(zip.files['hm1_3.6b'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PRG3I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
+read('hopmappy.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = zip.decompress('hm1_1.9c').addBase();
+	PRG2 = zip.decompress('hm1_2.12c').addBase();
+	BG1 = zip.decompress('hm1_6.7r');
+	BG2 = zip.decompress('hm1_5.4r');
+	OBJ = zip.decompress('hm1_4.12h');
+	RED = zip.decompress('hm1-1.3r');
+	BLUE = zip.decompress('hm1-2.3s');
+	BGCOLOR = zip.decompress('hm1-3.4v');
+	OBJCOLOR = zip.decompress('hm1-4.5v');
+	BGADDR = zip.decompress('hm1-5.6u');
+	PRG3 = zip.decompress('hm1_3.6b').addBase();
+	PRG3I = zip.decompress('cus60-60a1.mcu').addBase();
 	game = new HoppingMappy();
 	sound = [
 		new YM2151({clock: 3579580}),
@@ -695,5 +692,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

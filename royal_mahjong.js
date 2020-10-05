@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -231,191 +231,136 @@ class RoyalMahjong {
 }
 
 const keydown = e => {
-	switch (e.keyCode) {
-	case 48: // '0' COIN
-		game.coin();
-		break;
-	case 49: // '1' 1P START
-		game.start1P();
-		break;
-	case 50: // '2' 2P START
-		game.start2P();
-		break;
-	case 51: // '3' BET
-		game.in[1] &= ~(1 << 5);
-		break;
-	case 53: // '5' KAN
-		game.in[0] &= ~(1 << 4);
-		break;
-	case 54: // '6' PON
-		game.in[3] &= ~(1 << 3);
-		break;
-	case 55: // '7' CHI
-		game.in[2] &= ~(1 << 3);
-		break;
-	case 56: // '8' REACH
-		game.in[1] &= ~(1 << 4);
-		break;
-	case 57: // '9' RON
-		game.in[2] &= ~(1 << 4);
-		break;
-	case 65: // 'A'
-		game.in[0] &= ~(1 << 0);
-		break;
-	case 66: // 'B'
-		game.in[1] &= ~(1 << 0);
-		break;
-	case 67: // 'C'
-		game.in[2] &= ~(1 << 0);
-		break;
-	case 68: // 'D'
-		game.in[3] &= ~(1 << 0);
-		break;
-	case 69: // 'E'
-		game.in[0] &= ~(1 << 1);
-		break;
-	case 70: // 'F'
-		game.in[1] &= ~(1 << 1);
-		break;
-	case 71: // 'G'
-		game.in[2] &= ~(1 << 1);
-		break;
-	case 72: // 'H'
-		game.in[3] &= ~(1 << 1);
-		break;
-	case 73: // 'I'
-		game.in[0] &= ~(1 << 2);
-		break;
-	case 74: // 'J'
-		game.in[1] &= ~(1 << 2);
-		break;
-	case 75: // 'K'
-		game.in[2] &= ~(1 << 2);
-		break;
-	case 76: // 'L'
-		game.in[3] &= ~(1 << 2);
-		break;
-	case 77: // 'M'
-		game.in[0] &= ~(1 << 3);
-		break;
-	case 78: // 'N'
-		game.in[1] &= ~(1 << 3);
-		break;
-	case 82: // 'R' RESET
-		game.reset();
-		break;
-	case 83: // 'S' SERVICE
-		game.in[10] ^= 1 << 2;
-		break;
-	case 86: // 'V' MUTE
-		if (!audioCtx)
-			break;
+	switch (e.code) {
+	case 'Digit0':
+		return void game.coin();
+	case 'Digit1':
+		return void game.start1P();
+	case 'Digit2':
+		return void game.start2P();
+	case 'Digit3': // BET
+		return void(game.in[1] &= ~(1 << 5));
+	case 'Digit5': // KAN
+		return void(game.in[0] &= ~(1 << 4));
+	case 'Digit6': // PON
+		return void(game.in[3] &= ~(1 << 3));
+	case 'Digit7': // CHI
+		return void(game.in[2] &= ~(1 << 3));
+	case 'Digit8': // REACH
+		return void(game.in[1] &= ~(1 << 4));
+	case 'Digit9': // RON
+		return void(game.in[2] &= ~(1 << 4));
+	case 'KeyA':
+		return void(game.in[0] &= ~(1 << 0));
+	case 'KeyB':
+		return void(game.in[1] &= ~(1 << 0));
+	case 'KeyC':
+		return void(game.in[2] &= ~(1 << 0));
+	case 'KeyD':
+		return void(game.in[3] &= ~(1 << 0));
+	case 'KeyE':
+		return void(game.in[0] &= ~(1 << 1));
+	case 'KeyF':
+		return void(game.in[1] &= ~(1 << 1));
+	case 'KeyG':
+		return void(game.in[2] &= ~(1 << 1));
+	case 'KeyH':
+		return void(game.in[3] &= ~(1 << 1));
+	case 'KeyI':
+		return void(game.in[0] &= ~(1 << 2));
+	case 'KeyJ':
+		return void(game.in[1] &= ~(1 << 2));
+	case 'KeyK':
+		return void(game.in[2] &= ~(1 << 2));
+	case 'KeyL':
+		return void(game.in[3] &= ~(1 << 2));
+	case 'KeyM':
+		return void(game.in[0] &= ~(1 << 3));
+	case 'KeyN':
+		return void(game.in[1] &= ~(1 << 3));
+	case 'KeyR':
+		return void game.reset();
+	case 'KeyS': // SERVICE
+		return void(game.in[10] ^= 1 << 2);
+	case 'KeyT':
+		if ((game.fTest = !game.fTest) === true)
+			game.fReset = true;
+		return;
+	case 'KeyV': // MUTE
 		if (audioCtx.state === 'suspended')
 			audioCtx.resume().catch();
 		else if (audioCtx.state === 'running')
 			audioCtx.suspend().catch();
-		break;
-	case 118: // F7 FLIP FLOP
-		game.in[4] &= ~(1 << 3);
-		break;
-	case 119: // F8 TAKE SCORE
-		game.in[4] &= ~(1 << 1);
-		break;
-	case 120: // F9 DOUBLE UP
-		game.in[4] &= ~(1 << 2);
-		break;
-	case 121: // F10 BIG
-		game.in[4] &= ~(1 << 4);
-		break;
-	case 122: // F11 SMALL
-		game.in[4] &= ~(1 << 5);
-		break;
-	case 123: // F12 LAST CHANCE
-		game.in[4] &= ~(1 << 0);
-		break;
+		return;
+	case 'F7': // FLIP FLOP
+		return void(game.in[4] &= ~(1 << 3));
+	case 'F8': // TAKE SCORE
+		return void(game.in[4] &= ~(1 << 1));
+	case 'F9': // DOUBLE UP
+		return void(game.in[4] &= ~(1 << 2));
+	case 'F10': // BIG
+		return void(game.in[4] &= ~(1 << 4));
+	case 'F11': // SMALL
+		return void(game.in[4] &= ~(1 << 5));
+	case 'F12': // LAST CHANCE
+		return void(game.in[4] &= ~(1 << 0));
 	}
 };
 
 const keyup = e => {
-	switch (e.keyCode) {
-	case 51: // '3' BET
-		game.in[1] |= 1 << 5;
-		break;
-	case 53: // '5' KAN
-		game.in[0] |= 1 << 4;
-		break;
-	case 54: // '6' PON
-		game.in[3] |= 1 << 3;
-		break;
-	case 55: // '7' CHI
-		game.in[2] |= 1 << 3;
-		break;
-	case 56: // '8' REACH
-		game.in[1] |= 1 << 4;
-		break;
-	case 57: // '9' RON
-		game.in[2] |= 1 << 4;
-		break;
-	case 65: // 'A'
-		game.in[0] |= 1 << 0;
-		break;
-	case 66: // 'B'
-		game.in[1] |= 1 << 0;
-		break;
-	case 67: // 'C'
-		game.in[2] |= 1 << 0;
-		break;
-	case 68: // 'D'
-		game.in[3] |= 1 << 0;
-		break;
-	case 69: // 'E'
-		game.in[0] |= 1 << 1;
-		break;
-	case 70: // 'F'
-		game.in[1] |= 1 << 1;
-		break;
-	case 71: // 'G'
-		game.in[2] |= 1 << 1;
-		break;
-	case 72: // 'H'
-		game.in[3] |= 1 << 1;
-		break;
-	case 73: // 'I'
-		game.in[0] |= 1 << 2;
-		break;
-	case 74: // 'J'
-		game.in[1] |= 1 << 2;
-		break;
-	case 75: // 'K'
-		game.in[2] |= 1 << 2;
-		break;
-	case 76: // 'L'
-		game.in[3] |= 1 << 2;
-		break;
-	case 77: // 'M'
-		game.in[0] |= 1 << 3;
-		break;
-	case 78: // 'N'
-		game.in[1] |= 1 << 3;
-		break;
-	case 118: // F7 FLIP FLOP
-		game.in[4] |= 1 << 3;
-		break;
-	case 119: // F8 TAKE SCORE
-		game.in[4] |= 1 << 1;
-		break;
-	case 120: // F9 DOUBLE UP
-		game.in[4] |= 1 << 2;
-		break;
-	case 121: // F10 BIG
-		game.in[4] |= 1 << 4;
-		break;
-	case 122: // F11 SMALL
-		game.in[4] |= 1 << 5;
-		break;
-	case 123: // F12 LAST CHANCE
-		game.in[4] |= 1 << 0;
-		break;
+	switch (e.code) {
+	case 'Digit3': // BET
+		return void(game.in[1] |= 1 << 5);
+	case 'Digit5': // KAN
+		return void(game.in[0] |= 1 << 4);
+	case 'Digit6': // PON
+		return void(game.in[3] |= 1 << 3);
+	case 'Digit7': // CHI
+		return void(game.in[2] |= 1 << 3);
+	case 'Digit8': // REACH
+		return void(game.in[1] |= 1 << 4);
+	case 'Digit9': // RON
+		return void(game.in[2] |= 1 << 4);
+	case 'KeyA':
+		return void(game.in[0] |= 1 << 0);
+	case 'KeyB':
+		return void(game.in[1] |= 1 << 0);
+	case 'KeyC':
+		return void(game.in[2] |= 1 << 0);
+	case 'KeyD':
+		return void(game.in[3] |= 1 << 0);
+	case 'KeyE':
+		return void(game.in[0] |= 1 << 1);
+	case 'KeyF':
+		return void(game.in[1] |= 1 << 1);
+	case 'KeyG':
+		return void(game.in[2] |= 1 << 1);
+	case 'KeyH':
+		return void(game.in[3] |= 1 << 1);
+	case 'KeyI':
+		return void(game.in[0] |= 1 << 2);
+	case 'KeyJ':
+		return void(game.in[1] |= 1 << 2);
+	case 'KeyK':
+		return void(game.in[2] |= 1 << 2);
+	case 'KeyL':
+		return void(game.in[3] |= 1 << 2);
+	case 'KeyM':
+		return void(game.in[0] |= 1 << 3);
+	case 'KeyN':
+		return void(game.in[1] |= 1 << 3);
+	case 'F7': // FLIP FLOP
+		return void(game.in[4] |= 1 << 3);
+	case 'F8': // TAKE SCORE
+		return void(game.in[4] |= 1 << 1);
+	case 'F9': // DOUBLE UP
+		return void(game.in[4] |= 1 << 2);
+	case 'F10': // BIG
+		return void(game.in[4] |= 1 << 4);
+	case 'F11': // SMALL
+		return void(game.in[4] |= 1 << 5);
+	case 'F12': // LAST CHANCE
+		return void(game.in[4] |= 1 << 0);
 	}
 };
 
@@ -425,18 +370,14 @@ const keyup = e => {
  *
  */
 
-const url = 'royalmj.zip';
 let PRG, RGB;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG = zip.files['1.p1'].inflate() + zip.files['2.p2'].inflate() + zip.files['3.p3'].inflate() + zip.files['4.p4'].inflate();
-	PRG = new Uint8Array((PRG + zip.files['5.p5'].inflate() + zip.files['6.p6'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	RGB = new Uint8Array(zip.files['18s030n.6k'].inflate().split('').map(c => c.charCodeAt(0)));
+read('royalmj.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = Uint8Array.concat(...['1.p1', '2.p2', '3.p3', '4.p4', '5.p5', '6.p6'].map(e => zip.decompress(e))).addBase();
+	RGB = zip.decompress('18s030n.6k');
 	game = new RoyalMahjong();
 	sound = new AY_3_8910({clock: 1536000, gain: 0.2});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound, keydown, keyup});
-}
+});
 

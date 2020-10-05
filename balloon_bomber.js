@@ -4,7 +4,7 @@
  *
  */
 
-import {init} from './main.js';
+import {init, read} from './main.js';
 import I8080 from './i8080.js';
 let game;
 
@@ -257,17 +257,14 @@ class BalloonBomber {
  *
  */
 
-const url = 'ballbomb.zip';
 let PRG1, PRG2, MAP;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['tn01'].inflate() + zip.files['tn02'].inflate() + zip.files['tn03'].inflate() + zip.files['tn04'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['tn05-1'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	MAP = new Uint8Array(zip.files['tn06'].inflate().split('').map(c => c.charCodeAt(0)));
+read('ballbomb.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['tn01', 'tn02', 'tn03', 'tn04'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('tn05-1').addBase();
+	MAP = zip.decompress('tn06');
 	game = new BalloonBomber();
 	canvas.addEventListener('click', () => game.coin());
 	init({game});
-}
+});
 

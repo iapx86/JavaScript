@@ -18,8 +18,6 @@ export default class GalaxianSound {
 		this.snd = Float32Array.from(SND, e => (e & 0x0f) * 2 / 15 - 1);
 		this.rate = Math.floor(0x10000000 * 48000 / audioCtx.sampleRate);
 		this.gain = gain;
-		if (!audioCtx)
-			return;
 		this.source = audioCtx.createBufferSource();
 		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = this.gain;
@@ -32,8 +30,6 @@ export default class GalaxianSound {
 	}
 
 	mute(flag) {
-		if (!audioCtx)
-			return;
 		this.gainNode.gain.value = flag ? 0 : this.gain;
 	}
 

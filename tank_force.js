@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import Dac8Bit2Ch from './dac_8bit_2ch.js';
-import Cpu, {dummypage, init} from './main.js';
+import Cpu, {dummypage, init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -791,21 +791,16 @@ class TankForce {
  *
  */
 
-const url = 'tankfrce.zip';
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	SND = new Uint8Array(zip.files['tf1_snd0.bin'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PRG = zip.files['tf1_prg0.bin'].inflate() + zip.files['tf1_prg1.bin'].inflate();
-	PRG = new Uint8Array((PRG + zip.files['tankfrcej/tf1_prg7.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	MCU = new Uint8Array(zip.files['cus64-64a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	VOI = new Uint8Array((zip.files['tf1_voi0.bin'].inflate() + zip.files['tf1_voi1.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	CHR8 = new Uint8Array(zip.files['tf1_chr8.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	CHR = zip.files['tf1_chr0.bin'].inflate() + zip.files['tf1_chr1.bin'].inflate() + zip.files['tf1_chr2.bin'].inflate() + zip.files['tf1_chr3.bin'].inflate();
-	CHR = new Uint8Array((CHR + zip.files['tf1_chr4.bin'].inflate() + zip.files['tf1_chr5.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array((zip.files['tf1_obj0.bin'].inflate() + zip.files['tf1_obj1.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
+read('tankfrce.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	SND = zip.decompress('tf1_snd0.bin').addBase();
+	PRG = Uint8Array.concat(...['tf1_prg0.bin', 'tf1_prg1.bin', 'tankfrcej/tf1_prg7.bin'].map(e => zip.decompress(e))).addBase();
+	MCU = zip.decompress('cus64-64a1.mcu').addBase();
+	VOI = Uint8Array.concat(...['tf1_voi0.bin', 'tf1_voi1.bin'].map(e => zip.decompress(e))).addBase();
+	CHR8 = zip.decompress('tf1_chr8.bin');
+	CHR = Uint8Array.concat(...['tf1_chr0.bin', 'tf1_chr1.bin', 'tf1_chr2.bin', 'tf1_chr3.bin', 'tf1_chr4.bin', 'tf1_chr5.bin'].map(e => zip.decompress(e)));
+	OBJ = Uint8Array.concat(...['tf1_obj0.bin', 'tf1_obj1.bin'].map(e => zip.decompress(e)));
 	game = new TankForce();
 	sound = [
 		new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
@@ -814,5 +809,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

@@ -4,7 +4,7 @@
  *
  */
 
-import {init} from './main.js';
+import {init, read} from './main.js';
 import I8080 from './i8080.js';
 let game;
 
@@ -255,16 +255,13 @@ class SpaceInvaders {
  *
  */
 
-const url = 'invaders.zip';
 let PRG, MAP;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG = new Uint8Array((zip.files['sicv/cv17.36'].inflate() + zip.files['sicv/cv18.35'].inflate() + zip.files['sicv/cv19.34'].inflate() + zip.files['sicv/cv20.33'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	MAP = new Uint8Array(zip.files['sicv/cv01.1'].inflate().split('').map(c => c.charCodeAt(0)));
+read('invaders.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = Uint8Array.concat(...['sicv/cv17.36', 'sicv/cv18.35', 'sicv/cv19.34', 'sicv/cv20.33'].map(e => zip.decompress(e))).addBase();
+	MAP = zip.decompress('sicv/cv01.1');
 	game = new SpaceInvaders();
 	canvas.addEventListener('click', () => game.coin());
 	init({game});
-}
+});
 

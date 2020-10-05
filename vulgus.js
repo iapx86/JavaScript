@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -478,25 +478,20 @@ class Vulgus {
  *
  */
 
-const url = 'vulgus.zip';
 let PRG1, PRG2, FG, BG, OBJ, RED, GREEN, BLUE, FGCOLOR, BGCOLOR, OBJCOLOR;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = zip.files['vulgus.002'].inflate() + zip.files['vulgus.003'].inflate() + zip.files['vulgus.004'].inflate() + zip.files['vulgus.005'].inflate();
-	PRG1 = new Uint8Array((PRG1 + zip.files['1-8n.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['1-11c.bin'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	FG = new Uint8Array(zip.files['1-3d.bin'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG = zip.files['2-2a.bin'].inflate() + zip.files['2-3a.bin'].inflate() + zip.files['2-4a.bin'].inflate() + zip.files['2-5a.bin'].inflate();
-	BG = new Uint8Array((BG + zip.files['2-6a.bin'].inflate() + zip.files['2-7a.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array((zip.files['2-2n.bin'].inflate() + zip.files['2-3n.bin'].inflate() + zip.files['2-4n.bin'].inflate() + zip.files['2-5n.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RED = new Uint8Array(zip.files['e8.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	GREEN = new Uint8Array(zip.files['e9.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	BLUE = new Uint8Array(zip.files['e10.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	FGCOLOR = new Uint8Array(zip.files['d1.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['c9.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['j2.bin'].inflate().split('').map(c => c.charCodeAt(0)));
+read('vulgus.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['vulgus.002', 'vulgus.003', 'vulgus.004', 'vulgus.005', '1-8n.bin'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('1-11c.bin').addBase();
+	FG = zip.decompress('1-3d.bin');
+	BG = Uint8Array.concat(...['2-2a.bin', '2-3a.bin', '2-4a.bin', '2-5a.bin', '2-6a.bin', '2-7a.bin'].map(e => zip.decompress(e)));
+	OBJ = Uint8Array.concat(...['2-2n.bin', '2-3n.bin', '2-4n.bin', '2-5n.bin'].map(e => zip.decompress(e)));
+	RED = zip.decompress('e8.bin');
+	GREEN = zip.decompress('e9.bin');
+	BLUE = zip.decompress('e10.bin');
+	FGCOLOR = zip.decompress('d1.bin');
+	BGCOLOR = zip.decompress('c9.bin');
+	OBJCOLOR = zip.decompress('j2.bin');
 	game = new Vulgus();
 	sound = [
 		new AY_3_8910({clock: 1500000, resolution: 8}),
@@ -504,5 +499,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

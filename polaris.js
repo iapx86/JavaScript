@@ -4,7 +4,7 @@
  *
  */
 
-import {init} from './main.js';
+import {init, read} from './main.js';
 import I8080 from './i8080.js';
 let game;
 
@@ -249,18 +249,15 @@ class Polaris {
  *
  */
 
-const url = 'polaris.zip';
 let PRG1, PRG2, MAP, OBJ;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['ps01-1.30'].inflate() + zip.files['ps09.36'].inflate() + zip.files['ps03-1.31'].inflate() + zip.files['ps04.37'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array((zip.files['ps05.32'].inflate() + zip.files['ps10.38'].inflate() + zip.files['ps26'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	MAP = new Uint8Array(zip.files['ps08.1b'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array(zip.files['ps07.2c'].inflate().split('').map(c => c.charCodeAt(0)));
+read('polaris.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['ps01-1.30', 'ps09.36', 'ps03-1.31', 'ps04.37'].map(e => zip.decompress(e))).addBase();
+	PRG2 = Uint8Array.concat(...['ps05.32', 'ps10.38', 'ps26'].map(e => zip.decompress(e))).addBase();
+	MAP = zip.decompress('ps08.1b');
+	OBJ = zip.decompress('ps07.2c');
 	game = new Polaris();
 	canvas.addEventListener('click', () => game.coin());
 	init({game});
-}
+});
 

@@ -5,7 +5,7 @@
  */
 
 import PacManSound from './pac-man_sound.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -1142,26 +1142,23 @@ P2Y=\
  *
  */
 
-const url = 'digdug.zip';
 let PRG1, PRG2, PRG3, BG2, MAPDATA, BG4, OBJ, SND, BGCOLOR, OBJCOLOR, RGB;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['dd1a.1'].inflate() + zip.files['dd1a.2'].inflate() + zip.files['dd1a.3'].inflate() + zip.files['dd1a.4'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array((zip.files['dd1a.5'].inflate() + zip.files['dd1a.6'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG3 = new Uint8Array(zip.files['dd1.7'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG2 = new Uint8Array(zip.files['dd1.9'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array((zip.files['dd1.15'].inflate() + zip.files['dd1.14'].inflate() + zip.files['dd1.13'].inflate() + zip.files['dd1.12'].inflate()).split('').map(c => c.charCodeAt(0)));
-	BG4 = new Uint8Array(zip.files['dd1.11'].inflate().split('').map(c => c.charCodeAt(0)));
-	MAPDATA = new Uint8Array(zip.files['dd1.10b'].inflate().split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['136007.113'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['136007.111'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['136007.112'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['136007.110'].inflate().split('').map(c => c.charCodeAt(0)));
+read('digdug.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['dd1a.1', 'dd1a.2', 'dd1a.3', 'dd1a.4'].map(e => zip.decompress(e))).addBase();
+	PRG2 = Uint8Array.concat(...['dd1a.5', 'dd1a.6'].map(e => zip.decompress(e))).addBase();
+	PRG3 = zip.decompress('dd1.7').addBase();
+	BG2 = zip.decompress('dd1.9');
+	OBJ = Uint8Array.concat(...['dd1.15', 'dd1.14', 'dd1.13', 'dd1.12'].map(e => zip.decompress(e)));
+	BG4 = zip.decompress('dd1.11');
+	MAPDATA = zip.decompress('dd1.10b');
+	RGB = zip.decompress('136007.113');
+	OBJCOLOR = zip.decompress('136007.111');
+	BGCOLOR = zip.decompress('136007.112');
+	SND = zip.decompress('136007.110');
 	game = new DigDug();
 	sound = new PacManSound({SND, resolution: 2});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import SoundEffect from  './sound_effect.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -1648,17 +1648,12 @@ AP8A/wD/AP8A/wD/AP8A/wD/\
  *
  */
 
-const url = 'jumpbug.zip';
 let BG, RGB, PRG;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG = zip.files['jb1'].inflate() + zip.files['jb2'].inflate() + zip.files['jb3'].inflate() + zip.files['jb4'].inflate();
-	PRG = new Uint8Array((PRG + zip.files['jb5'].inflate() + zip.files['jb6'].inflate() + zip.files['jb7'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	BG = zip.files['jbl'].inflate() + zip.files['jbn'].inflate() + zip.files['jbm'].inflate() + zip.files['jbi'].inflate();
-	BG = new Uint8Array((BG + zip.files['jbk'].inflate() + zip.files['jbj'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['l06_prom.bin'].inflate().split('').map(c => c.charCodeAt(0)));
+read('jumpbug.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = Uint8Array.concat(...['jb1', 'jb2', 'jb3', 'jb4', 'jb5', 'jb6', 'jb7'].map(e => zip.decompress(e))).addBase();
+	BG = Uint8Array.concat(...['jbl', 'jbn', 'jbm', 'jbi', 'jbk', 'jbj'].map(e => zip.decompress(e)));
+	RGB = zip.decompress('l06_prom.bin');
 	game = new JumpBug();
 	sound = [
 		new AY_3_8910({clock: 1536000}),
@@ -1666,5 +1661,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

@@ -6,7 +6,7 @@
 
 import GalaxianSound from './galaxian_sound.js';
 import SoundEffect from './sound_effect.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -2736,16 +2736,12 @@ Lfkm+t/50vr8+j37Evz9+/n7t/wd/eP8Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkA
  *
  */
 
-const url = 'galaxian.zip';
 let BG, RGB, PRG;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG = zip.files['galmidw.u'].inflate() + zip.files['galmidw.v'].inflate() + zip.files['galmidw.w'].inflate() + zip.files['galmidw.y'].inflate();
-	PRG = new Uint8Array((PRG + zip.files['7l'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array((zip.files['1h.bin'].inflate() + zip.files['1k.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['6l.bpr'].inflate().split('').map(c => c.charCodeAt(0)));
+read('galaxian.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = Uint8Array.concat(...['galmidw.u', 'galmidw.v', 'galmidw.w', 'galmidw.y', '7l'].map(e => zip.decompress(e))).addBase();
+	BG = Uint8Array.concat(...['1h.bin', '1k.bin'].map(e => zip.decompress(e)));
+	RGB = zip.decompress('6l.bpr');
 	game = new Galaxian();
 	sound = [
 		new GalaxianSound({SND}),
@@ -2753,5 +2749,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

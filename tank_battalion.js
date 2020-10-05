@@ -5,7 +5,7 @@
  */
 
 import SoundEffect from  './sound_effect.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import MCS6502 from './mcs6502.js';
 let game, sound;
 
@@ -3334,18 +3334,15 @@ MP8=\
  *
  */
 
-const url = 'tankbatt.zip';
 let PRG, BG, RGB;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG = new Uint8Array((zip.files['tb1-1.1a'].inflate() + zip.files['tb1-2.1b'].inflate() + zip.files['tb1-3.1c'].inflate() + zip.files['tb1-4.1d'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array(zip.files['tb1-5.2k'].inflate().split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['bct1-1.l3'].inflate().split('').map(c => c.charCodeAt(0)));
+read('tankbatt.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = Uint8Array.concat(...['tb1-1.1a', 'tb1-2.1b', 'tb1-3.1c', 'tb1-4.1d'].map(e => zip.decompress(e))).addBase();
+	BG = zip.decompress('tb1-5.2k');
+	RGB = zip.decompress('bct1-1.l3');
 	game = new TankBattalion();
 	sound = new SoundEffect({se: game.se, freq: 22050, gain: 0.5});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

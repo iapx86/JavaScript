@@ -5,7 +5,7 @@
  */
 
 import C30 from './c30.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -740,23 +740,20 @@ class MetroCross {
  *
  */
 
-const url = 'metrocrs.zip';
 let PRG1, PRG2, PRG2I, FG, BG, OBJ, GREEN, RED;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['mc1-3.9c'].inflate() + zip.files['mc1-1.9a'].inflate() + zip.files['mc1-2.9b'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['mc1-4.3b'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2I = new Uint8Array(zip.files['cus60-60a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	FG = new Uint8Array(zip.files['mc1-5.3j'].inflate().split('').map(c => c.charCodeAt(0)));
-	BG = new Uint8Array((zip.files['mc1-7.4p'].inflate() + zip.files['mc1-6.4n'].inflate() + '\xff'.repeat(0x4000)).split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array((zip.files['mc1-8.8k'].inflate() + zip.files['mc1-9.8l'].inflate()).split('').map(c => c.charCodeAt(0)));
-	GREEN = new Uint8Array(zip.files['mc1-1.1n'].inflate().split('').map(c => c.charCodeAt(0)));
-	RED = new Uint8Array(zip.files['mc1-2.2m'].inflate().split('').map(c => c.charCodeAt(0)));
+read('metrocrs.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['mc1-3.9c', 'mc1-1.9a', 'mc1-2.9b'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('mc1-4.3b').addBase();
+	PRG2I = zip.decompress('cus60-60a1.mcu').addBase();
+	FG = zip.decompress('mc1-5.3j');
+	BG = Uint8Array.concat(...['mc1-7.4p', 'mc1-6.4n'].map(e => zip.decompress(e)), new Uint8Array(0x4000).fill(0xff));
+	OBJ = Uint8Array.concat(...['mc1-8.8k', 'mc1-9.8l'].map(e => zip.decompress(e)));
+	GREEN = zip.decompress('mc1-1.1n');
+	RED = zip.decompress('mc1-2.2m');
 	game = new MetroCross();
 	sound = new C30();
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

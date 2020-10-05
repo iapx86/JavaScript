@@ -6,7 +6,7 @@
 
 import PacManSound from './pac-man_sound.js';
 import SoundEffect from './sound_effect.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -1295,17 +1295,14 @@ z//f//3/9f///w==\
  *
  */
 
-const url = 'rallyx.zip';
 let SND, BGOBJ, COLOR, RGB, PRG;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG = new Uint8Array((zip.files['1b'].inflate() + zip.files['rallyxn.1e'].inflate() + zip.files['rallyxn.1h'].inflate() + zip.files['rallyxn.1k'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	BGOBJ = new Uint8Array(zip.files['8e'].inflate().split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['rx1-1.11n'].inflate().split('').map(c => c.charCodeAt(0)));
-	COLOR = new Uint8Array(zip.files['rx1-7.8p'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['rx1-5.3p'].inflate().split('').map(c => c.charCodeAt(0)));
+read('rallyx.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = Uint8Array.concat(...['1b', 'rallyxn.1e', 'rallyxn.1h', 'rallyxn.1k'].map(e => zip.decompress(e))).addBase();
+	BGOBJ = zip.decompress('8e');
+	RGB = zip.decompress('rx1-1.11n');
+	COLOR = zip.decompress('rx1-7.8p');
+	SND = zip.decompress('rx1-5.3p');
 	game = new RallyX();
 	sound = [
 		new PacManSound({SND}),
@@ -1313,5 +1310,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

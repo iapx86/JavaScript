@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import Dac8Bit2Ch from './dac_8bit_2ch.js';
-import Cpu, {dummypage, init} from './main.js';
+import Cpu, {dummypage, init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -793,20 +793,16 @@ class PacMania {
  *
  */
 
-const url = 'pacmania.zip';
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	SND = new Uint8Array((zip.files['pacmaniaj/pn1_s0.bin'].inflate() + zip.files['pacmaniaj/pn1_s1.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG = new Uint8Array((zip.files['pn_prg-6.bin'].inflate() + zip.files['pacmaniaj/pn1_p7.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	MCU = new Uint8Array(zip.files['cus64-64a1.mcu'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	VOI = new Uint8Array((zip.files['pacmaniaj/pn1_v0.bin'].inflate() + zip.files['pacmaniaj/pn1_v0.bin'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	CHR8 = new Uint8Array(zip.files['pn2_c8.bin'].inflate().split('').map(c => c.charCodeAt(0)));
-	CHR = zip.files['pn_chr-0.bin'].inflate() + zip.files['pn_chr-1.bin'].inflate() + zip.files['pn_chr-2.bin'].inflate();
-	CHR = new Uint8Array((CHR + zip.files['pn_chr-3.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array((zip.files['pn_obj-0.bin'].inflate() + zip.files['pacmaniaj/pn_obj-1.bin'].inflate()).split('').map(c => c.charCodeAt(0)));
+read('pacmania.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	SND = Uint8Array.concat(...['pacmaniaj/pn1_s0.bin', 'pacmaniaj/pn1_s1.bin'].map(e => zip.decompress(e))).addBase();
+	PRG = Uint8Array.concat(...['pn_prg-6.bin', 'pacmaniaj/pn1_p7.bin'].map(e => zip.decompress(e))).addBase();
+	MCU = zip.decompress('cus64-64a1.mcu').addBase();
+	VOI = Uint8Array.concat(...['pacmaniaj/pn1_v0.bin', 'pacmaniaj/pn1_v0.bin'].map(e => zip.decompress(e))).addBase();
+	CHR8 = zip.decompress('pn2_c8.bin');
+	CHR = Uint8Array.concat(...['pn_chr-0.bin', 'pn_chr-1.bin', 'pn_chr-2.bin', 'pn_chr-3.bin'].map(e => zip.decompress(e)));
+	OBJ = Uint8Array.concat(...['pn_obj-0.bin', 'pacmaniaj/pn_obj-1.bin'].map(e => zip.decompress(e)));
 	game = new PacMania();
 	sound = [
 		new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
@@ -815,5 +811,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

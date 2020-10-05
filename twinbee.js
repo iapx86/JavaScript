@@ -7,7 +7,7 @@
 import AY_3_8910 from './ay-3-8910.js';
 import K005289 from './k005289.js';
 import VLM5030 from './vlm5030.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import MC68000 from  './mc68000.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -611,19 +611,16 @@ class TwinBee {
  *
  */
 
-const url = 'twinbee.zip';
 const PRG1 = new Uint8Array(0x50000).addBase();
 let PRG2, SND;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	zip.files['400-a06.15l'].inflate().split('').forEach((c, i) => PRG1[i << 1] = c.charCodeAt(0));
-	zip.files['400-a04.10l'].inflate().split('').forEach((c, i) => PRG1[1 + (i << 1)] = c.charCodeAt(0));
-	zip.files['412-a07.17l'].inflate().split('').forEach((c, i) => PRG1[0x10000 + (i << 1)] = c.charCodeAt(0));
-	zip.files['412-a05.12l'].inflate().split('').forEach((c, i) => PRG1[0x10001 + (i << 1)] = c.charCodeAt(0));
-	PRG2 = new Uint8Array(zip.files['400-e03.5l'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	SND = new Uint8Array((zip.files['400-a01.fse'].inflate() + zip.files['400-a02.fse'].inflate()).split('').map(c => c.charCodeAt(0)));
+read('twinbee.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	zip.decompress('400-a06.15l').forEach((e, i) => PRG1[i << 1] = e);
+	zip.decompress('400-a04.10l').forEach((e, i) => PRG1[1 + (i << 1)] = e);
+	zip.decompress('412-a07.17l').forEach((e, i) => PRG1[0x10000 + (i << 1)] = e);
+	zip.decompress('412-a05.12l').forEach((e, i) => PRG1[0x10001 + (i << 1)] = e);
+	PRG2 = zip.decompress('400-e03.5l').addBase();
+	SND = Uint8Array.concat(...['400-a01.fse', '400-a02.fse'].map(e => zip.decompress(e)));
 	game = new TwinBee();
 	sound = [
 		new AY_3_8910({clock: 14318180 / 8, resolution: 58, gain: 0.3}),
@@ -633,5 +630,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import K007232 from './k007232.js';
 import VLM5030 from './vlm5030.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -190,30 +190,15 @@ class SoundTest {
  */
 
 const key = [];
-const url = 'salamand.zip';
 let PRG2, VLM, SND;
 
-window.addEventListener('load', () => {
+void function () {
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
-	$.ajax({url, success, error: () => alert(url + ': failed to get')});
-});
-
-function success(zip) {
-	PRG2 = new Uint8Array(zip.files['587-d09.11j'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	VLM = new Uint8Array(zip.files['587-d08.8g'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	SND = new Uint8Array(zip.files['587-c01.10a'].inflate().split('').map(c => c.charCodeAt(0)));
-	game = new SoundTest();
-	sound = [
-		new YM2151({clock: 14318180 / 4, resolution: 58, gain: 5}),
-		new K007232({SND, clock: 14318180 / 4, resolution: 58, gain: 0.2}),
-		new VLM5030({VLM, clock: 14318180 / 4, gain: 5}),
-	];
-	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -223,6 +208,19 @@ function success(zip) {
 			game.right();
 		game.triggerA();
 	});
+}();
+
+read('salamand.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG2 = zip.decompress('587-d09.11j').addBase();
+	VLM = zip.decompress('587-d08.8g');
+	SND = zip.decompress('587-c01.10a');
+	game = new SoundTest();
+	sound = [
+		new YM2151({clock: 14318180 / 4, resolution: 58, gain: 5}),
+		new K007232({SND, clock: 14318180 / 4, resolution: 58, gain: 0.2}),
+		new VLM5030({VLM, clock: 14318180 / 4, gain: 5}),
+	];
+	game.initial = true;
 	init({game, sound});
-}
+});
 

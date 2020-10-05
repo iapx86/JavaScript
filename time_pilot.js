@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -713,20 +713,17 @@ class TimePilot {
  *
  */
 
-const url = 'timeplt.zip';
 let PRG1, PRG2, BG, OBJ, RGB_H, RGB_L, OBJCOLOR, BGCOLOR;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['tm1'].inflate() + zip.files['tm2'].inflate() + zip.files['tm3'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['tm7'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array(zip.files['tm6'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array((zip.files['tm4'].inflate() + zip.files['tm5'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RGB_H = new Uint8Array(zip.files['timeplt.b4'].inflate().split('').map(c => c.charCodeAt(0)));
-	RGB_L = new Uint8Array(zip.files['timeplt.b5'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['timeplt.e9'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['timeplt.e12'].inflate().split('').map(c => c.charCodeAt(0)));
+read('timeplt.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['tm1', 'tm2', 'tm3'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('tm7').addBase();
+	BG = zip.decompress('tm6');
+	OBJ = Uint8Array.concat(...['tm4', 'tm5'].map(e => zip.decompress(e)));
+	RGB_H = zip.decompress('timeplt.b4');
+	RGB_L = zip.decompress('timeplt.b5');
+	OBJCOLOR = zip.decompress('timeplt.e9');
+	BGCOLOR = zip.decompress('timeplt.e12');
 	game = new TimePilot();
 	sound = [
 		new AY_3_8910({clock: 14318181 / 8, resolution: 58, gain: 0.2}),
@@ -734,5 +731,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

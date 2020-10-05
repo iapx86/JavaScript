@@ -6,7 +6,7 @@
 
 import MappySound from './mappy_sound.js';
 import SoundEffect from './sound_effect.js';
-import Cpu, {init} from './main.js';
+import Cpu, {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -674,20 +674,17 @@ class Grobda {
  */
 
 const GETREADY = new Int16Array(Math.ceil(8837 * 22050 / 14800));
-const url = 'grobda.zip';
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
-window.addEventListener('load', () => $.ajax({url, success, error: () => alert(url + ': failed to get')}));
-
-function success(zip) {
-	PRG1 = new Uint8Array((zip.files['gr2-3.1d'].inflate() + zip.files['gr2-2.1c'].inflate() + zip.files['gr2-1.1b'].inflate()).split('').map(c => c.charCodeAt(0))).addBase();
-	PRG2 = new Uint8Array(zip.files['gr1-4.1k'].inflate().split('').map(c => c.charCodeAt(0))).addBase();
-	BG = new Uint8Array(zip.files['gr1-7.3c'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJ = new Uint8Array((zip.files['gr1-5.3f'].inflate() + zip.files['gr1-6.3e'].inflate()).split('').map(c => c.charCodeAt(0)));
-	RGB = new Uint8Array(zip.files['gr1-6.4c'].inflate().split('').map(c => c.charCodeAt(0)));
-	BGCOLOR = new Uint8Array(zip.files['gr1-5.4e'].inflate().split('').map(c => c.charCodeAt(0)));
-	OBJCOLOR = new Uint8Array(zip.files['gr1-4.3l'].inflate().split('').map(c => c.charCodeAt(0)));
-	SND = new Uint8Array(zip.files['gr1-3.3m'].inflate().split('').map(c => c.charCodeAt(0)));
+read('grobda.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG1 = Uint8Array.concat(...['gr2-3.1d', 'gr2-2.1c', 'gr2-1.1b'].map(e => zip.decompress(e))).addBase();
+	PRG2 = zip.decompress('gr1-4.1k').addBase();
+	BG = zip.decompress('gr1-7.3c');
+	OBJ = Uint8Array.concat(...['gr1-5.3f', 'gr1-6.3e'].map(e => zip.decompress(e)));
+	RGB = zip.decompress('gr1-6.4c');
+	BGCOLOR = zip.decompress('gr1-5.4e');
+	OBJCOLOR = zip.decompress('gr1-4.3l');
+	SND = zip.decompress('gr1-3.3m');
 	game = new Grobda();
 	sound = [
 		new MappySound({SND}),
@@ -695,5 +692,5 @@ function success(zip) {
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
-}
+});
 

@@ -29,80 +29,76 @@ export function init({keydown, keyup, ...args} = {}) {
 	({game, sound} = args);
 	imageData = ctx.createImageData(game.width, game.height);
 	data = new Uint32Array(imageData.data.buffer);
-	if (audioCtx) {
-		button = new Image();
-		(button.update = () => {
-			button.src = audioCtx.state === 'suspended' ? volume0 : volume1;
-			button.alt = 'audio state: ' + audioCtx.state;
-		})();
-		audioCtx.onstatechange = button.update;
-		document.body.appendChild(button);
-		button.addEventListener('click', () => {
-			if (audioCtx.state === 'suspended')
-				audioCtx.resume().catch();
-			else if (audioCtx.state === 'running')
-				audioCtx.suspend().catch();
-		});
-		window.addEventListener('blur', () => {
-			state = audioCtx.state;
+	button = new Image();
+	(button.update = () => {
+		button.src = audioCtx.state === 'suspended' ? volume0 : volume1;
+		button.alt = 'audio state: ' + audioCtx.state;
+	})();
+	audioCtx.onstatechange = button.update;
+	document.body.appendChild(button);
+	button.addEventListener('click', () => {
+		if (audioCtx.state === 'suspended')
+			audioCtx.resume().catch();
+		else if (audioCtx.state === 'running')
 			audioCtx.suspend().catch();
-		});
-		window.addEventListener('focus', () => {
-			if (state === 'running')
-				audioCtx.resume().catch();
-		});
-	}
+	});
+	window.addEventListener('blur', () => {
+		state = audioCtx.state;
+		audioCtx.suspend().catch();
+	});
+	window.addEventListener('focus', () => {
+		if (state === 'running')
+			audioCtx.resume().catch();
+	});
 	document.addEventListener('keydown', keydown ? keydown : e => {
-		switch (e.keyCode) {
-		case 37: // left
+		switch (e.code) {
+		case 'ArrowLeft':
 			return void('left' in game && game.left(true));
-		case 38: // up
+		case 'ArrowUp':
 			return void('up' in game && game.up(true));
-		case 39: // right
+		case 'ArrowRight':
 			return void('right' in game && game.right(true));
-		case 40: // down
+		case 'ArrowDown':
 			return void('down' in game && game.down(true));
-		case 48: // '0'
+		case 'Digit0':
 			return void('coin' in game && game.coin());
-		case 49: // '1'
+		case 'Digit1':
 			return void('start1P' in game && game.start1P());
-		case 50: // '2'
+		case 'Digit2':
 			return void('start2P' in game && game.start2P());
-		case 77: // 'M'
-			if (!audioCtx)
-				return;
+		case 'KeyM':
 			if (audioCtx.state === 'suspended')
 				audioCtx.resume().catch();
 			else if (audioCtx.state === 'running')
 				audioCtx.suspend().catch();
 			return;
-		case 82: // 'R'
+		case 'KeyR':
 			return game.reset();
-		case 84: // 'T'
+		case 'KeyT':
 			if ((game.fTest = !game.fTest) === true)
 				game.fReset = true;
 			return;
-		case 32: // space
-		case 88: // 'X'
+		case 'Space':
+		case 'KeyX':
 			return void('triggerA' in game && game.triggerA(true));
-		case 90: // 'Z'
+		case 'KeyZ':
 			return void('triggerB' in game && game.triggerB(true));
 		}
 	});
 	document.addEventListener('keyup', keyup ? keyup : e => {
-		switch (e.keyCode) {
-		case 37: // left
+		switch (e.code) {
+		case 'ArrowLeft':
 			return void('left' in game && game.left(false));
-		case 38: // up
+		case 'ArrowUp':
 			return void('up' in game && game.up(false));
-		case 39: // right
+		case 'ArrowRight':
 			return void('right' in game && game.right(false));
-		case 40: // down
+		case 'ArrowDown':
 			return void('down' in game && game.down(false));
-		case 32: // space
-		case 88: // 'X'
+		case 'Space':
+		case 'KeyX':
 			return void('triggerA' in game && game.triggerA(false));
-		case 90: // 'Z'
+		case 'KeyZ':
 			return void('triggerB' in game && game.triggerB(false));
 		}
 	});
@@ -131,115 +127,21 @@ Uint8Array.prototype.addBase = function () {
 	return this;
 };
 
-if (!Array.prototype.fill)
-	Array.prototype.fill = function (value, start = 0, end = this.length) {
-		for (let i = start; i < end; i++)
-			this[i] = value;
-		return this;
-	};
+Uint8Array.concat = function (...args) {
+	const typed_array = new this(args.reduce((a, b) => a + b.length, 0));
+	for (let offset = 0, i = 0; i < args.length; offset += args[i++].length)
+		typed_array.set(args[i], offset);
+	return typed_array;
+};
 
-if (!Array.prototype.find)
-	Array.prototype.find = function(callback, thisArg) {
-		for (let i = 0; i < this.length; i++)
-			if (i in this && callback.call(thisArg, this[i], i, this))
-				return this[i];
-		return undefined;
-	};
-
-if (!Uint8Array.prototype.copyWithin)
-	Uint8Array.prototype.copyWithin = function (target, start, end = this.length) {
-		for (let i = start; i < end; i++)
-			this[target - start + i] = this[i];
-	};
-
-if (!Uint8Array.prototype.every)
-	Uint8Array.prototype.every = function (func, thisObj) {
-		for (let i = 0; i < this.length; i++)
-			if (!func.call(thisObj, this[i]))
-				return false;
-		return true;
-	};
-
-if (!Uint8Array.prototype.fill)
-	Uint8Array.prototype.fill = function (value, start = 0, end = this.length) {
-		for (let i = start; i < end; i++)
-			this[i] = value;
-		return this;
-	};
-
-if (!Uint8Array.of)
-	Uint8Array.of = function () {return new Uint8Array(arguments);};
-
-if (!Uint8Array.from)
-	Uint8Array.from = function (obj, func, thisObj) {
-		let typed_array = new this(obj.length);
-		for (let i = 0; i < typed_array.length; i++)
-			typed_array[i] = func.call(thisObj, obj[i], i, typed_array);
-		return typed_array;
-	};
-
-if (!Uint16Array.prototype.fill)
-	Uint16Array.prototype.fill = function (value, start = 0, end = this.length) {
-		for (let i = start; i < end; i++)
-			this[i] = value;
-		return this;
-	};
-
-if (!Uint32Array.prototype.copyWithin)
-	Uint32Array.prototype.copyWithin = function (target, start, end = this.length) {
-		for (let i = start; i < end; i++)
-			this[target - start + i] = this[i];
-	};
-
-if (!Uint32Array.prototype.fill)
-	Uint32Array.prototype.fill = function (value, start = 0, end = this.length) {
-		for (let i = start; i < end; i++)
-			this[i] = value;
-		return this;
-	};
-
-if (!Uint32Array.of)
-	Uint32Array.of = function () {return new Uint32Array(arguments);};
-
-if (!Float32Array.from)
-	Float32Array.from = function (obj, func, thisObj) {
-		let typed_array = new this(obj.length);
-		for (let i = 0; i < typed_array.length; i++)
-			typed_array[i] = func.call(thisObj, obj[i], i, typed_array);
-		return typed_array;
-	};
-
-if (!String.prototype.repeat)
-	String.prototype.repeat = function (count) {
-		let str = '' + this;
-		if (str.length === 0 || count === 0)
-			return '';
-		const maxCount = str.length * count;
-		for (let i = 1; i * 2 <= count; i *= 2)
-			str += str;
-		str += str.substring(0, maxCount - str.length);
-		return str;
-	};
-
-if (typeof Object.assign !== 'function')
-	Object.defineProperty(Object, "assign", {
-		value: function assign(target, varArgs) {
-			const to = Object(target);
-			for (let index = 1; index < arguments.length; index++) {
-				const nextSource = arguments[index];
-				if (nextSource !== null && nextSource !== undefined)
-					for (const nextKey in nextSource)
-						if (Object.prototype.hasOwnProperty.call(nextSource, nextKey))
-							to[nextKey] = nextSource[nextKey];
-			}
-			return to;
-		},
-		writable: true,
-		configurable: true
+export function read(url) {
+	return fetch(url).then(response => {
+		if (response.ok)
+			return response.arrayBuffer();
+		alert(`failed to get: ${url}`);
+		throw new Error(url);
 	});
-
-if (!Math.log2)
-	Math.log2 = x => Math.log(x) / Math.LN2;
+}
 
 /*
  *
