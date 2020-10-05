@@ -93,6 +93,7 @@ const list2 = [
 	{name: 'sound_test10b', title: 'Sound Test 10b'},
 	{name: 'sound_test10c', title: 'Sound Test 10c'},
 	{name: 'sound_test10d', title: 'Sound Test 10d'},
+	{name: 'sound_test10e', title: 'Sound Test 10e'},
 	{name: 'sound_test11', title: 'Sound Test 11'},
 	{name: 'sound_test11a', title: 'Sound Test 11a'},
 	{name: 'sound_test11b', title: 'Sound Test 11b'},
