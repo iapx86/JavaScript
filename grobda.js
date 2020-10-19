@@ -22,9 +22,9 @@ class Grobda {
 	fReset = false;
 	fTest = false;
 	fDIPSwitchChanged = true;
-	fCoin = false;
-	fStart1P = false;
-	fStart2P = false;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
 	nGrobda = 3;
 	nRank = 'A';
 	nExtend = 'A';
@@ -35,14 +35,16 @@ class Grobda {
 	fInterruptEnable0 = false;
 	fInterruptEnable1 = false;
 	fSoundEnable = false;
-	ram = new Uint8Array(0x2400).addBase();
-	port = new Uint8Array(0x20);
+	ram = new Uint8Array(0x2000).addBase();
+	port = new Uint8Array(0x40);
+	in = Uint8Array.of(0, 0, 0, 0, 0, 0, 6, 3, 0, 0);
+	edge = 0xf;
 
 	bg = new Uint8Array(0x4000);
 	obj = new Uint8Array(0x10000);
 	bgcolor = Uint8Array.from(BGCOLOR, e => ~e & 0xf | 0x10);
 	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
-	rgb = new Uint32Array(0x20);
+	rgb = Uint32Array.from(RGB, e => (e & 7) * 255 / 7 | (e >> 3 & 7) * 255 / 7 << 8 | (e >> 6) * 255 / 3 << 16 | 0xff000000);
 
 	se = [{buf: GETREADY, loop: false, start: false, stop: false}];
 
@@ -50,10 +52,20 @@ class Grobda {
 	cpu2 = new MC6809();
 
 	constructor() {
-		this.port[0x12] = 6;
-		this.port[0x14] = 3;
-
-		const systemcontrolarea = addr => {
+		// CPU周りの初期化
+		for (let i = 0; i < 0x20; i++) {
+			this.cpu.memorymap[i].base = this.ram.base[i];
+			this.cpu.memorymap[i].write = null;
+		}
+		for (let i = 0; i < 4; i++) {
+			this.cpu.memorymap[0x40 + i].read = addr => sound[0].read(addr);
+			this.cpu.memorymap[0x40 + i].write = (addr, data) => sound[0].write(addr, data);
+		}
+		for (let i = 0; i < 4; i++) {
+			this.cpu.memorymap[0x48 + i].read = addr => this.port[addr & 0x3f] | 0xf0;
+			this.cpu.memorymap[0x48 + i].write = (addr, data) => void(this.port[addr & 0x3f] = data & 0xf);
+		}
+		this.cpu.memorymap[0x50].write = addr => {
 			switch (addr & 0xff) {
 			case 0x00: // INTERRUPT STOP
 				return void(this.fInterruptEnable1 = false);
@@ -77,21 +89,6 @@ class Grobda {
 				return this.cpu2.enable();
 			}
 		};
-
-		// CPU周りの初期化
-		for (let i = 0; i < 0x20; i++) {
-			this.cpu.memorymap[i].base = this.ram.base[i];
-			this.cpu.memorymap[i].write = null;
-		}
-		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x40 + i].read = addr => sound[0].read(addr);
-			this.cpu.memorymap[0x40 + i].write = (addr, data) => sound[0].write(addr, data);
-		}
-		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x48 + i].base = this.ram.base[0x20 + i];
-			this.cpu.memorymap[0x48 + i].write = null;
-		}
-		this.cpu.memorymap[0x50].write = systemcontrolarea;
 		for (let i = 0; i < 0x60; i++)
 			this.cpu.memorymap[0xa0 + i].base = PRG1.base[i];
 
@@ -99,18 +96,14 @@ class Grobda {
 			this.cpu2.memorymap[i].read = addr => sound[0].read(addr);
 			this.cpu2.memorymap[i].write = (addr, data) => sound[0].write(addr, data);
 		}
-		this.cpu2.memorymap[0x20].write = systemcontrolarea;
+		this.cpu2.memorymap[0x20].write = this.cpu.memorymap[0x50].write;
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[0xe0 + i].base = PRG2.base[i];
 
-		this.cpu2.breakpoint = addr => {
-			if (addr === 0xea2c)
-				this.se[0].start = this.se[0].stop = true;
-		};
+		this.cpu2.breakpoint = addr => void(addr === 0xea2c && (this.se[0].start = this.se[0].stop = true));
 		this.cpu2.set_breakpoint(0xea2c); // Get Ready
 
 		// Videoの初期化
-		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
 
@@ -138,62 +131,62 @@ class Grobda {
 			this.fDIPSwitchChanged = false;
 			switch (this.nGrobda) {
 			case 3:
-				this.port[0x10] &= ~3;
+				this.in[5] &= ~3;
 				break;
 			case 1:
-				this.port[0x10] = this.port[0x10] & ~3 | 1;
+				this.in[5] = this.in[5] & ~3 | 1;
 				break;
 			case 2:
-				this.port[0x10] = this.port[0x10] & ~3 | 2;
+				this.in[5] = this.in[5] & ~3 | 2;
 				break;
 			case 5:
-				this.port[0x10] |= 3;
+				this.in[5] |= 3;
 				break;
 			}
 			switch (this.nRank) {
 			case 'A':
-				this.port[0x10] &= ~0x0c;
+				this.in[5] &= ~0x0c;
 				break;
 			case 'B':
-				this.port[0x10] = this.port[0x10] & ~0x0c | 4;
+				this.in[5] = this.in[5] & ~0x0c | 4;
 				break;
 			case 'C':
-				this.port[0x10] = this.port[0x10] & ~0x0c | 8;
+				this.in[5] = this.in[5] & ~0x0c | 8;
 				break;
 			case 'D':
-				this.port[0x10] |= 0x0c;
+				this.in[5] |= 0x0c;
 				break;
 			}
 			switch (this.nExtend) {
 			case 'A':
-				this.port[0x11] &= ~0x0c;
+				this.in[9] &= ~0x0c;
 				break;
 			case 'NONE':
-				this.port[0x11] = this.port[0x11] & ~0x0c | 4;
+				this.in[9] = this.in[9] & ~0x0c | 4;
 				break;
 			case 'B':
-				this.port[0x11] = this.port[0x11] & ~0x0c | 8;
+				this.in[9] = this.in[9] & ~0x0c | 8;
 				break;
 			case 'C':
-				this.port[0x11] |= 0x0c;
+				this.in[9] |= 0x0c;
 				break;
 			}
 			if (this.fAttract)
-				this.port[0x11] &= ~1;
+				this.in[9] &= ~1;
 			else
-				this.port[0x11] |= 1;
+				this.in[9] |= 1;
 			if (this.fSelect)
-				this.port[0x11] &= ~2;
+				this.in[9] &= ~2;
 			else
-				this.port[0x11] |= 2;
+				this.in[9] |= 2;
 			if (!this.fTest)
 				this.fReset = true;
 		}
 
 		if (this.fTest)
-			this.port[0x12] |= 1;
+			this.in[6] |= 1;
 		else
-			this.port[0x12] &= ~1;
+			this.in[6] &= ~1;
 
 		// リセット処理
 		if (this.fReset) {
@@ -207,146 +200,67 @@ class Grobda {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			let i = (this.ram[0x2002] & 0x0f) * 10 + (this.ram[0x2003] & 0x0f);
-			if (i < 150) {
-				i++;
-				if (i > 99)
-					i = 99;
-				this.ram[0x2002] = i / 10;
-				this.ram[0x2003] = i % 10;
-				this.ram[0x2000] = 1;
-			}
-		}
-		if (this.fStart1P) {
-			this.port[8 - this.ram[0x2008]] |= 8;
-			if (!this.ram[0x2009]) {
-				let i = (this.ram[0x2002] & 0x0f) * 10 + (this.ram[0x2003] & 0x0f);
-				if (i >= 150)
-					this.ram[0x2001] |= 1;
-				else if (i > 0) {
-					--i;
-					this.ram[0x2002] = i / 10;
-					this.ram[0x2003] = i % 10;
-					this.ram[0x2001] |= 1;
-				}
-			}
-		}
-		else
-			this.port[8 - this.ram[0x2008]] &= ~8;
-		if (this.fStart2P) {
-			this.port[8 - this.ram[0x2008]] |= 4;
-			if (!this.ram[0x2009]) {
-				let i = (this.ram[0x2002] & 0x0f) * 10 + (this.ram[0x2003] & 0x0f);
-				if (i >= 150)
-					this.ram[0x2001] |= 2;
-				else if (i > 1) {
-					i -= 2;
-					this.ram[0x2002] = i / 10;
-					this.ram[0x2003] = i % 10;
-					this.ram[0x2001] |= 2;
-				}
-			}
-		}
-		else
-			this.port[8 - this.ram[0x2008]] &= ~4;
-		this.fCoin = this.fStart1P = this.fStart2P = false;
-
-		if (!this.fPortTest) {
-			let i, p;
-			this.ram.set(this.port.subarray(4, 8), 0x2004);
-			this.ram.set(this.port.subarray(0x10, 0x18), 0x2010);
-			switch (this.ram[0x2008] & 0x0f) {
-			case 5:
-				this.ram[0x2002] = 0xf;
-				this.ram[0x2006] = 0xc;
-				break;
-			case 8:
-				for (i = 0, p = 0x2009; p < 0x2010; p++)
-					i += this.ram[p] & 0xf;
-				this.ram[0x2000] = i >> 4 & 0xf;
-				this.ram[0x2001] = i & 0xf;
-				break;
-			}
-			if ((this.ram[0x2018] & 0x0f) === 8) {
-				for (i = 0, p = 0x2019; p < 0x2020; p++)
-					i += this.ram[p] & 0xf;
-				this.ram[0x2010] = i >> 4 & 0xf;
-				this.ram[0x2011] = i & 0xf;
-			}
-		}
-		return this;
+		this.in[0] = (this.fCoin !== 0) << 3, this.in[3] = this.in[3] & 3 | (this.fStart1P !== 0) << 2 | (this.fStart2P !== 0) << 3;
+		this.fCoin -= (this.fCoin > 0), this.fStart1P -= (this.fStart1P > 0), this.fStart2P -= (this.fStart2P > 0);
+		this.edge &= this.in[3];
+		if (this.fPortTest)
+			return this.edge = this.in[3] ^ 0xf, this;
+		if (this.port[8] === 1)
+			this.port.set(this.in.subarray(0, 4), 4);
+		else if (this.port[8] === 3) {
+			// クレジット/スタートボタン処理
+			let credit = this.port[2] * 10 + this.port[3];
+			if (this.fCoin && credit < 150)
+				this.port[0] += 1, credit = Math.min(credit + 1, 99);
+			if (!this.port[9] && this.fStart1P && credit > 0)
+				this.port[1] += 1, credit -= (credit < 150);
+			if (!this.port[9] && this.fStart2P && credit > 1)
+				this.port[1] += 2, credit -= (credit < 150) * 2;
+			this.port[2] = credit / 10, this.port[3] = credit % 10;
+			this.port.set([this.in[1], this.in[3] << 1 & 0xa | this.edge & 5, this.in[2], this.in[3] & 0xa | this.edge >> 1 & 5], 4);
+		} else if (this.port[8] === 5)
+			this.port[2] = 0xf, this.port[6] = 0xc;
+		if (this.port[0x18] === 8)
+			this.port[0x10] = 6, this.port[0x11] = 9;
+		else if (this.port[0x18] === 9)
+			this.port.set([this.in[5], this.in[9], this.in[6], this.in[6], this.in[7], this.in[7], this.in[8], this.in[8]], 0x10);
+		return this.edge = this.in[3] ^ 0xf, this;
 	}
 
 	coin() {
-		this.fCoin = true;
+		this.fCoin = 2;
 	}
 
 	start1P() {
-		this.fStart1P = true;
+		this.fStart1P = 2;
 	}
 
 	start2P() {
-		this.fStart2P = true;
+		this.fStart2P = 2;
 	}
 
 	up(fDown) {
-		const r = 7 - this.ram[0x2008] & 0x1f;
-
-		if (fDown)
-			this.port[r] = this.port[r] & ~4 | 1;
-		else
-			this.port[r] &= ~1;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 2) | 1 << 0 : this.in[1] & ~(1 << 0);
 	}
 
 	right(fDown) {
-		const r = 7 - this.ram[0x2008] & 0x1f;
-
-		if (fDown)
-			this.port[r] = this.port[r] & ~8 | 2;
-		else
-			this.port[r] &= ~2;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 3) | 1 << 1 : this.in[1] & ~(1 << 1);
 	}
 
 	down(fDown) {
-		const r = 7 - this.ram[0x2008] & 0x1f;
-
-		if (fDown)
-			this.port[r] = this.port[r] & ~1 | 4;
-		else
-			this.port[r] &= ~4;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 0) | 1 << 2 : this.in[1] & ~(1 << 2);
 	}
 
 	left(fDown) {
-		const r = 7 - this.ram[0x2008] & 0x1f;
-
-		if (fDown)
-			this.port[r] = this.port[r] & ~2 | 8;
-		else
-			this.port[r] &= ~8;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 1) | 1 << 3 : this.in[1] & ~(1 << 3);
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.port[8 - this.ram[0x2008] & 0x1f] |= 2;
-		else
-			this.port[8 - this.ram[0x2008] & 0x1f] &= ~2;
+		this.in[3] = fDown ? this.in[3] | 1 << 0: this.in[3] & ~(1 << 0);
 	}
 
 	triggerB(fDown) {
-		if (fDown)
-			this.port[0x16] |= 1;
-		else
-			this.port[0x16] &= ~1;
-	}
-
-	convertRGB() {
-		for (let i = 0; i < 0x20; i++)
-			this.rgb[i] = (RGB[i] & 7) * 255 / 7	// Red
-				| (RGB[i] >> 3 & 7) * 255 / 7 << 8	// Green
-				| (RGB[i] >> 6) * 255 / 3 << 16		// Blue
-				| 0xff000000;						// Alpha
+		this.in[8] = fDown ? this.in[8] | 1 << 0: this.in[8] & ~(1 << 0);
 	}
 
 	convertBG() {
@@ -390,8 +304,7 @@ class Grobda {
 	}
 
 	static convertGETREADY() {
-		const voicebuf = new Int16Array(0x3000);
-		let i, j, k, d, m;
+		let i, j, k, m;
 
 		// Get Ready
 		k = 0x0a6c;
@@ -400,25 +313,16 @@ class Grobda {
 			if (PRG2[k] === 7) {
 				m = ((PRG2[k++] & 0xf) - 8) * 3 << 9;
 				for (j = 0; j < 13; j++)
-					voicebuf[i++] = m;
+					GETREADY[i++] = m;
 			}
 			else {
 				m = ((PRG2[k] & 0xf) - 8) * 3 << 9;
 				for (j = 0; j < 4; j++)
-					voicebuf[i++] = m;
+					GETREADY[i++] = m;
 				m = ((PRG2[k++] >> 4) - 8) * 3 << 9;
 				for (j = 0; j < 3; j++)
-					voicebuf[i++] = m;
+					GETREADY[i++] = m;
 			}
-		}
-
-		// 14800Hzのオリジナルを22050Hzにコンバート
-		j = k = d = 0;
-		while (k < i) {
-			GETREADY[j++] = voicebuf[k];
-			d += 14800;
-			k += d / 22050 | 0;
-			d %= 22050;
 		}
 	}
 
@@ -673,7 +577,7 @@ class Grobda {
  *
  */
 
-const GETREADY = new Int16Array(Math.ceil(8837 * 22050 / 14800));
+const GETREADY = new Int16Array(8837);
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
 read('grobda.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
@@ -688,7 +592,7 @@ read('grobda.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	game = new Grobda();
 	sound = [
 		new MappySound({SND}),
-		new SoundEffect({se: game.se, freq: 22050}),
+		new SoundEffect({se: game.se, freq: 14800}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

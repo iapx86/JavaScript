@@ -34,11 +34,12 @@ class Toypop {
 	fInterruptEnable = false;
 	fInterruptEnable2 = false;
 
-	ram = new Uint8Array(0x2100).addBase();
+	ram = new Uint8Array(0x2000).addBase();
 	ram2 = new Uint8Array(0x800).addBase();
 	ram3 = new Uint8Array(0x40000).addBase();
 	vram = new Uint8Array(0x10000).addBase();
-	port = new Uint8Array(0x30);
+	port = new Uint8Array(0x40);
+	in = new Uint8Array(15);
 
 	bg = new Uint8Array(0x8000);
 	obj = new Uint8Array(0x10000);
@@ -59,8 +60,8 @@ class Toypop {
 			this.cpu.memorymap[0x28 + i].base = this.ram2.base[i];
 			this.cpu.memorymap[0x28 + i].write = null;
 		}
-		this.cpu.memorymap[0x60].base = this.ram.base[0x20];
-		this.cpu.memorymap[0x60].write = null;
+		this.cpu.memorymap[0x60].read = addr => this.port[addr & 0x3f] | 0xf0;
+		this.cpu.memorymap[0x60].write = (addr, data) => void(this.port[addr & 0x3f] = data & 0xf);
 		for (let i = 0; i < 4; i++) {
 			this.cpu.memorymap[0x68 + i].read = addr => sound.read(addr);
 			this.cpu.memorymap[0x68 + i].write = (addr, data) => sound.write(addr, data);
@@ -132,56 +133,56 @@ class Toypop {
 			this.fDIPSwitchChanged = false;
 			switch (this.nPino) {
 			case 1:
-				this.port[0x13] = this.port[0x13] & ~3 | 1;
+				this.in[8] = this.in[8] & ~3 | 1;
 				break;
 			case 2:
-				this.port[0x13] = this.port[0x13] & ~3 | 2;
+				this.in[8] = this.in[8] & ~3 | 2;
 				break;
 			case 3:
-				this.port[0x13] &= ~3;
+				this.in[8] &= ~3;
 				break;
 			case 5:
-				this.port[0x13] |= 3;
+				this.in[8] |= 3;
 				break;
 			}
 			switch (this.nBonus) {
 			case 'A':
-				this.port[0x12] &= ~8;
+				this.in[7] &= ~8;
 				break;
 			case 'B':
-				this.port[0x12] |= 8;
+				this.in[7] |= 8;
 				break;
 			}
 			switch (this.nRank) {
 			case 'EASY':
-				this.port[0x12] = this.port[0x12] & ~6 | 2;
+				this.in[7] = this.in[7] & ~6 | 2;
 				break;
 			case 'NORMAL':
-				this.port[0x12] &= ~6;
+				this.in[7] &= ~6;
 				break;
 			case 'HARD':
-				this.port[0x12] = this.port[0x12] & ~6 | 4;
+				this.in[7] = this.in[7] & ~6 | 4;
 				break;
 			case 'VERY HARD':
-				this.port[0x12] |= 6;
+				this.in[7] |= 6;
 				break;
 			}
 			if (this.fAttract)
-				this.port[0x11] &= ~8;
+				this.in[6] &= ~8;
 			else
-				this.port[0x11] |= 8;
+				this.in[6] |= 8;
 			if (this.fRound)
-				this.port[0x11] |= 2;
+				this.in[6] |= 2;
 			else
-				this.port[0x11] &= ~2;
+				this.in[6] &= ~2;
 			if (!this.fTest)
 				this.fReset = true;
 		}
 
 		if (this.fTest)
-			this.port[0x10] |= 8;
+			this.in[5] |= 8;
 		else
-			this.port[0x10] &= ~8;
+			this.in[5] &= ~8;
 
 		// リセット処理
 		if (this.fReset) {
@@ -194,38 +195,20 @@ class Toypop {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.port[4] |= 1 << 0, --this.fCoin;
-		else
-			this.port[4] &= ~(1 << 0);
-		if (this.fStart1P)
-			this.port[7] |= 1 << 2, --this.fStart1P;
-		else
-			this.port[7] &= ~(1 << 2);
-		if (this.fStart2P)
-			this.port[7] |= 1 << 3, --this.fStart2P;
-		else
-			this.port[7] &= ~(1 << 3);
-
-		// Port Emulations
-		this.ram.set(this.port.subarray(4, 8), 0x2004);
-		this.ram.set(this.port.subarray(0x10, 0x14), 0x2010);
-		this.ram.set(this.port.subarray(0x20, 0x28), 0x2020);
-		if ((this.ram[0x2008] & 0x0f) === 5) {
-			this.ram[0x2002] = 0x0f;
-			this.ram[0x2006] = 0x0c;
-		}
-		if ((this.ram[0x2018] & 0x0f) === 8) {
-			const sum = new Array(this.ram.subarray(0x2019, 0x2020)).reduce((a, b) => a + (b & 0x0f));
-			this.ram[0x2010] = sum >> 4 & 0x0f;
-			this.ram[0x2011] = sum & 0x0f;
-		}
-		if ((this.ram[0x2028] & 0x0f) === 8) {
-			const sum = new Array(this.ram.subarray(0x2029, 0x2030)).reduce((a, b) => a + (b & 0x0f));
-			this.ram[0x2020] = sum >> 4 & 0x0f;
-			this.ram[0x2021] = sum & 0x0f;
-		}
+		this.in[0] = (this.fCoin !== 0) << 3, this.in[3] = this.in[3] & 3 | (this.fStart1P !== 0) << 2 | (this.fStart2P !== 0) << 3;
+		this.fCoin -= (this.fCoin > 0), this.fStart1P -= (this.fStart1P > 0), this.fStart2P -= (this.fStart2P > 0);
+		if (this.port[8] === 1)
+			this.port.set(this.in.subarray(0, 4), 4);
+		else if (this.port[8] === 5)
+			this.port[2] = 0xf, this.port[6] = 0xc;
+		if (this.port[0x18] === 1)
+			this.port.set(this.in.subarray(5, 9), 0x10);
+		else if (this.port[0x18] === 8)
+			this.port[0x10] = 6, this.port[0x11] = 9;
+		if (this.port[0x28] === 8)
+			this.port[0x20] = 6, this.port[0x21] = 9;
+		else if (this.port[0x28] === 9)
+			this.port.set([this.in[10], this.in[14], this.in[11], this.in[11], this.in[12], this.in[12], this.in[13], this.in[13]], 0x20);
 		return this;
 	}
 
@@ -242,38 +225,23 @@ class Toypop {
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.port[5] = this.port[5] & 0xf0 | 1 << 0;
-		else
-			this.port[5] &= ~(1 << 0);
+		this.in[1] = fDown ? this.in[1] & ~(1 << 2) | 1 << 0 : this.in[1] & ~(1 << 0);
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.port[5] = this.port[5] & 0xf0 | 1 << 1;
-		else
-			this.port[5] &= ~(1 << 1);
+		this.in[1] = fDown ? this.in[1] & ~(1 << 3) | 1 << 1 : this.in[1] & ~(1 << 1);
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.port[5] = this.port[5] & 0xf0 | 1 << 2;
-		else
-			this.port[5] &= ~(1 << 2);
+		this.in[1] = fDown ? this.in[1] & ~(1 << 0) | 1 << 2 : this.in[1] & ~(1 << 2);
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.port[5] = this.port[5] & 0xf0 | 1 << 3;
-		else
-			this.port[5] &= ~(1 << 3);
+		this.in[1] = fDown ? this.in[1] & ~(1 << 1) | 1 << 3 : this.in[1] & ~(1 << 3);
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.port[7] |= 1 << 0;
-		else
-			this.port[7] &= ~(1 << 0);
+		this.in[3] = fDown ? this.in[3] | 1 << 0: this.in[3] & ~(1 << 0);
 	}
 
 	triggerB(fDown) {

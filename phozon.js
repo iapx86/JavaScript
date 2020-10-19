@@ -21,9 +21,9 @@ class Phozon {
 	fReset = false;
 	fTest = false;
 	fDIPSwitchChanged = true;
-	fCoin = false;
-	fStart1P = false;
-	fStart2P = false;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
 	nChemic = 3;
 	nBonus = 'A';
 	nRank = '0';
@@ -33,9 +33,10 @@ class Phozon {
 	fInterruptEnable1 = false;
 	fInterruptEnable2 = false;
 	fSoundEnable = false;
-	ram = new Uint8Array(0x2c00).addBase();
-	port = new Uint8Array(0x20);
-	key = Uint8Array.of(0, 2, 3, 4, 5, 6, 0x0c, 0x0a, 1, 0x0c);
+	ram = new Uint8Array(0x2800).addBase();
+	port = new Uint8Array(0x40);
+	in = new Uint8Array(10);
+	edge = 0xf;
 
 	bg = new Uint8Array(0x8000);
 	obj = new Uint8Array(0x8000);
@@ -48,7 +49,20 @@ class Phozon {
 	cpu3 = new MC6809();
 
 	constructor() {
-		const systemcontrolarea = addr => {
+		// CPU周りの初期化
+		for (let i = 0; i < 0x20; i++) {
+			this.cpu.memorymap[i].base = this.ram.base[i];
+			this.cpu.memorymap[i].write = null;
+		}
+		for (let i = 0; i < 4; i++) {
+			this.cpu.memorymap[0x40 + i].read = addr => sound.read(addr);
+			this.cpu.memorymap[0x40 + i].write = (addr, data) => sound.write(addr, data);
+		}
+		for (let i = 0; i < 4; i++) {
+			this.cpu.memorymap[0x48 + i].read = addr => this.port[addr & 0x3f] | 0xf0;
+			this.cpu.memorymap[0x48 + i].write = (addr, data) => void(this.port[addr & 0x3f] = data & 0xf);
+		}
+		this.cpu.memorymap[0x50].write = addr => {
 			switch (addr & 0xff) {
 			case 0x00: // INTERRUPT STOP
 				return void(this.fInterruptEnable2 = false);
@@ -62,15 +76,14 @@ class Phozon {
 				return void(this.fInterruptEnable0 = false);
 			case 0x05: // INTERRUPT START
 				return void(this.fInterruptEnable0 = true);
-			case 0x07: // PORT TEST END
-				this.fPortTest = false;
-				this.ram.fill(0, 0x0840, 0x0844);
-				this.ram.set(this.port.subarray(4, 8), 0x0844);
-				this.ram.set(this.port.subarray(0x10, 0x18), 0x0850);
-				this.ram.set(this.port.subarray(4, 8), 0x2804);
-				return this.ram.set(this.port.subarray(0x10, 0x18), 0x2810);
-			case 0x09: // PORT TEST START
+			case 0x06: // SND STOP
+				return void(this.fSoundEnable = false);
+			case 0x07: // SND START
+				return void(this.fSoundEnable = true);
+			case 0x08: // PORT TEST START
 				return void(this.fPortTest = true);
+			case 0x09: // PORT TEST END
+				return void(this.fPortTest = false);
 			case 0x0a: // SUB CPU STOP
 				return this.cpu2.disable();
 			case 0x0b: // SUB CPU START
@@ -79,27 +92,8 @@ class Phozon {
 				return this.cpu3.disable();
 			case 0x0d: // SUB CPU START
 				return this.cpu3.enable();
-			case 0x0e: // SND START
-				return void(this.fSoundEnable = true);
-			case 0x0f: // SND STOP
-				return void(this.fSoundEnable = false);
 			}
 		};
-
-		// CPU周りの初期化
-		for (let i = 0; i < 0x20; i++) {
-			this.cpu.memorymap[i].base = this.ram.base[i];
-			this.cpu.memorymap[i].write = null;
-		}
-		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x40 + i].read = addr => sound.read(addr);
-			this.cpu.memorymap[0x40 + i].write = (addr, data) => sound.write(addr, data);
-		}
-		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x48 + i].base = this.ram.base[0x28 + i];
-			this.cpu.memorymap[0x48 + i].write = null;
-		}
-		this.cpu.memorymap[0x50].write = systemcontrolarea;
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[0x80 + i].base = PRG1.base[i];
 
@@ -153,72 +147,68 @@ class Phozon {
 			this.fDIPSwitchChanged = false;
 			switch (this.nChemic) {
 			case 1:
-				this.port[0x10] &= ~1;
-				this.port[0x11] |= 1;
+				this.in[5] &= ~1, this.in[9] |= 1;
 				break;
 			case 3:
-				this.port[0x10] &= ~1;
-				this.port[0x11] &= ~1;
+				this.in[5] &= ~1, this.in[9] &= ~1;
 				break;
 			case 4:
-				this.port[0x10] |= 1;
-				this.port[0x11] &= ~1;
+				this.in[5] |= 1, this.in[9] &= ~1;
 				break;
 			case 5:
-				this.port[0x10] |= 1;
-				this.port[0x11] |= 1;
+				this.in[5] |= 1, this.in[9] |= 1;
 				break;
 			}
 			switch (this.nRank) {
 			case '0':
-				this.port[0x12] &= ~0xe;
+				this.in[6] &= ~0xe;
 				break;
 			case '1':
-				this.port[0x12] = this.port[0x12] & ~0xe | 2;
+				this.in[6] = this.in[6] & ~0xe | 2;
 				break;
 			case '2':
-				this.port[0x12] = this.port[0x12] & ~0xe | 4;
+				this.in[6] = this.in[6] & ~0xe | 4;
 				break;
 			case '3':
-				this.port[0x12] = this.port[0x12] & ~0xe | 6;
+				this.in[6] = this.in[6] & ~0xe | 6;
 				break;
 			case '4':
-				this.port[0x12] = this.port[0x12] & ~0xe | 8;
+				this.in[6] = this.in[6] & ~0xe | 8;
 				break;
 			case '5':
-				this.port[0x12] = this.port[0x12] & ~0xe | 0xa;
+				this.in[6] = this.in[6] & ~0xe | 0xa;
 				break;
 			case '6':
-				this.port[0x12] = this.port[0x12] & ~0xe | 0xc;
+				this.in[6] = this.in[6] & ~0xe | 0xc;
 				break;
 			case '7':
-				this.port[0x12] |= 0xe;
+				this.in[6] |= 0xe;
 				break;
 			}
 			switch (this.nBonus) {
 			case 'A':
-				this.port[0x10] &= ~2, this.port[0x11] &= ~6;
+				this.in[5] &= ~2, this.in[9] &= ~6;
 				break;
 			case 'B':
-				this.port[0x10] &= ~2, this.port[0x11] = this.port[0x11] & ~6 | 2;
+				this.in[5] &= ~2, this.in[9] = this.in[9] & ~6 | 2;
 				break;
 			case 'C':
-				this.port[0x10] |= 2, this.port[0x11] &= ~6;
+				this.in[5] |= 2, this.in[9] &= ~6;
 				break;
 			case 'D':
-				this.port[0x10] |= 2, this.port[0x11] = this.port[0x11] & ~6 | 2;
+				this.in[5] |= 2, this.in[9] = this.in[9] & ~6 | 2;
 				break;
 			case 'E':
-				this.port[0x10] &= ~2, this.port[0x11] = this.port[0x11] & ~6 | 4;
+				this.in[5] &= ~2, this.in[9] = this.in[9] & ~6 | 4;
 				break;
 			case 'F':
-				this.port[0x10] &= ~2, this.port[0x11] |= 6;
+				this.in[5] &= ~2, this.in[9] |= 6;
 				break;
 			case 'G':
-				this.port[0x10] |= 2, this.port[0x11] = this.port[0x11] & ~6 | 4;
+				this.in[5] |= 2, this.in[9] = this.in[9] & ~6 | 4;
 				break;
 			case 'NONE':
-				this.port[0x10] |= 2, this.port[0x11] |= 6;
+				this.in[5] |= 2, this.in[9] |= 6;
 				break;
 			}
 			if (!this.fTest)
@@ -226,9 +216,9 @@ class Phozon {
 		}
 
 		if (this.fTest)
-			this.port[0x16] |= 8;
+			this.in[8] |= 8;
 		else
-			this.port[0x16] &= ~8;
+			this.in[8] &= ~8;
 
 		// リセット処理
 		if (this.fReset) {
@@ -242,107 +232,63 @@ class Phozon {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			let i = (this.ram[0x2802] & 0x0f) * 10 + (this.ram[0x2803] & 0x0f);
-			if (i < 150) {
-				i++;
-				if (i > 99)
-					i = 99;
-				this.ram[0x2802] = i / 10;
-				this.ram[0x2803] = i % 10;
-				this.ram[0x2800] = 1;
-			}
-		}
-		if (this.fStart1P && !this.ram[0x2809]) {
-			let i = (this.ram[0x2802] & 0x0f) * 10 + (this.ram[0x2803] & 0x0f);
-			if (i >= 150)
-				this.ram[0x2801] |= 1;
-			else if (i > 0) {
-				this.ram[0x2801] |= 1;
-				--i;
-				this.ram[0x2802] = i / 10;
-				this.ram[0x2803] = i % 10;
-			}
-		}
-		if (this.fStart2P && !this.ram[0x2809]) {
-			let i = (this.ram[0x2802] & 0x0f) * 10 + (this.ram[0x2803] & 0x0f);
-			if (i >= 150)
-				this.ram[0x2801] |= 2;
-			else if (i > 1) {
-				this.ram[0x2801] |= 2;
-				i -= 2;
-				this.ram[0x2802] = i / 10;
-				this.ram[0x2803] = i % 10;
-			}
-		}
-		this.fCoin = this.fStart1P = this.fStart2P = false;
-
-		if (this.fPortTest) {
-			this.ram.set(this.key.subarray(0, 8), 0x2800);
-			this.ram.set(this.key.subarray(8), 0x2810);
-		}
-		else {
-			this.ram.set(this.port.subarray(4, 8), 0x2804);
-			this.ram.set(this.port.subarray(0x10, 0x18), 0x2810);
-			this.port[8 - this.ram[0x2808] & 0x1f] &= ~1;
-		}
-		return this;
+		this.in[0] = (this.fCoin !== 0) << 3, this.in[3] = this.in[3] & 3 | (this.fStart1P !== 0) << 2 | (this.fStart2P !== 0) << 3;
+		this.fCoin -= (this.fCoin > 0), this.fStart1P -= (this.fStart1P > 0), this.fStart2P -= (this.fStart2P > 0);
+		this.edge &= this.in[3];
+		if (this.fPortTest)
+			return this.edge = this.in[3] ^ 0xf, this;
+		if (this.port[8] === 1)
+			this.port.set(this.in.subarray(0, 4), 4);
+		else if (this.port[8] === 3) {
+			// クレジット/スタートボタン処理
+			let credit = this.port[2] * 10 + this.port[3];
+			if (this.fCoin && credit < 150)
+				this.port[0] += 1, credit = Math.min(credit + 1, 99);
+			if (!this.port[9] && this.fStart1P && credit > 0)
+				this.port[1] += 1, credit -= (credit < 150);
+			if (!this.port[9] && this.fStart2P && credit > 1)
+				this.port[1] += 2, credit -= (credit < 150) * 2;
+			this.port[2] = credit / 10, this.port[3] = credit % 10;
+			this.port.set([this.in[1], this.in[3] << 1 & 0xa | this.edge & 5, this.in[2], this.in[3] & 0xa | this.edge >> 1 & 5], 4);
+		} else if (this.port[8] === 5)
+			this.port.set([0, 2, 3, 4, 5, 6, 0xc, 0xa]);
+		if (this.port[0x18] === 8)
+			this.port[0x10] = 1, this.port[0x11] = 0xc;
+		else if (this.port[0x18] === 9)
+			this.port.set([this.in[5], this.in[9], this.in[6], this.in[6], this.in[7], this.in[7], this.in[8], this.in[8]], 0x10);
+		return this.edge = this.in[3] ^ 0xf, this;
 	}
 
 	coin() {
-		this.fCoin = true;
+		this.fCoin = 2;
 	}
 
 	start1P() {
-		this.fStart1P = true;
+		this.fStart1P = 2;
 	}
 
 	start2P() {
-		this.fStart2P = true;
+		this.fStart2P = 2;
 	}
 
 	up(fDown) {
-		const r = 7 - this.ram[0x2808] & 0x1f;
-
-		if (fDown)
-			this.port[r] = this.port[r] & ~4 | 1;
-		else
-			this.port[r] &= ~1;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 2) | 1 << 0 : this.in[1] & ~(1 << 0);
 	}
 
 	right(fDown) {
-		const r = 7 - this.ram[0x2808] & 0x1f;
-
-		if (fDown)
-			this.port[r] = this.port[r] & ~8 | 2;
-		else
-			this.port[r] &= ~2;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 3) | 1 << 1 : this.in[1] & ~(1 << 1);
 	}
 
 	down(fDown) {
-		const r = 7 - this.ram[0x2808] & 0x1f;
-
-		if (fDown)
-			this.port[r] = this.port[r] & ~1 | 4;
-		else
-			this.port[r] &= ~4;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 0) | 1 << 2 : this.in[1] & ~(1 << 2);
 	}
 
 	left(fDown) {
-		const r = 7 - this.ram[0x2808] & 0x1f;
-
-		if (fDown)
-			this.port[r] = this.port[r] & ~2 | 8;
-		else
-			this.port[r] &= ~8;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 1) | 1 << 3 : this.in[1] & ~(1 << 3);
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.port[8 - this.ram[0x2808] & 0x1f] |= 1;
-		else
-			this.port[8 - this.ram[0x2808] & 0x1f] &= ~1;
+		this.in[3] = fDown ? this.in[3] | 1 << 0: this.in[3] & ~(1 << 0);
 	}
 
 	triggerB(fDown) {
@@ -350,10 +296,10 @@ class Phozon {
 
 	convertRGB() {
 		for (let i = 0; i < 0x40; i++)
-			this.rgb[i] = (RGB[i + 0x100] & 0xf) * 255 / 15	// Red
-				| (RGB[i] & 0xf) * 255 / 15 << 8			// Green
-				| (RGB[i + 0x200] & 0xf) * 255 / 15 << 16	// Blue
-				| 0xff000000;								// Alpha
+			this.rgb[i] = (RED[i] & 0xf) * 255 / 15	// Red
+				| (GREEN[i] & 0xf) * 255 / 15 << 8	// Green
+				| (BLUE[i] & 0xf) * 255 / 15 << 16	// Blue
+				| 0xff000000;						// Alpha
 	}
 
 	convertBG() {
@@ -720,7 +666,7 @@ class Phozon {
  *
  */
 
-let PRG1, PRG2, PRG3, RGB, SND, BG, BGCOLOR, OBJ, OBJCOLOR;
+let PRG1, PRG2, PRG3, RED, BLUE, GREEN, SND, BG, BGCOLOR, OBJ, OBJCOLOR;
 
 read('phozon.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG1 = Uint8Array.concat(...['6e.rom', '6h.rom', '6c.rom', '6d.rom'].map(e => zip.decompress(e))).addBase();
@@ -728,7 +674,9 @@ read('phozon.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	PRG3 = zip.decompress('9r.rom').addBase();
 	BG = Uint8Array.concat(...['7j.rom', '8j.rom'].map(e => zip.decompress(e)));
 	OBJ = zip.decompress('5t.rom');
-	RGB = Uint8Array.concat(...['green.prm', 'red.prm', 'blue.prm'].map(e => zip.decompress(e)));
+	RED = zip.decompress('red.prm');
+	BLUE = zip.decompress('blue.prm');
+	GREEN = zip.decompress('green.prm');
 	BGCOLOR = zip.decompress('chr.prm');
 	OBJCOLOR = zip.decompress('sprite.prm');
 	SND = zip.decompress('sound.prm');

@@ -22,19 +22,22 @@ class Gaplus {
 	fReset = false;
 	fTest = false;
 	fDIPSwitchChanged = true;
-	fCoin = false;
-	fStart1P = false;
-	fStart2P = false;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
 	nMyShip = 3;
 	nRank = '0';
 	nBonus = 'A';
 	fAttract = true;
 
+	fPortTest = false;
 	fInterruptEnable0 = false;
 	fInterruptEnable1 = false;
 	fInterruptEnable2 = false;
-	ram = new Uint8Array(0x2100).addBase();
+	ram = new Uint8Array(0x2000).addBase();
 	port = new Uint8Array(0x40);
+	in = Uint8Array.of(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4);
+	edge = 0xf;
 	starport = new Uint8Array(0x100);
 
 	stars = [];
@@ -57,8 +60,6 @@ class Gaplus {
 
 	constructor() {
 		// CPU周りの初期化
-		this.port[0x20] = 4; // UPRIGHT
-
 		for (let i = 0; i < 0x20; i++) {
 			this.cpu.memorymap[i].base = this.ram.base[i];
 			this.cpu.memorymap[i].write = null;
@@ -67,16 +68,18 @@ class Gaplus {
 			this.cpu.memorymap[0x60 + i].read = addr => sound[0].read(addr);
 			this.cpu.memorymap[0x60 + i].write = (addr, data) => sound[0].write(addr, data);
 		}
-		this.cpu.memorymap[0x68].base = this.ram.base[0x20];
+		this.cpu.memorymap[0x68].read = addr => this.port[addr & 0x3f] | 0xf0;
 		this.cpu.memorymap[0x68].write = (addr, data) => {
-			if (addr === 0x682a && this.ram[0x2028] !== 4 && (data - this.ram[0x2029] - 1 & 0x0f) === 0)
+			if ((addr & 0x3f) === 0x2a && this.port[0x28] !== 4 && (data - this.port[0x29] - 1 & 0xf) === 0)
 				this.se[0].start = this.se[0].stop = true;
-			this.ram[0x2000 | addr & 0xff] = data;
+			this.port[addr & 0x3f] = data & 0xf;
 		};
 		this.cpu.memorymap[0x74].write = () => void(this.fInterruptEnable0 = true);
 		this.cpu.memorymap[0x7c].write = () => void(this.fInterruptEnable0 = false);
 		this.cpu.memorymap[0x84].write = () => (this.cpu2.enable(), this.cpu3.enable());
 		this.cpu.memorymap[0x8c].write = () => (this.cpu2.disable(), this.cpu3.disable());
+		this.cpu.memorymap[0x94].write = () => void(this.fPortTest = false);
+		this.cpu.memorymap[0x9c].write = () => void(this.fPortTest = true);
 		for (let i = 0; i < 0x60; i++)
 			this.cpu.memorymap[0xa0 + i].base = PRG1.base[i];
 		this.cpu.memorymap[0xa0].write = (addr, data) => void(this.starport[addr & 0xff] = data);
@@ -144,293 +147,160 @@ class Gaplus {
 			this.fDIPSwitchChanged = false;
 			switch (this.nMyShip) {
 			case 3:
-				this.port[0x11] &= ~0xc;
+				this.in[5] &= ~0xc;
 				break;
 			case 2:
-				this.port[0x11] = this.port[0x11] & ~0xc | 4;
+				this.in[5] = this.in[5] & ~0xc | 4;
 				break;
 			case 4:
-				this.port[0x11] = this.port[0x11] & ~0xc | 8;
+				this.in[5] = this.in[5] & ~0xc | 8;
 				break;
 			case 5:
-				this.port[0x11] |= 0xc;
+				this.in[5] |= 0xc;
 				break;
 			}
 			switch (this.nRank) {
 			case '0':
-				this.port[0x14] &= ~7;
+				this.in[7] &= ~7;
 				break;
 			case '1':
-				this.port[0x14] = this.port[0x14] & ~7 | 1;
+				this.in[7] = this.in[7] & ~7 | 1;
 				break;
 			case '2':
-				this.port[0x14] = this.port[0x14] & ~7 | 2;
+				this.in[7] = this.in[7] & ~7 | 2;
 				break;
 			case '3':
-				this.port[0x14] = this.port[0x14] & ~7 | 3;
+				this.in[7] = this.in[7] & ~7 | 3;
 				break;
 			case '4':
-				this.port[0x14] = this.port[0x14] & ~7 | 4;
+				this.in[7] = this.in[7] & ~7 | 4;
 				break;
 			case '5':
-				this.port[0x14] = this.port[0x14] & ~7 | 5;
+				this.in[7] = this.in[7] & ~7 | 5;
 				break;
 			case '6':
-				this.port[0x14] = this.port[0x14] & ~7 | 6;
+				this.in[7] = this.in[7] & ~7 | 6;
 				break;
 			case '7':
-				this.port[0x14] |= 7;
+				this.in[7] |= 7;
 				break;
 			}
 			switch (this.nBonus) {
 			case 'A':
-				this.port[0x12] &= ~7;
+				this.in[6] &= ~7;
 				break;
 			case 'B':
-				this.port[0x12] = this.port[0x12] & ~7 | 1;
+				this.in[6] = this.in[6] & ~7 | 1;
 				break;
 			case 'C':
-				this.port[0x12] = this.port[0x12] & ~7 | 2;
+				this.in[6] = this.in[6] & ~7 | 2;
 				break;
 			case 'D':
-				this.port[0x12] = this.port[0x12] & ~7 | 3;
+				this.in[6] = this.in[6] & ~7 | 3;
 				break;
 			case 'E':
-				this.port[0x12] = this.port[0x12] & ~7 | 4;
+				this.in[6] = this.in[6] & ~7 | 4;
 				break;
 			case 'F':
-				this.port[0x12] = this.port[0x12] & ~7 | 5;
+				this.in[6] = this.in[6] & ~7 | 5;
 				break;
 			case 'G':
-				this.port[0x12] = this.port[0x12] & ~7 | 6;
+				this.in[6] = this.in[6] & ~7 | 6;
 				break;
 			case 'H':
-				this.port[0x12] |= 7;
+				this.in[6] |= 7;
 				break;
 			}
 			if (this.fAttract)
-				this.port[0x17] &= ~8;
+				this.in[8] &= ~8;
 			else
-				this.port[0x17] |= 8;
+				this.in[8] |= 8;
 //			if (this.fSelect)
-//				this.port[0x12] |= 8;
+//				this.in[6] |= 8;
 //			else
-//				this.port[0x12] &= ~8;
+//				this.in[6] &= ~8;
 			if (!this.fTest)
 				this.fReset = true;
 		}
 
 		if (this.fTest)
-			this.port[0x14] |= 8;
+			this.in[7] |= 8;
 		else
-			this.port[0x14] &= ~8;
+			this.in[7] &= ~8;
 
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
 			this.se[0].stop = true;
-			this.ram.fill(0, 0x2000, 0x2100);
 			this.cpu.reset();
 		}
 		return this;
 	}
 
 	updateInput() {
-		let i;
-
-		// クレジット/スタートボタン処理
-		if (this.fCoin) {
-			this.port[3] |= 4;
-			switch (this.ram[0x2008]) {
-			case 3:
-				this.ram[0x2000]++;
-				i = (this.ram[0x2002] & 0x0f) * 10 + (this.ram[0x2003] & 0x0f);
-				if (i < 150) {
-					i++;
-					if (i > 99)
-						i = 99;
-					this.ram[0x2002] = i / 10;
-					this.ram[0x2003] = i % 10;
-				}
-				break;
-			case 4:
-				this.ram[0x2002]++;
-				i = (this.ram[0x2000] & 0x0f) * 10 + (this.ram[0x2001] & 0x0f);
-				if (i < 150) {
-					i++;
-					if (i > 99)
-						i = 99;
-					this.ram[0x2000] = i / 10;
-					this.ram[0x2001] = i % 10;
-				}
-				break;
-			}
-		}
-		else
-			this.port[3] &= ~4;
-		if (this.fStart1P) {
-			this.port[5] |= 4;
-			if (!this.ram[0x2009]) {
-				switch (this.ram[0x2008]) {
-				case 3:
-					i = (this.ram[0x2002] & 0x0f) * 10 + (this.ram[0x2003] & 0x0f);
-					if (i > 0) {
-						this.ram[0x2001] = 1;
-						--i;
-						this.ram[0x2002] = i / 10;
-						this.ram[0x2003] = i % 10;
-					}
-					break;
-				case 4:
-					i = (this.ram[0x2000] & 0x0f) * 10 + (this.ram[0x2001] & 0x0f);
-					if (i > 0) {
-						this.ram[0x2003] = 1;
-						--i;
-						this.ram[0x2000] = i / 10;
-						this.ram[0x2001] = i % 10;
-					}
-					break;
-				}
-			}
-		}
-		else
-			this.port[5] &= ~4;
-		if (this.fStart2P) {
-			this.port[5] |= 8;
-			if (!this.ram[0x2009]) {
-				switch (this.ram[0x2008]) {
-				case 3:
-					i = (this.ram[0x2002] & 0x0f) * 10 + (this.ram[0x2003] & 0x0f);
-					if (i > 1) {
-						this.ram[0x2001] = 2;
-						i -= 2;
-						this.ram[0x2002] = i / 10;
-						this.ram[0x2003] = i % 10;
-					}
-					break;
-				case 4:
-					i = (this.ram[0x2000] & 0x0f) * 10 + (this.ram[0x2001] & 0x0f);
-					if (i > 1) {
-						this.ram[0x2003] = 2;
-						i -= 2;
-						this.ram[0x2000] = i / 10;
-						this.ram[0x2001] = i % 10;
-					}
-					break;
-				}
-			}
-		}
-		else
-			this.port[5] &= ~8;
-		this.fCoin = this.fStart1P = this.fStart2P = false;
-
-		switch (this.ram[0x2008]) {
-		case 0x01:
-			this.ram[0x2000] = this.port[3];
-			this.ram[0x2001] = this.port[4];
-			this.ram[0x2003] = this.port[5];
-			this.ram[0x2005] = this.port[3];
-			this.ram[0x2006] = this.port[4];
-			this.ram[0x2007] = this.port[5];
-			break;
-		case 0x03:
-		case 0x04:
-			this.ram[0x2004] = this.port[4];
-			this.ram[0x2005] = this.port[5];
-			break;
-		case 0x05:
-			this.ram[0x2000] = 0x0f;
-			this.ram[0x2001] = 0x0f;
-			break;
-		case 0x08:
-			this.ram[0x2000] = 6;
-			this.ram[0x2001] = 9;
-			break;
-		}
-		switch (this.ram[0x2018]) {
-		case 0x01:
-			this.ram[0x2010] = this.port[0x11];
-			this.ram[0x2011] = this.port[0x12];
-			this.ram[0x2012] = this.port[0x14];
-			this.ram[0x2013] = this.port[0x17];
-			break;
-		case 0x04:
-			this.ram[0x2011] = this.port[0x11];
-			this.ram[0x2012] = this.port[0x12];
-			this.ram[0x2014] = this.port[0x14];
-			this.ram[0x2017] = this.port[0x17];
-			break;
-		case 0x05:
-			this.ram[0x2010] = 0x0f;
-			this.ram[0x2011] = 0x0f;
-			break;
-		case 0x08:
-			this.ram[0x2010] = 6;
-			this.ram[0x2011] = 9;
-			break;
-		}
-		switch (this.ram[0x2028]) {
-		case 0x01:
-			this.ram[0x2021] = 0x0f;
-			break;
-		case 0x02:
-			this.ram[0x2022] = 0x0f;
-			break;
-		case 0x04:
-			this.ram[0x2020] = this.port[0x20];
-			this.ram[0x2021] = 0x0f;
-			this.ram[0x2022] = 0x0e;
-			this.ram[0x2023] = 1;
-			break;
-		}
-		return this;
+		this.in[0] = (this.fCoin !== 0) << 3, this.in[3] = this.in[3] & 3 | (this.fStart1P !== 0) << 2 | (this.fStart2P !== 0) << 3;
+		this.fCoin -= (this.fCoin > 0), this.fStart1P -= (this.fStart1P > 0), this.fStart2P -= (this.fStart2P > 0);
+		this.edge &= this.in[3];
+		if (this.fPortTest)
+			return this.edge = this.in[3] ^ 0xf, this;
+		if (this.port[8] === 1)
+			this.port.set(this.in.subarray(0, 4));
+		else if (this.port[8] === 4) {
+			// クレジット/スタートボタン処理
+			let credit = this.port[0] * 10 + this.port[1];
+			if (this.fCoin && credit < 150)
+				this.port[2] += 1, credit = Math.min(credit + 1, 99);
+			if (!this.port[9] && this.fStart1P && credit > 0)
+				this.port[3] += 1, credit -= (credit < 150);
+			if (!this.port[9] && this.fStart2P && credit > 1)
+				this.port[3] += 2, credit -= (credit < 150) * 2;
+			this.port[0] = credit / 10, this.port[1] = credit % 10;
+			this.port.set([this.in[1], this.in[3] << 1 & 0xa | this.edge & 5, this.in[2], this.in[3] & 0xa | this.edge >> 1 & 5], 4);
+		} else if (this.port[8] === 8)
+			this.port[0] = 6, this.port[1] = 9;
+		if (this.port[0x18] === 4)
+			this.port.set([this.in[5], this.in[9], this.in[6], this.in[6], this.in[7], this.in[7], this.in[8], this.in[8]], 0x10);
+		else if (this.port[0x18] === 5)
+			this.port[0x10] = 0xf, this.port[0x11] = 0xf;
+		if (this.port[0x28] === 1)
+			this.port[0x21] = 0xf;
+		else if (this.port[0x28] === 2)
+			this.port[0x22] = 0xf;
+		else if (this.port[0x28] === 4)
+			this.port.set([this.in[10], 0xf, 0xe, 1], 0x20);
+		return this.edge = this.in[3] ^ 0xf, this;
 	}
 
 	coin() {
-		this.fCoin = true;
+		this.fCoin = 2;
 	}
 
 	start1P() {
-		this.fStart1P = true;
+		this.fStart1P = 2;
 	}
 
 	start2P() {
-		this.fStart2P = true;
+		this.fStart2P = 2;
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.port[4] = this.port[4] & ~4 | 1;
-		else
-			this.port[4] &= ~1;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 2) | 1 << 0 : this.in[1] & ~(1 << 0);
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.port[4] = this.port[4] & ~8 | 2;
-		else
-			this.port[4] &= ~2;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 3) | 1 << 1 : this.in[1] & ~(1 << 1);
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.port[4] = this.port[4] & ~1 | 4;
-		else
-			this.port[4] &= ~4;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 0) | 1 << 2 : this.in[1] & ~(1 << 2);
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.port[4] = this.port[4] & ~2 | 8;
-		else
-			this.port[4] &= ~8;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 1) | 1 << 3 : this.in[1] & ~(1 << 3);
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.port[5] |= 2;
-		else
-			this.port[5] &= ~2;
+		this.in[3] = fDown ? this.in[3] | 1 << 0: this.in[3] & ~(1 << 0);
 	}
 
 	triggerB(fDown) {

@@ -347,9 +347,9 @@ void function () {
 }();
 
 read('shadowld.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	SND = concat(...['yd1_s0.bin', 'yd1_s1.bin'].map(e => zip.decompress(e))).addBase();
+	SND = Uint8Array.concat(...['yd1_s0.bin', 'yd1_s1.bin'].map(e => zip.decompress(e))).addBase();
 	MCU = zip.decompress('cus64-64a1.mcu').addBase();
-	VOI = concat(...['yd_voi-0.bin', 'yd_voi-1.bin', 'yd_voi-2.bin'].map(e => zip.decompress(e))).addBase();
+	VOI = Uint8Array.concat(...['yd_voi-0.bin', 'yd_voi-1.bin', 'yd_voi-2.bin'].map(e => zip.decompress(e))).addBase();
 	game = new SoundTest();
 	sound = [
 		new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),

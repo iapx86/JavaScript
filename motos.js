@@ -33,21 +33,37 @@ class Motos {
 	fInterruptEnable0 = false;
 	fInterruptEnable1 = false;
 	fSoundEnable = false;
-	ram = new Uint8Array(0x2c00).addBase();
-	port = new Uint8Array(0x20);
+	ram = new Uint8Array(0x2800).addBase();
+	port = new Uint8Array(0x40);
+	in = new Uint8Array(10);
 
 	bg = new Uint8Array(0x4000);
 	obj = new Uint8Array(0x10000);
 	bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf | 0x10);
 	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
-	rgb = new Uint32Array(0x20);
+	rgb = Uint32Array.from(RGB, e => (e & 7) * 255 / 7 | (e >> 3 & 7) * 255 / 7 << 8 | (e >> 6) * 255 / 3 << 16 | 0xff000000);
 	dwScroll = 0xff;
 
 	cpu = new MC6809();
 	cpu2 = new MC6809();
 
 	constructor() {
-		const systemcontrolarea = addr => {
+		// CPU周りの初期化
+		for (let i = 0; i < 0x28; i++) {
+			this.cpu.memorymap[i].base = this.ram.base[i];
+			this.cpu.memorymap[i].write = null;
+		}
+		for (let i = 0; i < 8; i++)
+			this.cpu.memorymap[0x38 + i].write = addr => void(this.dwScroll = addr >> 3 & 0xff);
+		for (let i = 0; i < 4; i++) {
+			this.cpu.memorymap[0x40 + i].read = addr => sound.read(addr);
+			this.cpu.memorymap[0x40 + i].write = (addr, data) => sound.write(addr, data);
+		}
+		for (let i = 0; i < 4; i++) {
+			this.cpu.memorymap[0x48 + i].read = addr => this.port[addr & 0x3f] | 0xf0;
+			this.cpu.memorymap[0x48 + i].write = (addr, data) => void(this.port[addr & 0x3f] = data & 0xf);
+		}
+		this.cpu.memorymap[0x50].write = addr => {
 			switch (addr & 0xff) {
 			case 0x00: // INTERRUPT STOP
 				return void(this.fInterruptEnable1 = false);
@@ -71,23 +87,6 @@ class Motos {
 				return this.cpu2.enable();
 			}
 		};
-
-		// CPU周りの初期化
-		for (let i = 0; i < 0x28; i++) {
-			this.cpu.memorymap[i].base = this.ram.base[i];
-			this.cpu.memorymap[i].write = null;
-		}
-		for (let i = 0; i < 8; i++)
-			this.cpu.memorymap[0x38 + i].write = addr => void(this.dwScroll = addr >> 3 & 0xff);
-		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x40 + i].read = addr => sound.read(addr);
-			this.cpu.memorymap[0x40 + i].write = (addr, data) => sound.write(addr, data);
-		}
-		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x48 + i].base = this.ram.base[0x28 + i];
-			this.cpu.memorymap[0x48 + i].write = null;
-		}
-		this.cpu.memorymap[0x50].write = systemcontrolarea;
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[0x80 + i].base = PRG1.base[i];
 
@@ -95,12 +94,11 @@ class Motos {
 			this.cpu2.memorymap[i].read = addr => sound.read(addr);
 			this.cpu2.memorymap[i].write = (addr, data) => sound.write(addr, data);
 		}
-		this.cpu2.memorymap[0x20].write = systemcontrolarea;
+		this.cpu2.memorymap[0x20].write = this.cpu.memorymap[0x50].write;
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[0xe0 + i].base = PRG2.base[i];
 
 		// Videoの初期化
-		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
 	}
@@ -125,46 +123,46 @@ class Motos {
 			this.fDIPSwitchChanged = false;
 			switch (this.nMotos) {
 			case 3:
-				this.port[0x12] &= ~8;
+				this.in[6] &= ~8;
 				break;
 			case 5:
-				this.port[0x12] |= 8;
+				this.in[6] |= 8;
 				break;
 			}
 			switch (this.nRank) {
 			case 'NORMAL':
-				this.port[0x14] &= ~1;
+				this.in[7] &= ~1;
 				break;
 			case 'HARD':
-				this.port[0x14] |= 1;
+				this.in[7] |= 1;
 				break;
 			}
 			switch (this.nExtend) {
 			case 'A':
-				this.port[0x14] &= ~6;
+				this.in[7] &= ~6;
 				break;
 			case 'B':
-				this.port[0x14] = this.port[0x14] & ~6 | 2;
+				this.in[7] = this.in[7] & ~6 | 2;
 				break;
 			case 'C':
-				this.port[0x14] = this.port[0x14] & ~6 | 4;
+				this.in[7] = this.in[7] & ~6 | 4;
 				break;
 			case 'D':
-				this.port[0x14] |= 6;
+				this.in[7] |= 6;
 				break;
 			}
 			if (this.fAttract)
-				this.port[0x14] &= ~8;
+				this.in[7] &= ~8;
 			else
-				this.port[0x14] |= 8;
+				this.in[7] |= 8;
 			if (!this.fTest)
 				this.fReset = true;
 		}
 
 		if (this.fTest)
-			this.port[0x16] |= 8;
+			this.in[8] |= 8;
 		else
-			this.port[0x16] &= ~8;
+			this.in[8] &= ~8;
 
 		// リセット処理
 		if (this.fReset) {
@@ -177,37 +175,18 @@ class Motos {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.port[0x00] |= 1 << 0, --this.fCoin;
-		else
-			this.port[0x00] &= ~(1 << 0);
-		if (this.fStart1P)
-			this.port[0x03] |= 1 << 2, --this.fStart1P;
-		else
-			this.port[0x03] &= ~(1 << 2);
-		if (this.fStart2P)
-			this.port[0x03] |= 1 << 3, --this.fStart2P;
-		else
-			this.port[0x03] &= ~(1 << 3);
-
-		if (!this.fPortTest) {
-			let i, p;
-			this.ram.set(this.port.subarray(0, 8), 0x2800);
-			this.ram.set(this.port.subarray(0x10, 0x18), 0x2810);
-			if ((this.ram[0x2808] & 0x0f) === 8) {
-				for (i = 0, p = 0x2809; p < 0x2810; p++)
-					i += this.ram[p] & 0x0f;
-				this.ram[0x2800] = i >> 4 & 0x0f;
-				this.ram[0x2801] = i & 0x0f;
-			}
-			if ((this.ram[0x2818] & 0x0f) === 8) {
-				for (i = 0, p = 0x2819; p < 0x2820; p++)
-					i += this.ram[p] & 0x0f;
-				this.ram[0x2810] = i >> 4 & 0x0f;
-				this.ram[0x2811] = i & 0x0f;
-			}
-		}
+		this.in[0] = (this.fCoin !== 0) << 3, this.in[3] = this.in[3] & 3 | (this.fStart1P !== 0) << 2 | (this.fStart2P !== 0) << 3;
+		this.fCoin -= (this.fCoin > 0), this.fStart1P -= (this.fStart1P > 0), this.fStart2P -= (this.fStart2P > 0);
+		if (this.fPortTest)
+			return this;
+		if (this.port[8] === 1)
+			this.port.set(this.in.subarray(0, 4));
+		else if (this.port[8] === 8)
+			this.port[0] = 6, this.port[1] = 9;
+		if (this.port[0x18] === 8)
+			this.port[0x10] = 6, this.port[0x11] = 9;
+		else if (this.port[0x18] === 9)
+			this.port.set([this.in[5], this.in[9], this.in[6], this.in[6], this.in[7], this.in[7], this.in[8], this.in[8]], 0x10);
 		return this;
 	}
 
@@ -224,49 +203,26 @@ class Motos {
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.port[1] = this.port[1] & ~4 | 1;
-		else
-			this.port[1] &= ~1;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 2) | 1 << 0 : this.in[1] & ~(1 << 0);
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.port[1] = this.port[1] & ~8 | 2;
-		else
-			this.port[1] &= ~2;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 3) | 1 << 1 : this.in[1] & ~(1 << 1);
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.port[1] = this.port[1] & ~1 | 4;
-		else
-			this.port[1] &= ~4;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 0) | 1 << 2 : this.in[1] & ~(1 << 2);
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.port[1] = this.port[1] & ~2 | 8;
-		else
-			this.port[1] &= ~8;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 1) | 1 << 3 : this.in[1] & ~(1 << 3);
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.port[3] |= 1;
-		else
-			this.port[3] &= ~1;
+		this.in[3] = fDown ? this.in[3] | 1 << 0: this.in[3] & ~(1 << 0);
 	}
 
 	triggerB(fDown) {
-	}
-
-	convertRGB() {
-		for (let i = 0; i < 0x20; i++)
-			this.rgb[i] = (RGB[i] & 7) * 255 / 7	// Red
-				| (RGB[i] >> 3 & 7) * 255 / 7 << 8	// Green
-				| (RGB[i] >> 6) * 255 / 3 << 16		// Blue
-				| 0xff000000;						// Alpha
 	}
 
 	convertBG() {
@@ -587,10 +543,10 @@ class Motos {
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
 read('motos.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = concat(...['mo1_3.1d', 'mo1_1.1b'].map(e => zip.decompress(e))).addBase();
+	PRG1 = Uint8Array.concat(...['mo1_3.1d', 'mo1_1.1b'].map(e => zip.decompress(e))).addBase();
 	PRG2 = zip.decompress('mo1_4.1k').addBase();
 	BG = zip.decompress('mo1_5.3b');
-	OBJ = concat(...['mo1_7.3n', 'mo1_6.3m'].map(e => zip.decompress(e)));
+	OBJ = Uint8Array.concat(...['mo1_7.3n', 'mo1_6.3m'].map(e => zip.decompress(e)));
 	RGB = zip.decompress('mo1-5.5b');
 	BGCOLOR = zip.decompress('mo1-6.4c');
 	OBJCOLOR = zip.decompress('mo1-7.5k');

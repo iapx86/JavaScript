@@ -21,10 +21,9 @@ class SuperPacMan {
 	fReset = false;
 	fTest = false;
 	fDIPSwitchChanged = true;
-	fCoin = false;
-	fStart1P = false;
-	fStart2P = false;
-	dwCoin = 0;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
 	nPacman = 3;
 	nRank = '0';
 	nBonus = 'A';
@@ -34,20 +33,35 @@ class SuperPacMan {
 	fInterruptEnable0 = false;
 	fInterruptEnable1 = false;
 	fSoundEnable = false;
-	ram = new Uint8Array(0x2400).addBase();
-	port = new Uint8Array(0x20);
+	ram = new Uint8Array(0x2000).addBase();
+	port = new Uint8Array(0x40);
+	in = new Uint8Array(10);
+	edge = 0xf;
 
 	bg = new Uint8Array(0x4000);
 	obj = new Uint8Array(0x10000);
 	bgcolor = Uint8Array.from(BGCOLOR, e => ~e & 0xf | 0x10);
 	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
-	rgb = new Uint32Array(0x20);
+	rgb = Uint32Array.from(RGB, e => (e & 7) * 255 / 7 | (e >> 3 & 7) * 255 / 7 << 8 | (e >> 6) * 255 / 3 << 16 | 0xff000000);
 
 	cpu = new MC6809();
 	cpu2 = new MC6809();
 
 	constructor() {
-		const systemcontrolarea = addr => {
+		// CPU周りの初期化
+		for (let i = 0; i < 0x20; i++) {
+			this.cpu.memorymap[i].base = this.ram.base[i];
+			this.cpu.memorymap[i].write = null;
+		}
+		for (let i = 0; i < 4; i++) {
+			this.cpu.memorymap[0x40 + i].read = addr => sound.read(addr);
+			this.cpu.memorymap[0x40 + i].write = (addr, data) => sound.write(addr, data);
+		}
+		for (let i = 0; i < 4; i++) {
+			this.cpu.memorymap[0x48 + i].read = addr => this.port[addr & 0x3f] | 0xf0;
+			this.cpu.memorymap[0x48 + i].write = (addr, data) => void(this.port[addr & 0x3f] = data & 0xf);
+		}
+		this.cpu.memorymap[0x50].write = addr => {
 			switch (addr & 0xff) {
 			case 0x00: // INTERRUPT STOP
 				return void(this.fInterruptEnable1 = false);
@@ -71,21 +85,6 @@ class SuperPacMan {
 				return this.cpu2.enable();
 			}
 		};
-
-		// CPU周りの初期化
-		for (let i = 0; i < 0x20; i++) {
-			this.cpu.memorymap[i].base = this.ram.base[i];
-			this.cpu.memorymap[i].write = null;
-		}
-		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x40 + i].read = addr => sound.read(addr);
-			this.cpu.memorymap[0x40 + i].write = (addr, data) => sound.write(addr, data);
-		}
-		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x48 + i].base = this.ram.base[0x20 + i];
-			this.cpu.memorymap[0x48 + i].write = null;
-		}
-		this.cpu.memorymap[0x50].write = systemcontrolarea;
 		for (let i = 0; i < 0x40; i++)
 			this.cpu.memorymap[0xc0 + i].base = PRG1.base[i];
 
@@ -93,12 +92,11 @@ class SuperPacMan {
 			this.cpu2.memorymap[i].read = addr => sound.read(addr);
 			this.cpu2.memorymap[i].write = (addr, data) => sound.write(addr, data);
 		}
-		this.cpu2.memorymap[0x20].write = systemcontrolarea;
+		this.cpu2.memorymap[0x20].write = this.cpu.memorymap[0x50].write;
 		for (let i = 0; i < 0x10; i++)
 			this.cpu2.memorymap[0xf0 + i].base = PRG2.base[i];
 
 		// Videoの初期化
-		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
 	}
@@ -125,94 +123,94 @@ class SuperPacMan {
 			this.fDIPSwitchChanged = false;
 			switch (this.nPacman) {
 			case 1:
-				this.port[0x11] = this.port[0x11] & ~0xc | 4;
+				this.in[9] = this.in[9] & ~0xc | 4;
 				break;
 			case 2:
-				this.port[0x11] = this.port[0x11] & ~0xc | 8;
+				this.in[9] = this.in[9] & ~0xc | 8;
 				break;
 			case 3:
-				this.port[0x11] &= ~0xc;
+				this.in[9] &= ~0xc;
 				break;
 			case 5:
-				this.port[0x11] |= 0xc;
+				this.in[9] |= 0xc;
 				break;
 			}
 			switch (this.nRank) {
 			case '0':
-				this.port[0x13] = 0;
+				this.in[6] = 0;
 				break;
 			case '1':
-				this.port[0x13] = 1;
+				this.in[6] = 1;
 				break;
 			case '2':
-				this.port[0x13] = 2;
+				this.in[6] = 2;
 				break;
 			case '3':
-				this.port[0x13] = 3;
+				this.in[6] = 3;
 				break;
 			case '4':
-				this.port[0x13] = 4;
+				this.in[6] = 4;
 				break;
 			case '5':
-				this.port[0x13] = 5;
+				this.in[6] = 5;
 				break;
 			case '6':
-				this.port[0x13] = 6;
+				this.in[6] = 6;
 				break;
 			case '7':
-				this.port[0x13] = 7;
+				this.in[6] = 7;
 				break;
 			case '8':
-				this.port[0x13] = 8;
+				this.in[6] = 8;
 				break;
 			case '9':
-				this.port[0x13] = 9;
+				this.in[6] = 9;
 				break;
 			case 'A':
-				this.port[0x13] = 0xa;
+				this.in[6] = 0xa;
 				break;
 			case 'B':
-				this.port[0x13] = 0xb;
+				this.in[6] = 0xb;
 				break;
 			case 'C':
-				this.port[0x13] = 0xc;
+				this.in[6] = 0xc;
 				break;
 			case 'D':
-				this.port[0x13] = 0xd;
+				this.in[6] = 0xd;
 				break;
 			case 'E':
-				this.port[0x13] = 0xe;
+				this.in[6] = 0xe;
 				break;
 			case 'F':
-				this.port[0x13] = 0xf;
+				this.in[6] = 0xf;
 				break;
 			}
 			switch (this.nBonus) {
 			case 'A':
-				this.port[0x11] &= ~3;
+				this.in[9] &= ~3;
 				break;
 			case 'B':
-				this.port[0x11] = this.port[0x11] & ~3 | 1;
+				this.in[9] = this.in[9] & ~3 | 1;
 				break;
 			case 'C':
-				this.port[0x11] = this.port[0x11] & ~3 | 2;
+				this.in[9] = this.in[9] & ~3 | 2;
 				break;
 			case 'D':
-				this.port[0x11] |= 3;
+				this.in[9] |= 3;
 				break;
 			}
 			if (this.fAttract)
-				this.port[0x14] &= ~4;
+				this.in[7] &= ~4;
 			else
-				this.port[0x14] |= 4;
+				this.in[7] |= 4;
 			if (!this.fTest)
 				this.fReset = true;
 		}
 
 		if (this.fTest)
-			this.port[0x16] |= 8;
+			this.in[8] |= 8;
 		else
-			this.port[0x16] &= ~8;
+			this.in[8] &= ~8;
 
 		// リセット処理
 		if (this.fReset) {
@@ -225,105 +223,66 @@ class SuperPacMan {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin && this.dwCoin < 150 && ++this.dwCoin > 99)
-			this.dwCoin = 99;
-		if (this.fStart1P && !this.ram[0x2009] && this.dwCoin > 0 && this.dwCoin < 150)
-			--this.dwCoin;
-		if (this.fStart2P && !this.ram[0x2009] && this.dwCoin > 1 && this.dwCoin < 150)
-			this.dwCoin -= 2;
-		this.fCoin = this.fStart1P = this.fStart2P = false;
-
-		if (!this.fPortTest) {
-			let i, p;
-			this.ram.set(this.port.subarray(2, 8), 0x2002);
-			this.ram.set(this.port.subarray(0x10, 0x18), 0x2010);
-			switch (this.ram[0x2008] & 0x0f) {
-			case 1:
-				this.ram[0x2000] = this.port[5];
-				this.ram[0x2001] = this.port[4];
-				break;
-			case 2:
-				this.dwCoin = 0;
-				break;
-			case 4:
-				this.ram[0x2000] = this.dwCoin / 10;
-				this.ram[0x2001] = this.dwCoin % 10;
-				break;
-			case 8:
-				for (i = 0, p = 0x2009; p < 0x2010; p++)
-					i += this.ram[p] & 0xf;
-				this.ram[0x2000] = i >> 4 & 0xf;
-				this.ram[0x2001] = i & 0xf;
-				break;
-			}
-			if ((this.ram[0x2018] & 0x0f) === 8) {
-				for (i = 0, p = 0x2019; p < 0x2020; p++)
-					i += this.ram[p] & 0xf;
-				this.ram[0x2010] = i >> 4 & 0xf;
-				this.ram[0x2011] = i & 0xf;
-			}
-			this.port[5] &= ~1;
-		}
-		return this;
+		this.in[0] = (this.fCoin !== 0) << 3, this.in[3] = this.in[3] & 3 | (this.fStart1P !== 0) << 2 | (this.fStart2P !== 0) << 3;
+		this.fCoin -= (this.fCoin > 0), this.fStart1P -= (this.fStart1P > 0), this.fStart2P -= (this.fStart2P > 0);
+		this.edge &= this.in[3];
+		if (this.fPortTest)
+			return this.edge = this.in[3] ^ 0xf, this;
+		if (this.port[8] === 1)
+			this.port.set(this.in.subarray(0, 4));
+		else if (this.port[8] === 4) {
+			// クレジット/スタートボタン処理
+			let credit = this.port[0] * 10 + this.port[1];
+			if (this.fCoin && credit < 150)
+				this.port[2] += 1, credit = Math.min(credit + 1, 99);
+			if (!this.port[9] && this.fStart1P && credit > 0)
+				this.port[3] += 1, credit -= (credit < 150);
+			if (!this.port[9] && this.fStart2P && credit > 1)
+				this.port[3] += 2, credit -= (credit < 150) * 2;
+			this.port[0] = credit / 10, this.port[1] = credit % 10;
+			this.port.set([this.in[1], this.in[3] << 1 & 0xa | this.edge & 5, this.in[2], this.in[3] & 0xa | this.edge >> 1 & 5], 4);
+		} else if (this.port[8] === 8)
+			this.port[0] = 6, this.port[1] = 9;
+		if (this.port[0x18] === 8)
+			this.port[0x10] = 6, this.port[0x11] = 9;
+		else if (this.port[0x18] === 9)
+			this.port.set([this.in[5], this.in[9], this.in[6], this.in[6], this.in[7], this.in[7], this.in[8], this.in[8]], 0x10);
+		return this.edge = this.in[3] ^ 0xf, this;
 	}
 
 	coin() {
-		this.fCoin = true;
+		this.fCoin = 2;
 	}
 
 	start1P() {
-		this.fStart1P = true;
+		this.fStart1P = 2;
 	}
 
 	start2P() {
-		this.fStart2P = true;
+		this.fStart2P = 2;
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.port[4] = this.port[4] & ~4 | 1;
-		else
-			this.port[4] &= ~1;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 2) | 1 << 0 : this.in[1] & ~(1 << 0);
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.port[4] = this.port[4] & ~8 | 2;
-		else
-			this.port[4] &= ~2;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 3) | 1 << 1 : this.in[1] & ~(1 << 1);
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.port[4] = this.port[4] & ~1 | 4;
-		else
-			this.port[4] &= ~4;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 0) | 1 << 2 : this.in[1] & ~(1 << 2);
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.port[4] = this.port[4] & ~2 | 8;
-		else
-			this.port[4] &= ~8;
+		this.in[1] = fDown ? this.in[1] & ~(1 << 1) | 1 << 3 : this.in[1] & ~(1 << 3);
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.port[5] |= 3;
-		else
-			this.port[5] &= ~2;
+		this.in[3] = fDown ? this.in[3] | 1 << 0: this.in[3] & ~(1 << 0);
 	}
 
 	triggerB(fDown) {
-	}
-
-	convertRGB() {
-		for (let i = 0; i < 0x20; i++)
-			this.rgb[i] = (RGB[i] & 7) * 255 / 7	// Red
-				| (RGB[i] >> 3 & 7) * 255 / 7 << 8	// Green
-				| (RGB[i] >> 6) * 255 / 3 << 16		// Blue
-				| 0xff000000;						// Alpha
 	}
 
 	convertBG() {
