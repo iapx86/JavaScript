@@ -34,7 +34,6 @@ class LibbleRabble {
 
 	fInterruptEnable = false;
 	fInterruptEnable2 = false;
-
 	ram = new Uint8Array(0x2000).addBase();
 	ram2 = new Uint8Array(0x800).addBase();
 	ram3 = new Uint8Array(0x40000).addBase();

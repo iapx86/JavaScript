@@ -10472,7 +10472,7 @@ export default class MC68000 extends Cpu {
 			r -= 6;
 		if ((c & 0x80) !== 0 && (r & 0xf0) > 0x50 || (r & 0xf0) > 0x90)
 			r -= 0x60, c |= 0x80;
-		return r &= 0xff, this.sr = this.sr & ~0x15 | c >> 3 & 0x10 | !r << 2 | c >> 7 & 1, r;
+		return r &= 0xff, this.sr = this.sr & ~0x15 | c >> 3 & 0x10 | this.sr & !r << 2 | c >> 7 & 1, r;
 	}
 
 	divs(src, dst) {
@@ -10486,17 +10486,17 @@ export default class MC68000 extends Cpu {
 
 	subx8(src, dst) {
 		const r = dst - src - (this.sr >> 4 & 1) & 0xff, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
-		return this.sr = this.sr & ~0x1f | c >> 3 & 0x10 | r >> 4 & 8 | !r << 2 | v >> 6 & 2 | c >> 7 & 1, r;
+		return this.sr = this.sr & ~0x1f | c >> 3 & 0x10 | r >> 4 & 8 | this.sr & !r << 2 | v >> 6 & 2 | c >> 7 & 1, r;
 	}
 
 	subx16(src, dst) {
 		const r = dst - src - (this.sr >> 4 & 1) & 0xffff, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
-		return this.sr = this.sr & ~0x1f | c >> 11 & 0x10 | r >> 12 & 8 | !r << 2 | v >> 14 & 2 | c >> 15 & 1, r;
+		return this.sr = this.sr & ~0x1f | c >> 11 & 0x10 | r >> 12 & 8 | this.sr & !r << 2 | v >> 14 & 2 | c >> 15 & 1, r;
 	}
 
 	subx32(src, dst) {
 		const r = dst - src - (this.sr >> 4 & 1) | 0, v = dst & ~src & ~r | ~dst & src & r, c = ~dst & src | src & r | r & ~dst;
-		return this.sr = this.sr & ~0x1f | c >> 27 & 0x10 | r >> 28 & 8 | !r << 2 | v >> 30 & 2 | c >> 31 & 1, r;
+		return this.sr = this.sr & ~0x1f | c >> 27 & 0x10 | r >> 28 & 8 | this.sr & !r << 2 | v >> 30 & 2 | c >> 31 & 1, r;
 	}
 
 	cmpa16(src, dst) {
@@ -10521,7 +10521,7 @@ export default class MC68000 extends Cpu {
 				c |= 0x80;
 		if ((c & 0x80) !== 0 && (r & 0xf0) < 0x40 || (r & 0xf0) > 0x90)
 			r += 0x60, c |= 0x80;
-		return r &= 0xff, this.sr = this.sr & ~0x15 | c >> 3 & 0x10 | !r << 2 | c >> 7 & 1, r;
+		return r &= 0xff, this.sr = this.sr & ~0x15 | c >> 3 & 0x10 | this.sr & !r << 2 | c >> 7 & 1, r;
 	}
 
 	muls(src, dst) {
@@ -10531,179 +10531,183 @@ export default class MC68000 extends Cpu {
 
 	addx8(src, dst) {
 		const r = dst + src + (this.sr >> 4 & 1) & 0xff, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
-		return this.sr = this.sr & ~0x1f | c >> 3 & 0x10 | r >> 4 & 8 | !r << 2 | v >> 6 & 2 | c >> 7 & 1, r;
+		return this.sr = this.sr & ~0x1f | c >> 3 & 0x10 | r >> 4 & 8 | this.sr & !r << 2 | v >> 6 & 2 | c >> 7 & 1, r;
 	}
 
 	addx16(src, dst) {
 		const r = dst + src + (this.sr >> 4 & 1) & 0xffff, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
-		return this.sr = this.sr & ~0x1f | c >> 11 & 0x10 | r >> 12 & 8 | !r << 2 | v >> 14 & 2 | c >> 15 & 1, r;
+		return this.sr = this.sr & ~0x1f | c >> 11 & 0x10 | r >> 12 & 8 | this.sr & !r << 2 | v >> 14 & 2 | c >> 15 & 1, r;
 	}
 
 	addx32(src, dst) {
 		const r = dst + src + (this.sr >> 4 & 1) | 0, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
-		return this.sr = this.sr & ~0x1f | c >> 27 & 0x10 | r >> 28 & 8 | !r << 2 | v >> 30 & 2 | c >> 31 & 1, r;
+		return this.sr = this.sr & ~0x1f | c >> 27 & 0x10 | r >> 28 & 8 | this.sr & !r << 2 | v >> 30 & 2 | c >> 31 & 1, r;
 	}
 
 	asr8(src, dst) {
 		src &= 63, dst = dst << 24 >> 24;
-		const r = dst >> src & 0xff, x = src ? dst >> (src - 1) & 1 : this.sr >> 4 & 1, c = src ? dst >> (src - 1) & 1 : 0;
+		const r = dst >> Math.min(src, 7) & 0xff, c = (src > 0) & dst >> Math.min(src - 1, 7), x = src > 0 ? c : this.sr >> 4 & 1;
 		return this.sr = this.sr & ~0x1f | x << 4 | r >> 4 & 8 | !r << 2 | c, r;
 	}
 
 	asr16(src, dst) {
 		src &= 63, dst = dst << 16 >> 16;
-		const r = dst >> src & 0xffff, x = src ? dst >> (src - 1) & 1 : this.sr >> 4 & 1, c = src ? dst >> (src - 1) & 1 : 0;
+		const r = dst >> Math.min(src, 15) & 0xffff, c = (src > 0) & dst >> Math.min(src - 1, 15), x = src > 0 ? c : this.sr >> 4 & 1;
 		return this.sr = this.sr & ~0x1f | x << 4 | r >> 12 & 8 | !r << 2 | c, r;
 	}
 
 	asr32(src, dst) {
 		src &= 63;
-		const r = dst >> src, x = src ? dst >> (src - 1) & 1 : this.sr >> 4 & 1, c = src ? dst >> (src - 1) & 1 : 0;
+		const r = dst >> Math.min(src, 31), c = (src > 0) & dst >> Math.min(src - 1, 31), x = src > 0 ? c : this.sr >> 4 & 1;
 		return this.sr = this.sr & ~0x1f | x << 4 | r >> 28 & 8 | !r << 2 | c, r;
 	}
 
 	lsr8(src, dst) {
 		src &= 63, dst &= 0xff;
-		const r = dst >> src, x = src ? dst >> (src - 1) & 1 : this.sr >> 4 & 1, c = src ? dst >> (src - 1) & 1 : 0;
+		const r = -(src < 8) & dst >> src, c = (src > 0 && src < 9) & dst >> src - 1, x = src > 0 ? c : this.sr >> 4 & 1;
 		return this.sr = this.sr & ~0x1f | x << 4 | r >> 4 & 8 | !r << 2 | c, r;
 	}
 
 	lsr16(src, dst) {
 		src &= 63, dst &= 0xffff;
-		const r = dst >> src, x = src ? dst >> (src - 1) & 1 : this.sr >> 4 & 1, c = src ? dst >> (src - 1) & 1 : 0;
+		const r = -(src < 16) & dst >> src, c = (src > 0 && src < 17) & dst >> src - 1, x = src > 0 ? c : this.sr >> 4 & 1;
 		return this.sr = this.sr & ~0x1f | x << 4 | r >> 12 & 8 | !r << 2 | c, r;
 	}
 
 	lsr32(src, dst) {
 		src &= 63;
-		const r = dst >>> src | 0, x = src ? dst >>> (src - 1) & 1 : this.sr >> 4 & 1, c = src ? dst >>> (src - 1) & 1 : 0;
+		const r = -(src < 32) & dst >>> src, c = (src > 0 && src < 33) & dst >> src - 1, x = src > 0 ? c : this.sr >> 4 & 1;
 		return this.sr = this.sr & ~0x1f | x << 4 | r >> 28 & 8 | !r << 2 | c, r;
 	}
 
 	roxr8(src, dst) {
 		src = (src & 63) % 9, dst &= 0xff;
-		const r = (dst >> src | dst << 9 - src | (this.sr >> 4 & 1) << 8 - src) & 0xff, x = src ? dst >> src - 1 & 1 : this.sr >> 4 & 1;
+		let x = this.sr >> 4 & 1, r = (dst | x << 8 | dst << 9) >> src & 0xff;
+		x = src > 0 ? dst >> src - 1 & 1 : x;
 		return this.sr = this.sr & ~0x1f | x << 4 | r >> 4 & 8 | !r << 2 | x, r;
 	}
 
 	roxr16(src, dst) {
 		src = (src & 63) % 17, dst &= 0xffff;
-		const r = (dst >> src | dst << 17 - src | (this.sr >> 4 & 1) << 16 - src) & 0xffff, x = src ? dst >> src - 1 & 1 : this.sr >> 4 & 1;
+		let x = this.sr >> 4 & 1, r = (dst | x << 16 | dst << 17) >> src & 0xffff;
+		x = src > 0 ? dst >> src - 1 & 1 : x;
 		return this.sr = this.sr & ~0x1f | x << 4 | r >> 12 & 8 | !r << 2 | x, r;
 	}
 
 	roxr32(src, dst) {
 		src = (src & 63) % 33;
-		const r = dst >>> src | dst << 33 - src | (this.sr >> 4 & 1) << 32 - src, x = src ? dst >>> src - 1 & 1 : this.sr >> 4 & 1;
+		let x = this.sr >> 4 & 1, r = -(src > 1) & dst << 33 - src | -(src > 0) & x << 32 - src | -(src < 32) & dst >>> src;
+		x = src > 0 ? dst >> src - 1 & 1 : x;
 		return this.sr = this.sr & ~0x1f | x << 4 | r >> 28 & 8 | !r << 2 | x, r;
 	}
 
 	ror8(src, dst) {
-		src &= 63, dst &= 0xff;
-		const r = dst >> (src & 7) | dst << (~src & 7) + 1 & 0xff, c = src ? dst >> (src - 1 & 7) & 1 : 0;
+		dst &= 0xff;
+		const r = (dst | dst << 8) >> (src & 7) & 0xff, c = (src > 0) & r >> 7;
 		return this.sr = this.sr & ~0x0f | r >> 4 & 8 | !r << 2 | c, r;
 	}
 
 	ror16(src, dst) {
-		src &= 63, dst &= 0xffff;
-		const r = dst >> (src & 15) | dst << (~src & 15) + 1 & 0xffff, c = src ? dst >> (src - 1 & 15) & 1 : 0;
+		dst &= 0xffff;
+		const r = (dst | dst << 16) >> (src & 15) & 0xffff, c = (src > 0) & r >> 15;
 		return this.sr = this.sr & ~0x0f | r >> 12 & 8 | !r << 2 | c, r;
 	}
 
 	ror32(src, dst) {
-		src &= 63;
-		const r = dst >>> (src & 31) | dst << (~src & 31) + 1, c = src ? dst >>> (src - 1 & 31) & 1 : 0;
+		const r = dst << (-src & 31) | dst >>> (src & 31), c = (src > 0) & r >> 31;
 		return this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2 | c, r;
 	}
 
 	asl8(src, dst) {
-		let x = this.sr >> 4 & 1, v = 0, c = 0;
-		src &= 63, dst &= 0xff;
-		for (let i = 0; i < src; i++)
-			v |= (dst >> 7 ^ dst >> 6) & 1, x = dst >> 7, c = dst >> 7, dst = dst << 1 & 0xff;
-		return this.sr = this.sr & ~0x1f | x << 4 | dst >> 4 & 8 | !dst << 2 | v << 1 | c, dst;
+		src &= 63;
+		const r = -(src < 8) & dst << src & 0xff, c = (src > 0 && src < 9) & dst << src - 1 >> 7, x = src > 0 ? c : this.sr >> 4 & 1;
+		const m = ~0x7f >> Math.min(src - 1, 7) & 0xff, v = src > 0 ? dst >> 7 & ((~(dst << 1) & m) !== 0) | ~dst >> 7 & ((dst << 1 & m) !== 0) : 0;
+		return this.sr = this.sr & ~0x1f | x << 4 | r >> 4 & 8 | !r << 2 | v << 1 | c, r;
 	}
 
 	asl16(src, dst) {
-		let x = this.sr >> 4 & 1, v = 0, c = 0;
-		src &= 63, dst &= 0xffff;
-		for (let i = 0; i < src; i++)
-			v |= (dst >> 15 ^ dst >> 14) & 1, x = dst >> 15, c = dst >> 15, dst = dst << 1 & 0xffff;
-		return this.sr = this.sr & ~0x1f | x << 4 | dst >> 12 & 8 | !dst << 2 | v << 1 | c, dst;
+		src &= 63;
+		const r = -(src < 16) & dst << src & 0xffff, c = (src > 0 && src < 17) & dst << src - 1 >> 15, x = src > 0 ? c : this.sr >> 4 & 1;
+		const m = ~0x7fff >> Math.min(src - 1, 15) & 0xffff, v = src > 0 ? dst >> 15 & ((~(dst << 1) & m) !== 0) | ~dst >> 15 & ((dst << 1 & m) !== 0) : 0;
+		return this.sr = this.sr & ~0x1f | x << 4 | r >> 12 & 8 | !r << 2 | v << 1 | c, r;
 	}
 
 	asl32(src, dst) {
-		let x = this.sr >> 4 & 1, v = 0, c = 0;
 		src &= 63;
-		for (let i = 0; i < src; i++)
-			v |= (dst >> 31 ^ dst >> 30) & 1, x = dst >>> 31, c = dst >>> 31, dst = dst << 1;
-		return this.sr = this.sr & ~0x1f | x << 4 | dst >> 28 & 8 | !dst << 2 | v << 1 | c, dst;
+		const r = -(src < 32) & dst << src, c = (src > 0 && src < 33) & dst << src - 1 >> 31, x = src > 0 ? c : this.sr >> 4 & 1;
+		const m = ~0x7fffffff >> Math.min(src - 1, 31), v = src > 0 ? dst >> 31 & ((~(dst << 1) & m) !== 0) | ~dst >> 31 & ((dst << 1 & m) !== 0) : 0;
+		return this.sr = this.sr & ~0x1f | x << 4 | r >> 28 & 8 | !r << 2 | v << 1 | c, r;
 	}
 
 	lsl8(src, dst) {
-		const r = dst << (src &= 63) & 0xff, x = src ? dst << (src - 1) >> 7 & 1 : this.sr >> 4 & 1, c = src ? dst << (src - 1) >> 7 & 1 : 0;
+		src &= 63;
+		const r = -(src < 8) & dst << src & 0xff, c = (src > 0 && src < 9) & dst << src - 1 >> 7, x = src > 0 ? c : this.sr >> 4 & 1;
 		return this.sr = this.sr & ~0x1f | x << 4 | r >> 4 & 8 | !r << 2 | c, r;
 	}
 
 	lsl16(src, dst) {
-		const r = dst << (src &= 63) & 0xffff, x = src ? dst << (src - 1) >> 15 & 1 : this.sr >> 4 & 1, c = src ? dst << (src - 1) >> 15 & 1 : 0;
+		src &= 63;
+		const r = -(src < 16) & dst << src & 0xffff, c = (src > 0 && src < 17) & dst << src - 1 >> 15, x = src > 0 ? c : this.sr >> 4 & 1;
 		return this.sr = this.sr & ~0x1f | x << 4 | r >> 12 & 8 | !r << 2 | c, r;
 	}
 
 	lsl32(src, dst) {
-		const r = dst << (src &= 63), x = src ? dst << (src - 1) >> 31 & 1 : this.sr >> 4 & 1, c = src ? dst << (src - 1) >> 31 & 1 : 0;
+		src &= 63;
+		const r = -(src < 32) & dst << src, c = (src > 0 && src < 33) & dst << src - 1 >> 31, x = src > 0 ? c : this.sr >> 4 & 1;
 		return this.sr = this.sr & ~0x1f | x << 4 | r >> 28 & 8 | !r << 2 | c, r;
 	}
 
 	roxl8(src, dst) {
 		src = (src & 63) % 9, dst &= 0xff;
-		const r = (dst << src | dst >> 9 - src | (this.sr << 3 & 0x80) >> 8 - src) & 0xff, x = src ? dst >> 8 - src & 1 : this.sr >> 4 & 1;
+		let x = this.sr >> 4 & 1, r = (dst >> 1 | x << 7 | dst << 8) >> 8 - src & 0xff;
+		x = src > 0 ? dst >> 8 - src & 1 : x;
 		return this.sr = this.sr & ~0x1f | x << 4 | r >> 4 & 8 | !r << 2 | x, r;
 	}
 
 	roxl16(src, dst) {
 		src = (src & 63) % 17, dst &= 0xffff;
-		const r = (dst << src | dst >> 17 - src | (this.sr << 11 & 0x8000) >> 16 - src) & 0xffff, x = src ? dst >> 16 - src & 1 : this.sr >> 4 & 1;
+		let x = this.sr >> 4 & 1, r = (dst >> 1 | x << 15 | dst << 16) >> 16 - src & 0xffff;
+		x = src > 0 ? dst >> 16 - src & 1 : x;
 		return this.sr = this.sr & ~0x1f | x << 4 | r >> 12 & 8 | !r << 2 | x, r;
 	}
 
 	roxl32(src, dst) {
 		src = (src & 63) % 33;
-		const r = dst << src | dst >>> 33 - src | (this.sr << 27 & 0x80000000) >>> 32 - src, x = src ? dst >>> 32 - src & 1 : this.sr >> 4 & 1;
+		let x = this.sr >> 4 & 1, r = -(src < 32) & dst << src | -(src > 0) & x << src - 1 | -(src > 1) & dst >>> 33 - src;
+		x = src > 0 ? dst >> 32 - src & 1 : x;
 		return this.sr = this.sr & ~0x1f | x << 4 | r >> 28 & 8 | !r << 2 | x, r;
 	}
 
 	rol8(src, dst) {
-		src &= 63, dst &= 0xff;
-		const r = dst << (src & 7) & 0xff | dst >> (~src & 7) + 1, c = src ? dst >> (-src & 7) & 1 : 0;
+		dst &= 0xff;
+		const r = (dst | dst << 8) >> (-src & 7) & 0xff, c = (src > 0) & r;
 		return this.sr = this.sr & ~0x0f | r >> 4 & 8 | !r << 2 | c, r;
 	}
 
 	rol16(src, dst) {
-		src &= 63, dst &= 0xffff;
-		const r = dst << (src & 15) & 0xffff | dst >> (~src & 15) + 1, c = src ? dst >> (-src & 15) & 1 : 0;
+		dst &= 0xffff;
+		const r = (dst | dst << 16) >> (-src & 15) & 0xffff, c = (src > 0) & r;
 		return this.sr = this.sr & ~0x0f | r >> 12 & 8 | !r << 2 | c, r;
 	}
 
 	rol32(src, dst) {
-		src &= 63;
-		const r = dst << (src & 31) | dst >>> (~src & 31) + 1, c = src ? dst >> (-src & 31) & 1 : 0;
+		const r = dst << (src & 31) | dst >>> (-src & 31), c = (src > 0) & r;
 		return this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2 | c, r;
 	}
 
 	negx8(src, dst) {
 		const r = -dst - (this.sr >> 4 & 1) & 0xff, v = dst & r, c = dst | r;
-		return this.sr = this.sr & ~0x1f | c >> 3 & 0x10 | r >> 4 & 8 | !r << 2 | v >> 6 & 2 | c >> 7 & 1, r;
+		return this.sr = this.sr & ~0x1f | c >> 3 & 0x10 | r >> 4 & 8 | this.sr & !r << 2 | v >> 6 & 2 | c >> 7 & 1, r;
 	}
 
 	negx16(src, dst) {
 		const r = -dst - (this.sr >> 4 & 1) & 0xffff, v = dst & r, c = dst | r;
-		return this.sr = this.sr & ~0x1f | c >> 11 & 0x10 | r >> 12 & 8 | !r << 2 | v >> 14 & 2 | c >> 15 & 1, r;
+		return this.sr = this.sr & ~0x1f | c >> 11 & 0x10 | r >> 12 & 8 | this.sr & !r << 2 | v >> 14 & 2 | c >> 15 & 1, r;
 	}
 
 	negx32(src, dst) {
 		const r = -dst - (this.sr >> 4 & 1) | 0, v = dst & r, c = dst | r;
-		return this.sr = this.sr & ~0x1f | c >> 27 & 0x10 | r >> 28 & 8 | !r << 2 | v >> 30 & 2 | c >> 31 & 1, r;
+		return this.sr = this.sr & ~0x1f | c >> 27 & 0x10 | r >> 28 & 8 | this.sr & !r << 2 | v >> 30 & 2 | c >> 31 & 1, r;
 	}
 
 	clr() {
@@ -10746,7 +10750,7 @@ export default class MC68000 extends Cpu {
 			r -= 6;
 		if ((c & 0x80) !== 0 && (r & 0xf0) > 0x50 || (r & 0xf0) > 0x90)
 			r -= 0x60, c |= 0x80;
-		return r &= 0xff, this.sr = this.sr & ~0x15 | c >> 3 & 0x10 | !r << 2 | c >> 7 & 1, r;
+		return r &= 0xff, this.sr = this.sr & ~0x15 | c >> 3 & 0x10 | this.sr & !r << 2 | c >> 7 & 1, r;
 	}
 
 	swap(src, dst) {
