@@ -100,8 +100,7 @@ class DigDug {
 			else if (range(page, 0x70)) {
 				this.cpu[0].memorymap[page].base = this.ioport;
 				this.cpu[0].memorymap[page].write = null;
-			}
-			else if (range(page, 0x71)) {
+			} else if (range(page, 0x71)) {
 				this.cpu[0].memorymap[page].base = this.dmaport;
 				this.cpu[0].memorymap[page].write = (addr, data) => {
 					this.dmaport[addr & 0xff] = data;
@@ -141,24 +140,19 @@ class DigDug {
 					}
 					this.fNmiEnable = true;
 				};
-			}
-			else if (range(page, 0x80, 0x87)) {
+			} else if (range(page, 0x80, 0x87)) {
 				this.cpu[0].memorymap[page].base = this.ram.base[page & 7];
 				this.cpu[0].memorymap[page].write = null;
-			}
-			else if (range(page, 0x88, 0x8b, 4)) {
+			} else if (range(page, 0x88, 0x8b, 4)) {
 				this.cpu[0].memorymap[page].base = this.ram.base[8 | page & 3];
 				this.cpu[0].memorymap[page].write = null;
-			}
-			else if (range(page, 0x90, 0x93, 4)) {
+			} else if (range(page, 0x90, 0x93, 4)) {
 				this.cpu[0].memorymap[page].base = this.ram.base[0x10 | page & 3];
 				this.cpu[0].memorymap[page].write = null;
-			}
-			else if (range(page, 0x98, 0x9b, 4)) {
+			} else if (range(page, 0x98, 0x9b, 4)) {
 				this.cpu[0].memorymap[page].base = this.ram.base[0x18 | page & 3];
 				this.cpu[0].memorymap[page].write = null;
-			}
-			else if (range(page, 0xa0))
+			} else if (range(page, 0xa0))
 				this.cpu[0].memorymap[0xa0].write = (addr, data) => {
 					switch (addr & 7) {
 					case 0:
@@ -448,8 +442,7 @@ class DigDug {
 			k = 0x3e2;
 			for (let i = 0; i < 28; p -= 8, k++, i++)
 				this.xfer8x8(data, p, k);
-		}
-		else {
+		} else {
 			let p = 256 * 8 * 35 + 16;
 			let k = 0x40;
 			for (let i = 0; i < 28; p += 256 * 8 * 32 + 8, i++)
@@ -494,8 +487,7 @@ class DigDug {
 						this.xfer16x16HV(data, x | y << 8, src);
 						break;
 					}
-				}
-				else if (this.ram[k] < 0xc0) {
+				} else if (this.ram[k] < 0xc0) {
 					const src = this.ram[k] << 2 & 0x3c | this.ram[k + 1] << 8;
 					switch (this.ram[k + 0x1000] & 3) {
 					case 0: // ノーマル
@@ -523,8 +515,7 @@ class DigDug {
 						this.xfer16x16HV(data, x + 16 & 0xff | y + 16 << 8, src | 0x82);
 						break;
 					}
-				}
-				else {
+				} else {
 					const src = this.ram[k] << 2 & 0x3c | this.ram[k + 1] << 8;
 					switch (this.ram[k + 0x1000] & 3) {
 					case 0: // ノーマル
@@ -574,8 +565,7 @@ class DigDug {
 						this.xfer16x16(data, x | y << 8, src);
 						break;
 					}
-				}
-				else if (this.ram[k] < 0xc0) {
+				} else if (this.ram[k] < 0xc0) {
 					const src = this.ram[k] << 2 & 0x3c | this.ram[k + 1] << 8;
 					switch (this.ram[k + 0x1000] & 3) {
 					case 0: // ノーマル
@@ -603,8 +593,7 @@ class DigDug {
 						this.xfer16x16(data, x + 16 & 0xff | y + 16 << 8, src | 0x81);
 						break;
 					}
-				}
-				else {
+				} else {
 					const src = this.ram[k] << 2 & 0x3c | this.ram[k + 1] << 8;
 					switch (this.ram[k + 0x1000] & 3) {
 					case 0: // ノーマル
@@ -711,8 +700,7 @@ class DigDug {
 			data[p + 0x705] = this.bg2[q | 0x3d] * color;
 			data[p + 0x706] = this.bg2[q | 0x3e] * color;
 			data[p + 0x707] = this.bg2[q | 0x3f] * color;
-		}
-		else {
+		} else {
 			data[p + 0x000] = this.bg2[q | 0x00] ? color : this.bgcolor[idx | this.bg4[r | 0x00]];
 			data[p + 0x001] = this.bg2[q | 0x01] ? color : this.bgcolor[idx | this.bg4[r | 0x01]];
 			data[p + 0x002] = this.bg2[q | 0x02] ? color : this.bgcolor[idx | this.bg4[r | 0x02]];
@@ -849,8 +837,7 @@ class DigDug {
 			data[p + 0x705] = this.bg2[q | 0x02] * color;
 			data[p + 0x706] = this.bg2[q | 0x01] * color;
 			data[p + 0x707] = this.bg2[q | 0x00] * color;
-		}
-		else {
+		} else {
 			data[p + 0x000] = this.bg2[q | 0x3f] ? color : this.bgcolor[idx | this.bg4[r | 0x3f]];
 			data[p + 0x001] = this.bg2[q | 0x3e] ? color : this.bgcolor[idx | this.bg4[r | 0x3e]];
 			data[p + 0x002] = this.bg2[q | 0x3d] ? color : this.bgcolor[idx | this.bg4[r | 0x3d]];
@@ -932,8 +919,7 @@ class DigDug {
 				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = this.objcolor[idx | this.obj[src++]]) !== 0x1f)
 						data[dst] = px;
-		}
-		else {
+		} else {
 			src = src << 8 & 0xff00;
 			for (let i = h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
@@ -961,8 +947,7 @@ class DigDug {
 				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = this.objcolor[idx | this.obj[src++]]) !== 0x1f)
 						data[dst] = px;
-		}
-		else {
+		} else {
 			src = (src << 8 & 0xff00) + 256 - 16;
 			for (let i = h; i !== 0; dst += 256 - 16, src -= 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
@@ -990,8 +975,7 @@ class DigDug {
 				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = this.objcolor[idx | this.obj[--src]]) !== 0x1f)
 						data[dst] = px;
-		}
-		else {
+		} else {
 			src = (src << 8 & 0xff00) + 16;
 			for (let i = h; i !== 0; dst += 256 - 16, src += 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
@@ -1019,8 +1003,7 @@ class DigDug {
 				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = this.objcolor[idx | this.obj[--src]]) !== 0x1f)
 						data[dst] = px;
-		}
-		else {
+		} else {
 			src = (src << 8 & 0xff00) + 256;
 			for (let i = h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
