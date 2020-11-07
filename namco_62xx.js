@@ -79,31 +79,24 @@ export default class Namco62XX {
 						return;
 					}
 					--ch.count;
-					switch (ch.state) {
-					case 0:
+					if (ch.state === 0)
 						ch.state = 1, ch.vol = ch.vol1, ch.count = ch.count1 << 2;
-						break;
-					case 1:
+					else if (ch.state === 1) {
 						if (ch.count >= 0)
 							ch.output = -(j ? (this.rng & 0xc00) === 0xc00 : (this.rng & 0x80) !== 0) & ch.vol;
 						else
 							ch.state = 2, ch.count = ch.count2 << 2;
-						break;
-					case 2:
+					} else if (ch.state === 2) {
 						if (ch.count >= 0)
 							ch.output = 0;
 						else
 							ch.state = 3, ch.count = ch.count3 << 2;
-						break;
-					default:
-						if (ch.count >= 0)
-							ch.output = -(j ? (this.rng & 0xc00) === 0xc00 : (this.rng & 0x80) !== 0) & ch.vol;
-						else if (--ch.vol === 0)
-							ch.play = ch.state = 0;
-						else
-							ch.count = ch.count3 << 2;
-						break;
-					}
+					} else if (ch.count >= 0)
+						ch.output = -(j ? (this.rng & 0xc00) === 0xc00 : (this.rng & 0x80) !== 0) & ch.vol;
+					else if (--ch.vol === 0)
+						ch.play = ch.state = 0;
+					else
+						ch.count = ch.count3 << 2;
 				});
 			}
 		});

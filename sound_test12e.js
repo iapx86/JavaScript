@@ -199,13 +199,11 @@ class SoundTest {
 				this.ram2[0x2f] = 8;
 				this.ram2[0x13] = 0;
 				this.ram2[0x38] = 0;
-			}
-			else if (this.command[0] < 0x100) {
+			} else if (this.command[0] < 0x100) {
 				this.ram2[0x100] = this.command[0];
 				this.ram2[0x101] = 0x40;
 				this.ram2[0x38] = 1;
-			}
-			else if (this.command[0] < 0x140)
+			} else if (this.command[0] < 0x140)
 				sound[1].write(0x240 + this.command[0] - 0x100, 1);
 			this.command.shift();
 		}

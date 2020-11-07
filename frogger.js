@@ -57,16 +57,13 @@ class Frogger {
 			else if (range(page, 0x80, 0x87)) {
 				this.cpu.memorymap[page].base = this.ram.base[page & 7];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0xa8, 0xab, 0x04)) {
+			} else if (range(page, 0xa8, 0xab, 0x04)) {
 				this.cpu.memorymap[page].base = this.ram.base[8 | page & 3];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0xb0, 0xb0, 0x07)) {
+			} else if (range(page, 0xb0, 0xb0, 0x07)) {
 				this.cpu.memorymap[page].base = this.ram.base[0x0c];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0xb8, 0xb8, 0x07))
+			} else if (range(page, 0xb8, 0xb8, 0x07))
 				this.cpu.memorymap[page].write = (addr, data) => {
 					if ((addr & 0x1c) === 8)
 						this.fInterruptEnable = (data & 1) !== 0;

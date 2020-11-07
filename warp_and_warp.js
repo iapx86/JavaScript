@@ -399,8 +399,7 @@ class WarpAndWarpSound {
 		if ((ram[0xd20] & 0x0f) !== 0x0f && (ram[0xd10] & 0x3f) !== 0 && ram[0xd20] !== 0x2d) {
 			this.channel.voice = ram[0xd20] >> 1 & 7;
 			this.channel.freq = this.rate / (0x40 - ram[0xd10]) | 0;
-		}
-		else
+		} else
 			this.channel.freq = 0;
 	}
 }

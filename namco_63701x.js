@@ -47,8 +47,7 @@ export default class Namco63701X {
 			ch.vol = [26, 84, 200, 258][data >> 6];
 			ch.play = this.pcm[ch.pos = bank | this.pcm[bank | offs] << 8 | this.pcm[bank | offs + 1]] !== 0xff;
 			ch.count = this.pcm[ch.pos] === 0 ? this.pcm[++ch.pos] + 1 : 0;
-		}
-		else
+		} else
 			ch.play = false;
 	}
 

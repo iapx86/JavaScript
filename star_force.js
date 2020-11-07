@@ -93,8 +93,7 @@ class StarForce {
 					if ((this.ctc.cmd & 4) !== 0) {
 						sound[3].write(0, (data ? data : 256) * ((this.ctc.cmd & 0x20) !== 0 ? 16 : 1), this.count);
 						this.ctc.cmd &= ~4;
-					}
-					else if ((data & 1) !== 0)
+					} else if ((data & 1) !== 0)
 						this.ctc.cmd = data;
 					return;
 				}
@@ -454,8 +453,7 @@ class StarForce {
 					this.xfer16x16HV(data, x | y << 8, src);
 					break;
 				}
-			}
-			else {
+			} else {
 				const src = this.ram[k] << 2 & 0x1fc | this.ram[k + 1] << 9;
 				switch (this.ram[k + 1] >> 6) {
 				case 0: // ノーマル

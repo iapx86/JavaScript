@@ -58,16 +58,13 @@ class StrategyX {
 			else if (range(page, 0x80, 0x87)) {
 				this.cpu.memorymap[page].base = this.ram.base[page & 7];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x88, 0x88)) {
+			} else if (range(page, 0x88, 0x88)) {
 				this.cpu.memorymap[page].base = this.ram.base[0xc];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x90, 0x93, 0x04)) {
+			} else if (range(page, 0x90, 0x93, 0x04)) {
 				this.cpu.memorymap[page].base = this.ram.base[8 | page & 3];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0xa0, 0xa0))
+			} else if (range(page, 0xa0, 0xa0))
 				this.cpu.memorymap[page].read = addr => this.ppi0[addr >> 2 & 3];
 			else if (range(page, 0xa8, 0xa8)) {
 				this.cpu.memorymap[page].read = addr => this.ppi1[addr >> 2 & 3];
@@ -79,8 +76,7 @@ class StrategyX {
 						return void(this.fSoundEnable = (data & 0x10) === 0);
 					}
 				};
-			}
-			else if (range(page, 0xb0, 0xb0))
+			} else if (range(page, 0xb0, 0xb0))
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 0xff) {
 					case 0:

@@ -3260,8 +3260,7 @@ export default class I80186 extends Cpu {
 		if ((this.flags & 0x10) !== 0 || (this.ax & 0xf) > 9) {
 			this.ax += 0x106;
 			this.flags |= 0x11;
-		}
-		else
+		} else
 			this.flags &= ~0x11;
 		this.ax &= ~0xf0;
 	}
@@ -3270,8 +3269,7 @@ export default class I80186 extends Cpu {
 		if ((this.flags & 0x10) !== 0 || (this.ax & 0xf) > 9) {
 			this.ax -= 0x106;
 			this.flags |= 0x11;
-		}
-		else
+		} else
 			this.flags &= ~0x11;
 		this.ax &= ~0xf0;
 	}
@@ -3569,8 +3567,7 @@ export default class I80186 extends Cpu {
 		else if (page.write) {
 			page.write(addr, data & 0xff);
 			page.write(addr + 1, data >>> 8);
-		}
-		else {
+		} else {
 			page.base[addr & 0xff] = data;
 			page.base[addr + 1 & 0xff] = data >>> 8;
 		}
@@ -3608,8 +3605,7 @@ export default class I80186 extends Cpu {
 		else if (page.write) {
 			page.write(addr, data & 0xff);
 			page.write(addr + 1, data >>> 8);
-		}
-		else {
+		} else {
 			page.base[addr & 0xff] = data;
 			page.base[addr + 1 & 0xff] = data >>> 8;
 		}

@@ -314,8 +314,7 @@ class Grobda {
 				m = ((PRG2[k++] & 0xf) - 8) * 3 << 9;
 				for (j = 0; j < 13; j++)
 					GETREADY[i++] = m;
-			}
-			else {
+			} else {
 				m = ((PRG2[k] & 0xf) - 8) * 3 << 9;
 				for (j = 0; j < 4; j++)
 					GETREADY[i++] = m;

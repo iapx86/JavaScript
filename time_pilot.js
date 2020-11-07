@@ -59,20 +59,16 @@ class TimePilot {
 			else if (range(page, 0xa0, 0xaf)) {
 				this.cpu.memorymap[page].base = this.ram.base[page & 0xf];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0xb0, 0xb0, 0x0b)) {
+			} else if (range(page, 0xb0, 0xb0, 0x0b)) {
 				this.cpu.memorymap[page].base = this.ram.base[0x10];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0xb4, 0xb4, 0x0b)) {
+			} else if (range(page, 0xb4, 0xb4, 0x0b)) {
 				this.cpu.memorymap[page].base = this.ram.base[0x11];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0xc0, 0xc0, 0x0c)) {
+			} else if (range(page, 0xc0, 0xc0, 0x0c)) {
 				this.cpu.memorymap[page].read = () => this.vpos;
 				this.cpu.memorymap[page].write = (addr, data) => void this.command.push(data);
-			}
-			else if (range(page, 0xc2, 0xc2, 0x0c))
+			} else if (range(page, 0xc2, 0xc2, 0x0c))
 				this.cpu.memorymap[page].read = () => this.in[4];
 			else if (range(page, 0xc3, 0xc3, 0x0c)) {
 				this.cpu.memorymap[page].read = addr => this.in[addr >> 5 & 3];
@@ -92,18 +88,15 @@ class TimePilot {
 			else if (range(page, 0x30, 0x33, 0x0c)) {
 				this.cpu2.memorymap[page].base = this.ram2.base[page & 3];
 				this.cpu2.memorymap[page].write = null;
-			}
-			else if (range(page, 0x40, 0x40, 0x0f)) {
+			} else if (range(page, 0x40, 0x40, 0x0f)) {
 				this.cpu2.memorymap[page].read = () => sound[0].read(this.psg[0].addr);
 				this.cpu2.memorymap[page].write = (addr, data) => sound[0].write(this.psg[0].addr, data, this.count);
-			}
-			else if (range(page, 0x50, 0x50, 0x0f))
+			} else if (range(page, 0x50, 0x50, 0x0f))
 				this.cpu2.memorymap[page].write = (addr, data) => void(this.psg[0].addr = data);
 			else if (range(page, 0x60, 0x60, 0x0f)) {
 				this.cpu2.memorymap[page].read = () => sound[1].read(this.psg[1].addr);
 				this.cpu2.memorymap[page].write = (addr, data) => sound[1].write(this.psg[1].addr, data, this.count);
-			}
-			else if (range(page, 0x70, 0x70, 0x0f))
+			} else if (range(page, 0x70, 0x70, 0x0f))
 				this.cpu2.memorymap[page].write = (addr, data) => void(this.psg[1].addr = data);
 
 		// Videoの初期化

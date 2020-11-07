@@ -71,58 +71,46 @@ class SoukoBanDeluxe {
 					const idx = addr & 0x7ff, shift = addr >> 8 & 0x18;
 					this.rgb[idx] = this.rgb[idx] & ~(0xff << shift) | data << shift;
 				};
-			}
-			else if (range(page, 0x2e18, 0x2e1f, 0x60)) {
+			} else if (range(page, 0x2e18, 0x2e1f, 0x60)) {
 				this.memorymap[page].read = addr => this.ram[0x7800 | addr & 0xf];
 				this.memorymap[page].write = (addr, data) => void(this.ram[0x7800 | addr & 0xf] = data);
-			}
-			else if (range(page, 0x2e20, 0x2e37)) {
+			} else if (range(page, 0x2e20, 0x2e37)) {
 				this.memorymap[page].read = addr => this.rgb[0x800 | addr & 0x7ff] >> (addr >> 8 & 0x18) & 0xff;
 				this.memorymap[page].write = (addr, data) => {
 					const idx = 0x800 | addr & 0x7ff, shift = addr >> 8 & 0x18;
 					this.rgb[idx] = this.rgb[idx] & ~(0xff << shift) | data << shift;
 				};
-			}
-			else if (range(page, 0x2e40, 0x2e57)) {
+			} else if (range(page, 0x2e40, 0x2e57)) {
 				this.memorymap[page].read = addr => this.rgb[0x1000 | addr & 0x7ff] >> (addr >> 8 & 0x18) & 0xff;
 				this.memorymap[page].write = (addr, data) => {
 					const idx = 0x1000 | addr & 0x7ff, shift = addr >> 8 & 0x18;
 					this.rgb[idx] = this.rgb[idx] & ~(0xff << shift) | data << shift;
 				};
-			}
-			else if (range(page, 0x2e60, 0x2e77)) {
+			} else if (range(page, 0x2e60, 0x2e77)) {
 				this.memorymap[page].base = this.ram.base[0x60 | page & 0x1f];
 				this.memorymap[page].write = null;
-			}
-			else if (range(page, 0x2f00, 0x2f7f)) {
+			} else if (range(page, 0x2f00, 0x2f7f)) {
 				this.memorymap[page].base = this.ram.base[0x80 | page & 0x7f];
 				this.memorymap[page].write = null;
-			}
-			else if (range(page, 0x2f80, 0x2f9f)) {
+			} else if (range(page, 0x2f80, 0x2f9f)) {
 				this.memorymap[page].read = addr => [0, 0, 55, Math.floor(Math.random() * 256), addr << 4 & 0xf0 | this.key[0] & 0xf, 0, 0, 0][addr >> 4 & 7];
 				this.memorymap[page].write = (addr, data) => void(this.key[addr >> 4 & 7] = data);
-			}
-			else if (range(page, 0x2fc0, 0x2fcf)) {
+			} else if (range(page, 0x2fc0, 0x2fcf)) {
 				this.memorymap[page].base = this.ram.base[0x50 | page & 0xf];
 				this.memorymap[page].write = null;
-			}
-			else if (range(page, 0x2fd0, 0x2fdf)) {
+			} else if (range(page, 0x2fd0, 0x2fdf)) {
 				this.memorymap[page].read = addr => this.ram[0x4000 | addr & 0x1f];
 				this.memorymap[page].write = (addr, data) => void(this.ram[0x4000 | addr & 0x1f] = data);
-			}
-			else if (range(page, 0x2fe0, 0x2fef)) {
+			} else if (range(page, 0x2fe0, 0x2fef)) {
 				this.memorymap[page].read = addr => sound[1].read(addr);
 				this.memorymap[page].write = (addr, data) => sound[1].write(addr, data, this.count);
-			}
-			else if (range(page, 0x2ff0, 0x2fff)) {
+			} else if (range(page, 0x2ff0, 0x2fff)) {
 				this.memorymap[page].base = this.ram2.base[page & 7];
 				this.memorymap[page].write = null;
-			}
-			else if (range(page, 0x3000, 0x307f)) {
+			} else if (range(page, 0x3000, 0x307f)) {
 				this.memorymap[page].base = this.ram.base[0x100 | page & 0x7f];
 				this.memorymap[page].write = null;
-			}
-			else if (range(page, 0x4000, 0x4fff))
+			} else if (range(page, 0x4000, 0x4fff))
 				this.memorymap[page].base = PRG.base[page >> 2 & 0x200 | page & 0x1ff];
 			else if (range(page, 0x7800, 0x7fff))
 				this.memorymap[page].base = PRG.base[0x400 | page & 0xff];
@@ -487,8 +475,7 @@ class SoukoBanDeluxe {
 				if ((ram[0x5ff6] & 1) === 0) {
 					p = 256 * 8 * 2 + 232 - (48 + vScroll & 7) * 256 + (24 + hScroll & 7);
 					k = 48 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0x8000;
-				}
-				else {
+				} else {
 					p = 256 * 8 * 2 + 232 - (176 - vScroll & 7) * 256 + (264 - hScroll & 7);
 					k = 176 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0x8000;
 				}
@@ -501,8 +488,7 @@ class SoukoBanDeluxe {
 				if ((ram[0x5ff6] & 1) === 0) {
 					p = 256 * 8 * 2 + 232 - (46 + vScroll & 7) * 256 + (24 + hScroll & 7);
 					k = 46 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0xa000;
-				}
-				else {
+				} else {
 					p = 256 * 8 * 2 + 232 - (178 - vScroll & 7) * 256 + (264 - hScroll & 7);
 					k = 178 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0xa000;
 				}
@@ -515,8 +501,7 @@ class SoukoBanDeluxe {
 				if ((ram[0x5ff6] & 1) === 0) {
 					p = 256 * 8 * 2 + 232 - (45 + vScroll & 7) * 256 + (24 + hScroll & 7);
 					k = 45 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0xc000;
-				}
-				else {
+				} else {
 					p = 256 * 8 * 2 + 232 - (179 - vScroll & 7) * 256 + (264 - hScroll & 7);
 					k = 179 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0xc000;
 				}
@@ -529,8 +514,7 @@ class SoukoBanDeluxe {
 				if ((ram[0x5ff6] & 1) === 0) {
 					p = 256 * 8 * 2 + 232 - (44 + vScroll & 7) * 256 + (24 + hScroll & 7);
 					k = 44 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0xf80 | 0xe000;
-				}
-				else {
+				} else {
 					p = 256 * 8 * 2 + 232 - (180 - vScroll & 7) * 256 + (8 - hScroll & 7);
 					k = 180 - vScroll >> 2 & 0x7e | 8 - hScroll << 4 & 0xf80 | 0xe000;
 				}

@@ -58,20 +58,16 @@ class MoonCresta {
 			else if (range(page, 0x80, 0x83, 0x04)) {
 				this.cpu.memorymap[page].base = this.ram.base[page & 3];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x90, 0x93, 0x04)) {
+			} else if (range(page, 0x90, 0x93, 0x04)) {
 				this.cpu.memorymap[page].base = this.ram.base[4 | page & 3];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x98, 0x98, 0x07)) {
+			} else if (range(page, 0x98, 0x98, 0x07)) {
 				this.cpu.memorymap[page].base = this.ram.base[8];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0xa0, 0xa0, 0x07)) {
+			} else if (range(page, 0xa0, 0xa0, 0x07)) {
 				this.cpu.memorymap[page].read = () => this.in[0];
 				this.cpu.memorymap[page].write = (addr, data) => { this.mmo[addr & 7] = data & 1, this.bank = this.mmo[0] | this.mmo[1] << 1; };
-			}
-			else if (range(page, 0xa8, 0xa8, 0x07)) {
+			} else if (range(page, 0xa8, 0xa8, 0x07)) {
 				this.cpu.memorymap[page].read = () => this.in[1];
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 7) {
@@ -84,8 +80,7 @@ class MoonCresta {
 					}
 					this.mmo[addr & 7 | 0x10] = data & 1;
 				};
-			}
-			else if (range(page, 0xb0, 0xb0, 0x07)) {
+			} else if (range(page, 0xb0, 0xb0, 0x07)) {
 				this.cpu.memorymap[page].read = () => this.in[2];
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 7) {
@@ -97,8 +92,7 @@ class MoonCresta {
 					}
 					this.mmo[addr & 7 | 0x20] = data & 1;
 				};
-			}
-			else if (range(page, 0xb8, 0xb8, 0x07))
+			} else if (range(page, 0xb8, 0xb8, 0x07))
 				this.cpu.memorymap[page].write = (addr, data) => void(this.mmo[0x30] = data);
 
 		MoonCresta.decodeROM();

@@ -53,8 +53,7 @@ class ZigZag {
 			else if (range(page, 0x40, 0x43, 0x04)) {
 				this.cpu.memorymap[page].base = this.ram.base[page & 3];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x48, 0x48, 0x07))
+			} else if (range(page, 0x48, 0x48, 0x07))
 				this.cpu.memorymap[page].write = addr => {
 					switch (addr & 0x0300) {
 					case 0x0000:
@@ -71,12 +70,10 @@ class ZigZag {
 			else if (range(page, 0x50, 0x53, 0x04)) {
 				this.cpu.memorymap[page].base = this.ram.base[4 | page & 3];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x58, 0x58, 0x07)) {
+			} else if (range(page, 0x58, 0x58, 0x07)) {
 				this.cpu.memorymap[page].base = this.ram.base[8];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x60, 0x60, 0x07))
+			} else if (range(page, 0x60, 0x60, 0x07))
 				this.cpu.memorymap[page].read = () => this.in[0];
 			else if (range(page, 0x68, 0x68, 0x07))
 				this.cpu.memorymap[page].read = () => this.in[1];

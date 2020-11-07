@@ -110,8 +110,7 @@ class KingAndBalloon {
 				if (data) {
 					this.ioport[0x30] = this.fVoice ? 0x40 : 0;
 					this.cpu.memorymap[0xa0].base = this.ioport.subarray(0x30);
-				}
-				else
+				} else
 					this.cpu.memorymap[0xa0].base = this.ioport;
 				break;
 			case 4:

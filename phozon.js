@@ -382,8 +382,7 @@ class Phozon {
 					if ((this.ram[k + 0x1000] & 0x40) === 0) {
 						this.xfer16x8_0(data, x | y << 8, src + 2);
 						this.xfer16x8_0(data, x + 16 | y << 8, src);
-					}
-					else {
+					} else {
 						this.xfer16x8_1(data, x | y << 8, src + 2);
 						this.xfer16x8_1(data, x + 16 | y << 8, src);
 					}
@@ -497,8 +496,7 @@ class Phozon {
 			if ((px = this.bgcolor[idx | this.bg[q | 0x3d]]) !== 0xf) data[p + 0x705] = px;
 			if ((px = this.bgcolor[idx | this.bg[q | 0x3e]]) !== 0xf) data[p + 0x706] = px;
 			if ((px = this.bgcolor[idx | this.bg[q | 0x3f]]) !== 0xf) data[p + 0x707] = px;
-		}
-		else if ((this.ram[k + 0x400] & 0x1f) !== 0) {
+		} else if ((this.ram[k + 0x400] & 0x1f) !== 0) {
 			// HV反転
 			if ((px = this.bgcolor[idx | this.bg[q | 0x3f]]) !== 0xf) data[p + 0x000] = px;
 			if ((px = this.bgcolor[idx | this.bg[q | 0x3e]]) !== 0xf) data[p + 0x001] = px;

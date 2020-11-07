@@ -52,14 +52,12 @@ class CrushRoller {
 			else if (range(page, 0x40, 0x47, 0xa0)) {
 				this.cpu.memorymap[page].base = this.ram.base[page & 7];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x48, 0x48, 0xa3))
+			} else if (range(page, 0x48, 0x48, 0xa3))
 				this.cpu.memorymap[page].read = () => 0xbf;
 			else if (range(page, 0x4c, 0x4f, 0xa0)) {
 				this.cpu.memorymap[page].base = this.ram.base[8 | page & 3];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x50, 0x50, 0xaf)) {
+			} else if (range(page, 0x50, 0x50, 0xaf)) {
 				this.cpu.memorymap[page].read = addr => {
 					switch (addr >> 6 & 3) {
 					case 0:
@@ -418,8 +416,7 @@ class CrushRoller {
 				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = this.color[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
-		}
-		else {
+		} else {
 			src = src << 6 & 0x3f00;
 			for (let i = h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
@@ -445,8 +442,7 @@ class CrushRoller {
 				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = this.color[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
-		}
-		else {
+		} else {
 			src = (src << 6 & 0x3f00) + 256 - 16;
 			for (let i = h; i !== 0; dst += 256 - 16, src -= 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
@@ -472,8 +468,7 @@ class CrushRoller {
 				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = this.color[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
-		}
-		else {
+		} else {
 			src = (src << 6 & 0x3f00) + 16;
 			for (let i = h; i !== 0; dst += 256 - 16, src += 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
@@ -499,8 +494,7 @@ class CrushRoller {
 				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = this.color[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
-		}
-		else {
+		} else {
 			src = (src << 6 & 0x3f00) + 256;
 			for (let i = h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)

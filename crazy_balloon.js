@@ -52,12 +52,10 @@ class CrazyBalloon {
 			else if (range(page, 0x40, 0x43, 4)) {
 				this.cpu.memorymap[page].base = this.ram.base[page & 3];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x48, 0x4b, 4)) {
+			} else if (range(page, 0x48, 0x4b, 4)) {
 				this.cpu.memorymap[page].base = this.ram.base[4 | page & 3];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x50, 0x53, 4)) {
+			} else if (range(page, 0x50, 0x53, 4)) {
 				this.cpu.memorymap[page].base = this.ram.base[8 | page & 3];
 				this.cpu.memorymap[page].write = null;
 			}

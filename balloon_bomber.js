@@ -46,8 +46,7 @@ class BalloonBomber {
 			else if (range(page, 0x20, 0x3f, 0xc0)) {
 				this.cpu.memorymap[page].base = this.ram.base[page & 0x1f];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x40, 0x47, 0x80))
+			} else if (range(page, 0x40, 0x47, 0x80))
 				this.cpu.memorymap[page].base = PRG2.base[page & 7];
 		this.cpu.iomap.base = this.io;
 		this.cpu.iomap.write = (addr, data) => {

@@ -78,8 +78,7 @@ export default class C30 {
 				if (j >= 4 || (reg[0x100 | -4 + j * 8 & 0x3f] & 0x80) === 0) {
 					data[i] += this.snd[reg[0x101 + j * 8] << 1 & 0x1e0 | ch.phase >>> 27] * (reg[0x100 + j * 8] & 0xf) / 15;
 					ch.phase = ch.phase + (reg[0x103 + j * 8] | reg[0x102 + j * 8] << 8 | reg[0x101 + j * 8] << 16 & 0xf0000) * this.rate | 0;
-				}
-				else {
+				} else {
 					data[i] += (ch.output * 2 - 1) * (reg[0x100 + j * 8] & 0xf) / 15;
 					for (ch.ncount += reg[0x103 + j * 8] * this.rate; ch.ncount >= 0x80000; ch.ncount -= 0x80000)
 						ch.output ^= ch.rng + 1 >> 1 & 1, ch.rng = (ch.rng ^ (~ch.rng & 1) - 1 & 0x28000) >> 1;

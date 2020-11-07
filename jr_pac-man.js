@@ -446,8 +446,7 @@ class JrPacMan {
 				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = this.color[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
-		}
-		else {
+		} else {
 			src = src << 6 & 0x3f00 | this.ram[0x1075] << 14;
 			for (let i = h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
@@ -473,8 +472,7 @@ class JrPacMan {
 				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = this.color[idx | this.obj[src++]]) !== 0)
 						data[dst] = px;
-		}
-		else {
+		} else {
 			src = (src << 6 & 0x3f00 | this.ram[0x1075] << 14) + 256 - 16;
 			for (let i = h; i !== 0; dst += 256 - 16, src -= 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
@@ -500,8 +498,7 @@ class JrPacMan {
 				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = this.color[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
-		}
-		else {
+		} else {
 			src = (src << 6 & 0x3f00 | this.ram[0x1075] << 14) + 16;
 			for (let i = h; i !== 0; dst += 256 - 16, src += 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
@@ -527,8 +524,7 @@ class JrPacMan {
 				for (let j = 16; j !== 0; dst++, --j)
 					if ((px = this.color[idx | this.obj[--src]]) !== 0)
 						data[dst] = px;
-		}
-		else {
+		} else {
 			src = (src << 6 & 0x3f00 | this.ram[0x1075] << 14) + 256;
 			for (let i = h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)

@@ -55,16 +55,13 @@ class FantasyZone {
 			else if (range(page, 0x4000, 0x407f, 0xb880)) {
 				this.cpu.memorymap[page].base = this.ram.base[page & 0x7f];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x4100, 0x410f, 0xb8f0)) {
+			} else if (range(page, 0x4100, 0x410f, 0xb8f0)) {
 				this.cpu.memorymap[page].base = this.ram.base[0x80 | page & 0xf];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x4400, 0x4407, 0x3bf8)) {
+			} else if (range(page, 0x4400, 0x4407, 0x3bf8)) {
 				this.cpu.memorymap[page].base = this.ram.base[0x90 | page & 7];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x8400, 0x840f, 0x3bf0)) {
+			} else if (range(page, 0x8400, 0x840f, 0x3bf0)) {
 				this.cpu.memorymap[page].base = this.ram.base[0xa0 | page & 0xf];
 				this.cpu.memorymap[page].write = null;
 				this.cpu.memorymap[page].write16 = (addr, data) => {
@@ -75,8 +72,7 @@ class FantasyZone {
 						| (data >> 14 & 1 | data >> 7 & 0x1e) * 255 / 31 << 16				// Blue
 						| 0xff000000;														// Alpha
 				};
-			}
-			else if (range(page, 0xc400, 0xc43f, 0x39c0)) {
+			} else if (range(page, 0xc400, 0xc43f, 0x39c0)) {
 				this.cpu.memorymap[page].read = addr => {
 					switch (addr & 0x3000) {
 					case 0x1000:
@@ -96,8 +92,7 @@ class FantasyZone {
 						return void(this.mode[1] = data);
 					}
 				};
-			}
-			else if (range(page, 0xc700, 0xc73f, 0x38c0)) {
+			} else if (range(page, 0xc700, 0xc73f, 0x38c0)) {
 				this.cpu.memorymap[page].base = this.ram.base[0xc0 | page & 0x3f];
 				this.cpu.memorymap[page].write = null;
 			}

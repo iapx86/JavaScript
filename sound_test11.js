@@ -76,8 +76,7 @@ class SoundTest {
 				for (let i = 0; i < 0x20; i++)
 					sound[1].write(0x285 + i, 0);
 				sound[1].write(0x380, 0);
-			}
-			else if (this.command[0] < 52)
+			} else if (this.command[0] < 52)
 				sound[1].write(0x380, this.command[0]);
 			else if (this.command[0] < 84)
 				sound[1].write(0x285 + this.command[0] - 52, 1);

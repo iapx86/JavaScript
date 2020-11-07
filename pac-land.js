@@ -477,8 +477,7 @@ class PacLand {
 					break;
 				}
 			}
-		}
-		else {
+		} else {
 			for (let k = 0x2780, i = 64; i !== 0; k += 2, --i) {
 				const x = this.ram[k + 0x800] + 7 & 0xff;
 				const y = (this.ram[k + 0x801] | this.ram[k + 0x1001] << 8) - 55 & 0x1ff;

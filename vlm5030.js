@@ -118,12 +118,10 @@ export default class VLM5030 {
 							this.nk[0] = VLM5030.table.k0[frame[5] >> 2];
 							this.offset += 6;
 							this.icount = 4;
-						}
-						else if ((frame[0] & 2) === 0) {
+						} else if ((frame[0] & 2) === 0) {
 							this.offset++;
 							this.icount = (frame[0] & 0xc) + 4 << 1;
-						}
-						else if (this.energy0 !== 0)
+						} else if (this.energy0 !== 0)
 							this.icount = 4;
 						else {
 							this.BSY = 0;

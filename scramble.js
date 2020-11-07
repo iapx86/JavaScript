@@ -59,16 +59,13 @@ class Scramble {
 			else if (range(page, 0x40, 0x47)) {
 				this.cpu.memorymap[page].base = this.ram.base[page & 7];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x48, 0x4b, 0x04)) {
+			} else if (range(page, 0x48, 0x4b, 0x04)) {
 				this.cpu.memorymap[page].base = this.ram.base[8 | page & 3];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x50, 0x50, 0x07)) {
+			} else if (range(page, 0x50, 0x50, 0x07)) {
 				this.cpu.memorymap[page].base = this.ram.base[0xc];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x68, 0x68, 0x07))
+			} else if (range(page, 0x68, 0x68, 0x07))
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 7) {
 					case 1:

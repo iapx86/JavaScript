@@ -9989,8 +9989,7 @@ export default class MC68000 extends Cpu {
 			if ((list & 0x8000) !== 0)
 				ea = ea - 2 | 0, this.write16(this.d0, ea);
 			this.rwop32(op & 7 | 0o10, this.thru, ea);
-		}
-		else {
+		} else {
 			if ((list & 1) !== 0)
 				this.write16(this.d0, ea), ea = ea + 2 | 0;
 			if ((list & 2) !== 0)
@@ -10063,8 +10062,7 @@ export default class MC68000 extends Cpu {
 			if ((list & 0x8000) !== 0)
 				ea = ea - 4 | 0, this.write32(this.d0, ea);
 			this.rwop32(op & 7 | 0o10, this.thru, ea);
-		}
-		else {
+		} else {
 			if ((list & 1) !== 0)
 				this.write32(this.d0, ea), ea = ea + 4 | 0;
 			if ((list & 2) !== 0)

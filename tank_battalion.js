@@ -46,8 +46,7 @@ class TankBattalion {
 			if (range(page, 0, 0xb, 0x80)) {
 				this.cpu.memorymap[page].base = this.ram.base[page & 0xf];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0xc, 0xc, 0x80)) {
+			} else if (range(page, 0xc, 0xc, 0x80)) {
 				this.cpu.memorymap[page].base = this.rport;
 				this.cpu.memorymap[page].write = (addr, data) => {
 					this.wport[addr & 0xff] = data;
@@ -84,8 +83,7 @@ class TankBattalion {
 						return void(data === 0x1f && (this.se[0].start = this.se[0].stop = true));
 					}
 				};
-			}
-			else if (range(page, 0x60, 0x7f, 0x80))
+			} else if (range(page, 0x60, 0x7f, 0x80))
 				this.cpu.memorymap[page].base = PRG.base[page & 0x1f];
 		this.rport[0x1b] = 0x7f;
 		this.rport[0x1c] = 0x7f;

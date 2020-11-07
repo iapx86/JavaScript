@@ -57,16 +57,13 @@ class JumpBug {
 			else if (range(page, 0x40, 0x47)) {
 				this.cpu.memorymap[page].base = this.ram.base[page & 7];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x48, 0x4b, 0x04)) {
+			} else if (range(page, 0x48, 0x4b, 0x04)) {
 				this.cpu.memorymap[page].base = this.ram.base[8 | page & 3];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x50, 0x50, 0x07)) {
+			} else if (range(page, 0x50, 0x50, 0x07)) {
 				this.cpu.memorymap[page].base = this.ram.base[0x0c];
 				this.cpu.memorymap[page].write = null;
-			}
-			else if (range(page, 0x58, 0x58))
+			} else if (range(page, 0x58, 0x58))
 				this.cpu.memorymap[page].write = (addr, data) => sound[0].write(this.psg.addr, data);
 			else if (range(page, 0x59, 0x59))
 				this.cpu.memorymap[page].write = (addr, data) => void(this.psg.addr = data);
@@ -76,8 +73,7 @@ class JumpBug {
 					this.mmo[addr & 0xff] = data & 1;
 					this.bank = this.mmo[2] | this.mmo[3] << 1 | this.mmo[6] << 2;
 				};
-			}
-			else if (range(page, 0x68, 0x68, 0x07)) {
+			} else if (range(page, 0x68, 0x68, 0x07)) {
 				this.cpu.memorymap[page].read = () => this.in[1];
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 7) {
@@ -87,8 +83,7 @@ class JumpBug {
 						return void((data & 1) !== 0 ? (this.se[1].start = true) : (this.se[1].stop = true));
 					}
 				};
-			}
-			else if (range(page, 0x70, 0x70, 0x07)) {
+			} else if (range(page, 0x70, 0x70, 0x07)) {
 				this.cpu.memorymap[page].read = () => this.in[2];
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 7) {
@@ -98,8 +93,7 @@ class JumpBug {
 						return void(this.fStarEnable = (data & 1) !== 0);
 					}
 				};
-			}
-			else if (range(page, 0x80, 0xa7))
+			} else if (range(page, 0x80, 0xa7))
 				this.cpu.memorymap[page].base = PRG.base[0x40 | page & 0x3f];
 			else if (range(page, 0xb0, 0xbf))
 				this.cpu.memorymap[page].read = addr => {

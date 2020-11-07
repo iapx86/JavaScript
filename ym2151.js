@@ -420,8 +420,7 @@ class Operator {
 				this.eg_level_ <= 0 && this.ShiftPhase(Operator.EGPhase.decay);
 			}
 			this.EGUpdate();
-		}
-		else {
+		} else {
 			this.eg_level_ += Operator.decaytable1[this.eg_rate_][7 & this.eg_curve_count_];
 			this.eg_level_ >= this.eg_level_on_next_phase_ && this.ShiftPhase(this.eg_phase_ + 1);
 			this.EGUpdate();
@@ -986,8 +985,7 @@ class OPM {
 					16 & i || this.ch[s].op[1].KeyOff();
 					32 & i || this.ch[s].op[2].KeyOff();
 					64 & i || this.ch[s].op[3].KeyOff();
-				}
-				else
+				} else
 					this.ch[7 & i].KeyControl(i >> 3);
 				break;
 			case 16:
@@ -1136,8 +1134,7 @@ class OPM {
 			t = this.lfo_count_ >> 15 & 510;
 			this.chip.SetPML(this.pmtable[this.lfowaveform][t] * (this.pmd / 128 | 0) + 128);
 			this.chip.SetAML(this.amtable[this.lfowaveform][t] * (this.amd / 128 | 0));
-		}
-		else if ((-131072 & (this.lfo_count_ ^ this.lfo_count_prev_)) !== 0) {
+		} else if ((-131072 & (this.lfo_count_ ^ this.lfo_count_prev_)) !== 0) {
 			t = 255 & ((32768 * Math.random() | 0) / 17 | 0);
 			this.chip.SetPML(((t - 128) * this.pmd / 128 | 0) + 128);
 			this.chip.SetAML(t * this.amd / 128 | 0);

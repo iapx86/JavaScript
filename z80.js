@@ -1837,8 +1837,7 @@ export default class Z80 extends Cpu {
 				r -= 6, this.f |= 0x10;
 			if ((this.f & 1) !== 0 && (r & 0xf0) > 0x50 || (r & 0xf0) > 0x90)
 				r -= 0x60, this.f |= 1;
-		}
-		else {
+		} else {
 			if ((this.f & 0x10) !== 0 && (r & 0x0f) < 4 || (r & 0x0f) > 9) {
 				if ((r += 6) >= 0x100)
 					this.f |= 1;
