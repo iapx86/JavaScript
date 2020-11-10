@@ -331,6 +331,7 @@ class Xevious {
 		if (this.fReset) {
 			this.fReset = false;
 			this.fSoundEnable = false;
+			sound[1].reset();
 			this.dwCoin = 0;
 			this.cpu[0].reset();
 			this.cpu[1].disable();
@@ -1244,7 +1245,7 @@ class Xevious {
  *
  */
 
-let BG2, BG4, OBJ4, OBJ8, BGCOLOR_H, BGCOLOR_L, OBJCOLOR_H, OBJCOLOR_L, RED, GREEN, BLUE, SND, PRG1, PRG2, PRG3, MAPTBL, MAPDATA;
+let BG2, BG4, OBJ4, OBJ8, BGCOLOR_H, BGCOLOR_L, OBJCOLOR_H, OBJCOLOR_L, RED, GREEN, BLUE, SND, PRG1, PRG2, PRG3, MAPTBL, MAPDATA, PRG;
 
 read('xevious.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG1 = Uint8Array.concat(...['xvi_1.3p', 'xvi_2.3m', 'xvi_3.2m', 'xvi_4.2l'].map(e => zip.decompress(e))).addBase();
@@ -1264,10 +1265,12 @@ read('xevious.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	OBJCOLOR_L = zip.decompress('xvi-4.3l');
 	OBJCOLOR_H = zip.decompress('xvi-5.3m');
 	SND = zip.decompress('xvi-2.7n');
+}).then(() => read('namco54.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = zip.decompress('54xx.bin');
 	game = new Xevious();
 	sound = [
 		new PacManSound({SND, resolution: 2}),
-		new Namco54XX({clock: 1536000}),
+		new Namco54XX({PRG, clock: 1536000}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

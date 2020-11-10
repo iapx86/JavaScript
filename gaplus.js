@@ -67,7 +67,10 @@ class Gaplus {
 			this.cpu.memorymap[0x60 + i].write = (addr, data) => sound[0].write(addr, data);
 		}
 		this.cpu.memorymap[0x68].read = addr => this.port[addr & 0x3f] | 0xf0;
-		this.cpu.memorymap[0x68].write = (addr, data) => void(this.port[addr & 0x3f] = data & 0xf);
+		this.cpu.memorymap[0x68].write = (addr, data) => {
+			this.port[addr & 0x3f] = data & 0xf;
+			(addr & 0x38) === 0x28 && (sound[1].mcu.cause |= 4);
+		};
 		this.cpu.memorymap[0x74].write = () => void(this.fInterruptEnable0 = true);
 		this.cpu.memorymap[0x7c].write = () => void(this.fInterruptEnable0 = false);
 		this.cpu.memorymap[0x84].write = () => (this.cpu2.enable(), this.cpu3.enable());
@@ -226,7 +229,7 @@ class Gaplus {
 		if (this.fReset) {
 			this.fReset = false;
 			this.port.fill(0);
-			sound[1].channel[0].data = sound[1].channel[1].data = 0;
+			sound[1].reset();
 			this.cpu.reset();
 		}
 		return this;
@@ -257,8 +260,8 @@ class Gaplus {
 			this.port.set([this.in[5], this.in[9], this.in[6], this.in[6], this.in[7], this.in[7], this.in[8], this.in[8]], 0x10);
 		else if (this.port[0x18] === 5)
 			this.port[0x10] = 0xf, this.port[0x11] = 0xf;
-		sound[1].param(this.port.subarray(0x20, 0x30));
-		return this.port[0x20] = this.in[10], this.edge = this.in[3] ^ 0xf, this;
+		sound[1].mcu.k = this.in[10], sound[1].param(this.port.subarray(0x20, 0x30));
+		return this.edge = this.in[3] ^ 0xf, this;
 	}
 
 	coin() {
@@ -1054,7 +1057,7 @@ class Gaplus {
  *
  */
 
-let SND, BGCOLOR, OBJCOLOR_H, OBJCOLOR_L, RED, BLUE, GREEN, BG, OBJ4, OBJ8, PRG1, PRG2, PRG3;
+let SND, BGCOLOR, OBJCOLOR_H, OBJCOLOR_L, RED, BLUE, GREEN, BG, OBJ4, OBJ8, PRG1, PRG2, PRG3, PRG;
 
 read('gaplus.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG1 = Uint8Array.concat(...['gp2-4.8d', 'gp2-3b.8c', 'gp2-2b.8b'].map(e => zip.decompress(e))).addBase();
@@ -1070,10 +1073,12 @@ read('gaplus.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	OBJCOLOR_L = zip.decompress('gp2-6.6p');
 	OBJCOLOR_H = zip.decompress('gp2-5.6n');
 	SND = zip.decompress('gp2-4.3f');
+}).then(() => read('namco62.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = zip.decompress('62xx.bin');
 	game = new Gaplus();
 	sound = [
 		new MappySound({SND}),
-		new Namco62XX({clock: 2048000}),
+		new Namco62XX({PRG, clock: 1536000}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

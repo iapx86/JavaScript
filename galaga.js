@@ -316,6 +316,7 @@ class Galaga {
 		if (this.fReset) {
 			this.fReset = false;
 			this.fSoundEnable = false;
+			sound[1].reset();
 			this.dwCoin = 0;
 			this.fInterruptEnable0 = this.fInterruptEnable1 = false;
 			this.cpu[0].reset();
@@ -979,7 +980,7 @@ class Galaga {
  *
  */
 
-let BG, OBJ, BGCOLOR, OBJCOLOR, RGB, SND, PRG1, PRG2, PRG3;
+let BG, OBJ, BGCOLOR, OBJCOLOR, RGB, SND, PRG1, PRG2, PRG3, PRG;
 
 read('galaga.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG1 = Uint8Array.concat(...['gg1_1b.3p', 'gg1_2b.3m', 'gg1_3.2m', 'gg1_4b.2l'].map(e => zip.decompress(e))).addBase();
@@ -991,10 +992,12 @@ read('galaga.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	BGCOLOR = zip.decompress('prom-4.2n');
 	OBJCOLOR = zip.decompress('prom-3.1c');
 	SND = zip.decompress('prom-1.1d');
+}).then(() => read('namco54.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = zip.decompress('54xx.bin');
 	game = new Galaga();
 	sound = [
 		new PacManSound({SND, resolution: 2}),
-		new Namco54XX({clock: 1536000}),
+		new Namco54XX({PRG, clock: 1536000}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

@@ -539,6 +539,8 @@ class Bosconian {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
+			this.fSoundEnable = false;
+			sound[1].reset();
 			this.dwCredit = 0;
 			this.scoreport.fill(0);
 			this.fInterruptEnable0 = this.fInterruptEnable1 = false;
@@ -1265,7 +1267,7 @@ class Bosconian {
  *
  */
 
-let PRG1, PRG2, PRG3, RGB, SND, BGCOLOR, BG, OBJ, VOI;
+let PRG1, PRG2, PRG3, RGB, SND, BGCOLOR, BG, OBJ, VOI, PRG;
 
 read('bosco.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG1 = Uint8Array.concat(...['bos3_1.3n', 'bos1_2.3m', 'bos1_3.3l', 'bos1_4b.3k'].map(e => zip.decompress(e))).addBase();
@@ -1277,10 +1279,12 @@ read('bosco.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zi
 	BGCOLOR = zip.decompress('bos1-5.4m');
 	SND = zip.decompress('bos1-1.1d');
 	VOI = Uint8Array.concat(...['bos1_9.5n', 'bos1_10.5m', 'bos1_11.5k'].map(e => zip.decompress(e)));
+}).then(() =>read('namco54.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = zip.decompress('54xx.bin');
 	game = new Bosconian();
 	sound = [
 		new PacManSound({SND, resolution: 2}),
-		new Namco54XX({clock: 1536000}),
+		new Namco54XX({PRG, clock: 1536000}),
 		new SoundEffect({se: game.se, freq: 4000, gain: 0.25}),
 	];
 	canvas.addEventListener('click', () => game.coin());
