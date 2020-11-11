@@ -7,6 +7,7 @@
 import PacManSound from './pac-man_sound.js';
 import Cpu, {init, read} from './main.js';
 import Z80 from './z80.js';
+import MB8840 from './mb8840.js';
 let game, sound;
 
 class DigDug {
@@ -21,14 +22,11 @@ class DigDug {
 	fReset = false;
 	fTest = false;
 	fDIPSwitchChanged = true;
-	fCoin = false;
-	fStart1P = false;
-	fStart2P = false;
-	dwCoin = 0;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
 	dwStick = 0;
-	abStick = Uint8Array.of(0xf8, 0xf0, 0xf2, 0xf0, 0xf4, 0xf8, 0xf2, 0xf2, 0xf6, 0xf6, 0xf8, 0xf0, 0xf4, 0xf6, 0xf4, 0xf8);
-	abStick2 = Uint8Array.of(~0, ~1, ~2, ~1, ~4, ~0, ~2, ~2, ~8, ~8, ~0, ~1, ~4, ~8, ~4, ~0);
-	dwButton = 0;
+	abStick = Uint8Array.of(~0, ~1, ~2, ~1, ~4, ~0, ~2, ~2, ~8, ~8, ~0, ~1, ~4, ~8, ~4, ~0);
 	nDigdug = 3;
 	nBonus = 'F';
 	nRank = 'B';
@@ -39,13 +37,12 @@ class DigDug {
 	fInterruptEnable1 = false;
 	fInterruptEnable2 = false;
 	fNmiEnable = false;
-	dwMode = 0;
 	ram = new Uint8Array(RAM).addBase();
 	mmi = new Uint8Array(0x100).fill(0xff);
 	mmo = new Uint8Array(0x100);
 	count = 0;
-	dmaport = new Uint8Array(0x100).fill(0x10);
-	ioport = new Uint8Array(0x100).fill(0xff);
+	dmactrl = 0;
+	ioport = new Uint8Array(0x100);
 
 	fBG2Attribute = true;
 	fBG4Disable = true;
@@ -60,10 +57,16 @@ class DigDug {
 	rgb = new Uint32Array(0x20);
 
 	cpu = [new Z80(), new Z80(), new Z80()];
+	mcu = new MB8840();
 
 	constructor() {
 		// CPU周りの初期化
 		const range = (page, start, end = start, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
+		const interrupt = mcu => {
+			mcu.cause = mcu.cause & ~4 | !mcu.interrupt() << 2;
+			for (let op = mcu.execute(); op !== 0x3c && (op !== 0x25 || mcu.cause & 4); op = mcu.execute())
+				op === 0x25 && (mcu.cause &= ~4);
+		};
 
 		for (let page = 0; page < 0x100; page++)
 			if (range(page, 0, 0x3f))
@@ -73,72 +76,43 @@ class DigDug {
 					switch (addr & 0xf0) {
 					case 0x00:
 					case 0x10:
-						sound.write(addr, data, this.count);
-						return;
+						return sound.write(addr, data, this.count);
 					case 0x20:
 						switch (addr & 0x0f) {
 						case 0:
-							this.fInterruptEnable0 = (data & 1) !== 0;
-							break;
+							return void(this.fInterruptEnable0 = (data & 1) !== 0);
 						case 1:
-							this.fInterruptEnable1 = (data & 1) !== 0;
-							break;
+							return void(this.fInterruptEnable1 = (data & 1) !== 0);
 						case 2:
-							if (this.mmo[0x22] && !data)
-								this.fInterruptEnable2 = true;
-							break;
+							return this.mmo[0x22] && !data && (this.fInterruptEnable2 = true), void(this.mmo[0x22] = data);
 						case 3:
-							if ((data & 1) !== 0)
-								this.cpu[1].enable(), this.cpu[2].enable();
-							else
-								this.cpu[1].disable(), this.cpu[2].disable();
-							break;
+							return (data & 1) !== 0 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
 						}
 					}
-					this.mmo[addr & 0xff] = data;
 				};
 			else if (range(page, 0x70)) {
-				this.cpu[0].memorymap[page].base = this.ioport;
-				this.cpu[0].memorymap[page].write = null;
-			} else if (range(page, 0x71)) {
-				this.cpu[0].memorymap[page].base = this.dmaport;
+				this.cpu[0].memorymap[page].read = addr => {
+					let data = 0xff;
+					(this.dmactrl & 1) !== 0 && (data &= this.mcu.o, this.mcu.k |= 8, interrupt(this.mcu));
+					(this.dmactrl & 2) !== 0 && (data &= this.ioport[addr & 0xff]);
+					return data;
+				};
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					this.dmaport[addr & 0xff] = data;
-					switch (data) {
-					case 0x10:
-						this.fNmiEnable = false;
-						return;
+					(this.dmactrl & 1) !== 0 && (this.mcu.k = data & 7, interrupt(this.mcu));
+				};
+			} else if (range(page, 0x71)) {
+				this.cpu[0].memorymap[page].read = () => this.dmactrl;
+				this.cpu[0].memorymap[page].write = (addr, data) => {
+					this.fNmiEnable = (data & 0xe0) !== 0;
+					switch (this.dmactrl = data) {
 					case 0x71:
-						if (!this.dwMode)
-							this.ioport[0] = this.dwCoin / 10 << 4 | this.dwCoin % 10;
-						else if (this.fTest)
-							this.ioport[0] = 0;
-						else
-							this.ioport[0] = 0xff;
-						if (this.fTest)
-							this.ioport[2] = this.ioport[1] = this.abStick2[this.dwStick] & ~this.dwButton;
-						else {
-							this.ioport[2] = this.ioport[1] = this.abStick[this.dwStick] & ~this.dwButton;
-							this.dwButton &= 0x20;
-						}
-						break;
-					case 0xa1:
-						this.dwMode = 1;
-						break;
 					case 0xb1:
-						this.dwCoin = 0;
-						this.ioport[2] = this.ioport[1] = this.ioport[0] = 0;
-						break;
-					case 0xc1:
-					case 0xe1:
-						this.dwMode = 0;
-						break;
+						if (this.mcu.mask & 4)
+							for (this.mcu.execute(); this.mcu.pc !== 0x182; this.mcu.execute()) {}
+						return this.mcu.t = this.mcu.t + 1 & 0xff, this.mcu.k |= 8, interrupt(this.mcu);
 					case 0xd2:
-						this.ioport[0] = this.mmi[0];
-						this.ioport[1] = this.mmi[1];
-						break;
+						return void(this.ioport.set(this.mmi.subarray(0, 2)));
 					}
-					this.fNmiEnable = true;
 				};
 			} else if (range(page, 0x80, 0x87)) {
 				this.cpu[0].memorymap[page].base = this.ram.base[page & 7];
@@ -183,6 +157,9 @@ class DigDug {
 				this.cpu[2].memorymap[page].base = PRG3.base[page & 0xf];
 			else if (range(page, 0x40, 0xff))
 				this.cpu[2].memorymap[page] = this.cpu[0].memorymap[page];
+
+		this.mcu.rom.set(IO);
+		this.mcu.r = 0xffff;
 
 		this.mmi[0] = 0x99; // DIPSW A
 		this.mmi[1] = 0x2e; // DIPSW B
@@ -295,72 +272,56 @@ class DigDug {
 				this.fReset = true;
 		}
 
+		this.mcu.r = this.mcu.r & ~0x8000 | !this.fTest << 15;
+
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.dwCoin = 0;
 			this.fInterruptEnable0 = this.fInterruptEnable1 = this.fInterruptEnable2 = false;
 			this.cpu[0].reset();
 			this.cpu[1].disable();
 			this.cpu[2].disable();
+			for (this.mcu.reset(); ~this.mcu.mask & 4; this.mcu.execute()) {}
 		}
 		return this;
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin && ++this.dwCoin > 99)
-			this.dwCoin = 99;
-		if (this.fStart1P && !this.ram[0x0400] && this.dwCoin)
-			--this.dwCoin;
-		if (this.fStart2P && !this.ram[0x0400] && this.dwCoin >= 2)
-			this.dwCoin -= 2;
-		this.fCoin = this.fStart1P = this.fStart2P = false;
+		this.mcu.r = this.mcu.r & ~0x4c0f | this.abStick[this.dwStick] & 0xf | (this.fStart1P <= 0) << 10 | (this.fStart2P <= 0) << 11 | (this.fCoin <= 0) << 14;
+		this.fCoin -= (this.fCoin > 0), this.fStart1P -= (this.fStart1P > 0), this.fStart2P -= (this.fStart2P > 0);
 		return this;
 	}
 
 	coin() {
-		this.fCoin = true;
+		this.fCoin = 2;
 	}
 
 	start1P() {
-		this.fStart1P = true;
+		this.fStart1P = 2;
 	}
 
 	start2P() {
-		this.fStart2P = true;
+		this.fStart2P = 2;
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 2) | 1 << 0;
-		else
-			this.dwStick &= ~(1 << 0);
+		this.dwStick = fDown ? this.dwStick & ~(1 << 2) | 1 << 0 : this.dwStick & ~(1 << 0);
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 3) | 1 << 1;
-		else
-			this.dwStick &= ~(1 << 1);
+		this.dwStick = fDown ? this.dwStick & ~(1 << 3) | 1 << 1 : this.dwStick & ~(1 << 1);
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 0) | 1 << 2;
-		else
-			this.dwStick &= ~(1 << 2);
+		this.dwStick = fDown ? this.dwStick & ~(1 << 0) | 1 << 2 : this.dwStick & ~(1 << 2);
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 1) | 1 << 3;
-		else
-			this.dwStick &= ~(1 << 3);
+		this.dwStick = fDown ? this.dwStick & ~(1 << 1) | 1 << 3 : this.dwStick & ~(1 << 3);
 	}
 
 	triggerA(fDown) {
-		this.dwButton = fDown ? 0x30 : 0;
+		this.mcu.r = this.mcu.r & ~0x100 | !fDown << 8;
 	}
 
 	triggerB(fDown) {
@@ -1125,7 +1086,7 @@ P2Y=\
  *
  */
 
-let PRG1, PRG2, PRG3, BG2, MAPDATA, BG4, OBJ, SND, BGCOLOR, OBJCOLOR, RGB;
+let PRG1, PRG2, PRG3, BG2, MAPDATA, BG4, OBJ, SND, BGCOLOR, OBJCOLOR, RGB, IO;
 
 read('digdug.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG1 = Uint8Array.concat(...['dd1a.1', 'dd1a.2', 'dd1a.3', 'dd1a.4'].map(e => zip.decompress(e))).addBase();
@@ -1139,6 +1100,8 @@ read('digdug.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	OBJCOLOR = zip.decompress('136007.111');
 	BGCOLOR = zip.decompress('136007.112');
 	SND = zip.decompress('136007.110');
+}).then(() =>read('namco51.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	IO = zip.decompress('51xx.bin');
 	game = new DigDug();
 	sound = new PacManSound({SND, resolution: 2});
 	canvas.addEventListener('click', () => game.coin());

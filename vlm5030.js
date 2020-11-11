@@ -31,9 +31,9 @@ export default class VLM5030 {
 	x = new Int32Array(10);
 	output = 0;
 
-	source;
-	gainNode;
-	scriptNode;
+	source = audioCtx.createBufferSource();
+	gainNode = audioCtx.createGain();
+	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 
 	constructor({VLM, clock, gain = 0.1}) {
 		const sampleRate = Math.floor(audioCtx.sampleRate);
@@ -43,14 +43,9 @@ export default class VLM5030 {
 		this.gain = gain;
 		this.cycles = sampleRate - 1;
 		this.k1 = this.k0;
-		this.source = audioCtx.createBufferSource();
-		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
-		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0));
-		this.source.connect(this.scriptNode);
-		this.scriptNode.connect(this.gainNode);
-		this.gainNode.connect(audioCtx.destination);
+		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
 		this.source.start();
 	}
 

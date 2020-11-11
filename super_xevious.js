@@ -8,6 +8,7 @@ import PacManSound from './pac-man_sound.js';
 import Namco54XX from './namco_54xx.js';
 import Cpu, {init, read} from './main.js';
 import Z80 from './z80.js';
+import MB8840 from './mb8840.js';
 let game, sound;
 
 class SuperXevious {
@@ -22,12 +23,10 @@ class SuperXevious {
 	fReset = false;
 	fTest = false;
 	fDIPSwitchChanged = true;
-	fCoin = false;
-	fStart1P = false;
-	fStart2P = false;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
 	dwStick = 0;
-	dwStickPrev = 0;
-	dwCoin = 0;
 	nSolvalou = 3;
 	nRank = 'NORMAL';
 	nBonus = 'A';
@@ -37,14 +36,10 @@ class SuperXevious {
 	fSoundEnable = false;
 	ram = new Uint8Array(0x4000).addBase();
 	mmi = new Uint8Array(0x100).fill(0xff);
-	mmo = new Uint8Array(0x100);
 	count = 0;
 	mapreg = new Uint8Array(0x100);
 	mapaddr = 0;
-	dmaport = new Uint8Array(0x100);
-	ioport = new Uint8Array(0x100);
-	keyport = 0;
-	keytbl = Uint8Array.of(8, 0, 2, 1, 4, 8, 3, 8, 6, 7, 8, 8, 5, 8, 8, 8);
+	dmactrl = 0;
 
 	maptbl = new Uint16Array(0x8000);
 	mapatr = new Uint8Array(0x8000);
@@ -59,14 +54,16 @@ class SuperXevious {
 	dwScroll = 0xff;
 
 	cpu = [new Z80(), new Z80(), new Z80()];
+	mcu = [new MB8840(), new MB8840()];
 
 	constructor() {
 		// CPU周りの初期化
-		this.ioport[0] = 0x00;
-		this.ioport[1] = 0xf8;
-		this.ioport[2] = 0xf8;
-
 		const range = (page, start, end = start, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
+		const interrupt = mcu => {
+			mcu.cause = mcu.cause & ~4 | !mcu.interrupt() << 2;
+			for (let op = mcu.execute(); op !== 0x3c && (op !== 0x25 || mcu.cause & 4); op = mcu.execute())
+				op === 0x25 && (mcu.cause &= ~4);
+		};
 
 		for (let page = 0; page < 0x100; page++)
 			if (range(page, 0, 0x3f))
@@ -74,77 +71,41 @@ class SuperXevious {
 			else if (range(page, 0x68)) {
 				this.cpu[0].memorymap[page].base = this.mmi;
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					switch (addr & 0xf0) {
-					case 0x00:
-					case 0x10:
-						break;
+					switch (addr & 0xff) {
 					case 0x20:
-						switch (addr & 0x0f) {
-						case 0:
-							this.fInterruptEnable = (data & 1) !== 0;
-							break;
-						case 1:
-							break;
-						case 2:
-							if (data)
-								this.cpu[1].enable(), this.cpu[2].enable();
-							else
-								this.cpu[1].disable(), this.cpu[2].disable();
-							break;
-						case 3:
-							this.fSoundEnable = (data & 1) !== 0;
-							break;
-						}
-						// fallthrough
-					default:
-						this.mmo[addr & 0xff] = data;
-						break;
+						return void(this.fInterruptEnable = (data & 1) !== 0);
+					case 0x22:
+						return (data & 1) !== 0 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
+					case 0x23:
+						return void(this.fSoundEnable = (data & 1) !== 0);
 					}
 				};
 			} else if (range(page, 0x70)) {
-				this.cpu[0].memorymap[page].base = this.ioport;
+				this.cpu[0].memorymap[page].read = () => {
+					let data = 0xff;
+					(this.dmactrl & 1) !== 0 && (data &= this.mcu[0].o, this.mcu[0].k |= 8, interrupt(this.mcu[0]));
+					(this.dmactrl & 4) !== 0 && (data &= this.mcu[1].o, this.mcu[1].r |= 0x100, interrupt(this.mcu[1]));
+					return data;
+				};
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					if ((this.dmaport[0] & 8) !== 0)
-						sound[1].write(data);
-					switch (this.dmaport[0]) {
-					case 0x64: // keyctrl
-						switch (data) {
-						case 0x80:
-							return void(this.keyport = 5);
-						case 0xe5:
-							return void(this.keyport = 0x95);
-						}
-					}
+					(this.dmactrl & 1) !== 0 && (addr < 0x7005 || data !== 1) && (this.mcu[0].k = data & 7, interrupt(this.mcu[0]));
+					(this.dmactrl & 4) !== 0 && (this.mcu[1].r = data & 15, this.mcu[1].k = data >> 4, interrupt(this.mcu[1]));
+					(this.dmactrl & 8) !== 0 && sound[1].write(data);
 				};
 			} else if (range(page, 0x71)) {
-				this.cpu[0].memorymap[page].base = this.dmaport;
+				this.cpu[0].memorymap[page].read = () => this.dmactrl;
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					this.dmaport[addr & 0xff] = data;
-					switch (data) {
-					case 0x10:
-						this.fNmiEnable = false;
-						return;
+					this.fNmiEnable = (data & 0xe0) !== 0;
+					switch (this.dmactrl = data) {
 					case 0x71:
-						this.ioport[0] = this.dwCoin / 10 << 4 | this.dwCoin % 10;
-						this.ioport[1] = this.keytbl[this.dwStick & 0x0f] | 0x30;
-						this.mmi[0] |= 1;
-						if ((this.dwStick & 0x10) !== 0) {
-							this.ioport[1] &= 0xdf;
-							if ((this.dwStickPrev & 0x10) === 0)
-								this.ioport[1] &= 0xef;
-						}
-						if ((this.dwStick & 0x20) !== 0)
-							this.mmi[0] &= 0xfe;
-						this.dwStickPrev = this.dwStick;
-						break;
+						if (this.mcu[0].mask & 4)
+							for (this.mcu[0].execute(); this.mcu[0].pc !== 0x182; this.mcu[0].execute()) {}
+						return this.mcu[0].t = this.mcu[0].t + 1 & 0xff, this.mcu[0].k |= 8, interrupt(this.mcu[0]);
 					case 0x74:
-						this.ioport[3] = this.keyport;
-						break;
-					default:
-						this.dmaport[addr & 0xff] = data;
-						break;
+						if (this.mcu[1].mask & 4)
+							for (this.mcu[1].execute(); this.mcu[1].pc !== 0x4c; this.mcu[1].execute()) {}
+						return this.mcu[1].r |= 0x100, interrupt(this.mcu[1]);
 					}
-					this.fNmiEnable = true;
 				};
 			} else if (range(page, 0x78, 0x7f)) {
 				this.cpu[0].memorymap[page].base = this.ram.base[page & 7];
@@ -205,16 +166,12 @@ class SuperXevious {
 			else if (range(page, 0x40, 0xff))
 				this.cpu[2].memorymap[page] = this.cpu[0].memorymap[page];
 		this.cpu[2].memorymap[0x68] = {base: this.mmi, read: null, write: (addr, data) => {
-			switch (addr & 0xf0) {
-			case 0x00:
-			case 0x10:
-				return sound[0].write(addr, data, this.count);
-			case 0x20:
-				return;
-			default:
-				return void(this.mmo[addr & 0xff] = data);
-			}
+			(addr & 0xe0) === 0 && sound[0].write(addr, data, this.count);
 		}, fetch: null};
+
+		this.mcu[0].rom.set(IO);
+		this.mcu[0].r = 0xffff;
+		this.mcu[1].rom.set(KEY);
 
 		// DIPSW SETUP
 		this.mmi.fill(3, 0, 7);
@@ -246,6 +203,8 @@ class SuperXevious {
 				this.cpu[0].non_maskable_interrupt();	// DMA INTERRUPT
 			Cpu.multiple_execute(this.cpu, 32);
 		}
+		if (this.mcu[1].mask & 4)
+			for (this.mcu[1].execute(); this.mcu[1].pc !== 0x4c; this.mcu[1].execute()) {}
 		return this;
 	}
 
@@ -315,86 +274,64 @@ class SuperXevious {
 				this.fReset = true;
 		}
 
-		if (this.fTest)
-			this.ioport[0] |= 0x80;
+		this.mcu[0].r = this.mcu[0].r & ~0x8000 | !this.fTest << 15;
 
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
 			this.fSoundEnable = false;
 			sound[1].reset();
-			this.dwCoin = 0;
+			this.fInterruptEnable = false;
+			this.fNmiEnable = false;
 			this.cpu[0].reset();
 			this.cpu[1].disable();
 			this.cpu[2].disable();
+			for (this.mcu[0].reset(); ~this.mcu[0].mask & 4; this.mcu[0].execute()) {}
+			for (this.mcu[1].reset(); ~this.mcu[1].mask & 4; this.mcu[1].execute()) {}
 		}
 		return this;
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin && ++this.dwCoin > 99)
-			this.dwCoin = 99;
-		if (this.fStart1P && !this.ram[0x0823] && this.dwCoin >= 1)
-			--this.dwCoin;
-		if (this.fStart2P && !this.ram[0x0823] && this.dwCoin >= 2)
-			this.dwCoin -= 2;
-		this.fCoin = this.fStart1P = this.fStart2P = false;
+		this.mcu[0].r = this.mcu[0].r & ~0x4c0f | ~this.dwStick & 0xf | (this.fStart1P <= 0) << 10 | (this.fStart2P <= 0) << 11 | (this.fCoin <= 0) << 14;
+		this.fCoin -= (this.fCoin > 0), this.fStart1P -= (this.fStart1P > 0), this.fStart2P -= (this.fStart2P > 0);
 		return this;
 	}
 
 	coin() {
-		this.fCoin = true;
+		this.fCoin = 2;
 	}
 
 	start1P() {
-		this.fStart1P = true;
+		this.fStart1P = 2;
 	}
 
 	start2P() {
-		this.fStart2P = true;
+		this.fStart2P = 2;
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 2) | 1 << 0;
-		else
-			this.dwStick &= ~(1 << 0);
+		this.dwStick = fDown ? this.dwStick & ~(1 << 2) | 1 << 0 : this.dwStick & ~(1 << 0);
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 3) | 1 << 1;
-		else
-			this.dwStick &= ~(1 << 1);
+		this.dwStick = fDown ? this.dwStick & ~(1 << 3) | 1 << 1 : this.dwStick & ~(1 << 1);
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 0) | 1 << 2;
-		else
-			this.dwStick &= ~(1 << 2);
+		this.dwStick = fDown ? this.dwStick & ~(1 << 0) | 1 << 2 : this.dwStick & ~(1 << 2);
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 1) | 1 << 3;
-		else
-			this.dwStick &= ~(1 << 3);
+		this.dwStick = fDown ? this.dwStick & ~(1 << 1) | 1 << 3 : this.dwStick & ~(1 << 3);
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.dwStick |= 1 << 4;
-		else
-			this.dwStick &= ~(1 << 4);
+		this.mcu[0].r = this.mcu[0].r & ~0x100 | !fDown << 8;
 	}
 
 	triggerB(fDown) {
-		if (fDown)
-			this.dwStick |= 1 << 5;
-		else
-			this.dwStick &= ~(1 << 5);
+		this.mmi[0] = this.mmi[0] & ~1 | !fDown;
 	}
 
 	convertMAP() {
@@ -1236,7 +1173,7 @@ class SuperXevious {
  *
  */
 
-let BG2, BG4, OBJ4, OBJ8, BGCOLOR_H, BGCOLOR_L, OBJCOLOR_H, OBJCOLOR_L, RED, GREEN, BLUE, SND, PRG1, PRG2, PRG3, MAPTBL, MAPDATA, PRG;
+let BG2, BG4, OBJ4, OBJ8, BGCOLOR_H, BGCOLOR_L, OBJCOLOR_H, OBJCOLOR_L, RED, GREEN, BLUE, SND, PRG1, PRG2, PRG3, MAPTBL, MAPDATA, KEY, IO, PRG;
 
 read('xevious.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG1 = Uint8Array.concat(...['sxeviousj/xv3_1.3p', 'sxeviousj/xv3_2.3m', 'sxevious/xv3_3.2m', 'sxevious/xv3_4.2l'].map(e => zip.decompress(e))).addBase();
@@ -1256,6 +1193,10 @@ read('xevious.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	OBJCOLOR_L = zip.decompress('xvi-4.3l');
 	OBJCOLOR_H = zip.decompress('xvi-5.3m');
 	SND = zip.decompress('xvi-2.7n');
+}).then(() => read('namco50.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	KEY = zip.decompress('50xx.bin');
+}).then(() => read('namco51.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	IO = zip.decompress('51xx.bin');
 }).then(() => read('namco54.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG = zip.decompress('54xx.bin');
 	game = new SuperXevious();

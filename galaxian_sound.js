@@ -10,22 +10,17 @@ export default class GalaxianSound {
 	gain;
 	channel = {voice: 0, freq: 0, phase: 0};
 
-	source;
-	gainNode;
-	scriptNode;
+	source = audioCtx.createBufferSource();
+	gainNode = audioCtx.createGain();
+	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 
 	constructor({SND, gain = 0.1}) {
 		this.snd = Float32Array.from(SND, e => (e & 0x0f) * 2 / 15 - 1);
 		this.rate = Math.floor(0x10000000 * 48000 / audioCtx.sampleRate);
 		this.gain = gain;
-		this.source = audioCtx.createBufferSource();
-		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = this.gain;
-		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0));
-		this.source.connect(this.scriptNode);
-		this.scriptNode.connect(this.gainNode);
-		this.gainNode.connect(audioCtx.destination);
+		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
 		this.source.start();
 	}
 

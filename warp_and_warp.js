@@ -366,9 +366,9 @@ class WarpAndWarpSound {
 	channel = {voice: 0, freq: 0, phase: 0};
 
 	audioBuffer = [];
-	source;
-	gainNode;
-	scriptNode;
+	source = audioCtx.createBufferSource();
+	gainNode = audioCtx.createGain();
+	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 
 	constructor({gain = 0.1} = {}) {
 		this.rate = Math.floor(0x8000000 * (48000 / audioCtx.sampleRate));
@@ -377,7 +377,6 @@ class WarpAndWarpSound {
 			this.audioBuffer[i] = audioCtx.createBuffer(1, 32 * (8 - i), 44100);
 			this.audioBuffer[i].getChannelData(0).fill(1, 0, 16).fill(-1, 16);
 		}
-		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => {
 			outputBuffer.getChannelData(0).forEach((v, i, data) => {
 				data[i] = this.audioBuffer[this.channel.voice].getChannelData(0)[this.channel.phase >>> 23];
@@ -385,12 +384,8 @@ class WarpAndWarpSound {
 				this.channel.phase %= this.audioBuffer[this.channel.voice].getChannelData(0).length << 23;
 			});
 		};
-		this.source = audioCtx.createBufferSource();
-		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
-		this.source.connect(this.scriptNode);
-		this.scriptNode.connect(this.gainNode);
-		this.gainNode.connect(audioCtx.destination);
+		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
 		this.source.start();
 	}
 

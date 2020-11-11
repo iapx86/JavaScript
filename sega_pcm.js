@@ -18,9 +18,9 @@ export default class SegaPCM {
 	cycles = 0;
 	low = new Uint8Array(16);
 
-	source;
-	gainNode;
-	scriptNode;
+	source = audioCtx.createBufferSource();
+	gainNode = audioCtx.createGain();
+	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 
 	constructor({PCM, clock, resolution = 1, gain = 1}) {
 		this.pcm = Float32Array.from(PCM, e => e * 2 / 255 - 1);
@@ -31,14 +31,9 @@ export default class SegaPCM {
 		this.gain = gain;
 		for (let i = 0; i < resolution; i++)
 			this.tmpwheel.push([]);
-		this.source = audioCtx.createBufferSource();
-		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
-		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0).fill(0));
-		this.source.connect(this.scriptNode);
-		this.scriptNode.connect(this.gainNode);
-		this.gainNode.connect(audioCtx.destination);
+		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
 		this.source.start();
 	}
 

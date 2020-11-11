@@ -14,9 +14,9 @@ export default class Dac8Bit2Ch {
 	position = 0;
 	channel = [];
 
-	source;
-	gainNode;
-	scriptNode;
+	source = audioCtx.createBufferSource();
+	gainNode = audioCtx.createGain();
+	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 
 	constructor({resolution = 1, gain = 1}) {
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
@@ -25,14 +25,9 @@ export default class Dac8Bit2Ch {
 		this.tmpwheel = [new Uint8Array(resolution).fill(0x80), new Uint8Array(resolution).fill(0x80)];
 		for (let i = 0; i < 2; i++)
 			this.channel.push({output: 0, gain: 1});
-		this.source = audioCtx.createBufferSource();
-		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
-		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0).fill(0));
-		this.source.connect(this.scriptNode);
-		this.scriptNode.connect(this.gainNode);
-		this.gainNode.connect(audioCtx.destination);
+		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
 		this.source.start();
 	}
 

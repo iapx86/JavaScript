@@ -46,17 +46,17 @@ export default class MB8840 {
 		switch (cause) {
 		default:
 		case 'external':
-			if ((this.mask & 4) === 0)
+			if (~this.mask & 4)
 				return false;
 			this.mask &= ~4, vector = 2;
 			break;
 		case 'timer':
-			if ((this.mask & 2) === 0)
+			if (~this.mask & 2)
 				return false;
 			this.mask &= ~2, vector = 4;
 			break;
 		case 'serial':
-			if ((this.mask & 1) === 0)
+			if (~this.mask & 1)
 				return false;
 			this.mask &= ~1, vector = 6;
 		}
@@ -91,7 +91,7 @@ export default class MB8840 {
 		case 0x0b: // X
 			return v = this.m[this.x][this.y], this.m[this.x][this.y] = this.a, this.a = v, this.zf = !this.a, this.st = true, op;
 		case 0x0c: // ROL
-			return v = this.a << 1 & 15 | this.cf, this.zf = !v, this.cf = (this.a >> 3) !== 0, this.a = v, this.st = !this.cf, op;
+			return v = this.a << 1 | this.cf, this.a = v & 15, this.zf = !this.a, this.cf = v >> 4 !== 0, this.st = !this.cf, op;
 		case 0x0d: // L
 			return this.a = this.m[this.x][this.y], this.zf = !this.a, this.st = true, op;
 		case 0x0e: // ADC
@@ -127,7 +127,7 @@ export default class MB8840 {
 		case 0x1d: // ST
 			return this.m[this.x][this.y] = this.a, this.st = true, op;
 		case 0x1e: // SBC
-			return v = this.a - this.m[this.x][this.y] - this.cf, this.a = v & 15, this.zf = !this.a, this.cf = v >> 4 !== 0, this.st = !this.cf, op;
+			return v = this.m[this.x][this.y] - this.a - this.cf, this.a = v & 15, this.zf = !this.a, this.cf = v >> 4 !== 0, this.st = !this.cf, op;
 		case 0x1f: // OR
 			return this.a |= this.m[this.x][this.y], this.zf = !this.a, this.st = !this.zf, op;
 		case 0x20: // SETR
@@ -139,13 +139,13 @@ export default class MB8840 {
 		case 0x23: // RSTC
 			return this.cf = false, this.st = true, op;
 		case 0x24: // TSTR
-			return this.st = (this.r >> this.y & 1) === 0, op;
+			return this.st = (~this.r >> this.y & 1) !== 0, op;
 		case 0x25: // TSTI
-			return this.st = (this.cause & 4) === 0, op;
+			return this.st = (~this.cause >> 2 & 1) !== 0, op;
 		case 0x26: // TSTV
-			return this.st = (this.cause & 2) === 0, this.cause &= ~2, op;
+			return this.st = (~this.cause >> 1 & 1) !== 0, this.cause &= ~2, op;
 		case 0x27: // TSTS
-			return this.st = (this.cause & 1) === 0, this.cause &= ~1, op;
+			return this.st = (~this.cause & 1) !== 0, this.cause &= ~1, op;
 		case 0x28: // TSTC
 			return this.st = !this.cf, op;
 		case 0x29: // TSTZ
@@ -157,9 +157,9 @@ export default class MB8840 {
 		case 0x2c: // RTS
 			return this.pc = this.pop() & 0x7ff, this.st = true, op;
 		case 0x2d: // NEG
-			return this.a = -this.a & 15, this.zf = !this.a, this.st = !this.zf, op;
+			return this.a = -this.a & 15, this.st = !!this.a, op;
 		case 0x2e: // C
-			return v = this.a - this.m[this.x][this.y], this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, op;
+			return v = this.m[this.x][this.y] - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, op;
 		case 0x2f: // EOR
 			return this.a ^= this.m[this.x][this.y], this.zf = !this.a, this.st = !this.zf, op;
 		case 0x30: case 0x31: case 0x32: case 0x33: // SBIT bp
@@ -167,9 +167,9 @@ export default class MB8840 {
 		case 0x34: case 0x35: case 0x36: case 0x37: // RBIT bp
 			return this.m[this.x][this.y] &= ~(1 << (op & 3)), this.st = true, op;
 		case 0x38: case 0x39: case 0x3a: case 0x3b: // TBIT bp
-			return this.st = (this.m[this.x][this.y] >> (op & 3) & 1) === 0, op;
+			return this.st = (~this.m[this.x][this.y] >> (op & 3) & 1) !== 0, op;
 		case 0x3c: // RTI
-			return this.rti(), op;
+			return v = this.pop(), this.zf = (v >> 13 & 1) !== 0, this.cf = (v >> 14 & 1) !== 0, this.st = (v >> 15 & 1) !== 0, this.pc = v & 0x7ff, op;
 		case 0x3d: // JPA addr
 			return this.pc = this.a << 2 | this.fetch() << 6 & 0x7c0, this.st = true, op;
 		case 0x3e: // EN imm
@@ -181,9 +181,9 @@ export default class MB8840 {
 		case 0x44: case 0x45: case 0x46: case 0x47: // RSTD d
 			return this.r &= ~(1 << (op & 3)), this.st = true, op;
 		case 0x48: case 0x49: case 0x4a: case 0x4b: // TSTD d
-			return this.st = (this.r >> (op & 15) & 1) === 0, op;
+			return this.st = (~this.r >> (op & 15) & 1) !== 0, op;
 		case 0x4c: case 0x4d: case 0x4e: case 0x4f: // TBA bp
-			return this.st = (this.a >> (op & 3) & 1) === 0, op;
+			return this.st = (~this.a >> (op & 3) & 1) !== 0, op;
 		case 0x50: case 0x51: case 0x52: case 0x53: // XD D
 			return v = this.m[0][op & 3], this.m[0][op & 3] = this.a, this.a = v, this.zf = !this.a, this.st = true, op;
 		case 0x54: case 0x55: case 0x56: case 0x57: // XYD D
@@ -205,18 +205,13 @@ export default class MB8840 {
 			return this.a = op & 15, this.zf = !this.a, this.st = true, op;
 		case 0xa0: case 0xa1: case 0xa2: case 0xa3: case 0xa4: case 0xa5: case 0xa6: case 0xa7:
 		case 0xa8: case 0xa9: case 0xaa: case 0xab: case 0xac: case 0xad: case 0xae: case 0xaf: // CYI imm
-			return v = this.y - (op & 15), this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, op;
+			return v = (op & 15) - this.y, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, op;
 		case 0xb0: case 0xb1: case 0xb2: case 0xb3: case 0xb4: case 0xb5: case 0xb6: case 0xb7:
 		case 0xb8: case 0xb9: case 0xba: case 0xbb: case 0xbc: case 0xbd: case 0xbe: case 0xbf: // CI imm
-			return v = this.a - (op & 15), this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, op;
+			return v = (op & 15) - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, op;
 		default: // JMP addr
 			return this.st && (this.pc = this.pc & ~63 | op & 63), this.st = true, op;
 		}
-	}
-
-	rti() {
-		const addr = this.pop();
-		this.zf = (addr >> 13 & 1) !== 0, this.cf = (addr >> 14 & 1) !== 0, this.st = (addr >> 15 & 1) !== 0, this.pc = addr & 0x7ff;
 	}
 
 	push(addr) {

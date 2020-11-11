@@ -13,9 +13,9 @@ export default class YM2151 {
 	wheel = [];
 	opm = new OPM();
 
-	source;
-	gainNode;
-	scriptNode;
+	source = audioCtx.createBufferSource();
+	gainNode = audioCtx.createGain();
+	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 
 	constructor({clock, resolution = 1, gain = 1}) {
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
@@ -25,14 +25,9 @@ export default class YM2151 {
 		for (let i = 0; i < resolution; i++)
 			this.tmpwheel.push([]);
 		this.opm.Init(clock, Math.floor(audioCtx.sampleRate));
-		this.source = audioCtx.createBufferSource();
-		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
-		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0));
-		this.source.connect(this.scriptNode);
-		this.scriptNode.connect(this.gainNode);
-		this.gainNode.connect(audioCtx.destination);
+		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
 		this.source.start();
 	}
 

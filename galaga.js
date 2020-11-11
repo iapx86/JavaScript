@@ -8,6 +8,7 @@ import PacManSound from './pac-man_sound.js';
 import Namco54XX from './namco_54xx.js';
 import Cpu, {init, read} from './main.js';
 import Z80 from './z80.js';
+import MB8840 from './mb8840.js';
 let game, sound;
 
 class Galaga {
@@ -22,14 +23,11 @@ class Galaga {
 	fReset = false;
 	fTest = false;
 	fDIPSwitchChanged = true;
-	fCoin = false;
-	fStart1P = false;
-	fStart2P = false;
-	dwCoin = 0;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
 	dwStick = 0;
-	abStick = Uint8Array.of(0xff, 0xff, 0xfd, 0xff, 0xff, 0xff, 0xfd, 0xfd, 0xf7, 0xf7, 0xff, 0xff, 0xff, 0xf7, 0xff, 0xff);
-	abStick2 = Uint8Array.of(~0, ~1, ~2, ~1, ~4, ~0, ~2, ~2, ~8, ~8, ~0, ~1, ~4, ~8, ~4, ~0);
-	dwButton = 0;
+	abStick = Uint8Array.of(~0, ~1, ~2, ~1, ~4, ~0, ~2, ~2, ~8, ~8, ~0, ~1, ~4, ~8, ~4, ~0);
 	nMyShip = 3;
 	nRank = 'NORMAL';
 	nBonus = 'B';
@@ -39,14 +37,10 @@ class Galaga {
 	fInterruptEnable1 = false;
 	fNmiEnable = false;
 	fSoundEnable = false;
-	dwMode = 0;
 	ram = new Uint8Array(0x2000).addBase();
 	mmi = new Uint8Array(0x100).fill(0xff);
-	mmo = new Uint8Array(0x100);
 	count = 0;
-	keyport = new Uint8Array(0x100);
-	dmaport = new Uint8Array(0x100).fill(0x10);
-	ioport = new Uint8Array(0x100).fill(0xff);
+	dmactrl = 0;
 	starport = new Uint8Array(0x100).fill(0xff);
 
 	stars = [];
@@ -59,10 +53,16 @@ class Galaga {
 	rgb = new Uint32Array(0x80);
 
 	cpu = [new Z80(), new Z80(), new Z80()];
+	mcu = new MB8840();
 
 	constructor() {
 		// CPU周りの初期化
 		const range = (page, start, end = start, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
+		const interrupt = mcu => {
+			mcu.cause = mcu.cause & ~4 | !mcu.interrupt() << 2;
+			for (let op = mcu.execute(); op !== 0x3c && (op !== 0x25 || mcu.cause & 4); op = mcu.execute())
+				op === 0x25 && (mcu.cause &= ~4);
+		};
 
 		for (let page = 0; page < 0x100; page++)
 			if (range(page, 0, 0x3f))
@@ -70,79 +70,40 @@ class Galaga {
 			else if (range(page, 0x68)) {
 				this.cpu[0].memorymap[page].base = this.mmi;
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					switch (addr & 0xf0) {
-					case 0x00:
-					case 0x10:
-						break;
+					switch (addr & 0xff) {
 					case 0x20:
-						switch (addr & 0x0f) {
-						case 0:
-							this.fInterruptEnable0 = (data & 1) !== 0;
-							break;
-						case 1:
-							this.fInterruptEnable1 = (data & 1) !== 0;
-							break;
-						case 2:
-							this.fSoundEnable = (data & 1) !== 0;
-							break;
-						case 3:
-							if (data)
-								this.cpu[1].enable(), this.cpu[2].enable();
-							else
-								this.cpu[1].disable(), this.cpu[2].disable();
-							break;
-						}
-						// fallthrough
-					default:
-						this.mmo[addr & 0xff] = data;
-						break;
+						return void(this.fInterruptEnable0 = (data & 1) !== 0);
+					case 0x21:
+						return void(this.fInterruptEnable1 = (data & 1) !== 0);
+					case 0x22:
+						return void(this.fSoundEnable = (data & 1) !== 0);
+					case 0x23:
+						return (data & 1) !== 0 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
 					}
 				};
 			} else if (range(page, 0x70)) {
-				this.cpu[0].memorymap[page].base = this.ioport;
-				this.cpu[0].memorymap[page].write = (addr, data) => void((this.dmaport[0] & 8) !== 0 && sound[1].write(data));
-			} else if (range(page, 0x71)) {
-				this.cpu[0].memorymap[page].base = this.dmaport;
+				this.cpu[0].memorymap[page].read = () => {
+					let data = 0xff;
+					(this.dmactrl & 1) !== 0 && (data &= this.mcu.o, this.mcu.k |= 8, interrupt(this.mcu));
+					return data;
+				};
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					this.dmaport[addr & 0xff] = data;
-					switch (data) {
-					case 0x10:
-						this.fNmiEnable = false;
-						return;
+					(this.dmactrl & 1) !== 0 && (this.mcu.k = data & 7, interrupt(this.mcu));
+					(this.dmactrl & 8) !== 0 && sound[1].write(data);
+				};
+			} else if (range(page, 0x71)) {
+				this.cpu[0].memorymap[page].read = () => this.dmactrl;
+				this.cpu[0].memorymap[page].write = (addr, data) => {
+					this.fNmiEnable = (data & 0xe0) !== 0;
+					switch (this.dmactrl = data) {
 					case 0x71:
-						if (!this.dwMode)
-							this.ioport[0] = this.dwCoin / 10 << 4 | this.dwCoin % 10;
-						else if (this.fTest)
-							this.ioport[0] = 0;
-						else
-							this.ioport[0] = 0xff;
-						if (this.fTest)
-							this.ioport[2] = this.ioport[1] = this.abStick2[this.dwStick] & ~this.dwButton;
-						else {
-							this.ioport[2] = this.ioport[1] = this.abStick[this.dwStick] & ~this.dwButton;
-							this.dwButton &= 0x20;
-						}
-						break;
-					case 0xa1:
-						this.dwMode = 1;
-						break;
 					case 0xb1:
-						this.dwCoin = 0;
-						this.ioport[2] = this.ioport[1] = this.ioport[0] = 0;
-						break;
-					case 0xc1:
-						this.dwMode = 0;
-						break;
+						if (this.mcu.mask & 4)
+							for (this.mcu.execute(); this.mcu.pc !== 0x182; this.mcu.execute()) {}
+						return this.mcu.t = this.mcu.t + 1 & 0xff, this.mcu.k |= 8, interrupt(this.mcu);
 					case 0xe1:
-						this.dwMode = 0;
-						this.ram[0x11b8] = this.ram[0x11b7] = this.ram[0x11b6] = this.ram[0x11b5] = 0;
-						break;
-					case 0xd2:
-						this.ioport[0] = this.mmi[0];
-						this.ioport[1] = this.mmi[1];
-						break;
+						return void(this.ram.fill(0, 0x11b5, 0x11b9));
 					}
-					this.fNmiEnable = true;
 				};
 			} else if (range(page, 0x80, 0x87)) {
 				this.cpu[0].memorymap[page].base = this.ram.base[page & 7];
@@ -171,8 +132,7 @@ class Galaga {
 						break;
 					}
 				};
-			} else if (range(page, 0xb1))
-				this.cpu[0].memorymap[page].base = this.keyport;
+			}
 
 		for (let page = 0; page < 0x100; page++)
 			if (range(page, 0, 0x1f))
@@ -186,18 +146,11 @@ class Galaga {
 			else if (range(page, 0x40, 0xff))
 				this.cpu[2].memorymap[page] = this.cpu[0].memorymap[page];
 		this.cpu[2].memorymap[0x68] = {base: this.mmi, read: null, write: (addr, data) => {
-			switch (addr & 0xf0) {
-			case 0x00:
-			case 0x10:
-				sound[0].write(addr, data, this.count);
-				break;
-			case 0x20:
-				break;
-			default:
-				this.mmo[addr & 0xff] = data;
-				break;
-			}
+			(addr & 0xe0) === 0 && sound[0].write(addr, data, this.count);
 		}, fetch: null};
+
+		this.mcu.rom.set(IO);
+		this.mcu.r = 0xffff;
 
 		// DIPSW SETUP A:0x01 B:0x02
 		this.mmi[0] = 3; // DIPSW B/A1
@@ -312,67 +265,59 @@ class Galaga {
 				this.fReset = true;
 		}
 
+		this.mcu.r = this.mcu.r & ~0x8000 | !this.fTest << 15;
+
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
 			this.fSoundEnable = false;
 			sound[1].reset();
-			this.dwCoin = 0;
 			this.fInterruptEnable0 = this.fInterruptEnable1 = false;
 			this.cpu[0].reset();
 			this.cpu[1].disable();
 			this.cpu[2].disable();
+			for (this.mcu.reset(); ~this.mcu.mask & 4; this.mcu.execute()) {}
 			this.fStarEnable = false;
 		}
 		return this;
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin && ++this.dwCoin > 99)
-			this.dwCoin = 99;
-		if (this.fStart1P && this.ram[0x0e01] === 2 && this.dwCoin)
-			--this.dwCoin;
-		if (this.fStart2P && this.ram[0x0e01] === 2 && this.dwCoin >= 2)
-			this.dwCoin -= 2;
-		this.fCoin = this.fStart1P = this.fStart2P = false;
+		this.mcu.r = this.mcu.r & ~0x4c0f | this.abStick[this.dwStick] & 0xf | (this.fStart1P <= 0) << 10 | (this.fStart2P <= 0) << 11 | (this.fCoin <= 0) << 14;
+		this.fCoin -= (this.fCoin > 0), this.fStart1P -= (this.fStart1P > 0), this.fStart2P -= (this.fStart2P > 0);
 		return this;
 	}
 
 	coin() {
-		this.fCoin = true;
+		this.fCoin = 2;
 	}
 
 	start1P() {
-		this.fStart1P = true;
+		this.fStart1P = 2;
 	}
 
 	start2P() {
-		this.fStart2P = true;
+		this.fStart2P = 2;
 	}
 
 	up(fDown) {
+		this.dwStick = fDown ? this.dwStick & ~(1 << 2) | 1 << 0 : this.dwStick & ~(1 << 0);
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 3) | 1 << 1;
-		else
-			this.dwStick &= ~(1 << 1);
+		this.dwStick = fDown ? this.dwStick & ~(1 << 3) | 1 << 1 : this.dwStick & ~(1 << 1);
 	}
 
 	down(fDown) {
+		this.dwStick = fDown ? this.dwStick & ~(1 << 0) | 1 << 2 : this.dwStick & ~(1 << 2);
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 1) | 1 << 3;
-		else
-			this.dwStick &= ~(1 << 3);
+		this.dwStick = fDown ? this.dwStick & ~(1 << 1) | 1 << 3 : this.dwStick & ~(1 << 3);
 	}
 
 	triggerA(fDown) {
-		this.dwButton = fDown ? 0x30 : 0;
+		this.mcu.r = this.mcu.r & ~0x100 | !fDown << 8;
 	}
 
 	triggerB(fDown) {
@@ -980,7 +925,7 @@ class Galaga {
  *
  */
 
-let BG, OBJ, BGCOLOR, OBJCOLOR, RGB, SND, PRG1, PRG2, PRG3, PRG;
+let BG, OBJ, BGCOLOR, OBJCOLOR, RGB, SND, PRG1, PRG2, PRG3, IO, PRG;
 
 read('galaga.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG1 = Uint8Array.concat(...['gg1_1b.3p', 'gg1_2b.3m', 'gg1_3.2m', 'gg1_4b.2l'].map(e => zip.decompress(e))).addBase();
@@ -992,6 +937,8 @@ read('galaga.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	BGCOLOR = zip.decompress('prom-4.2n');
 	OBJCOLOR = zip.decompress('prom-3.1c');
 	SND = zip.decompress('prom-1.1d');
+}).then(() => read('namco51.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	IO = zip.decompress('51xx.bin');
 }).then(() => read('namco54.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG = zip.decompress('54xx.bin');
 	game = new Galaga();

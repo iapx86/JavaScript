@@ -16,9 +16,9 @@ export default class K005289 {
 	reg = new Uint16Array(4);
 	phase = new Uint32Array(2);
 
-	source;
-	gainNode;
-	scriptNode;
+	source = audioCtx.createBufferSource();
+	gainNode = audioCtx.createGain();
+	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 
 	constructor({SND, clock, resolution = 1, gain = 0.1}) {
 		this.snd = Float32Array.from(SND, e => (e & 0xf) * 2 / 15 - 1);
@@ -29,14 +29,9 @@ export default class K005289 {
 		this.gain = gain;
 		for (let i = 0; i < resolution; i++)
 			this.tmpwheel.push([]);
-		this.source = audioCtx.createBufferSource();
-		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
-		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0).fill(0));
-		this.source.connect(this.scriptNode);
-		this.scriptNode.connect(this.gainNode);
-		this.gainNode.connect(audioCtx.destination);
+		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
 		this.source.start();
 	}
 

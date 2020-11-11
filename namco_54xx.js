@@ -37,9 +37,9 @@ export default class Namco54XX {
 	mcu = new MB8840();
 	bq = [new BiquadFilter(), new BiquadFilter(), new BiquadFilter()];
 
-	source;
-	gainNode;
-	scriptNode;
+	source = audioCtx.createBufferSource();
+	gainNode = audioCtx.createGain();
+	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 
 	constructor({PRG, clock, gain = 0.5}) {
 		this.rate = Math.floor(clock / 6);
@@ -47,45 +47,29 @@ export default class Namco54XX {
 		this.gain = gain;
 		this.mcu.rom.set(PRG);
 		[[200, 1], [200, 1], [2200, 1]].forEach((e, i) => this.bq[i].bandpass(...e));
-		if (!audioCtx)
-			return;
-		this.source = audioCtx.createBufferSource();
-		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
-		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
-		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0).fill(0));
-		this.source.connect(this.scriptNode);
-		this.scriptNode.connect(this.gainNode);
-		this.gainNode.connect(audioCtx.destination);
+		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0));
+		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
 		this.source.start();
 	}
 
 	reset() {
-		this.mcu.reset();
-		while ((this.mcu.mask & 4) === 0)
-			this.mcu.execute();
+		for (this.mcu.reset(); ~this.mcu.mask & 4; this.mcu.execute()) {}
 	}
 
 	write(data) {
 		this.mcu.k = data >> 4, this.mcu.r = this.mcu.r & ~15 | data & 15, this.mcu.cause = this.mcu.cause & ~4 | !this.mcu.interrupt() << 2;
-		for (let op = this.mcu.execute(); op !== 0x3c && (op !== 0x25 || (this.mcu.cause & 4) !== 0); op = this.mcu.execute())
+		for (let op = this.mcu.execute(); op !== 0x3c && (op !== 0x25 || this.mcu.cause & 4); op = this.mcu.execute())
 			op === 0x25 && (this.mcu.cause &= ~4);
 	}
 
-	update() {
-		if (!audioCtx || audioCtx.state !== 'suspended')
-			return;
-		this.mcu.cycles += Math.floor((this.cycles += this.rate * Math.floor(this.sampleRate / 60)) / this.sampleRate), this.cycles %= this.sampleRate;
-		while ((this.mcu.mask & 4) !== 0 && this.mcu.cycles > 0)
-			this.mcu.execute();
-	}
+	update() {}
 
 	makeSound(data) {
 		data.forEach((e, i) => {
-			data[i] += this.bq[0].filter((this.mcu.o & 15) / 15) + this.bq[1].filter((this.mcu.o >> 4) / 15) + this.bq[2].filter((this.mcu.r >> 4 & 15) / 15);
+			data[i] = this.bq[0].filter((this.mcu.o & 15) / 15) + this.bq[1].filter((this.mcu.o >> 4) / 15) + this.bq[2].filter((this.mcu.r >> 4 & 15) / 15);
 			this.mcu.cycles += Math.floor((this.cycles += this.rate) / this.sampleRate), this.cycles %= this.sampleRate;
-			while ((this.mcu.mask & 4) !== 0 && this.mcu.cycles > 0)
-				this.mcu.execute();
+			for (; this.mcu.mask & 4 && this.mcu.cycles > 0; this.mcu.execute()) {}
 		});
 	}
 }

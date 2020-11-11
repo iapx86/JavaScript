@@ -16,10 +16,10 @@ export default class SenjyoSound {
 	cycles = 0;
 	channel = {vol: 0, freq: 256, count: 256, phase: 0};
 
-	source;
-	biquadFilter;
-	gainNode;
-	scriptNode;
+	source = audioCtx.createBufferSource();
+	biquadFilter = audioCtx.createBiquadFilter();
+	gainNode = audioCtx.createGain();
+	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 
 	constructor({SND, clock, resolution = 1, gain = 0.7}) {
 		this.snd = Float32Array.from(SND, e => e * 2 / 0xbf - 1);
@@ -30,19 +30,12 @@ export default class SenjyoSound {
 		this.gain = gain;
 		for (let i = 0; i < resolution; i++)
 			this.tmpwheel.push([]);
-		this.source = audioCtx.createBufferSource();
-		this.biquadFilter = audioCtx.createBiquadFilter();
 		this.biquadFilter.type = 'bandpass';
 		this.biquadFilter.frequency.value = 200;
 		this.biquadFilter.Q.value = 5;
-		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = this.gain;
-		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0));
-		this.source.connect(this.scriptNode);
-		this.scriptNode.connect(this.biquadFilter);
-		this.biquadFilter.connect(this.gainNode);
-		this.gainNode.connect(audioCtx.destination);
+		this.source.connect(this.scriptNode).connect(this.biquadFilter).connect(this.gainNode).connect(audioCtx.destination);
 		this.source.start();
 	}
 

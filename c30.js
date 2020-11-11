@@ -17,9 +17,9 @@ export default class C30 {
 	snd = new Float32Array(0x200);
 	channel = [];
 
-	source;
-	gainNode;
-	scriptNode;
+	source = audioCtx.createBufferSource();
+	gainNode = audioCtx.createGain();
+	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 
 	constructor({clock = 24000, resolution = 1, gain = 0.1} = {}) {
 		this.rate = Math.floor(clock * 4096 / audioCtx.sampleRate);
@@ -31,14 +31,9 @@ export default class C30 {
 			this.tmpwheel.push([]);
 		for (let i = 0; i < 8; i++)
 			this.channel.push({phase: 0, ncount: 0, rng: 1, output: 0});
-		this.source = audioCtx.createBufferSource();
-		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
-		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0).fill(0));
-		this.source.connect(this.scriptNode);
-		this.scriptNode.connect(this.gainNode);
-		this.gainNode.connect(audioCtx.destination);
+		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
 		this.source.start();
 	}
 

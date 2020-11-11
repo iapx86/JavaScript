@@ -19,9 +19,9 @@ export default class SN76489 {
 	ncount = 0;
 	rng = 0x4000;
 
-	source;
-	gainNode;
-	scriptNode;
+	source = audioCtx.createBufferSource();
+	gainNode = audioCtx.createGain();
+	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 
 	constructor({clock, resolution = 1, gain = 0.1}) {
 		this.rate = Math.floor(clock / 16);
@@ -33,14 +33,9 @@ export default class SN76489 {
 			this.tmpwheel.push([]);
 		for (let i = 0; i < 3; i++)
 			this.channel.push({freq: 0, count: 0, output: 0});
-		this.source = audioCtx.createBufferSource();
-		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
-		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0).fill(0));
-		this.source.connect(this.scriptNode);
-		this.scriptNode.connect(this.gainNode);
-		this.gainNode.connect(audioCtx.destination);
+		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
 		this.source.start();
 	}
 

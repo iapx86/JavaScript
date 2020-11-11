@@ -18,9 +18,9 @@ export default class K054539 {
 	cycles = 0;
 	channel = [];
 
-	source;
-	gainNode;
-	scriptNode;
+	source = audioCtx.createBufferSource();
+	gainNode = audioCtx.createGain();
+	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 
 	constructor({PCM, clock, resolution = 1, gain = 1}) {
 		this.pcm = PCM;
@@ -33,14 +33,9 @@ export default class K054539 {
 			this.tmpwheel.push([]);
 		for (let i = 0; i < 8; i++)
 			this.channel.push({play: false, output: 0, addr: 0, frac: 0});
-		this.source = audioCtx.createBufferSource();
-		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
-		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0).fill(0));
-		this.source.connect(this.scriptNode);
-		this.scriptNode.connect(this.gainNode);
-		this.gainNode.connect(audioCtx.destination);
+		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
 		this.source.start();
 	}
 

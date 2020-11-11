@@ -7,8 +7,9 @@
 import PacManSound from './pac-man_sound.js';
 import Namco54XX from './namco_54xx.js';
 import SoundEffect from './sound_effect.js';
-import Cpu, {dummypage, init, read} from './main.js';
+import Cpu, {init, read} from './main.js';
 import Z80 from './z80.js';
+import MB8840 from './mb8840.js';
 let game, sound;
 
 class Bosconian {
@@ -23,21 +24,10 @@ class Bosconian {
 	fReset = false;
 	fTest = false;
 	fDIPSwitchChanged = true;
-	fCoin = false;
-	fStart1P = false;
-	fStart2P = false;
-	dwCredit = 0;
+	fCoin = 0;
+	fStart1P = 0;
+	fStart2P = 0;
 	dwStick = 0;
-	dwScore = 0;
-	dwScore1 = 0;
-	dwScore2 = 0;
-	dwHiScore = 0;
-	dwNext1up = 0;
-	dwNext1up1 = 0;
-	dwNext1up2 = 0;
-	dw1up1 = 0;
-	dw1up2 = 0;
-
 	nMyShip = 3;
 	nBonus = 'F';
 	nRank = 'AUTO';
@@ -47,21 +37,13 @@ class Bosconian {
 	fInterruptEnable0 = false;
 	fInterruptEnable1 = false;
 	fSoundEnable = false;
-	fKeyDisable = false;
 	fNmiEnable0 = false;
 	fNmiEnable1 = false;
-
 	ram = new Uint8Array(0x1800).fill(0xff).addBase();
 	mmi = new Uint8Array(0x200).fill(0xff).addBase();
-	mmo = new Uint8Array(0x100);
 	count = 0;
-	starport = new Uint8Array(0x100);
-	keyport = new Uint8Array(0x100);
-	scoreport = new Uint8Array(0x100);
-	ioport = new Uint8Array(0x100);
-	dmaport0 = new Uint8Array(0x100);
-	dmaport1 = new Uint8Array(0x100);
-	keytbl = Uint8Array.of(8, 0, 2, 1, 4, 8, 3, 8, 6, 7, 8, 8, 5, 8, 8, 8);
+	dmactrl0 = 0;
+	dmactrl1 = 0;
 
 	stars = [];
 	bg = new Uint8Array(0x4000);
@@ -73,13 +55,10 @@ class Bosconian {
 	se;
 
 	cpu = [new Z80(), new Z80(), new Z80()];
+	mcu = [new MB8840(), new MB8840(), new MB8840()];
 
 	constructor() {
 		// CPU周りの初期化
-		this.ioport[0] = 0x80;
-		this.ioport[1] = 0x3f;
-		this.ioport[2] = 0x3f;
-
 		// DIPSW SETUP A:0x01 B:0x02
 		this.mmi[0] = 3; // DIPSW B/A1
 		this.mmi[1] = 3; // DIPSW B/A2
@@ -91,251 +70,56 @@ class Bosconian {
 		this.mmi[7] = 3; // DIPSW B/A8
 
 		const range = (page, start, end = start, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
+		const interrupt = mcu => {
+			mcu.cause = mcu.cause & ~4 | !mcu.interrupt() << 2;
+			for (let op = mcu.execute(); op !== 0x3c && (op !== 0x25 || mcu.cause & 4); op = mcu.execute())
+				op === 0x25 && (mcu.cause &= ~4);
+		};
 
 		for (let page = 0; page < 0x100; page++)
 			if (range(page, 0, 0x3f))
 				this.cpu[0].memorymap[page].base = PRG1.base[page & 0x3f];
 			else if (range(page, 0x68)) {
-				this.cpu[0].memorymap[page].base = this.mmi.base[0];
+				this.cpu[0].memorymap[page].base = this.mmi;
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					switch (addr & 0xf0) {
-					case 0x00:
-					case 0x10:
-						break;
+					switch (addr & 0xff) {
 					case 0x20:
-						switch (addr & 0x0f) {
-						case 0:
-							this.fInterruptEnable0 = (data & 1) !== 0;
-							break;
-						case 1:
-							this.fInterruptEnable1 = (data & 1) !== 0;
-							break;
-						case 2:
-							if (data)
-								this.fSoundEnable = true;
-							else {
-								this.fSoundEnable = false;
-								this.se.forEach(se => se.stop = true);
-							}
-							break;
-						case 3:
-							if ((data & 1) !== 0)
-								this.cpu[1].enable(), this.cpu[2].enable();
-							else
-								this.cpu[1].disable(), this.cpu[2].disable();
-							break;
-						}
-						// fallthrough
-					default:
-						this.mmo[addr & 0xff] = data;
-						break;
+						return void(this.fInterruptEnable0 = (data & 1) !== 0);
+					case 0x21:
+						return void(this.fInterruptEnable1 = (data & 1) !== 0);
+					case 0x22:
+						return this.fSoundEnable = (data & 1) !== 0, void(!this.fSoundEnable && this.se.forEach(se => se.stop = true));
+					case 0x23:
+						return (data & 1) !== 0 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
 					}
 				};
 			} else if (range(page, 0x70)) {
-				this.cpu[0].memorymap[page].base = this.ioport;
-				this.cpu[0].memorymap[page].write = (addr, data) => void((this.dmaport0[0] & 8) !== 0 && sound[1].write(data));
-			} else if (range(page, 0x71)) {
-				this.cpu[0].memorymap[page].base = this.dmaport0;
+				this.cpu[0].memorymap[page].read = () => {
+					let data = 0xff;
+					(this.dmactrl0 & 1) !== 0 && (data &= this.mcu[0].o, this.mcu[0].k |= 8, interrupt(this.mcu[0]));
+					(this.dmactrl0 & 4) !== 0 && (data &= this.mcu[1].o, this.mcu[1].r |= 0x100, interrupt(this.mcu[1]));
+					return data;
+				};
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					this.dmaport0[addr & 0xff] = data;
-					switch (data) {
-					case 0x10:
-						this.fNmiEnable0 = false;
-						return;
-					case 0x08:
-					case 0x18:
-					case 0x20:
-					case 0x28:
-					case 0x30:
-					case 0x38:
-					case 0x40:
-					case 0x50:
-					case 0x58:
-					case 0x60:
-					case 0x68:
-					case 0x70:
-					case 0x78:
-					case 0x80:
-						// 7000h -> 8be0h
-						this.cpu[0].memorymap[0x70].base = this.ioport;
-						break;
-					case 0x48:
-						this.cpu[0].memorymap[0x70].base = this.ioport;
-						break;
-					case 0x61:
-						this.cpu[0].memorymap[0x70].base = dummypage;
-						break;
-					case 0x64:
-						this.cpu[0].memorymap[0x70].base = dummypage;
-						switch (this.cpu[0].read(this.cpu[0].l_prime | this.cpu[0].h_prime << 8)) {
-						case 0x60: // 1P Score
-							this.dwScore2 = this.dwScore;
-							this.dwScore = this.dwScore1;
-							this.dwNext1up2 = this.dwNext1up;
-							this.dwNext1up = this.dwNext1up1;
-							break;
-						case 0x68: // 2P Score
-							this.dwScore1 = this.dwScore;
-							this.dwScore = this.dwScore2;
-							this.dwNext1up1 = this.dwNext1up;
-							this.dwNext1up = this.dwNext1up2;
-							break;
-						case 0x81:
-							this.dwScore += 10;
-							break;
-						case 0x83:
-							this.dwScore += 20;
-							break;
-						case 0x87:
-							this.dwScore += 50;
-							break;
-						case 0x88:
-							this.dwScore += 60;
-							break;
-						case 0x89:
-							this.dwScore += 70;
-							break;
-						case 0x8d:
-							this.dwScore += 200;
-							break;
-						case 0x93:
-							this.dwScore += 200;
-							break;
-						case 0x95:
-							this.dwScore += 300;
-							break;
-						case 0x96:
-							this.dwScore += 400;
-							break;
-						case 0x97:
-							this.dwScore += 500;
-							break;
-						case 0x98:
-							this.dwScore += 600;
-							break;
-						case 0x99:
-							this.dwScore += 700;
-							break;
-						case 0x9a:
-							this.dwScore += 800;
-							break;
-						case 0xa0:
-							this.dwScore += 500;
-							break;
-						case 0xa1:
-							this.dwScore += 1000;
-							break;
-						case 0xa2:
-							this.dwScore += 1500;
-							break;
-						case 0xa3:
-							this.dwScore += 2000;
-							break;
-						case 0xa5:
-							this.dwScore += 3000;
-							break;
-						case 0xa6:
-							this.dwScore += 4000;
-							break;
-						case 0xa7:
-							this.dwScore += 5000;
-							break;
-						case 0xa8:
-							this.dwScore += 6000;
-							break;
-						case 0xa9:
-							this.dwScore += 7000;
-							break;
-						case 0xb7:
-							this.dwScore += 100;
-							break;
-						case 0xb8:
-							this.dwScore += 120;
-							break;
-						case 0xb9:
-							this.dwScore += 140;
-							break;
-						}
-						break;
+					(this.dmactrl0 & 1) !== 0 && (this.mcu[0].k = data & 7, interrupt(this.mcu[0]));
+					(this.dmactrl0 & 4) !== 0 && (this.mcu[1].r = data & 15, this.mcu[1].k = data >> 4, interrupt(this.mcu[1]));
+					(this.dmactrl0 & 8) !== 0 && sound[1].write(data);
+				};
+			} else if (range(page, 0x71)) {
+				this.cpu[0].memorymap[page].read = () => this.dmactrl0;
+				this.cpu[0].memorymap[page].write = (addr, data) => {
+					this.fNmiEnable0 = (data & 0xe0) !== 0;
+					switch (this.dmactrl0 = data) {
 					case 0x71:
-						this.cpu[0].memorymap[0x70].base = this.ioport;
-						break;
-					case 0x84:
-						this.cpu[0].memorymap[0x70].base = dummypage;
-						const scorepage = this.cpu[0].memorymap[this.cpu[0].h_prime].base.subarray(this.cpu[0].l_prime);
-						if (scorepage[0] === 0x10) {
-							// L+4 が $00-$ff を超えないことを前提としてます
-							switch (scorepage[1] & 0xf0) {
-							case 0x20:
-								// 最初の 1up score
-								this.dw1up1 = (scorepage[1] & 0x0f) * 1000000 +
-									(scorepage[2] >> 4) * 100000 + (scorepage[2] & 0x0f) * 10000 +
-									(scorepage[3] >> 4) * 1000 + (scorepage[3] & 0x0f) * 100 +
-									(scorepage[4] >> 4) * 10 + (scorepage[4] & 0x0f);
-								break;
-							case 0x30:
-								// 2回目以降の 1up score
-								this.dw1up2 = (scorepage[1] & 0x0f) * 1000000 +
-									(scorepage[2] >> 4) * 100000 + (scorepage[2] & 0x0f) * 10000 +
-									(scorepage[3] >> 4) * 1000 + (scorepage[3] & 0x0f) * 100 +
-									(scorepage[4] >> 4) * 10 + (scorepage[4] & 0x0f);
-								break;
-							case 0x50:
-								this.dwHiScore = (scorepage[1] & 0x0f) * 1000000 +
-									(scorepage[2] >> 4) * 100000 + (scorepage[2] & 0x0f) * 10000 +
-									(scorepage[3] >> 4) * 1000 + (scorepage[3] & 0x0f) * 100 +
-									(scorepage[4] >> 4) * 10 + (scorepage[4] & 0x0f);
-								break;
-							case 0x60:
-								this.dwScore = 0;
-								this.dwScore1 = 0;
-								this.dwScore2 = 0;
-								this.dwNext1up = this.dw1up1;	// Current Player's Next 1up Score
-								this.dwNext1up1 = this.dw1up1;	// 1PLAYER's Next 1up Score
-								this.dwNext1up2 = this.dw1up1;	// 2PLAYER's Next 1up Score
-								break;
-							}
-						}
-						break;
 					case 0x91:
-						this.cpu[0].memorymap[0x70].base = this.keyport;
-						break;
+						if (this.mcu[0].mask & 4)
+							for (this.mcu[0].execute(); this.mcu[0].pc !== 0x182; this.mcu[0].execute()) {}
+						return this.mcu[0].t = this.mcu[0].t + 1 & 0xff, this.mcu[0].k |= 8, interrupt(this.mcu[0]);
 					case 0x94:
-						this.cpu[0].memorymap[0x70].base = this.scoreport;
-						this.scoreport[0] = this.dwScore / 10000000 % 10 << 4 | this.dwScore / 1000000 % 10;
-						this.scoreport[1] = this.dwScore / 100000 % 10 << 4 | this.dwScore / 10000 % 10;
-						this.scoreport[2] = this.dwScore / 1000 % 10 << 4 | this.dwScore / 100 % 10;
-						this.scoreport[3] = this.dwScore / 10 % 10 << 4 | this.dwScore % 10;
-						if (this.dwScore >= this.dwHiScore) {
-							this.dwHiScore = this.dwScore;
-							this.scoreport[0] |= 0x80;
-						}
-						if (this.dwScore >= this.dwNext1up) {
-							this.scoreport[0] |= 0x40;		// 1up flag
-							if (this.dwNext1up === this.dw1up1)
-								this.dwNext1up = this.dw1up2;
-							else {
-								this.scoreport[0] |= 0x20;	// 2回目以降の 1up flag
-								this.dwNext1up += this.dw1up2;
-							}
-						}
-						break;
-					case 0xa1:
-						this.cpu[0].memorymap[0x70].base = dummypage;
-						this.fKeyDisable = false;
-						break;
-					case 0xc1:
-						this.cpu[0].memorymap[0x70].base = dummypage;
-						break;
-					case 0xc8:
-						this.cpu[0].memorymap[0x70].base = dummypage;
-						this.fKeyDisable = true;
-						break;
-					default:
-						this.cpu[0].memorymap[0x70].base = dummypage;
-						break;
+						if (this.mcu[1].mask & 4)
+							for (this.mcu[1].execute(); this.mcu[1].pc !== 0x4c; this.mcu[1].execute()) {}
+						return this.mcu[1].r |= 0x100, interrupt(this.mcu[1]);
 					}
-					this.fNmiEnable0 = true;
 				};
 			} else if (range(page, 0x78, 0x7f)) {
 				this.cpu[0].memorymap[page].base = this.ram.base[page & 7];
@@ -347,32 +131,25 @@ class Bosconian {
 				this.cpu[0].memorymap[page].base = this.ram.base[0x10 | page & 7];
 				this.cpu[0].memorymap[page].write = null;
 			} else if (range(page, 0x90)) {
-				this.cpu[0].memorymap[page].base = this.starport;
-				this.cpu[0].memorymap[page].write = (addr, data) => void((this.dmaport1[0] & 2) !== 0 && data !== 0 && (this.se[data - 1].start = this.se[data - 1].stop = true));
-			} else if (range(page, 0x91)) {
-				this.cpu[0].memorymap[page].base = this.dmaport1;
+				this.cpu[0].memorymap[page].read = () => {
+					let data = 0xff;
+					(this.dmactrl1 & 1) !== 0 && (data &= this.mcu[2].o, this.mcu[2].r |= 0x100, interrupt(this.mcu[2]));
+					return data;
+				};
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					this.dmaport1[addr & 0xff] = data;
-					switch (data) {
-					case 0x10:
-						this.fNmiEnable1 = false;
-						return;
-					case 0x81:
-						this.cpu[1].memorymap[0x90].base = dummypage;
-						break;
+					(this.dmactrl1 & 1) !== 0 && (this.mcu[2].r = data & 15, this.mcu[2].k = data >> 4, interrupt(this.mcu[2]));
+					(this.dmactrl1 & 2) !== 0 && data !== 0 && (this.se[data - 1].start = this.se[data - 1].stop = true);
+				};
+			} else if (range(page, 0x91)) {
+				this.cpu[0].memorymap[page].read = () => this.dmactrl1;
+				this.cpu[0].memorymap[page].write = (addr, data) => {
+					this.fNmiEnable1 = (data & 0xe0) !== 0;
+					switch (this.dmactrl1 = data) {
 					case 0x91:
-						this.cpu[1].memorymap[0x90].base = this.starport;
-						this.starport[3] = this.starport[1] = this.starport[0] = 0;
-						this.starport[2] = this.ram[0x11cc];
-						break;
-					case 0xa1:
-						this.cpu[1].memorymap[0x90].base = dummypage;
-						break;
-					default:
-						this.cpu[1].memorymap[0x90].base = dummypage;
-						break;
+						if (this.mcu[2].mask & 4)
+							for (this.mcu[2].execute(); this.mcu[2].pc !== 0x4c; this.mcu[2].execute()) {}
+						return this.mcu[2].r |= 0x100, interrupt(this.mcu[2]);
 					}
-					this.fNmiEnable1 = true;
 				};
 			} else if (range(page, 0x98)) {
 				this.cpu[0].memorymap[page].base = this.mmi.base[1];
@@ -390,19 +167,14 @@ class Bosconian {
 				this.cpu[2].memorymap[page].base = PRG3.base[page & 0xf];
 			else if (range(page, 0x40, 0xff))
 				this.cpu[2].memorymap[page] = this.cpu[0].memorymap[page];
-		this.cpu[2].memorymap[0x68] = {base: this.mmi.base[0], read: null, write: (addr, data) => {
-			switch (addr & 0xf0) {
-			case 0x00:
-			case 0x10:
-				sound[0].write(addr, data, this.count);
-				break;
-			case 0x20:
-				break;
-			default:
-				this.mmo[addr & 0xff] = data;
-				break;
-			}
+		this.cpu[2].memorymap[0x68] = {base: this.mmi, read: null, write: (addr, data) => {
+			(addr & 0xe0) === 0 && sound[0].write(addr, data, this.count);
 		}, fetch: null};
+
+		this.mcu[0].rom.set(IO);
+		this.mcu[0].r = 0xffff;
+		this.mcu[1].rom.set(KEY);
+		this.mcu[2].rom.set(KEY);
 
 		// Videoの初期化
 		for (let i = 0; i < 1024; i++)
@@ -454,6 +226,10 @@ class Bosconian {
 				this.cpu[1].non_maskable_interrupt();	// DMA INTERRUPT
 			Cpu.multiple_execute(this.cpu, 32);
 		}
+		if (this.mcu[1].mask & 4)
+			for (this.mcu[1].execute(); this.mcu[1].pc !== 0x4c; this.mcu[1].execute()) {}
+		if (this.mcu[2].mask & 4)
+			for (this.mcu[2].execute(); this.mcu[2].pc !== 0x4c; this.mcu[2].execute()) {}
 		this.moveStars();
 		return this;
 	}
@@ -533,112 +309,62 @@ class Bosconian {
 				this.fReset = true;
 		}
 
-		if (!this.fTest)
-			this.ioport[0] |= 0x80;
+		this.mcu[0].r = this.mcu[0].r & ~0x8000 | !this.fTest << 15;
 
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
 			this.fSoundEnable = false;
 			sound[1].reset();
-			this.dwCredit = 0;
-			this.scoreport.fill(0);
 			this.fInterruptEnable0 = this.fInterruptEnable1 = false;
 			this.fNmiEnable0 = this.fNmiEnable1 = false;
 			this.cpu[0].reset();
 			this.cpu[1].disable();
 			this.cpu[2].disable();
+			for (this.mcu[0].reset(); ~this.mcu[0].mask & 4; this.mcu[0].execute()) {}
+			for (this.mcu[1].reset(); ~this.mcu[1].mask & 4; this.mcu[1].execute()) {}
+			for (this.mcu[2].reset(); ~this.mcu[2].mask & 4; this.mcu[2].execute()) {}
 			this.mmi[0x140] |= 1;
 		}
 		return this;
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		let i = (this.dwCredit >> 4 & 0x0f) * 10 + (this.dwCredit & 0x0f);
-		if (this.fCoin && ++i > 99)
-			i = 99;
-		else if (this.fStart1P && i > 0)
-			--i;
-		else if (this.fStart2P && i > 1)
-			i -= 2;
-		this.dwCredit = i / 10 << 4 | i % 10;
-		this.fCoin = this.fStart1P = this.fStart2P = false;
-
-		this.ioport[0x10] = this.ioport[0x10] & 0xf0 | this.dwStick & 0x0f;
-
-		if (this.fTest) {
-			this.ioport[0] = 0x7f;
-			this.ioport[1] = ~this.ioport[0x10];
-			this.ioport[2] = ~this.ioport[0x11];
-		} else if (!this.fKeyDisable) {
-			this.ioport[0] = this.dwCredit;
-
-			this.ioport[1] = this.keytbl[this.ioport[0x10] & 0x0f] | 0x30;
-			this.mmi[0] |= 1;
-
-			if ((this.ioport[0x10] & 0x10) !== 0) {
-				this.ioport[1] &= 0xdf;
-				if ((this.ioport[0x11] & 0x10) === 0)
-					this.ioport[1] &= 0xef;
-			}
-			if ((this.ioport[0x10] & 0x20) !== 0)
-				this.mmi[0] &= 0xfe;
-
-			this.ioport[0x11] = this.ioport[0x10];
-		} else {
-			this.ioport[0] = 0x80;
-			this.ioport[1] = 0x3f;
-			this.ioport[2] = 0x3f;
-		}
+		this.mcu[0].r = this.mcu[0].r & ~0x4c0f | ~this.dwStick & 0xf | (this.fStart1P <= 0) << 10 | (this.fStart2P <= 0) << 11 | (this.fCoin <= 0) << 14;
+		this.fCoin -= (this.fCoin > 0), this.fStart1P -= (this.fStart1P > 0), this.fStart2P -= (this.fStart2P > 0);
 		return this;
 	}
 
 	coin() {
-		this.fCoin = true;
+		this.fCoin = 2;
 	}
 
 	start1P() {
-		this.fStart1P = true;
+		this.fStart1P = 2;
 	}
 
 	start2P() {
-		this.fStart2P = true;
+		this.fStart2P = 2;
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 2) | 1 << 0;
-		else
-			this.dwStick &= ~(1 << 0);
+		this.dwStick = fDown ? this.dwStick & ~(1 << 2) | 1 << 0 : this.dwStick & ~(1 << 0);
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 3) | 1 << 1;
-		else
-			this.dwStick &= ~(1 << 1);
+		this.dwStick = fDown ? this.dwStick & ~(1 << 3) | 1 << 1 : this.dwStick & ~(1 << 1);
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 0) | 1 << 2;
-		else
-			this.dwStick &= ~(1 << 2);
+		this.dwStick = fDown ? this.dwStick & ~(1 << 0) | 1 << 2 : this.dwStick & ~(1 << 2);
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 1) | 1 << 3;
-		else
-			this.dwStick &= ~(1 << 3);
+		this.dwStick = fDown ? this.dwStick & ~(1 << 1) | 1 << 3 : this.dwStick & ~(1 << 3);
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.ioport[0x10] |= 1 << 4;
-		else
-			this.ioport[0x10] &= ~(1 << 4);
+		this.mcu[0].r = this.mcu[0].r & ~0x100 | !fDown << 8;
 	}
 
 	triggerB(fDown) {
@@ -1267,7 +993,7 @@ class Bosconian {
  *
  */
 
-let PRG1, PRG2, PRG3, RGB, SND, BGCOLOR, BG, OBJ, VOI, PRG;
+let PRG1, PRG2, PRG3, RGB, SND, BGCOLOR, BG, OBJ, VOI, KEY, IO, PRG;
 
 read('bosco.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG1 = Uint8Array.concat(...['bos3_1.3n', 'bos1_2.3m', 'bos1_3.3l', 'bos1_4b.3k'].map(e => zip.decompress(e))).addBase();
@@ -1279,6 +1005,10 @@ read('bosco.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zi
 	BGCOLOR = zip.decompress('bos1-5.4m');
 	SND = zip.decompress('bos1-1.1d');
 	VOI = Uint8Array.concat(...['bos1_9.5n', 'bos1_10.5m', 'bos1_11.5k'].map(e => zip.decompress(e)));
+}).then(() =>read('namco50.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	KEY = zip.decompress('50xx.bin');
+}).then(() =>read('namco51.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	IO = zip.decompress('51xx.bin');
 }).then(() =>read('namco54.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG = zip.decompress('54xx.bin');
 	game = new Bosconian();
