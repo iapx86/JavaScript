@@ -32,14 +32,14 @@ class SoundTest {
 		this.mcu.memorymap[0].base = this.ram3.base[0];
 		this.mcu.memorymap[0].write = null;
 		for (let i = 0; i < 4; i++) {
-			this.mcu.memorymap[0x10 + i].read = addr => sound[1].read(addr);
-			this.mcu.memorymap[0x10 + i].write = (addr, data) => sound[1].write(addr, data);
+			this.mcu.memorymap[0x10 + i].read = (addr) => { return sound[1].read(addr); };
+			this.mcu.memorymap[0x10 + i].write = (addr, data) => { sound[1].write(addr, data); };
 		}
 		for (let i = 0; i < 0x0c; i++) {
 			this.mcu.memorymap[0x14 + i].base = this.ram3.base[1 + i];
 			this.mcu.memorymap[0x14 + i].write = null;
 		}
-		this.mcu.memorymap[0x20].read = addr => addr === 0x2001 ? 0 : 0xff;
+		this.mcu.memorymap[0x20].read = (addr) => { return addr === 0x2001 ? 0 : 0xff; };
 		this.mcu.memorymap[0x20].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
@@ -59,7 +59,7 @@ class SoundTest {
 	execute() {
 		this.mcu.interrupt();
 		this.mcu.execute(0x1000);
-		if ((this.ram3[8] & 8) !== 0)
+		if (this.ram3[8] & 8)
 			this.mcu.interrupt('ocf');
 		this.mcu.execute(0x1000);
 		return this;
@@ -156,7 +156,7 @@ class SoundTest {
 
 		for (let i = 0; i < 8; i++) {
 			const vol = reg[i * 8] & 0x0f;
-			if (vol === 0)
+			if (!vol)
 				continue;
 			if (i < 4 && (reg[-4 + i * 8 & 0x3f] & 0x80) !== 0)
 				SoundTest.Xfer28x16(data, 256 * 16 * i, key[1]);
@@ -186,13 +186,21 @@ class SoundTest {
 const key = [];
 let PRG3, PRG3I;
 
-void function () {
+read('hopmappy.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG3 = zip.decompress('hm1_3.6b').addBase();
+	PRG3I = zip.decompress('cus60-60a1.mcu').addBase();
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
+	game = new SoundTest();
+	sound = [
+		new YM2151({clock: 3579580}),
+		new C30(),
+	];
+	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -202,17 +210,6 @@ void function () {
 			game.right();
 		game.triggerA();
 	});
-}();
-
-read('hopmappy.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG3 = zip.decompress('hm1_3.6b').addBase();
-	PRG3I = zip.decompress('cus60-60a1.mcu').addBase();
-	game = new SoundTest();
-	sound = [
-		new YM2151({clock: 3579580}),
-		new C30(),
-	];
-	game.initial = true;
 	init({game, sound});
 });
 

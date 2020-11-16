@@ -32,7 +32,7 @@ class SoundTest {
 		// CPU周りの初期化
 		for (let i = 0; i < 0xf0; i++)
 			this.cpu3.memorymap[i].base = PRG3.base[i];
-		this.cpu3.memorymap[0xf0].read = addr => {
+		this.cpu3.memorymap[0xf0].read = (addr) => {
 			switch (addr >> 4 & 0xf) {
 			case 1:
 				return this.command.length ? this.command.shift() : 0xff;
@@ -58,9 +58,9 @@ class SoundTest {
 					break;
 				case 0x14: // CSM/F RESET/IRQEN/LOAD
 					this.fm.status &= ~(data >> 4 & 3);
-					if ((data & ~this.fm.reg[0x14] & 1) !== 0)
+					if (data & ~this.fm.reg[0x14] & 1)
 						this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
-					if ((data & ~this.fm.reg[0x14] & 2) !== 0)
+					if (data & ~this.fm.reg[0x14] & 2)
 						this.fm.timerb = this.fm.reg[0x12];
 					break;
 				}
@@ -72,17 +72,17 @@ class SoundTest {
 			this.cpu3.memorymap[0xf8 + i].write = null;
 		}
 
-		this.cpu3.check_interrupt = () => this.command.length && this.cpu3.interrupt();
+		this.cpu3.check_interrupt = () => { return this.command.length && this.cpu3.interrupt(); };
 	}
 
 	execute() {
 		for (this.count = 0; this.count < 58; this.count++) { // 3579545 / 60 / 1024
 			this.cpu3.execute(146);
-			if ((this.fm.reg[0x14] & 1) !== 0 && (this.fm.timera += 16) >= 0x400) {
+			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400) {
 				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
 			}
-			if ((this.fm.reg[0x14] & 2) !== 0 && ++this.fm.timerb >= 0x100) {
+			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100) {
 				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
 			}
@@ -189,13 +189,21 @@ class SoundTest {
 const key = [];
 let PRG3, SND;
 
-void function () {
+read('gradius3.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG3 = zip.decompress('945_r05.d9').addBase();
+	SND = Uint8Array.concat(...['945_a10.b15', '945_l11a.c18', '945_l11b.c20'].map(e => zip.decompress(e)));
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
+	game = new SoundTest();
+	sound = [
+		new YM2151({clock: 3579545, resolution: 58, gain: 3}),
+		new K007232({SND, clock: 3579545, resolution: 58, gain: 0.2}),
+	];
+	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -205,17 +213,6 @@ void function () {
 			game.right();
 		game.triggerA();
 	});
-}();
-
-read('gradius3.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG3 = zip.decompress('945_r05.d9').addBase();
-	SND = Uint8Array.concat(...['945_a10.b15', '945_l11a.c18', '945_l11b.c20'].map(e => zip.decompress(e)));
-	game = new SoundTest();
-	sound = [
-		new YM2151({clock: 3579545, resolution: 58, gain: 3}),
-		new K007232({SND, clock: 3579545, resolution: 58, gain: 0.2}),
-	];
-	game.initial = true;
 	init({game, sound});
 });
 

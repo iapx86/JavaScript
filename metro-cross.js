@@ -54,8 +54,8 @@ class MetroCross {
 			this.cpu.memorymap[i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x40 + i].read = addr => sound.read(addr);
-			this.cpu.memorymap[0x40 + i].write = (addr, data) => sound.write(addr, data);
+			this.cpu.memorymap[0x40 + i].read = (addr) => { return sound.read(addr); };
+			this.cpu.memorymap[0x40 + i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 8; i++) {
 			this.cpu.memorymap[0x48 + i].base = this.ram.base[0x40 + i];
@@ -80,9 +80,9 @@ class MetroCross {
 			}
 		};
 
-		this.cpu.check_interrupt = () => this.cpu_irq && this.cpu.interrupt() ? (this.cpu_irq = false, true) : false;
+		this.cpu.check_interrupt = () => { return this.cpu_irq && this.cpu.interrupt() ? (this.cpu_irq = false, true) : false; };
 
-		this.mcu.memorymap[0].read = addr => {
+		this.mcu.memorymap[0].read = (addr) => {
 			let data;
 			switch (addr) {
 			case 2:
@@ -98,8 +98,8 @@ class MetroCross {
 			this.ram2[addr] = data;
 		};
 		for (let i = 0; i < 4; i++) {
-			this.mcu.memorymap[0x10 + i].read = addr => sound.read(addr);
-			this.mcu.memorymap[0x10 + i].write = (addr, data) => sound.write(addr, data);
+			this.mcu.memorymap[0x10 + i].read = (addr) => { return sound.read(addr); };
+			this.mcu.memorymap[0x10 + i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 0x20; i++)
 			this.mcu.memorymap[0x80 + i].base = PRG2.base[i];
@@ -110,7 +110,7 @@ class MetroCross {
 		for (let i = 0; i < 0x10; i++)
 			this.mcu.memorymap[0xf0 + i].base = PRG2I.base[i];
 
-		this.mcu.check_interrupt = () => this.mcu_irq && this.mcu.interrupt() ? (this.mcu_irq = false, true) : (this.ram2[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf');
+		this.mcu.check_interrupt = () => { return this.mcu_irq && this.mcu.interrupt() ? (this.mcu_irq = false, true) : (this.ram2[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf'); };
 
 		// Videoの初期化
 		this.convertRGB();

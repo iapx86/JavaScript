@@ -635,12 +635,12 @@ export default class I8080 extends Cpu {
 
 	daa() {
 		let r = this.a;
-		if ((this.f & 0x10) !== 0 || (r & 0x0f) > 9) {
+		if (this.f & 0x10 || (r & 0x0f) > 9) {
 			if ((r += 6) >= 0x100)
 				this.f |= 1;
 			this.f |= 0x10;
 		}
-		if ((this.f & 1) !== 0 || (r & 0xf0) > 0x90)
+		if (this.f & 1 || (r & 0xf0) > 0x90)
 			r += 0x60, this.f |= 1;
 		this.a = r &= 0xff, this.f = this.f & ~0xc4 | I8080.fLogic[r];
 	}

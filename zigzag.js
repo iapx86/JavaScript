@@ -54,7 +54,7 @@ class ZigZag {
 				this.cpu.memorymap[page].base = this.ram.base[page & 3];
 				this.cpu.memorymap[page].write = null;
 			} else if (range(page, 0x48, 0x48, 0x07))
-				this.cpu.memorymap[page].write = addr => {
+				this.cpu.memorymap[page].write = (addr) => {
 					switch (addr & 0x0300) {
 					case 0x0000:
 						if ((addr & 1) === 0)
@@ -74,11 +74,11 @@ class ZigZag {
 				this.cpu.memorymap[page].base = this.ram.base[8];
 				this.cpu.memorymap[page].write = null;
 			} else if (range(page, 0x60, 0x60, 0x07))
-				this.cpu.memorymap[page].read = () => this.in[0];
+				this.cpu.memorymap[page].read = () => { return this.in[0]; };
 			else if (range(page, 0x68, 0x68, 0x07))
-				this.cpu.memorymap[page].read = () => this.in[1];
+				this.cpu.memorymap[page].read = () => { return this.in[1]; };
 			else if (range(page, 0x70, 0x70, 0x07)) {
-				this.cpu.memorymap[page].read = () => this.in[2];
+				this.cpu.memorymap[page].read = () => { return this.in[2]; };
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 7) {
 					case 1:
@@ -270,7 +270,7 @@ class ZigZag {
 			for (let y = 0; y < 256; y++) {
 				const cy = sr >> 4 ^ ~sr >> 16;
 				sr = cy & 1 | sr << 1;
-				if ((sr & 0x100ff) === 0xff && (color = sr >> 8 & 0x3f) !== 0 && color !== 0x3f) {
+				if ((sr & 0x100ff) === 0xff && (color = sr >> 8 & 0x3f) && color !== 0x3f) {
 					this.stars[i].x = x & 0xff;
 					this.stars[i].y = y;
 					this.stars[i].color = color;
@@ -433,7 +433,7 @@ class ZigZag {
 		src = src << 8 & 0x3f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0)
+				if ((px = this.obj[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -446,7 +446,7 @@ class ZigZag {
 		src = (src << 8 & 0x3f00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0)
+				if ((px = this.obj[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -459,7 +459,7 @@ class ZigZag {
 		src = (src << 8 & 0x3f00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0)
+				if ((px = this.obj[--src]))
 					data[dst] = idx | px;
 	}
 
@@ -472,7 +472,7 @@ class ZigZag {
 		src = (src << 8 & 0x3f00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0)
+				if ((px = this.obj[--src]))
 					data[dst] = idx | px;
 	}
 }

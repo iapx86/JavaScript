@@ -25,7 +25,7 @@ export default class MCS6502 extends Cpu {
 	}
 
 	interrupt() {
-		if (!super.interrupt() || (this.ccr & 4) !== 0)
+		if (!super.interrupt() || this.ccr & 4)
 			return false;
 		return this.push16(this.pc), this.push(this.ccr &= ~0x10), this.ccr |= 4, this.pc = this.read16(0xfffe), true;
 	}
@@ -376,10 +376,10 @@ export default class MCS6502 extends Cpu {
 
 	adc8(dst, src) {
 		let r = dst + src + (this.ccr & 1) & 0xff, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst, cf = 0;
-		if ((this.ccr & 8) !== 0) {
-			if ((c & 8) !== 0 || (r & 0xf) > 9)
+		if (this.ccr & 8) {
+			if (c & 8 || (r & 0xf) > 9)
 				cf += 6;
-			if ((c & 0x80) !== 0 || (r & 0xf0) > 0x90 || (r & 0xf0) > 0x80 && (r & 0xf) > 9)
+			if (c & 0x80 || (r & 0xf0) > 0x90 || (r & 0xf0) > 0x80 && (r & 0xf) > 9)
 				cf += 0x60, c |= 0x80;
 			r = r + cf & 0xff;
 		}
@@ -398,10 +398,10 @@ export default class MCS6502 extends Cpu {
 
 	sbc8(dst, src) {
 		let r = dst + ~src + (this.ccr & 1) & 0xff, v = dst & ~src & ~r | ~dst & src & r, c = dst & ~src | ~src & ~r | ~r & dst, cf = 0;
-		if ((this.ccr & 8) !== 0) {
-			if ((c & 8) === 0 || (r & 0x0f) > 9)
+		if (this.ccr & 8) {
+			if (~c & 8 || (r & 0x0f) > 9)
 				cf -= 6;
-			if ((c & 0x80) === 0 || (r & 0xf0) > 0x90)
+			if (~c & 0x80 || (r & 0xf0) > 0x90)
 				cf -= 0x60, c &= ~0x80;
 			r = r + cf & 0xff;
 		}

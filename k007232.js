@@ -90,7 +90,7 @@ export default class K007232 {
 					const rate = Math.floor(0x20000 / (0x200 - (reg[j * 6] | reg[1 + j * 6] << 8 & 0x100)));
 					for (let addr = (ch.addr >> 12) + 1, addr1 = (ch.addr += rate) >> 12; addr <= addr1; addr++)
 						if (addr >= this.limit || this.base[ch.bank | addr] >= 0x80) {
-							if ((reg[13] & 1 << j) !== 0)
+							if (reg[13] >> j & 1)
 								ch.addr = (reg[2 + j * 6] | reg[3 + j * 6] << 8 | reg[4 + j * 6] << 16 & 0x10000) << 12;
 							else
 								ch.play = false;

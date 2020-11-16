@@ -34,7 +34,7 @@ class TankBattalion {
 	bg = new Uint8Array(0x4000);
 	rgb = new Uint32Array(0x10);
 
-	se = [BANG, FIRE, ENG2, ENG1, BONUS, COIN].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+	se = [BANG, FIRE, ENG2, ENG1, BONUS, COIN].map(buf => ({buf, loop: false, start: false, stop: false}));
 
 	cpu = new MCS6502();
 

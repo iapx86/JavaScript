@@ -59,43 +59,34 @@ class Galaxian {
 		this.cpu.memorymap[0x58].base = this.ram.base[8];
 		this.cpu.memorymap[0x58].write = null;
 		this.cpu.memorymap[0x60].base = this.ioport;
-		this.cpu.memorymap[0x60].write = (addr, data) => void(this.mmo[addr & 0x0f] = data & 1);
+		this.cpu.memorymap[0x60].write = (addr, data) => { this.mmo[addr & 7] = data & 1; };
 		this.cpu.memorymap[0x68].base = this.ioport.subarray(0x10);
 		this.cpu.memorymap[0x68].write = (addr, data) => {
-			switch (addr & 0xf) {
+			switch (addr & 7) {
 			case 3: // BOMB
-				if ((data & 1) !== 0)
-					this.se[0].start = this.se[0].stop = true;
+				(data & 1) !== 0 && (this.se[0].start = this.se[0].stop = true);
 				break;
 			case 5: // SHOT
-				if ((data & 1) !== 0 && !this.mmo[addr & 0x0f | 0x10])
-					this.se[1].start = this.se[1].stop = true;
+				(data & 1) !== 0 && !this.mmo[0x15] && (this.se[1].start = this.se[1].stop = true);
 				break;
 			}
-			this.mmo[addr & 0x0f | 0x10] = data & 1;
+			this.mmo[addr & 7 | 0x10] = data & 1;
 		};
 		this.cpu.memorymap[0x70].base = this.ioport.subarray(0x20);
 		this.cpu.memorymap[0x70].write = (addr, data) => {
-			switch (addr & 0xf) {
+			switch (addr & 7) {
 			case 1:
 				this.fInterruptEnable = (data & 1) !== 0;
 				break;
 			case 4:
-				if (!this.fSoundEnable)
-					this.mmo[0x30] = 0xff;
-				this.fStarEnable = this.fSoundEnable = (data & 1) !== 0;
-				break;
-			default:
+				!this.fSoundEnable && (this.mmo[0x30] = 0xff), this.fStarEnable = this.fSoundEnable = (data & 1) !== 0;
 				break;
 			}
-			this.mmo[addr & 0x0f | 0x20] = data & 1;
+			this.mmo[addr & 7 | 0x20] = data & 1;
 		};
-		this.cpu.memorymap[0x78].write = (addr, data) => {
-			if ((addr & 0xff) === 0)
-				this.mmo[0x30] = data; // SOUND FREQUENCY
-		};
+		this.cpu.memorymap[0x78].write = (addr, data) => { this.mmo[0x30] = data; }; // SOUND FREQUENCY
 
-		this.cpu.breakpoint = addr => {
+		this.cpu.breakpoint = (addr) => {
 			switch (addr) {
 			case 0x18c3:
 				return void(!this.ram[0x07] && this.emulateWave(this.ram[0x021f]));
@@ -116,7 +107,7 @@ class Galaxian {
 
 		// 効果音の初期化
 		const table = [BOMB, SHOT, WAVE0001, WAVE0010, WAVE0011, WAVE0100, WAVE0101, WAVE0110, WAVE0111, WAVE1000, WAVE1001, WAVE1010, WAVE1011, WAVE1100, WAVE1101, WAVE1110, WAVE1111];
-		this.se = table.map(buf => ({buf: buf, loop: true, start: false, stop: false}));
+		this.se = table.map(buf => ({buf, loop: true, start: false, stop: false}));
 		this.se[0].loop = this.se[1].loop = false;
 	}
 
@@ -293,7 +284,7 @@ class Galaxian {
 			for (let y = 0; y < 256; y++) {
 				const cy = sr >> 4 ^ ~sr >> 16;
 				sr = cy & 1 | sr << 1;
-				if ((sr & 0x100ff) === 0xff && (color = sr >> 8 & 0x3f) !== 0 && color !== 0x3f) {
+				if ((sr & 0x100ff) === 0xff && (color = sr >> 8 & 0x3f) && color !== 0x3f) {
 					this.stars[i].x = x & 0xff;
 					this.stars[i].y = y;
 					this.stars[i].color = color;
@@ -462,7 +453,7 @@ class Galaxian {
 		src = src << 8 & 0x3f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0)
+				if ((px = this.obj[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -475,7 +466,7 @@ class Galaxian {
 		src = (src << 8 & 0x3f00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0)
+				if ((px = this.obj[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -488,7 +479,7 @@ class Galaxian {
 		src = (src << 8 & 0x3f00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0)
+				if ((px = this.obj[--src]))
 					data[dst] = idx | px;
 	}
 
@@ -501,7 +492,7 @@ class Galaxian {
 		src = (src << 8 & 0x3f00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0)
+				if ((px = this.obj[--src]))
 					data[dst] = idx | px;
 	}
 }

@@ -77,17 +77,17 @@ class ElevatorAction {
 			this.cpu.memorymap[0x80 + i].write = null;
 		}
 		for (let i = 0; i < 8; i++) {
-			this.cpu.memorymap[0x88 + i].read = addr => (addr & 1) === 0 ? (this.mcu_flag &= ~2, this.mcu_result) : this.mcu_flag ^ 1 | 0xfc;
-			this.cpu.memorymap[0x88 + i].write = (addr, data) => void((addr & 1) === 0 && (this.mcu_command = data, this.mcu_flag |= 1, this.mcu.irq = true));
+			this.cpu.memorymap[0x88 + i].read = (addr) => { return (addr & 1) === 0 ? (this.mcu_flag &= ~2, this.mcu_result) : this.mcu_flag ^ 1 | 0xfc; };
+			this.cpu.memorymap[0x88 + i].write = (addr, data) => { (addr & 1) === 0 && (this.mcu_command = data, this.mcu_flag |= 1, this.mcu.irq = true); };
 		}
 		for (let i = 0; i < 0x42; i++) {
 			this.cpu.memorymap[0x90 + i].base = this.ram.base[8 + i];
 			this.cpu.memorymap[0x90 + i].write = null;
 		}
-		this.cpu.memorymap[0xd2].read = addr => this.ram[0x4a00 | addr & 0x7f];
-		this.cpu.memorymap[0xd2].write = (addr, data) => void(this.ram[0x4a00 | addr & 0x7f] = data);
-		this.cpu.memorymap[0xd3].write = (addr, data) => void(this.priority = data);
-		this.cpu.memorymap[0xd4].read = addr => {
+		this.cpu.memorymap[0xd2].read = (addr) => { return this.ram[0x4a00 | addr & 0x7f]; };
+		this.cpu.memorymap[0xd2].write = (addr, data) => { this.ram[0x4a00 | addr & 0x7f] = data; };
+		this.cpu.memorymap[0xd3].write = (addr, data) => { this.priority = data; };
+		this.cpu.memorymap[0xd4].read = (addr) => {
 			switch (addr & 0x0f) {
 			case 0:
 			case 1:
@@ -145,7 +145,7 @@ class ElevatorAction {
 				return this.cpu2_flag2 = data & 1, void(this.cpu2_nmi2 = (data & 1) !== 0);
 			}
 		};
-		this.cpu.memorymap[0xd6].write = (addr, data) => void(this.mode = data);
+		this.cpu.memorymap[0xd6].write = (addr, data) => { this.mode = data; };
 
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
@@ -154,7 +154,7 @@ class ElevatorAction {
 			this.cpu2.memorymap[0x40 + i].write = null;
 		}
 		for (let i = 0; i < 8; i++) {
-			this.cpu2.memorymap[0x48 + i].read = addr => {
+			this.cpu2.memorymap[0x48 + i].read = (addr) => {
 				switch (addr & 7) {
 				case 1:
 					return sound[1].read(this.psg[1].addr);
@@ -188,7 +188,7 @@ class ElevatorAction {
 					return sound[3].write(this.psg[3].addr, data, this.count);
 				}
 			};
-			this.cpu2.memorymap[0x50 + i].read = addr => {
+			this.cpu2.memorymap[0x50 + i].read = (addr) => {
 				switch (addr & 3) {
 				case 0:
 					return this.cpu2_flag = 0, this.cpu2_command;
@@ -197,7 +197,7 @@ class ElevatorAction {
 				}
 				return 0xff;
 			};
-			this.cpu2.memorymap[0x50 + i].write = addr => {
+			this.cpu2.memorymap[0x50 + i].write = (addr) => {
 				switch (addr & 3) {
 				case 0:
 					return void(this.cpu2_command &= 0x7f);
@@ -223,8 +223,8 @@ class ElevatorAction {
 		};
 		this.cpu2.set_breakpoint(0x0210);
 
-		this.mcu.memorymap[0].fetch = addr => addr >= 0x80 ? PRG3[addr] : this.ram3[addr];
-		this.mcu.memorymap[0].read = addr => {
+		this.mcu.memorymap[0].fetch = (addr) => { return addr >= 0x80 ? PRG3[addr] : this.ram3[addr]; };
+		this.mcu.memorymap[0].read = (addr) => {
 			if (addr >= 0x80)
 				return PRG3[addr];
 			switch (addr) {
@@ -238,16 +238,16 @@ class ElevatorAction {
 		this.mcu.memorymap[0].write = (addr, data) => {
 			if (addr >= 0x80)
 				return;
-			if (addr === 1 && (~this.ram3[1] & data & 2) !== 0)
+			if (addr === 1 && ~this.ram3[1] & data & 2)
 				this.mcu_flag &= ~1, this.mcu.irq = false;
-			if (addr === 1 && (this.ram3[1] & ~data & 4) !== 0)
+			if (addr === 1 && this.ram3[1] & ~data & 4)
 				this.mcu_result = this.ram3[0], this.mcu_flag |= 2;
 			this.ram3[addr] = data;
 		};
 		for (let i = 1; i < 8; i++)
 			this.mcu.memorymap[i].base = PRG3.base[i];
 
-		this.mcu.check_interrupt = () => this.mcu.irq && this.mcu.interrupt();
+		this.mcu.check_interrupt = () => { return this.mcu.irq && this.mcu.interrupt(); };
 
 		// Videoの初期化
 		for (let i = 0; i < 32; i++)
@@ -258,7 +258,7 @@ class ElevatorAction {
 
 		// 効果音の初期化
 		ElevatorAction.convertPCM(rate);
-		this.se = pcm.map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+		this.se = pcm.map(buf => ({buf, loop: false, start: false, stop: false}));
 	}
 
 	execute() {
@@ -547,7 +547,7 @@ class ElevatorAction {
 			data.fill(this.colorbank[1] << 3 & 0x38, p, p + 224);
 
 		// bg描画
-		if ((this.mode & 0x10) !== 0) {
+		if (this.mode & 0x10) {
 			const color = this.colorbank[0];
 			const scroll = -(this.scroll[0] & 0xf8) + (this.scroll[0] + 3 & 7) + 8;
 			for (let k = 0x3c00; k < 0x4000; k++) {
@@ -557,7 +557,7 @@ class ElevatorAction {
 					this.xfer8x8(this.layer[1], color, x | y << 8, k);
 			}
 		}
-		if ((this.mode & 0x20) !== 0) {
+		if (this.mode & 0x20) {
 			const color = this.colorbank[0] >> 4;
 			const scroll = -(this.scroll[2] & 0xf8) + (this.scroll[2] + 1 & 7) + 10;
 			for (let k = 0x4000; k < 0x4400; k++) {
@@ -567,7 +567,7 @@ class ElevatorAction {
 					this.xfer8x8(this.layer[2], color, x | y << 8, k);
 			}
 		}
-		if ((this.mode & 0x40) !== 0) {
+		if (this.mode & 0x40) {
 			const color = this.colorbank[1];
 			const scroll = -(this.scroll[4] & 0xf8) + (this.scroll[4] - 1 & 7) + 12;
 			for (let k = 0x4400; k < 0x4800; k++) {
@@ -579,14 +579,14 @@ class ElevatorAction {
 		}
 
 		// obj描画
-		if ((this.mode & 0x80) !== 0) {
+		if (this.mode & 0x80) {
 			this.layer[0].fill(0);
 			this.drawObj(0x497c | this.mode << 5 & 0x80);
 			for (let k = 0x4900 | this.mode << 5 & 0x80, i = 0; i < 31; k += 4, i++) {
 				if (i >= 16 && i < 24)
 					continue;
 				const collision = this.drawObj(k);
-				if ((collision & 8) !== 0)
+				if (collision & 8)
 					this.collision[i >= 16 ? 2 : i >> 3] |= 1 << (i & 7);
 				this.collision[3] |= collision & 7;
 			}
@@ -753,17 +753,17 @@ class ElevatorAction {
 		src = src << 8 & 0x7f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, dst -= (dst >= 0x11000) * 0x10000, --i)
 			for (let j = 16; j !== 0; dst++, --j) {
-				if ((px = this.obj[src++]) === 0 || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
+				if (!(px = this.obj[src++]) || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
 					continue;
 				if (this.layer[0][dst] === 0)
 					this.layer[0][dst] = idx | px;
 				else
 					collision |= 8;
-				if ((this.mode & 0x10) !== 0 && (this.layer[1][dst] & 7) !== 0)
+				if (this.mode & 0x10 && (this.layer[1][dst] & 7) !== 0)
 					collision |= 1;
-				if ((this.mode & 0x20) !== 0 && (this.layer[2][dst] & 7) !== 0)
+				if (this.mode & 0x20 && (this.layer[2][dst] & 7) !== 0)
 					collision |= 2;
-				if ((this.mode & 0x40) !== 0 && (this.layer[3][dst] & 7) !== 0)
+				if (this.mode & 0x40 && (this.layer[3][dst] & 7) !== 0)
 					collision |= 4;
 			}
 		return collision;
@@ -778,17 +778,17 @@ class ElevatorAction {
 		src = (src << 8 & 0x7f00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, dst -= (dst >= 0x11000) * 0x10000, --i)
 			for (let j = 16; j !== 0; dst++, --j) {
-				if ((px = this.obj[src++]) === 0 || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
+				if (!(px = this.obj[src++]) || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
 					continue;
 				if (this.layer[0][dst] === 0)
 					this.layer[0][dst] = idx | px;
 				else
 					collision |= 8;
-				if ((this.mode & 0x10) !== 0 && (this.layer[1][dst] & 7) !== 0)
+				if (this.mode & 0x10 && (this.layer[1][dst] & 7) !== 0)
 					collision |= 1;
-				if ((this.mode & 0x20) !== 0 && (this.layer[2][dst] & 7) !== 0)
+				if (this.mode & 0x20 && (this.layer[2][dst] & 7) !== 0)
 					collision |= 2;
-				if ((this.mode & 0x40) !== 0 && (this.layer[3][dst] & 7) !== 0)
+				if (this.mode & 0x40 && (this.layer[3][dst] & 7) !== 0)
 					collision |= 4;
 			}
 		return collision;
@@ -803,17 +803,17 @@ class ElevatorAction {
 		src = (src << 8 & 0x7f00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, dst -= (dst >= 0x11000) * 0x10000, --i)
 			for (let j = 16; j !== 0; dst++, --j) {
-				if ((px = this.obj[--src]) === 0 || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
+				if (!(px = this.obj[--src]) || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
 					continue;
 				if (this.layer[0][dst] === 0)
 					this.layer[0][dst] = idx | px;
 				else
 					collision |= 8;
-				if ((this.mode & 0x10) !== 0 && (this.layer[1][dst] & 7) !== 0)
+				if (this.mode & 0x10 && (this.layer[1][dst] & 7) !== 0)
 					collision |= 1;
-				if ((this.mode & 0x20) !== 0 && (this.layer[2][dst] & 7) !== 0)
+				if (this.mode & 0x20 && (this.layer[2][dst] & 7) !== 0)
 					collision |= 2;
-				if ((this.mode & 0x40) !== 0 && (this.layer[3][dst] & 7) !== 0)
+				if (this.mode & 0x40 && (this.layer[3][dst] & 7) !== 0)
 					collision |= 4;
 			}
 		return collision;
@@ -828,17 +828,17 @@ class ElevatorAction {
 		src = (src << 8 & 0x7f00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, dst -= (dst >= 0x11000) * 0x10000, --i)
 			for (let j = 16; j !== 0; dst++, --j) {
-				if ((px = this.obj[--src]) === 0 || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
+				if (!(px = this.obj[--src]) || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
 					continue;
 				if (this.layer[0][dst] === 0)
 					this.layer[0][dst] = idx | px;
 				else
 					collision |= 8;
-				if ((this.mode & 0x10) !== 0 && (this.layer[1][dst] & 7) !== 0)
+				if (this.mode & 0x10 && (this.layer[1][dst] & 7) !== 0)
 					collision |= 1;
-				if ((this.mode & 0x20) !== 0 && (this.layer[2][dst] & 7) !== 0)
+				if (this.mode & 0x20 && (this.layer[2][dst] & 7) !== 0)
 					collision |= 2;
-				if ((this.mode & 0x40) !== 0 && (this.layer[3][dst] & 7) !== 0)
+				if (this.mode & 0x40 && (this.layer[3][dst] & 7) !== 0)
 					collision |= 4;
 			}
 		return collision;

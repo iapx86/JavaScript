@@ -34,7 +34,7 @@ class SoundTest {
 			this.cpu2.memorymap[i].write = null;
 		}
 		for (let i = 0; i < 0x100; i++) {
-			this.cpu2.iomap[i].read = addr => {
+			this.cpu2.iomap[i].read = (addr) => {
 				switch (addr & 0xff) {
 				case 1:
 					return this.fm.status;
@@ -54,9 +54,9 @@ class SoundTest {
 						break;
 					case 0x14: // CSM/F RESET/IRQEN/LOAD
 						this.fm.status &= ~(data >> 4 & 3);
-						if ((data & ~this.fm.reg[0x14] & 1) !== 0)
+						if (data & ~this.fm.reg[0x14] & 1)
 							this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
-						if ((data & ~this.fm.reg[0x14] & 2) !== 0)
+						if (data & ~this.fm.reg[0x14] & 2)
 							this.fm.timerb = this.fm.reg[0x12];
 						break;
 					}
@@ -65,7 +65,7 @@ class SoundTest {
 			};
 		}
 
-		this.cpu2.check_interrupt = () => (this.fm.status & 3) !== 0 && this.cpu2.interrupt(0xef);
+		this.cpu2.check_interrupt = () => { return this.fm.status & 3 && this.cpu2.interrupt(0xef); };
 	}
 
 	execute() {
@@ -73,11 +73,11 @@ class SoundTest {
 			this.cpu2.interrupt(0xdf);
 		for (this.count = 0; this.count < 58; this.count++) { // 3579545 / 60 / 1024
 			this.cpu2.execute(146);
-			if ((this.fm.reg[0x14] & 1) !== 0 && (this.fm.timera += 16) >= 0x400) {
+			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400) {
 				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
 			}
-			if ((this.fm.reg[0x14] & 2) !== 0 && ++this.fm.timerb >= 0x100) {
+			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100) {
 				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
 			}
@@ -186,13 +186,18 @@ class SoundTest {
 const key = [];
 const PRG = new Uint8Array(0x20000);
 
-void function () {
+read('nspirit.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	zip.decompress('nspiritj/nin_c-h3.6m').forEach((e, i) => PRG[1 | i << 1] = e);
+	zip.decompress('nspiritj/nin_c-l3.6a').forEach((e, i) => PRG[i << 1] = e);
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
+	game = new SoundTest();
+	sound = new YM2151({clock: 3579545, resolution: 58, gain: 2});
+	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -202,14 +207,6 @@ void function () {
 			game.right();
 		game.triggerA();
 	});
-}();
-
-read('nspirit.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	zip.decompress('nspiritj/nin_c-h3.6m').forEach((e, i) => PRG[1 | i << 1] = e);
-	zip.decompress('nspiritj/nin_c-l3.6a').forEach((e, i) => PRG[i << 1] = e);
-	game = new SoundTest();
-	sound = new YM2151({clock: 3579545, resolution: 58, gain: 2});
-	game.initial = true;
 	init({game, sound});
 });
 

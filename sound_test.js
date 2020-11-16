@@ -26,8 +26,8 @@ class SoundTest {
 	constructor() {
 		// CPU周りの初期化
 		for (let i = 0; i < 4; i++) {
-			this.cpu2.memorymap[i].read = addr => sound.read(addr);
-			this.cpu2.memorymap[i].write = (addr, data) => sound.write(addr, data);
+			this.cpu2.memorymap[i].read = (addr) => { return sound.read(addr); };
+			this.cpu2.memorymap[i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[0xe0 + i].base = PRG2.base[i];
@@ -120,7 +120,7 @@ class SoundTest {
 			const freq = reg[4 + i * 8] | reg[5 + i * 8] << 8 | reg[6 + i * 8] << 16 & 0xf0000;
 			const vol =  reg[3 + i * 8] & 0x0f;
 			const pitch = Math.floor(Math.log2(freq * 48000 / (1 << 21) / 440) * 12 + 45.5);
-			if (vol === 0 || pitch < 0 || pitch >= 12 * 8)
+			if (!vol || pitch < 0 || pitch >= 12 * 8)
 				continue;
 			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
 		}
@@ -142,13 +142,18 @@ class SoundTest {
 const key = [];
 let SND, PRG2;
 
-void function () {
+read('liblrabl.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG2 = zip.decompress('2c.rom').addBase();
+	SND = zip.decompress('lr1-4.3d');
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
+	game = new SoundTest();
+	sound = new MappySound({SND});
+	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -158,14 +163,6 @@ void function () {
 			game.right();
 		game.triggerA();
 	});
-}();
-
-read('liblrabl.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG2 = zip.decompress('2c.rom').addBase();
-	SND = zip.decompress('lr1-4.3d');
-	game = new SoundTest();
-	sound = new MappySound({SND});
-	game.initial = true;
 	init({game, sound});
 });
 

@@ -60,7 +60,7 @@ class CrazyBalloon {
 				this.cpu.memorymap[page].write = null;
 			}
 		for (let i = 0; i < 0x100; i++) {
-			this.cpu.iomap[i].read = addr => this.io[addr & 3];
+			this.cpu.iomap[i].read = (addr) => { return this.io[addr & 3]; };
 			this.cpu.iomap[i].write = (addr, data) => {
 				switch (addr & 0xff) {
 				case 2:
@@ -138,7 +138,7 @@ class CrazyBalloon {
 
 	updateInput() {
 		// クレジット/スタートボタン処理
-		if ((this.io[8] & 2) === 0) {
+		if (~this.io[8] & 2) {
 			this.io[3] &= 0x0f;
 			return this;
 		}

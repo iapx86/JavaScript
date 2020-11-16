@@ -55,14 +55,14 @@ class Phozon {
 			this.cpu.memorymap[i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x40 + i].read = addr => sound.read(addr);
-			this.cpu.memorymap[0x40 + i].write = (addr, data) => sound.write(addr, data);
+			this.cpu.memorymap[0x40 + i].read = (addr) => { return sound.read(addr); };
+			this.cpu.memorymap[0x40 + i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x48 + i].read = addr => this.port[addr & 0x3f] | 0xf0;
-			this.cpu.memorymap[0x48 + i].write = (addr, data) => void(this.port[addr & 0x3f] = data & 0xf);
+			this.cpu.memorymap[0x48 + i].read = (addr) => { return this.port[addr & 0x3f] | 0xf0; };
+			this.cpu.memorymap[0x48 + i].write = (addr, data) => { this.port[addr & 0x3f] = data & 0xf; };
 		}
-		this.cpu.memorymap[0x50].write = addr => {
+		this.cpu.memorymap[0x50].write = (addr) => {
 			switch (addr & 0xff) {
 			case 0x00: // INTERRUPT STOP
 				return void(this.fInterruptEnable2 = false);
@@ -98,8 +98,8 @@ class Phozon {
 			this.cpu.memorymap[0x80 + i].base = PRG1.base[i];
 
 		for (let i = 0; i < 4; i++) {
-			this.cpu2.memorymap[i].read = addr => sound.read(addr);
-			this.cpu2.memorymap[i].write = (addr, data) => sound.write(addr, data);
+			this.cpu2.memorymap[i].read = (addr) => { return sound.read(addr); };
+			this.cpu2.memorymap[i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[0xe0 + i].base = PRG2.base[i];
@@ -109,8 +109,8 @@ class Phozon {
 			this.cpu3.memorymap[i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
-			this.cpu3.memorymap[0x40 + i].read = addr => sound.read(addr);
-			this.cpu3.memorymap[0x40 + i].write = (addr, data) => sound.write(addr, data);
+			this.cpu3.memorymap[0x40 + i].read = (addr) => { return sound.read(addr); };
+			this.cpu3.memorymap[0x40 + i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 8; i++) {
 			this.cpu3.memorymap[0xa0 + i].base = this.ram.base[0x20 + i];
@@ -379,12 +379,12 @@ class Phozon {
 					break;
 				// 32x8
 				case 0x20:
-					if ((this.ram[k + 0x1000] & 0x40) === 0) {
-						this.xfer16x8_0(data, x | y << 8, src + 2);
-						this.xfer16x8_0(data, x + 16 | y << 8, src);
-					} else {
+					if (this.ram[k + 0x1000] & 0x40) {
 						this.xfer16x8_1(data, x | y << 8, src + 2);
 						this.xfer16x8_1(data, x + 16 | y << 8, src);
+					} else {
+						this.xfer16x8_0(data, x | y << 8, src + 2);
+						this.xfer16x8_0(data, x + 16 | y << 8, src);
 					}
 					break;
 				}
@@ -430,7 +430,7 @@ class Phozon {
 
 		if ((this.ram[k + 0x400] >> 6 & 1) !== pri)
 			return;
-		if ((this.ram[k + 0x400] & 0x20) === 0) {
+		if (~this.ram[k + 0x400] & 0x20) {
 			// ノーマル
 			if ((px = this.bgcolor[idx | this.bg[q | 0x00]]) !== 0xf) data[p + 0x000] = px;
 			if ((px = this.bgcolor[idx | this.bg[q | 0x01]]) !== 0xf) data[p + 0x001] = px;
@@ -496,7 +496,7 @@ class Phozon {
 			if ((px = this.bgcolor[idx | this.bg[q | 0x3d]]) !== 0xf) data[p + 0x705] = px;
 			if ((px = this.bgcolor[idx | this.bg[q | 0x3e]]) !== 0xf) data[p + 0x706] = px;
 			if ((px = this.bgcolor[idx | this.bg[q | 0x3f]]) !== 0xf) data[p + 0x707] = px;
-		} else if ((this.ram[k + 0x400] & 0x1f) !== 0) {
+		} else if (this.ram[k + 0x400] & 0x1f) {
 			// HV反転
 			if ((px = this.bgcolor[idx | this.bg[q | 0x3f]]) !== 0xf) data[p + 0x000] = px;
 			if ((px = this.bgcolor[idx | this.bg[q | 0x3e]]) !== 0xf) data[p + 0x001] = px;
@@ -642,7 +642,6 @@ class Phozon {
 				if ((px = this.objcolor[idx | this.obj[src++]]) !== 0x1f)
 					data[dst] = px;
 	}
-
 
 	xfer8x8_3(data, dst, src) {
 		const idx = src >> 6 & 0xfc;

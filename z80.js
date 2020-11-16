@@ -1379,7 +1379,7 @@ export default class Z80 extends Cpu {
 		case 0x44: // NEG
 			return void(this.a = this.neg8(this.a));
 		case 0x45: // RETN
-			return this.iff = (this.iff & 2) !== 0 ? 3 : 0, this.ret(true);
+			return this.iff = this.iff & 2 ? 3 : 0, this.ret(true);
 		case 0x46: // IM 0
 			return void(this.im = 0);
 		case 0x47: // LD I,A
@@ -1465,21 +1465,21 @@ export default class Z80 extends Cpu {
 		case 0xab: // OUTD
 			return this.outd();
 		case 0xb0: // LDIR
-			return this.ldi(), void((this.f & 4) !== 0 && (this.pc = this.pc - 2 & 0xffff));
+			return this.ldi(), void(this.f & 4 && (this.pc = this.pc - 2 & 0xffff));
 		case 0xb1: // CPIR
 			return this.cpi(), void((this.f & 0x44) === 4 && (this.pc = this.pc - 2 & 0xffff));
 		case 0xb2: // INIR
-			return this.ini(), void((this.f & 0x40) === 0 && (this.pc = this.pc - 2 & 0xffff));
+			return this.ini(), void(~this.f & 0x40 && (this.pc = this.pc - 2 & 0xffff));
 		case 0xb3: // OTIR
-			return this.outi(), void((this.f & 0x40) === 0 && (this.pc = this.pc - 2 & 0xffff));
+			return this.outi(), void(~this.f & 0x40 && (this.pc = this.pc - 2 & 0xffff));
 		case 0xb8: // LDDR
-			return this.ldd(), void((this.f & 4) !== 0 && (this.pc = this.pc - 2 & 0xffff));
+			return this.ldd(), void(this.f & 4 && (this.pc = this.pc - 2 & 0xffff));
 		case 0xb9: // CPDR
 			return this.cpd(), void((this.f & 0x44) === 4 && (this.pc = this.pc - 2 & 0xffff));
 		case 0xba: // INDR
-			return this.ind(), void((this.f & 0x40) === 0 && (this.pc = this.pc - 2 & 0xffff));
+			return this.ind(), void(~this.f & 0x40 && (this.pc = this.pc - 2 & 0xffff));
 		case 0xbb: // OTDR
-			return this.outd(), void((this.f & 0x40) === 0 && (this.pc = this.pc - 2 & 0xffff));
+			return this.outd(), void(~this.f & 0x40 && (this.pc = this.pc - 2 & 0xffff));
 		default:
 			this.undefsize = 2;
 			if (this.undef)
@@ -1832,18 +1832,18 @@ export default class Z80 extends Cpu {
 
 	daa() {
 		let r = this.a;
-		if ((this.f & 2) !== 0) {
-			if ((this.f & 0x10) !== 0 && (r & 0x0f) > 5 || (r & 0x0f) > 9)
+		if (this.f & 2) {
+			if (this.f & 0x10 && (r & 0x0f) > 5 || (r & 0x0f) > 9)
 				r -= 6, this.f |= 0x10;
-			if ((this.f & 1) !== 0 && (r & 0xf0) > 0x50 || (r & 0xf0) > 0x90)
+			if (this.f & 1 && (r & 0xf0) > 0x50 || (r & 0xf0) > 0x90)
 				r -= 0x60, this.f |= 1;
 		} else {
-			if ((this.f & 0x10) !== 0 && (r & 0x0f) < 4 || (r & 0x0f) > 9) {
+			if (this.f & 0x10 && (r & 0x0f) < 4 || (r & 0x0f) > 9) {
 				if ((r += 6) >= 0x100)
 					this.f |= 1;
 				this.f |= 0x10;
 			}
-			if ((this.f & 1) !== 0 && (r & 0xf0) < 0x40 || (r & 0xf0) > 0x90)
+			if (this.f & 1 && (r & 0xf0) < 0x40 || (r & 0xf0) > 0x90)
 				r += 0x60, this.f |= 1;
 		}
 		this.a = r &= 0xff, this.f = this.f & ~0xc4 | Z80.fLogic[r];

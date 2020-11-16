@@ -309,7 +309,7 @@ export default class Cpu {
 			cpus.forEach(cpu => {
 				if (!cpu.fActive || cpu.check_interrupt && cpu.check_interrupt(cpu.arg) || cpu.fSuspend)
 					return;
-				if (cpu.breakpoint && (cpu.breakpointmap[cpu.pc >>> 5] & 1 << (cpu.pc & 0x1f)) !== 0)
+				if (cpu.breakpoint && cpu.breakpointmap[cpu.pc >>> 5] >> (cpu.pc & 31) & 1)
 					cpu.breakpoint(cpu.pc, cpu.arg);
 				cpu._execute();
 			});
@@ -321,7 +321,7 @@ export default class Cpu {
 				break;
 			if (this.check_interrupt && this.check_interrupt() || this.fSuspend)
 				continue;
-			if (this.breakpoint && (this.breakpointmap[this.pc >>> 5] & 1 << (this.pc & 0x1f)) !== 0)
+			if (this.breakpoint && this.breakpointmap[this.pc >>> 5] >> (this.pc & 31) & 1)
 				this.breakpoint(this.pc);
 			this._execute();
 		}

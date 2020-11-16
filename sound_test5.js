@@ -46,10 +46,10 @@ class SoundTest {
 			this.cpu2.memorymap[0x80 + i].write = null;
 		}
 		for (let i = 0; i < 0x10; i++) {
-			this.cpu2.memorymap[0xa0 + i].write = addr => void(this.scc.freq0 = ~addr & 0xfff);
-			this.cpu2.memorymap[0xc0 + i].write = addr => void(this.scc.freq1 = ~addr & 0xfff);
+			this.cpu2.memorymap[0xa0 + i].write = (addr) => { this.scc.freq0 = ~addr & 0xfff; };
+			this.cpu2.memorymap[0xc0 + i].write = (addr) => { this.scc.freq1 = ~addr & 0xfff; };
 		}
-		this.cpu2.memorymap[0xe0].read = addr => {
+		this.cpu2.memorymap[0xe0].read = (addr) => {
 			switch (addr & 0xff) {
 			case 1:
 				return this.command.length ? this.command.shift() : 0xff;
@@ -74,8 +74,8 @@ class SoundTest {
 				return sound[3].st(this.vlm_latch);
 			}
 		};
-		this.cpu2.memorymap[0xe1].write = (addr, data) => void(addr === 0xe106 && this.psg[0].addr !== 0xe && sound[0].write(this.psg[0].addr, data, this.count));
-		this.cpu2.memorymap[0xe2].read = addr => addr === 0xe205 ? sound[1].read(this.psg[1].addr) : 0xff;
+		this.cpu2.memorymap[0xe1].write = (addr, data) => { addr === 0xe106 && this.psg[0].addr !== 0xe && sound[0].write(this.psg[0].addr, data, this.count); };
+		this.cpu2.memorymap[0xe2].read = (addr) => { return addr === 0xe205 ? sound[1].read(this.psg[1].addr) : 0xff; };
 		this.cpu2.memorymap[0xe4].write = (addr, data) => {
 			if (addr === 0xe405) {
 				if (this.psg[1].addr === 0xe)
@@ -196,7 +196,7 @@ class SoundTest {
 		}
 		for (let i = 0; i < 6; i++) {
 			const vol = reg[[8, 9, 0xa, 0x18, 0x19, 0x1a][i]] & 0x1f;
-			if (vol === 0)
+			if (!vol)
 				continue;
 			const addr = [0, 2, 4, 0x10, 0x12, 0x14][i];
 			const freq = reg[addr] | reg[addr + 1] << 8;
@@ -224,13 +224,27 @@ const key = [];
 const PRG1 = new Uint8Array(0x50000);
 let PRG2, SND;
 
-void function () {
+read('twinbee.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	zip.decompress('400-a06.15l').forEach((e, i) => PRG1[i << 1] = e);
+	zip.decompress('400-a04.10l').forEach((e, i) => PRG1[1 + (i << 1)] = e);
+	zip.decompress('412-a07.17l').forEach((e, i) => PRG1[0x10000 + (i << 1)] = e);
+	zip.decompress('412-a05.12l').forEach((e, i) => PRG1[0x10001 + (i << 1)] = e);
+	PRG2 = zip.decompress('400-e03.5l').addBase();
+	SND = Uint8Array.concat(...['400-a01.fse', '400-a02.fse'].map(e => zip.decompress(e)));
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
+	game = new SoundTest();
+	sound = [
+		new AY_3_8910({clock: 14318180 / 8, resolution: 58, gain: 0.3}),
+		new AY_3_8910({clock: 14318180 / 8, resolution: 58, gain: 0.3}),
+		new K005289({SND, clock: 14318180 / 4, resolution: 58, gain: 0.3}),
+		new VLM5030({VLM: game.vlm, clock: 14318180 / 4, gain: 5}),
+	];
+	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -240,23 +254,6 @@ void function () {
 			game.right();
 		game.triggerA();
 	});
-}();
-
-read('twinbee.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	zip.decompress('400-a06.15l').forEach((e, i) => PRG1[i << 1] = e);
-	zip.decompress('400-a04.10l').forEach((e, i) => PRG1[1 + (i << 1)] = e);
-	zip.decompress('412-a07.17l').forEach((e, i) => PRG1[0x10000 + (i << 1)] = e);
-	zip.decompress('412-a05.12l').forEach((e, i) => PRG1[0x10001 + (i << 1)] = e);
-	PRG2 = zip.decompress('400-e03.5l').addBase();
-	SND = Uint8Array.concat(...['400-a01.fse', '400-a02.fse'].map(e => zip.decompress(e)));
-	game = new SoundTest();
-	sound = [
-		new AY_3_8910({clock: 14318180 / 8, resolution: 58, gain: 0.3}),
-		new AY_3_8910({clock: 14318180 / 8, resolution: 58, gain: 0.3}),
-		new K005289({SND, clock: 14318180 / 4, resolution: 58, gain: 0.3}),
-		new VLM5030({VLM: game.vlm, clock: 14318180 / 4, gain: 5}),
-	];
-	game.initial = true;
 	init({game, sound});
 });
 

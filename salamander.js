@@ -62,16 +62,16 @@ class Salamander {
 			this.cpu.memorymap[0x800 + i].write = null;
 		}
 		for (let i = 0; i < 0x20; i++) {
-			this.cpu.memorymap[0x900 + i].read = addr => (addr & 1) !== 0 ? this.ram[0x8000 | addr >> 1 & 0xfff] : 0;
-			this.cpu.memorymap[0x900 + i].write = (addr, data) => void((addr & 1) !== 0 && (this.ram[0x8000 | addr >> 1 & 0xfff] = data));
+			this.cpu.memorymap[0x900 + i].read = (addr) => { return (addr & 1) !== 0 ? this.ram[0x8000 | addr >> 1 & 0xfff] : 0; };
+			this.cpu.memorymap[0x900 + i].write = (addr, data) => { (addr & 1) !== 0 && (this.ram[0x8000 | addr >> 1 & 0xfff] = data); };
 		}
 		this.cpu.memorymap[0xa00].write = (addr, data) => {
 			if (addr === 0xa0001)
 				this.fInterruptEnable = (data & 1) !== 0, this.flip = data >> 2 & 3;
 		};
-		this.cpu.memorymap[0xc00].read = addr => addr === 0xc0003 ? this.in[0] : 0xff;
-		this.cpu.memorymap[0xc00].write = (addr, data) => void(addr === 0xc0001 && this.command.push(data));
-		this.cpu.memorymap[0xc20].read = addr => {
+		this.cpu.memorymap[0xc00].read = (addr) => { return addr === 0xc0003 ? this.in[0] : 0xff; };
+		this.cpu.memorymap[0xc00].write = (addr, data) => { addr === 0xc0001 && this.command.push(data); };
+		this.cpu.memorymap[0xc20].read = (addr) => {
 			switch (addr & 0xff) {
 			case 1:
 				return this.in[2];
@@ -110,10 +110,10 @@ class Salamander {
 			this.cpu2.memorymap[0x80 + i].base = this.ram2.base[i];
 			this.cpu2.memorymap[0x80 + i].write = null;
 		}
-		this.cpu2.memorymap[0xa0].read = addr => addr === 0xa000 && this.command.length ? this.command.shift() : 0xff;
-		this.cpu2.memorymap[0xb0].read = addr => addr < 0xb00e ? sound[1].read(addr, this.count) : 0xff;
-		this.cpu2.memorymap[0xb0].write = (addr, data) => void(addr < 0xb00e && sound[1].write(addr, data, this.count));
-		this.cpu2.memorymap[0xc0].read = addr => addr === 0xc001 ? this.fm.status : 0xff;
+		this.cpu2.memorymap[0xa0].read = (addr) => { return addr === 0xa000 && this.command.length ? this.command.shift() : 0xff; };
+		this.cpu2.memorymap[0xb0].read = (addr) => { return addr < 0xb00e ? sound[1].read(addr, this.count) : 0xff; };
+		this.cpu2.memorymap[0xb0].write = (addr, data) => { addr < 0xb00e && sound[1].write(addr, data, this.count); };
+		this.cpu2.memorymap[0xc0].read = (addr) => { return addr === 0xc001 ? this.fm.status : 0xff; };
 		this.cpu2.memorymap[0xc0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
@@ -121,21 +121,21 @@ class Salamander {
 			case 1:
 				if (this.fm.addr === 0x14) { // CSM/F RESET/IRQEN/LOAD
 					this.fm.status &= ~(data >> 4 & 3);
-					if ((data & ~this.fm.reg[0x14] & 1) !== 0)
+					if (data & ~this.fm.reg[0x14] & 1)
 						this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
-					if ((data & ~this.fm.reg[0x14] & 2) !== 0)
+					if (data & ~this.fm.reg[0x14] & 2)
 						this.fm.timerb = this.fm.reg[0x12];
 				}
 				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
 			}
 		};
-		this.cpu2.memorymap[0xd0].write = (addr, data) => void(addr === 0xd000 && (this.vlm_latch = data));
-		this.cpu2.memorymap[0xe0].read = addr => addr === 0xe000 ? this.wd ^= 1 : 0xff;
+		this.cpu2.memorymap[0xd0].write = (addr, data) => { addr === 0xd000 && (this.vlm_latch = data); };
+		this.cpu2.memorymap[0xe0].read = (addr) => { return addr === 0xe000 ? this.wd ^= 1 : 0xff; };
 		this.cpu2.memorymap[0xf0].write = (addr, data) => {
 			if (addr === 0xf000) {
-				if ((~data & this.vlm_control & 1) !== 0)
+				if (~data & this.vlm_control & 1)
 					sound[2].rst(this.vlm_latch);
-				if ((~data & this.vlm_control & 2) !== 0)
+				if (~data & this.vlm_control & 2)
 					sound[2].st(this.vlm_latch);
 				this.vlm_control = data;
 			}
@@ -149,11 +149,11 @@ class Salamander {
 		for (this.count = 0; this.count < 58; this.count++) { // 14318180 / 4 / 60 / 1024
 			this.command.length && this.cpu2.interrupt();
 			this.cpu2.execute(146);
-			if ((this.fm.reg[0x14] & 1) !== 0 && (this.fm.timera += 16) >= 0x400) {
+			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400) {
 				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
 			}
-			if ((this.fm.reg[0x14] & 2) !== 0 && ++this.fm.timerb >= 0x100) {
+			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100) {
 				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
 			}
@@ -316,16 +316,16 @@ class Salamander {
 
 		// bg描画
 		for (let k = 0x9000; k < 0xa000; k += 2)
-			if ((this.ram[k] & 0x50) === 0 && (this.ram[k] & 0xf8) !== 0)
+			if ((this.ram[k] & 0x50) === 0 && this.ram[k] & 0xf8)
 				this.xfer8x8(data, k);
 		for (let k = 0xa000; k < 0xb000; k += 2)
-			if ((this.ram[k] & 0x50) === 0 && (this.ram[k] & 0xf8) !== 0)
+			if ((this.ram[k] & 0x50) === 0 && this.ram[k] & 0xf8)
 				this.xfer8x8(data, k);
 		for (let k = 0x9000; k < 0xa000; k += 2)
-			if ((this.ram[k] & 0x50) === 0x40 && (this.ram[k] & 0xf8) !== 0)
+			if ((this.ram[k] & 0x50) === 0x40 && this.ram[k] & 0xf8)
 				this.xfer8x8(data, k);
 		for (let k = 0xa000; k < 0xb000; k += 2)
-			if ((this.ram[k] & 0x50) === 0x40 && (this.ram[k] & 0xf8) !== 0)
+			if ((this.ram[k] & 0x50) === 0x40 && this.ram[k] & 0xf8)
 				this.xfer8x8(data, k);
 
 		// obj描画
@@ -362,10 +362,10 @@ class Salamander {
 
 		// bg描画
 		for (let k = 0x9000; k < 0xa000; k += 2)
-			if ((this.ram[k] & 0x10) === 0x10 && (this.ram[k] & 0xf8) !== 0)
+			if (this.ram[k] & 0x10 && this.ram[k] & 0xf8)
 				this.xfer8x8(data, k);
 		for (let k = 0xa000; k < 0xb000; k += 2)
-			if ((this.ram[k] & 0x10) === 0x10 && (this.ram[k] & 0xf8) !== 0)
+			if (this.ram[k] & 0x10 && this.ram[k] & 0xf8)
 				this.xfer8x8(data, k);
 
 		// palette変換
@@ -376,13 +376,13 @@ class Salamander {
 	}
 
 	xfer8x8(data, k) {
-		const x0 = (((this.flip & 2) === 0 ? ~k : k) >> 4 & 0xf8 | 7) + this.ram[0xef01 | k >> 5 & 0x80 | k & 0x7e] & 0xff;
+		const x0 = ((this.flip & 2 ? k : ~k) >> 4 & 0xf8 | 7) + this.ram[0xef01 | k >> 5 & 0x80 | k & 0x7e] & 0xff;
 		const color = this.ram[k + 0x2001] << 4 & 0x7f0;
 		let src = (this.ram[k] << 8 & 0x700 | this.ram[k + 1]) << 6, px;
 
 		if (x0 < 16 && x0 >= 247)
 			return;
-		if ((this.ram[k] & 0x20) === 0 || (this.ram[k] & 0xc0) === 0x40)
+		if (~this.ram[k] & 0x20 || (this.ram[k] & 0xc0) === 0x40)
 			switch ((this.ram[k] >> 2 & 2 | this.ram[k + 0x2001] >> 7) ^ this.flip) {
 			case 0: // ノーマル
 				for (let x = x0, i = 0; i < 8; src += 8, --x, i++) {
@@ -455,14 +455,14 @@ class Salamander {
 				const offset = ~k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0xe001 | offset] | this.ram[0xe201 | offset] << 8;
 				const y = (k << 2) - scroll + 16 & 0x1ff;
 				if (y > 8 && y < 272) {
-					if ((px = this.chr[src | 0]) !== 0) data[y << 8 | x] = color | px;
-					if ((px = this.chr[src | 1]) !== 0) data[y + 1 << 8 | x] = color | px;
-					if ((px = this.chr[src | 2]) !== 0) data[y + 2 << 8 | x] = color | px;
-					if ((px = this.chr[src | 3]) !== 0) data[y + 3 << 8 | x] = color | px;
-					if ((px = this.chr[src | 4]) !== 0) data[y + 4 << 8 | x] = color | px;
-					if ((px = this.chr[src | 5]) !== 0) data[y + 5 << 8 | x] = color | px;
-					if ((px = this.chr[src | 6]) !== 0) data[y + 6 << 8 | x] = color | px;
-					if ((px = this.chr[src | 7]) !== 0) data[y + 7 << 8 | x] = color | px;
+					if ((px = this.chr[src | 0])) data[y << 8 | x] = color | px;
+					if ((px = this.chr[src | 1])) data[y + 1 << 8 | x] = color | px;
+					if ((px = this.chr[src | 2])) data[y + 2 << 8 | x] = color | px;
+					if ((px = this.chr[src | 3])) data[y + 3 << 8 | x] = color | px;
+					if ((px = this.chr[src | 4])) data[y + 4 << 8 | x] = color | px;
+					if ((px = this.chr[src | 5])) data[y + 5 << 8 | x] = color | px;
+					if ((px = this.chr[src | 6])) data[y + 6 << 8 | x] = color | px;
+					if ((px = this.chr[src | 7])) data[y + 7 << 8 | x] = color | px;
 				}
 			}
 			break;
@@ -471,14 +471,14 @@ class Salamander {
 				const offset = ~k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0xe001 | offset] | this.ram[0xe201 | offset] << 8;
 				const y = (k << 2) - scroll + 16 & 0x1ff;
 				if (y > 8 && y < 272) {
-					if ((px = this.chr[src | 0]) !== 0) data[y + 7 << 8 | x] = color | px;
-					if ((px = this.chr[src | 1]) !== 0) data[y + 6 << 8 | x] = color | px;
-					if ((px = this.chr[src | 2]) !== 0) data[y + 5 << 8 | x] = color | px;
-					if ((px = this.chr[src | 3]) !== 0) data[y + 4 << 8 | x] = color | px;
-					if ((px = this.chr[src | 4]) !== 0) data[y + 3 << 8 | x] = color | px;
-					if ((px = this.chr[src | 5]) !== 0) data[y + 2 << 8 | x] = color | px;
-					if ((px = this.chr[src | 6]) !== 0) data[y + 1 << 8 | x] = color | px;
-					if ((px = this.chr[src | 7]) !== 0) data[y << 8 | x] = color | px;
+					if ((px = this.chr[src | 0])) data[y + 7 << 8 | x] = color | px;
+					if ((px = this.chr[src | 1])) data[y + 6 << 8 | x] = color | px;
+					if ((px = this.chr[src | 2])) data[y + 5 << 8 | x] = color | px;
+					if ((px = this.chr[src | 3])) data[y + 4 << 8 | x] = color | px;
+					if ((px = this.chr[src | 4])) data[y + 3 << 8 | x] = color | px;
+					if ((px = this.chr[src | 5])) data[y + 2 << 8 | x] = color | px;
+					if ((px = this.chr[src | 6])) data[y + 1 << 8 | x] = color | px;
+					if ((px = this.chr[src | 7])) data[y << 8 | x] = color | px;
 				}
 			}
 			break;
@@ -487,14 +487,14 @@ class Salamander {
 				const offset = ~k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0xe001 | offset] | this.ram[0xe201 | offset] << 8;
 				const y = (k << 2) - scroll + 16 & 0x1ff;
 				if (y > 8 && y < 272) {
-					if ((px = this.chr[src | 0]) !== 0) data[y << 8 | x] = color | px;
-					if ((px = this.chr[src | 1]) !== 0) data[y + 1 << 8 | x] = color | px;
-					if ((px = this.chr[src | 2]) !== 0) data[y + 2 << 8 | x] = color | px;
-					if ((px = this.chr[src | 3]) !== 0) data[y + 3 << 8 | x] = color | px;
-					if ((px = this.chr[src | 4]) !== 0) data[y + 4 << 8 | x] = color | px;
-					if ((px = this.chr[src | 5]) !== 0) data[y + 5 << 8 | x] = color | px;
-					if ((px = this.chr[src | 6]) !== 0) data[y + 6 << 8 | x] = color | px;
-					if ((px = this.chr[src | 7]) !== 0) data[y + 7 << 8 | x] = color | px;
+					if ((px = this.chr[src | 0])) data[y << 8 | x] = color | px;
+					if ((px = this.chr[src | 1])) data[y + 1 << 8 | x] = color | px;
+					if ((px = this.chr[src | 2])) data[y + 2 << 8 | x] = color | px;
+					if ((px = this.chr[src | 3])) data[y + 3 << 8 | x] = color | px;
+					if ((px = this.chr[src | 4])) data[y + 4 << 8 | x] = color | px;
+					if ((px = this.chr[src | 5])) data[y + 5 << 8 | x] = color | px;
+					if ((px = this.chr[src | 6])) data[y + 6 << 8 | x] = color | px;
+					if ((px = this.chr[src | 7])) data[y + 7 << 8 | x] = color | px;
 				}
 			}
 			break;
@@ -503,14 +503,14 @@ class Salamander {
 				const offset = ~k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0xe001 | offset] | this.ram[0xe201 | offset] << 8;
 				const y = (k << 2) - scroll + 16 & 0x1ff;
 				if (y > 8 && y < 272) {
-					if ((px = this.chr[src | 0]) !== 0) data[y + 7 << 8 | x] = color | px;
-					if ((px = this.chr[src | 1]) !== 0) data[y + 6 << 8 | x] = color | px;
-					if ((px = this.chr[src | 2]) !== 0) data[y + 5 << 8 | x] = color | px;
-					if ((px = this.chr[src | 3]) !== 0) data[y + 4 << 8 | x] = color | px;
-					if ((px = this.chr[src | 4]) !== 0) data[y + 3 << 8 | x] = color | px;
-					if ((px = this.chr[src | 5]) !== 0) data[y + 2 << 8 | x] = color | px;
-					if ((px = this.chr[src | 6]) !== 0) data[y + 1 << 8 | x] = color | px;
-					if ((px = this.chr[src | 7]) !== 0) data[y << 8 | x] = color | px;
+					if ((px = this.chr[src | 0])) data[y + 7 << 8 | x] = color | px;
+					if ((px = this.chr[src | 1])) data[y + 6 << 8 | x] = color | px;
+					if ((px = this.chr[src | 2])) data[y + 5 << 8 | x] = color | px;
+					if ((px = this.chr[src | 3])) data[y + 4 << 8 | x] = color | px;
+					if ((px = this.chr[src | 4])) data[y + 3 << 8 | x] = color | px;
+					if ((px = this.chr[src | 5])) data[y + 2 << 8 | x] = color | px;
+					if ((px = this.chr[src | 6])) data[y + 1 << 8 | x] = color | px;
+					if ((px = this.chr[src | 7])) data[y << 8 | x] = color | px;
 				}
 			}
 			break;

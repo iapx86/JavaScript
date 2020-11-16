@@ -57,8 +57,8 @@ class PacLand {
 			this.cpu.memorymap[i].base = this.ram.base[i];
 			this.cpu.memorymap[i].write = null;
 		}
-		this.cpu.memorymap[0x38].write = (addr, data) => void(this.dwScroll0 = data | addr << 8 & 0x100);
-		this.cpu.memorymap[0x3a].write = (addr, data) => void(this.dwScroll1 = data | addr << 8 & 0x100);
+		this.cpu.memorymap[0x38].write = (addr, data) => { this.dwScroll0 = data | addr << 8 & 0x100; };
+		this.cpu.memorymap[0x3a].write = (addr, data) => { this.dwScroll1 = data | addr << 8 & 0x100; };
 		this.cpu.memorymap[0x3c].write = (addr, data) => {
 			const bank = (data << 5 & 0xe0) + 0x80;
 			if ((addr & 0xff) !== 0)
@@ -73,34 +73,34 @@ class PacLand {
 		for (let i = 0; i < 0x20; i++)
 			this.cpu.memorymap[0x40 + i].base = PRG1.base[0x80 + i];
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x68 + i].read = addr => sound.read(addr);
-			this.cpu.memorymap[0x68 + i].write = (addr, data) => sound.write(addr, data);
+			this.cpu.memorymap[0x68 + i].read = (addr) => { return sound.read(addr); };
+			this.cpu.memorymap[0x68 + i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0x70 + i].write = addr => void(this.fInterruptEnable0 = (addr & 0x800) === 0);
+			this.cpu.memorymap[0x70 + i].write = (addr) => { this.fInterruptEnable0 = (addr & 0x800) === 0; };
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[0x80 + i].base = PRG1.base[i];
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0x80 + i].write = addr => (addr & 0x800) === 0 ? this.mcu.enable() : this.mcu.disable();
+			this.cpu.memorymap[0x80 + i].write = (addr) => { (addr & 0x800) === 0 ? this.mcu.enable() : this.mcu.disable(); };
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0x90 + i].write = addr => void(this.fFlip = (addr & 0x800) === 0);
+			this.cpu.memorymap[0x90 + i].write = (addr) => { this.fFlip = (addr & 0x800) === 0; };
 
 		this.mcu.memorymap[0].base = this.ram2.base[0];
-		this.mcu.memorymap[0].read = addr => addr === 2 ? this.in[4] : this.ram2[addr];
+		this.mcu.memorymap[0].read = (addr) => { return addr === 2 ? this.in[4] : this.ram2[addr]; };
 		this.mcu.memorymap[0].write = null;
 		for (let i = 0; i < 4; i++) {
-			this.mcu.memorymap[0x10 + i].read = addr => sound.read(addr);
-			this.mcu.memorymap[0x10 + i].write = (addr, data) => sound.write(addr, data);
+			this.mcu.memorymap[0x10 + i].read = (addr) => { return sound.read(addr); };
+			this.mcu.memorymap[0x10 + i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 0x40; i++)
-			this.mcu.memorymap[0x40 + i].write = addr => void(this.fInterruptEnable1 = (addr & 0x2000) === 0);
+			this.mcu.memorymap[0x40 + i].write = (addr) => { this.fInterruptEnable1 = (addr & 0x2000) === 0; };
 		for (let i = 0; i < 0x20; i++)
 			this.mcu.memorymap[0x80 + i].base = PRG2.base[i];
 		for (let i = 0; i < 8; i++) {
 			this.mcu.memorymap[0xc0 + i].base = this.ram2.base[1 + i];
 			this.mcu.memorymap[0xc0 + i].write = null;
 		}
-		this.mcu.memorymap[0xd0].read = addr => (addr & 0xfc) === 0 ? this.in[addr & 3] : 0xff;
+		this.mcu.memorymap[0xd0].read = (addr) => { return (addr & 0xfc) === 0 ? this.in[addr & 3] : 0xff; };
 		for (let i = 0; i < 0x10; i++)
 			this.mcu.memorymap[0xf0 + i].base = PRG2I.base[i];
 
@@ -118,7 +118,7 @@ class PacLand {
 			this.mcu.interrupt();
 		for (let i = 0; i < 800; i++)
 			this.cpu.execute(5), this.mcu.execute(6);
-		if ((this.ram2[8] & 8) !== 0)
+		if (this.ram2[8] & 8)
 			this.mcu.interrupt('ocf');
 		for (let i = 0; i < 800; i++)
 			this.cpu.execute(5), this.mcu.execute(6);
@@ -354,18 +354,18 @@ class PacLand {
 		k = 0x280 | (this.fFlip ? (1 + this.dwScroll0 >> 2) + 0x30 : (this.dwScroll0 >> 2) + 6) & 0x7e;
 		for (let i = 0; i < 24; k = k + 54 & 0x7e | k + 0x80 & 0x1f80, p -= 256 * 8 * 37 + 8, i++)
 			for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x1f80, p += 256 * 8, j++)
-				if ((ram[k + 1] & 0x20) === 0)
+				if (~ram[k + 1] & 0x20)
 					this.xfer8x8(data, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
 		p = 256 * 8 * 2 + 232;
 		k = this.fFlip ? 0x132 : 0x106;
 		for (let i = 0; i < 3; p -= 256 * 8 * 36 + 8, k += 56, i++)
 			for (let j = 0; j < 36; p += 256 * 8, k += 2, j++)
-				if ((ram[k + 1] & 0x20) === 0)
+				if (~ram[k + 1] & 0x20)
 					this.xfer8x8(data, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
 		p = 256 * 8 * 2 + 16;
 		k = this.fFlip ? 0xeb2 : 0xe86;
 		for (let i = 0; i < 36; p += 256 * 8, k += 2, i++)
-			if ((ram[k + 1] & 0x20) === 0)
+			if (~ram[k + 1] & 0x20)
 				this.xfer8x8(data, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
 
 		// obj描画
@@ -376,18 +376,18 @@ class PacLand {
 		k = 0x280 | (this.fFlip ? (1 + this.dwScroll0 >> 2) + 0x30 : (this.dwScroll0 >> 2) + 6) & 0x7e;
 		for (let i = 0; i < 24; k = k + 54 & 0x7e | k + 0x80 & 0x1f80, p -= 256 * 8 * 37 + 8, i++)
 			for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x1f80, p += 256 * 8, j++)
-				if ((ram[k + 1] & 0x20) !== 0)
+				if (ram[k + 1] & 0x20)
 					this.xfer8x8(data, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
 		p = 256 * 8 * 2 + 232;
 		k = this.fFlip ? 0x132 : 0x106;
 		for (let i = 0; i < 3; p -= 256 * 8 * 36 + 8, k += 56, i++)
 			for (let j = 0; j < 36; p += 256 * 8, k += 2, j++)
-				if ((ram[k + 1] & 0x20) !== 0)
+				if (ram[k + 1] & 0x20)
 					this.xfer8x8(data, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
 		p = 256 * 8 * 2 + 16;
 		k = this.fFlip ? 0xeb2 : 0xe86;
 		for (let i = 0; i < 36; p += 256 * 8, k += 2, i++)
-			if ((ram[k + 1] & 0x20) !== 0)
+			if (ram[k + 1] & 0x20)
 				this.xfer8x8(data, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
 
 		// obj描画

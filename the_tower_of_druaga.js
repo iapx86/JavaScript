@@ -53,16 +53,16 @@ class TheTowerOfDruaga {
 			this.cpu.memorymap[i].write = null;
 		}
 		for (let i = 0; i < 8; i++)
-			this.cpu.memorymap[0x38 + i].write = addr => void(this.dwScroll = addr >> 3 & 0xff);
+			this.cpu.memorymap[0x38 + i].write = (addr) => { this.dwScroll = addr >> 3 & 0xff; };
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x40 + i].read = addr => sound.read(addr);
-			this.cpu.memorymap[0x40 + i].write = (addr, data) => sound.write(addr, data);
+			this.cpu.memorymap[0x40 + i].read = (addr) => { return sound.read(addr); };
+			this.cpu.memorymap[0x40 + i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x48 + i].read = addr => this.port[addr & 0x3f] | 0xf0;
-			this.cpu.memorymap[0x48 + i].write = (addr, data) => void(this.port[addr & 0x3f] = data & 0xf);
+			this.cpu.memorymap[0x48 + i].read = (addr) => { return this.port[addr & 0x3f] | 0xf0; };
+			this.cpu.memorymap[0x48 + i].write = (addr, data) => { this.port[addr & 0x3f] = data & 0xf; };
 		}
-		this.cpu.memorymap[0x50].write = addr => {
+		this.cpu.memorymap[0x50].write = (addr) => {
 			switch (addr & 0xff) {
 			case 0x00: // INTERRUPT STOP
 				return void(this.fInterruptEnable1 = false);
@@ -90,8 +90,8 @@ class TheTowerOfDruaga {
 			this.cpu.memorymap[0x80 + i].base = PRG1.base[i];
 
 		for (let i = 0; i < 4; i++) {
-			this.cpu2.memorymap[i].read = addr => sound.read(addr);
-			this.cpu2.memorymap[i].write = (addr, data) => sound.write(addr, data);
+			this.cpu2.memorymap[i].read = (addr) => { return sound.read(addr); };
+			this.cpu2.memorymap[i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		this.cpu2.memorymap[0x20].write = this.cpu.memorymap[0x50].write;
 		for (let i = 0; i < 0x20; i++)

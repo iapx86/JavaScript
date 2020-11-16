@@ -64,8 +64,8 @@ class Gradius {
 			this.cpu.memorymap[0x100 + i].write = null;
 		}
 		for (let i = 0; i < 0x80; i++) {
-			this.cpu.memorymap[0x200 + i].read = addr => (addr & 1) !== 0 ? this.ram2[addr >> 1 & 0x3fff] : 0;
-			this.cpu.memorymap[0x200 + i].write = (addr, data) => void((addr & 1) !== 0 && (this.ram2[addr >> 1 & 0x3fff] = data));
+			this.cpu.memorymap[0x200 + i].read = (addr) => { return (addr & 1) !== 0 ? this.ram2[addr >> 1 & 0x3fff] : 0; };
+			this.cpu.memorymap[0x200 + i].write = (addr, data) => { (addr & 1) !== 0 && (this.ram2[addr >> 1 & 0x3fff] = data); };
 		}
 		for (let i = 0; i < 0x100; i++) {
 			this.cpu.memorymap[0x300 + i].base = this.ram.base[0x100 + i];
@@ -90,10 +90,10 @@ class Gradius {
 					| 0xff000000;									// Alpha
 			};
 		}
-		this.cpu.memorymap[0x5c0].write = (addr, data) => void(addr === 0x5c001 && this.command.push(data));
-		this.cpu.memorymap[0x5c4].read = addr => addr >= 0x5c402 && addr < 0x5c408 ? this.in[addr - 0x5c402 >> 1] : 0xff;
-		this.cpu.memorymap[0x5cc].read = addr => addr < 0x5cc06 ? this.in[addr - 0x5cc00 + 6 >> 1] : 0xff;
-		this.cpu.memorymap[0x5d0].read = addr => addr === 0x5d001 ? 0 : 0xff;
+		this.cpu.memorymap[0x5c0].write = (addr, data) => { addr === 0x5c001 && this.command.push(data); };
+		this.cpu.memorymap[0x5c4].read = (addr) => { return addr >= 0x5c402 && addr < 0x5c408 ? this.in[addr - 0x5c402 >> 1] : 0xff; };
+		this.cpu.memorymap[0x5cc].read = (addr) => { return addr < 0x5cc06 ? this.in[addr - 0x5cc00 + 6 >> 1] : 0xff; };
+		this.cpu.memorymap[0x5d0].read = (addr) => { return addr === 0x5d001 ? 0 : 0xff; };
 		this.cpu.memorymap[0x5e0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 1:
@@ -124,10 +124,10 @@ class Gradius {
 			this.cpu2.memorymap[0x80 + i].write = null;
 		}
 		for (let i = 0; i < 0x10; i++) {
-			this.cpu2.memorymap[0xa0 + i].write = addr => void(this.scc.freq0 = ~addr & 0xfff);
-			this.cpu2.memorymap[0xc0 + i].write = addr => void(this.scc.freq1 = ~addr & 0xfff);
+			this.cpu2.memorymap[0xa0 + i].write = (addr) => { this.scc.freq0 = ~addr & 0xfff; };
+			this.cpu2.memorymap[0xc0 + i].write = (addr) => { this.scc.freq1 = ~addr & 0xfff; };
 		}
-		this.cpu2.memorymap[0xe0].read = addr => {
+		this.cpu2.memorymap[0xe0].read = (addr) => {
 			switch (addr & 0xff) {
 			case 1:
 				return this.command.length ? this.command.shift() : 0xff;
@@ -152,8 +152,8 @@ class Gradius {
 				return sound[3].st(this.vlm_latch);
 			}
 		};
-		this.cpu2.memorymap[0xe1].write = (addr, data) => void(addr === 0xe106 && this.psg[0].addr !== 0xe && sound[0].write(this.psg[0].addr, data, this.count));
-		this.cpu2.memorymap[0xe2].read = addr => addr === 0xe205 ? sound[1].read(this.psg[1].addr) : 0xff;
+		this.cpu2.memorymap[0xe1].write = (addr, data) => { addr === 0xe106 && this.psg[0].addr !== 0xe && sound[0].write(this.psg[0].addr, data, this.count); };
+		this.cpu2.memorymap[0xe2].read = (addr) => { return addr === 0xe205 ? sound[1].read(this.psg[1].addr) : 0xff; };
 		this.cpu2.memorymap[0xe4].write = (addr, data) => {
 			if (addr === 0xe405) {
 				if ((this.psg[1].addr & 0xe) === 0xe)
@@ -170,7 +170,7 @@ class Gradius {
 		for (let i = 0; i < 32; i++) {
 			let rt = 0, v = 0;
 			for (let j = 0; j < r.length; j++)
-				if ((i >> j & 1) === 0)
+				if (~i >> j & 1)
 					rt += 1 / r[j], v += 0.05 / r[j];
 			intensity[i] = ((v + 0.005) / (rt + 0.001) - 0.7) * 255 / 5.0 + 0.4;
 		}
@@ -362,16 +362,16 @@ class Gradius {
 
 		// bg描画
 		for (let k = 0x23000; k < 0x24000; k += 2)
-			if ((this.ram[k] & 0x50) === 0 && (this.ram[k] & 0xf8) !== 0)
+			if ((this.ram[k] & 0x50) === 0 && this.ram[k] & 0xf8)
 				this.xfer8x8(data, k);
 		for (let k = 0x22000; k < 0x23000; k += 2)
-			if ((this.ram[k] & 0x50) === 0 && (this.ram[k] & 0xf8) !== 0)
+			if ((this.ram[k] & 0x50) === 0 && this.ram[k] & 0xf8)
 				this.xfer8x8(data, k);
 		for (let k = 0x23000; k < 0x24000; k += 2)
-			if ((this.ram[k] & 0x50) === 0x40 && (this.ram[k] & 0xf8) !== 0)
+			if ((this.ram[k] & 0x50) === 0x40 && this.ram[k] & 0xf8)
 				this.xfer8x8(data, k);
 		for (let k = 0x22000; k < 0x23000; k += 2)
-			if ((this.ram[k] & 0x50) === 0x40 && (this.ram[k] & 0xf8) !== 0)
+			if ((this.ram[k] & 0x50) === 0x40 && this.ram[k] & 0xf8)
 				this.xfer8x8(data, k);
 
 		// obj描画
@@ -408,10 +408,10 @@ class Gradius {
 
 		// bg描画
 		for (let k = 0x23000; k < 0x24000; k += 2)
-			if ((this.ram[k] & 0x10) === 0x10 && (this.ram[k] & 0xf8) !== 0)
+			if (this.ram[k] & 0x10 && this.ram[k] & 0xf8)
 				this.xfer8x8(data, k);
 		for (let k = 0x22000; k < 0x23000; k += 2)
-			if ((this.ram[k] & 0x10) === 0x10 && (this.ram[k] & 0xf8) !== 0)
+			if (this.ram[k] & 0x10 && this.ram[k] & 0xf8)
 				this.xfer8x8(data, k);
 
 		// palette変換
@@ -422,13 +422,13 @@ class Gradius {
 	}
 
 	xfer8x8(data, k) {
-		const x0 = (((this.flip & 2) === 0 ? ~k : k) >> 4 & 0xf8 | 7) + this.ram[0x20f01 | ~k >> 5 & 0x80 | k & 0x7e] & 0xff;
+		const x0 = ((this.flip & 2 ? k : ~k) >> 4 & 0xf8 | 7) + this.ram[0x20f01 | ~k >> 5 & 0x80 | k & 0x7e] & 0xff;
 		const color = this.ram[k + 0x2001] << 4 & 0x7f0;
 		let src = (this.ram[k] << 8 & 0x700 | this.ram[k + 1]) << 6, px;
 
 		if (x0 < 16 && x0 >= 247)
 			return;
-		if ((this.ram[k] & 0x20) === 0 || (this.ram[k] & 0xc0) === 0x40)
+		if (~this.ram[k] & 0x20 || (this.ram[k] & 0xc0) === 0x40)
 			switch ((this.ram[k] >> 2 & 2 | this.ram[k + 0x2001] >> 7) ^ this.flip) {
 			case 0: // ノーマル
 				for (let x = x0, i = 0; i < 8; src += 8, --x, i++) {
@@ -501,14 +501,14 @@ class Gradius {
 				const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 				const y = (k << 2) - scroll + 16 & 0x1ff;
 				if (y > 8 && y < 272) {
-					if ((px = this.chr[src | 0]) !== 0) data[y << 8 | x] = color | px;
-					if ((px = this.chr[src | 1]) !== 0) data[y + 1 << 8 | x] = color | px;
-					if ((px = this.chr[src | 2]) !== 0) data[y + 2 << 8 | x] = color | px;
-					if ((px = this.chr[src | 3]) !== 0) data[y + 3 << 8 | x] = color | px;
-					if ((px = this.chr[src | 4]) !== 0) data[y + 4 << 8 | x] = color | px;
-					if ((px = this.chr[src | 5]) !== 0) data[y + 5 << 8 | x] = color | px;
-					if ((px = this.chr[src | 6]) !== 0) data[y + 6 << 8 | x] = color | px;
-					if ((px = this.chr[src | 7]) !== 0) data[y + 7 << 8 | x] = color | px;
+					if ((px = this.chr[src | 0])) data[y << 8 | x] = color | px;
+					if ((px = this.chr[src | 1])) data[y + 1 << 8 | x] = color | px;
+					if ((px = this.chr[src | 2])) data[y + 2 << 8 | x] = color | px;
+					if ((px = this.chr[src | 3])) data[y + 3 << 8 | x] = color | px;
+					if ((px = this.chr[src | 4])) data[y + 4 << 8 | x] = color | px;
+					if ((px = this.chr[src | 5])) data[y + 5 << 8 | x] = color | px;
+					if ((px = this.chr[src | 6])) data[y + 6 << 8 | x] = color | px;
+					if ((px = this.chr[src | 7])) data[y + 7 << 8 | x] = color | px;
 				}
 			}
 			break;
@@ -517,14 +517,14 @@ class Gradius {
 				const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 				const y = (k << 2) - scroll + 16 & 0x1ff;
 				if (y > 8 && y < 272) {
-					if ((px = this.chr[src | 0]) !== 0) data[y + 7 << 8 | x] = color | px;
-					if ((px = this.chr[src | 1]) !== 0) data[y + 6 << 8 | x] = color | px;
-					if ((px = this.chr[src | 2]) !== 0) data[y + 5 << 8 | x] = color | px;
-					if ((px = this.chr[src | 3]) !== 0) data[y + 4 << 8 | x] = color | px;
-					if ((px = this.chr[src | 4]) !== 0) data[y + 3 << 8 | x] = color | px;
-					if ((px = this.chr[src | 5]) !== 0) data[y + 2 << 8 | x] = color | px;
-					if ((px = this.chr[src | 6]) !== 0) data[y + 1 << 8 | x] = color | px;
-					if ((px = this.chr[src | 7]) !== 0) data[y << 8 | x] = color | px;
+					if ((px = this.chr[src | 0])) data[y + 7 << 8 | x] = color | px;
+					if ((px = this.chr[src | 1])) data[y + 6 << 8 | x] = color | px;
+					if ((px = this.chr[src | 2])) data[y + 5 << 8 | x] = color | px;
+					if ((px = this.chr[src | 3])) data[y + 4 << 8 | x] = color | px;
+					if ((px = this.chr[src | 4])) data[y + 3 << 8 | x] = color | px;
+					if ((px = this.chr[src | 5])) data[y + 2 << 8 | x] = color | px;
+					if ((px = this.chr[src | 6])) data[y + 1 << 8 | x] = color | px;
+					if ((px = this.chr[src | 7])) data[y << 8 | x] = color | px;
 				}
 			}
 			break;
@@ -533,14 +533,14 @@ class Gradius {
 				const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 				const y = (k << 2) - scroll + 16 & 0x1ff;
 				if (y > 8 && y < 272) {
-					if ((px = this.chr[src | 0]) !== 0) data[y << 8 | x] = color | px;
-					if ((px = this.chr[src | 1]) !== 0) data[y + 1 << 8 | x] = color | px;
-					if ((px = this.chr[src | 2]) !== 0) data[y + 2 << 8 | x] = color | px;
-					if ((px = this.chr[src | 3]) !== 0) data[y + 3 << 8 | x] = color | px;
-					if ((px = this.chr[src | 4]) !== 0) data[y + 4 << 8 | x] = color | px;
-					if ((px = this.chr[src | 5]) !== 0) data[y + 5 << 8 | x] = color | px;
-					if ((px = this.chr[src | 6]) !== 0) data[y + 6 << 8 | x] = color | px;
-					if ((px = this.chr[src | 7]) !== 0) data[y + 7 << 8 | x] = color | px;
+					if ((px = this.chr[src | 0])) data[y << 8 | x] = color | px;
+					if ((px = this.chr[src | 1])) data[y + 1 << 8 | x] = color | px;
+					if ((px = this.chr[src | 2])) data[y + 2 << 8 | x] = color | px;
+					if ((px = this.chr[src | 3])) data[y + 3 << 8 | x] = color | px;
+					if ((px = this.chr[src | 4])) data[y + 4 << 8 | x] = color | px;
+					if ((px = this.chr[src | 5])) data[y + 5 << 8 | x] = color | px;
+					if ((px = this.chr[src | 6])) data[y + 6 << 8 | x] = color | px;
+					if ((px = this.chr[src | 7])) data[y + 7 << 8 | x] = color | px;
 				}
 			}
 			break;
@@ -549,14 +549,14 @@ class Gradius {
 				const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 				const y = (k << 2) - scroll + 16 & 0x1ff;
 				if (y > 8 && y < 272) {
-					if ((px = this.chr[src | 0]) !== 0) data[y + 7 << 8 | x] = color | px;
-					if ((px = this.chr[src | 1]) !== 0) data[y + 6 << 8 | x] = color | px;
-					if ((px = this.chr[src | 2]) !== 0) data[y + 5 << 8 | x] = color | px;
-					if ((px = this.chr[src | 3]) !== 0) data[y + 4 << 8 | x] = color | px;
-					if ((px = this.chr[src | 4]) !== 0) data[y + 3 << 8 | x] = color | px;
-					if ((px = this.chr[src | 5]) !== 0) data[y + 2 << 8 | x] = color | px;
-					if ((px = this.chr[src | 6]) !== 0) data[y + 1 << 8 | x] = color | px;
-					if ((px = this.chr[src | 7]) !== 0) data[y << 8 | x] = color | px;
+					if ((px = this.chr[src | 0])) data[y + 7 << 8 | x] = color | px;
+					if ((px = this.chr[src | 1])) data[y + 6 << 8 | x] = color | px;
+					if ((px = this.chr[src | 2])) data[y + 5 << 8 | x] = color | px;
+					if ((px = this.chr[src | 3])) data[y + 4 << 8 | x] = color | px;
+					if ((px = this.chr[src | 4])) data[y + 3 << 8 | x] = color | px;
+					if ((px = this.chr[src | 5])) data[y + 2 << 8 | x] = color | px;
+					if ((px = this.chr[src | 6])) data[y + 1 << 8 | x] = color | px;
+					if ((px = this.chr[src | 7])) data[y << 8 | x] = color | px;
 				}
 			}
 			break;
@@ -571,7 +571,7 @@ class Gradius {
 			return;
 		for (let x = x0, i = 0; i >> 7 < w; x = x - 1 & 0xff, i += zoom)
 			for (let y = y0, j = 0; j >> 7 < h; y = y + 1 & 0x1ff, j += zoom)
-				if ((px = this.chr[src | (i >> 7) * h | j >> 7]) !== 0)
+				if ((px = this.chr[src | (i >> 7) * h | j >> 7]))
 					data[y << 8 | x] = color | px;
 	}
 
@@ -583,7 +583,7 @@ class Gradius {
 			return;
 		for (let x = x0, i = 0; i >> 7 < w; x = x - 1 & 0xff, i += zoom)
 			for (let y = y1, j = 0; j >> 7 < h; y = y - 1 & 0x1ff, j += zoom)
-				if ((px = this.chr[src | (i >> 7) * h | j >> 7]) !== 0)
+				if ((px = this.chr[src | (i >> 7) * h | j >> 7]))
 					data[y << 8 | x] = color | px;
 	}
 
@@ -595,7 +595,7 @@ class Gradius {
 			return;
 		for (let x = x1, i = 0; i >> 7 < w; x = x + 1 & 0xff, i += zoom)
 			for (let y = y0, j = 0; j >> 7 < h; y = y + 1 & 0x1ff, j += zoom)
-				if ((px = this.chr[src | (i >> 7) * h | j >> 7]) !== 0)
+				if ((px = this.chr[src | (i >> 7) * h | j >> 7]))
 					data[y << 8 | x] = color | px;
 	}
 
@@ -607,7 +607,7 @@ class Gradius {
 			return;
 		for (let x = x1, i = 0; i >> 7 < w; x = x + 1 & 0xff, i += zoom)
 			for (let y = y1, j = 0; j >> 7 < h; y = y - 1 & 0x1ff, j += zoom)
-				if ((px = this.chr[src | (i >> 7) * h | j >> 7]) !== 0)
+				if ((px = this.chr[src | (i >> 7) * h | j >> 7]))
 					data[y << 8 | x] = color | px;
 	}
 }

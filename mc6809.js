@@ -28,13 +28,13 @@ export default class MC6809 extends Cpu {
 	}
 
 	fast_interrupt() {
-		if (!super.interrupt() || (this.ccr & 0x40) !== 0)
+		if (!super.interrupt() || this.ccr & 0x40)
 			return false;
 		return this.pshs16(this.pc), this.pshs(this.ccr &= ~0x80), this.ccr |= 0x50, this.pc = this.read16(0xfff6), true;
 	}
 
 	interrupt() {
-		if (!super.interrupt() || (this.ccr & 0x10) !== 0)
+		if (!super.interrupt() || this.ccr & 0x10)
 			return false;
 		return this.pshs16(this.pc, this.u, this.y, this.x), this.pshs(this.dp, this.b, this.a, this.ccr |= 0x80), this.ccr |= 0x10, this.pc = this.read16(0xfff8), true;
 	}
@@ -198,7 +198,7 @@ export default class MC6809 extends Cpu {
 		case 0x1c: // ANDCC
 			return void(this.ccr &= this.fetch());
 		case 0x1d: // SEX
-			return void((this.b & 0x80) !== 0 ? (this.a = 0xff, this.ccr = this.ccr & ~4 | 8) : (this.a = 0, this.ccr = this.ccr & ~0xc | !this.b << 2));
+			return void(this.b & 0x80 ? (this.a = 0xff, this.ccr = this.ccr & ~4 | 8) : (this.a = 0, this.ccr = this.ccr & ~0xc | !this.b << 2));
 		case 0x1e: // EXG
 			switch (this.fetch()) {
 			case 0x00: // EXG D,D
@@ -425,45 +425,23 @@ export default class MC6809 extends Cpu {
 		case 0x33: // LEAU
 			return void(this.u = this.index());
 		case 0x34: // PSHS
-			((v = this.fetch()) & 0x80) !== 0 && this.pshs16(this.pc);
-			(v & 0x40) !== 0 && this.pshs16(this.u);
-			(v & 0x20) !== 0 && this.pshs16(this.y);
-			(v & 0x10) !== 0 && this.pshs16(this.x);
-			(v & 8) !== 0 && this.pshs(this.dp);
-			(v & 4) !== 0 && this.pshs(this.b);
-			(v & 2) !== 0 && this.pshs(this.a);
-			(v & 1) !== 0 && this.pshs(this.ccr);
+			(v = this.fetch()) & 0x80 && this.pshs16(this.pc), v & 0x40 && this.pshs16(this.u);
+			v & 0x20 && this.pshs16(this.y), v & 0x10 && this.pshs16(this.x);
+			v & 8 && this.pshs(this.dp), v & 4 && this.pshs(this.b);
+			v & 2 && this.pshs(this.a), v & 1 && this.pshs(this.ccr);
 			return;
 		case 0x35: // PULS
-			((v = this.fetch()) & 1) !== 0 && (this.ccr = this.puls());
-			(v & 2) !== 0 && (this.a = this.puls());
-			(v & 4) !== 0 && (this.b = this.puls());
-			(v & 8) !== 0 && (this.dp = this.puls());
-			(v & 0x10) !== 0 && (this.x = this.puls16());
-			(v & 0x20) !== 0 && (this.y = this.puls16());
-			(v & 0x40) !== 0 && (this.u = this.puls16());
-			(v & 0x80) !== 0 && (this.pc = this.puls16());
-			return;
+			(v = this.fetch()) & 1 && (this.ccr = this.puls()), v & 2 && (this.a = this.puls()), v & 4 && (this.b = this.puls());
+			v & 8 && (this.dp = this.puls()), v & 0x10 && (this.x = this.puls16()), v & 0x20 && (this.y = this.puls16());
+			return v & 0x40 && (this.u = this.puls16()), void(v & 0x80 && (this.pc = this.puls16()));
 		case 0x36: // PSHU
-			((v = this.fetch()) & 0x80) !== 0 && this.pshu16(this.pc);
-			(v & 0x40) !== 0 && this.pshu16(this.s);
-			(v & 0x20) !== 0 && this.pshu16(this.y);
-			(v & 0x10) !== 0 && this.pshu16(this.x);
-			(v & 8) !== 0 && this.pshu(this.dp);
-			(v & 4) !== 0 && this.pshu(this.b);
-			(v & 2) !== 0 && this.pshu(this.a);
-			(v & 1) !== 0 && this.pshu(this.ccr);
-			return;
+			(v = this.fetch()) & 0x80 && this.pshu16(this.pc), v & 0x40 && this.pshu16(this.s), v & 0x20 && this.pshu16(this.y);
+			v & 0x10 && this.pshu16(this.x), v & 8 && this.pshu(this.dp), v & 4 && this.pshu(this.b);
+			return v & 2 && this.pshu(this.a), void(v & 1 && this.pshu(this.ccr));
 		case 0x37: // PULU
-			((v = this.fetch()) & 1) !== 0 && (this.ccr = this.pulu());
-			(v & 2) !== 0 && (this.a = this.pulu());
-			(v & 4) !== 0 && (this.b = this.pulu());
-			(v & 8) !== 0 && (this.dp = this.pulu());
-			(v & 0x10) !== 0 && (this.x = this.pulu16());
-			(v & 0x20) !== 0 && (this.y = this.pulu16());
-			(v & 0x40) !== 0 && (this.s = this.pulu16());
-			(v & 0x80) !== 0 && (this.pc = this.pulu16());
-			return;
+			(v = this.fetch()) & 1 && (this.ccr = this.pulu()), v & 2 && (this.a = this.pulu()), v & 4 && (this.b = this.pulu());
+			v & 8 && (this.dp = this.pulu()), v & 0x10 && (this.x = this.pulu16()), v & 0x20 && (this.y = this.pulu16());
+			return v & 0x40 && (this.s = this.pulu16()), void(v & 0x80 && (this.pc = this.pulu16()));
 		case 0x39: // RTS
 			return void(this.pc = this.puls16());
 		case 0x3a: // ABX
@@ -1367,9 +1345,9 @@ export default class MC6809 extends Cpu {
 
 	daa() {
 		let cf = 0;
-		if ((this.ccr & 0x20) !== 0 || (this.a & 0xf) > 9)
+		if (this.ccr & 0x20 || (this.a & 0xf) > 9)
 			cf += 6;
-		if ((this.ccr & 1) !== 0 || (this.a & 0xf0) > 0x90 || (this.a & 0xf0) > 0x80 && (this.a & 0xf) > 9)
+		if (this.ccr & 1 || (this.a & 0xf0) > 0x90 || (this.a & 0xf0) > 0x80 && (this.a & 0xf) > 9)
 			cf += 0x60, this.ccr |= 1;
 		this.a = this.a + cf & 0xff, this.ccr = this.ccr & ~0x0c | this.a >> 4 & 8 | !this.a << 2;
 	}

@@ -54,7 +54,7 @@ class Vulgus {
 		// CPU周りの初期化
 		for (let i = 0; i < 0xa0; i++)
 			this.cpu.memorymap[i].base = PRG1.base[i];
-		this.cpu.memorymap[0xc0].read = addr => (addr &= 0xff) < 5 ? this.in[addr] : 0xff;
+		this.cpu.memorymap[0xc0].read = (addr) => { return (addr &= 0xff) < 5 ? this.in[addr] : 0xff; };
 		this.cpu.memorymap[0xc8].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
@@ -90,7 +90,7 @@ class Vulgus {
 			this.cpu2.memorymap[0x40 + i].base = this.ram2.base[i];
 			this.cpu2.memorymap[0x40 + i].write = null;
 		}
-		this.cpu2.memorymap[0x60].read = addr => (addr & 0xff) === 0 ? this.command : 0xff;
+		this.cpu2.memorymap[0x60].read = (addr) => { return (addr & 0xff) === 0 ? this.command : 0xff; };
 		this.cpu2.memorymap[0x80].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:

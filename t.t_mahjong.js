@@ -47,16 +47,16 @@ class TTMahjong {
 			this.cpu[0].memorymap[0x40 + i].base = this.ram.base[i];
 			this.cpu[0].memorymap[0x40 + i].write = null;
 		}
-		this.cpu[0].memorymap[0x48].read = () => this.in[8];
-		this.cpu[0].memorymap[0x48].write = (addr, data) => void(this.palette1 = data << 2 & 0x7c);
-		this.cpu[0].memorymap[0x50].read = () => this.select >= 0 ? this.in[4 + this.select] : 0;
-		this.cpu[0].memorymap[0x50].write = (addr, data) => void(this.palette2 = data << 2 & 0x7c);
-		this.cpu[0].memorymap[0x58].read = () => this.select >= 0 ? this.in[this.select] : 0;
-		this.cpu[0].memorymap[0x58].write = (addr, data) => void(this.select = [1, 2, 4, 8].indexOf(data));
-		this.cpu[0].memorymap[0x68].write = (addr, data) => sound.write(this.psg.addr, data);
-		this.cpu[0].memorymap[0x69].write = (addr, data) => void(this.psg.addr = data);
+		this.cpu[0].memorymap[0x48].read = () => { return this.in[8]; };
+		this.cpu[0].memorymap[0x48].write = (addr, data) => { this.palette1 = data << 2 & 0x7c; };
+		this.cpu[0].memorymap[0x50].read = () => { return this.select >= 0 ? this.in[4 + this.select] : 0; };
+		this.cpu[0].memorymap[0x50].write = (addr, data) => { this.palette2 = data << 2 & 0x7c; };
+		this.cpu[0].memorymap[0x58].read = () => { return this.select >= 0 ? this.in[this.select] : 0; };
+		this.cpu[0].memorymap[0x58].write = (addr, data) => { this.select = [1, 2, 4, 8].indexOf(data); };
+		this.cpu[0].memorymap[0x68].write = (addr, data) => { sound.write(this.psg.addr, data); };
+		this.cpu[0].memorymap[0x69].write = (addr, data) => { this.psg.addr = data; };
 		for (let i = 0; i < 0x40; i++)
-			this.cpu[0].memorymap[0x80 + i].write = (addr, data) => void(this.vram1[addr & 0x3fff] = data);
+			this.cpu[0].memorymap[0x80 + i].write = (addr, data) => { this.vram1[addr & 0x3fff] = data; };
 
 		for (let i = 0; i < 0x18; i++)
 			this.cpu[1].memorymap[i].base = PRG2.base[i];
@@ -65,7 +65,7 @@ class TTMahjong {
 			this.cpu[1].memorymap[0x40 + i].write = null;
 		}
 		for (let i = 0; i < 0x40; i++)
-			this.cpu[1].memorymap[0x80 + i].write = (addr, data) => void(this.vram2[addr & 0x3fff] = data);
+			this.cpu[1].memorymap[0x80 + i].write = (addr, data) => { this.vram2[addr & 0x3fff] = data; };
 	}
 
 	execute() {

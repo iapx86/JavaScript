@@ -66,12 +66,12 @@ class TimePilot {
 				this.cpu.memorymap[page].base = this.ram.base[0x11];
 				this.cpu.memorymap[page].write = null;
 			} else if (range(page, 0xc0, 0xc0, 0x0c)) {
-				this.cpu.memorymap[page].read = () => this.vpos;
-				this.cpu.memorymap[page].write = (addr, data) => void this.command.push(data);
+				this.cpu.memorymap[page].read = () => { return this.vpos; };
+				this.cpu.memorymap[page].write = (addr, data) => { this.command.push(data); };
 			} else if (range(page, 0xc2, 0xc2, 0x0c))
-				this.cpu.memorymap[page].read = () => this.in[4];
+				this.cpu.memorymap[page].read = () => { return this.in[4]; };
 			else if (range(page, 0xc3, 0xc3, 0x0c)) {
-				this.cpu.memorymap[page].read = addr => this.in[addr >> 5 & 3];
+				this.cpu.memorymap[page].read = (addr) => { return this.in[addr >> 5 & 3]; };
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr >> 1 & 0x7f) {
 					case 0:
@@ -89,15 +89,15 @@ class TimePilot {
 				this.cpu2.memorymap[page].base = this.ram2.base[page & 3];
 				this.cpu2.memorymap[page].write = null;
 			} else if (range(page, 0x40, 0x40, 0x0f)) {
-				this.cpu2.memorymap[page].read = () => sound[0].read(this.psg[0].addr);
-				this.cpu2.memorymap[page].write = (addr, data) => sound[0].write(this.psg[0].addr, data, this.count);
+				this.cpu2.memorymap[page].read = () => { return sound[0].read(this.psg[0].addr); };
+				this.cpu2.memorymap[page].write = (addr, data) => { sound[0].write(this.psg[0].addr, data, this.count); };
 			} else if (range(page, 0x50, 0x50, 0x0f))
-				this.cpu2.memorymap[page].write = (addr, data) => void(this.psg[0].addr = data);
+				this.cpu2.memorymap[page].write = (addr, data) => { this.psg[0].addr = data; };
 			else if (range(page, 0x60, 0x60, 0x0f)) {
-				this.cpu2.memorymap[page].read = () => sound[1].read(this.psg[1].addr);
-				this.cpu2.memorymap[page].write = (addr, data) => sound[1].write(this.psg[1].addr, data, this.count);
+				this.cpu2.memorymap[page].read = () => { return sound[1].read(this.psg[1].addr); };
+				this.cpu2.memorymap[page].write = (addr, data) => { sound[1].write(this.psg[1].addr, data, this.count); };
 			} else if (range(page, 0x70, 0x70, 0x0f))
-				this.cpu2.memorymap[page].write = (addr, data) => void(this.psg[1].addr = data);
+				this.cpu2.memorymap[page].write = (addr, data) => { this.psg[1].addr = data; };
 
 		// Videoの初期化
 		this.convertRGB();
@@ -656,7 +656,7 @@ class TimePilot {
 		src = src << 8 & 0xff00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx | this.obj[src++]]) !== 0)
+				if ((px = this.objcolor[idx | this.obj[src++]]))
 					data[dst] = px;
 	}
 
@@ -669,7 +669,7 @@ class TimePilot {
 		src = (src << 8 & 0xff00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx | this.obj[src++]]) !== 0)
+				if ((px = this.objcolor[idx | this.obj[src++]]))
 					data[dst] = px;
 	}
 
@@ -682,7 +682,7 @@ class TimePilot {
 		src = (src << 8 & 0xff00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx | this.obj[--src]]) !== 0)
+				if ((px = this.objcolor[idx | this.obj[--src]]))
 					data[dst] = px;
 	}
 
@@ -695,7 +695,7 @@ class TimePilot {
 		src = (src << 8 & 0xff00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx | this.obj[--src]]) !== 0)
+				if ((px = this.objcolor[idx | this.obj[--src]]))
 					data[dst] = px;
 	}
 }

@@ -62,21 +62,21 @@ class DragonBuster {
 			this.cpu.memorymap[0x40 + i].base = this.ram.base[0x10 + i];
 			this.cpu.memorymap[0x40 + i].write = null;
 		}
-		this.cpu.memorymap[0x60].write = addr => void(this.hScroll = addr & 0xff);
+		this.cpu.memorymap[0x60].write = (addr) => { this.hScroll = addr & 0xff; };
 		for (let i = 0; i < 2; i++)
-			this.cpu.memorymap[0x62 + i].write = addr => void(this.vScroll = addr & 0x1ff);
+			this.cpu.memorymap[0x62 + i].write = (addr) => { this.vScroll = addr & 0x1ff; };
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x68 + i].read = addr => sound.read(addr);
-			this.cpu.memorymap[0x68 + i].write = (addr, data) => sound.write(addr, data);
+			this.cpu.memorymap[0x68 + i].read = (addr) => { return sound.read(addr); };
+			this.cpu.memorymap[0x68 + i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0x70 + i].write = addr => void(this.fInterruptEnable0 = (addr & 0x800) === 0);
+			this.cpu.memorymap[0x70 + i].write = (addr) => { this.fInterruptEnable0 = (addr & 0x800) === 0; };
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[0x80 + i].base = PRG1.base[i];
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0x80 + i].write = addr => (addr & 0x800) === 0 ? this.mcu.enable() : this.mcu.disable();
+			this.cpu.memorymap[0x80 + i].write = (addr) => { (addr & 0x800) === 0 ? this.mcu.enable() : this.mcu.disable(); };
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0x90 + i].write = addr => {
+			this.cpu.memorymap[0x90 + i].write = (addr) => {
 				const bank = ~addr >> 6 & 0x20 | 0x80;
 				if (bank === this.bank)
 					return;
@@ -84,16 +84,16 @@ class DragonBuster {
 					this.cpu.memorymap[i].base = PRG1.base[bank + i];
 				this.bank = bank;
 			};
-		this.cpu.memorymap[0xa0].write = (addr, data) => void((addr & 0xfe) === 0 && (this.priority = data, this.fFlip = (addr & 1) !== 0));
+		this.cpu.memorymap[0xa0].write = (addr, data) => { (addr & 0xfe) === 0 && (this.priority = data, this.fFlip = (addr & 1) !== 0); };
 
-		this.mcu.memorymap[0].read = addr => addr === 2 ? this.in[this.select] : this.ram2[addr];
-		this.mcu.memorymap[0].write = (addr, data) => void(addr === 2 && (data & 0xe0) === 0x60 && (this.select = data & 7), this.ram2[addr] = data);
+		this.mcu.memorymap[0].read = (addr) => { return addr === 2 ? this.in[this.select] : this.ram2[addr]; };
+		this.mcu.memorymap[0].write = (addr, data) => { addr === 2 && (data & 0xe0) === 0x60 && (this.select = data & 7), this.ram2[addr] = data; };
 		for (let i = 0; i < 4; i++) {
-			this.mcu.memorymap[0x10 + i].read = addr => sound.read(addr);
-			this.mcu.memorymap[0x10 + i].write = (addr, data) => sound.write(addr, data);
+			this.mcu.memorymap[0x10 + i].read = (addr) => { return sound.read(addr); };
+			this.mcu.memorymap[0x10 + i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 0x40; i++)
-			this.mcu.memorymap[0x40 + i].write = addr => void(this.fInterruptEnable1 = (addr & 0x2000) === 0);
+			this.mcu.memorymap[0x40 + i].write = (addr) => { this.fInterruptEnable1 = (addr & 0x2000) === 0; };
 		for (let i = 0; i < 0x20; i++)
 			this.mcu.memorymap[0x80 + i].base = PRG2.base[i];
 		for (let i = 0; i < 8; i++) {
@@ -117,7 +117,7 @@ class DragonBuster {
 			this.mcu.interrupt();
 		for (let i = 0; i < 800; i++)
 			this.cpu.execute(5), this.mcu.execute(6);
-		if ((this.ram2[8] & 8) !== 0)
+		if (this.ram2[8] & 8)
 			this.mcu.interrupt('ocf');
 		for (let i = 0; i < 800; i++)
 			this.cpu.execute(5), this.mcu.execute(6);
@@ -354,32 +354,32 @@ class DragonBuster {
 				this.xfer8x8b(data, p, k);
 
 		// fg描画
-		if ((this.priority & 4) !== 0) {
+		if (this.priority & 4) {
 			p = 256 * 8 * 4 + 232;
 			k = 0x1040;
 			for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 				for (let j = 0; j < 32; k++, p += 256 * 8, j++)
-					if (((this.ram[k] ^ this.priority) & 0xf0) === 0)
+					if (!((this.ram[k] ^ this.priority) & 0xf0))
 						this.xfer8x8f(data, p, k);
 			p = 256 * 8 * 36 + 232;
 			k = 0x1002;
 			for (let i = 0; i < 28; p -= 8, k++, i++)
-				if (((this.ram[k] ^ this.priority) & 0xf0) === 0)
+				if (!((this.ram[k] ^ this.priority) & 0xf0))
 					this.xfer8x8f(data, p, k);
 			p = 256 * 8 * 37 + 232;
 			k = 0x1022;
 			for (let i = 0; i < 28; p -= 8, k++, i++)
-				if (((this.ram[k] ^ this.priority) & 0xf0) === 0)
+				if (!((this.ram[k] ^ this.priority) & 0xf0))
 					this.xfer8x8f(data, p, k);
 			p = 256 * 8 * 2 + 232;
 			k = 0x13c2;
 			for (let i = 0; i < 28; p -= 8, k++, i++)
-				if (((this.ram[k] ^ this.priority) & 0xf0) === 0)
+				if (!((this.ram[k] ^ this.priority) & 0xf0))
 					this.xfer8x8f(data, p, k);
 			p = 256 * 8 * 3 + 232;
 			k = 0x13e2;
 			for (let i = 0; i < 28; p -= 8, k++, i++)
-				if (((this.ram[k] ^ this.priority) & 0xf0) === 0)
+				if (!((this.ram[k] ^ this.priority) & 0xf0))
 					this.xfer8x8f(data, p, k);
 		}
 
@@ -543,27 +543,27 @@ class DragonBuster {
 		k = 0x1040;
 		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
-				if ((this.priority & 4) === 0 || ((this.ram[k] ^ this.priority) & 0xf0) !== 0)
+				if (~this.priority & 4 || (this.ram[k] ^ this.priority) & 0xf0)
 					this.xfer8x8f(data, p, k);
 		p = 256 * 8 * 36 + 232;
 		k = 0x1002;
 		for (let i = 0; i < 28; p -= 8, k++, i++)
-			if ((this.priority & 4) === 0 || ((this.ram[k] ^ this.priority) & 0xf0) !== 0)
+			if (~this.priority & 4 || (this.ram[k] ^ this.priority) & 0xf0)
 				this.xfer8x8f(data, p, k);
 		p = 256 * 8 * 37 + 232;
 		k = 0x1022;
 		for (let i = 0; i < 28; p -= 8, k++, i++)
-			if ((this.priority & 4) === 0 || ((this.ram[k] ^ this.priority) & 0xf0) !== 0)
+			if (~this.priority & 4 || (this.ram[k] ^ this.priority) & 0xf0)
 				this.xfer8x8f(data, p, k);
 		p = 256 * 8 * 2 + 232;
 		k = 0x13c2;
 		for (let i = 0; i < 28; p -= 8, k++, i++)
-			if ((this.priority & 4) === 0 || ((this.ram[k] ^ this.priority) & 0xf0) !== 0)
+			if (~this.priority & 4 || (this.ram[k] ^ this.priority) & 0xf0)
 				this.xfer8x8f(data, p, k);
 		p = 256 * 8 * 3 + 232;
 		k = 0x13e2;
 		for (let i = 0; i < 28; p -= 8, k++, i++)
-			if ((this.priority & 4) === 0 || ((this.ram[k] ^ this.priority) & 0xf0) !== 0)
+			if (~this.priority & 4 || (this.ram[k] ^ this.priority) & 0xf0)
 				this.xfer8x8f(data, p, k);
 
 		// palette変換
@@ -577,70 +577,70 @@ class DragonBuster {
 		const q = this.ram[k] << 6, idx = this.ram[k + 0x400] << 2 & 0xfc;
 		let px;
 
-		if ((px = this.fg[q | 0x00]) !== 0) data[p + 0x000] = idx | px;
-		if ((px = this.fg[q | 0x01]) !== 0) data[p + 0x001] = idx | px;
-		if ((px = this.fg[q | 0x02]) !== 0) data[p + 0x002] = idx | px;
-		if ((px = this.fg[q | 0x03]) !== 0) data[p + 0x003] = idx | px;
-		if ((px = this.fg[q | 0x04]) !== 0) data[p + 0x004] = idx | px;
-		if ((px = this.fg[q | 0x05]) !== 0) data[p + 0x005] = idx | px;
-		if ((px = this.fg[q | 0x06]) !== 0) data[p + 0x006] = idx | px;
-		if ((px = this.fg[q | 0x07]) !== 0) data[p + 0x007] = idx | px;
-		if ((px = this.fg[q | 0x08]) !== 0) data[p + 0x100] = idx | px;
-		if ((px = this.fg[q | 0x09]) !== 0) data[p + 0x101] = idx | px;
-		if ((px = this.fg[q | 0x0a]) !== 0) data[p + 0x102] = idx | px;
-		if ((px = this.fg[q | 0x0b]) !== 0) data[p + 0x103] = idx | px;
-		if ((px = this.fg[q | 0x0c]) !== 0) data[p + 0x104] = idx | px;
-		if ((px = this.fg[q | 0x0d]) !== 0) data[p + 0x105] = idx | px;
-		if ((px = this.fg[q | 0x0e]) !== 0) data[p + 0x106] = idx | px;
-		if ((px = this.fg[q | 0x0f]) !== 0) data[p + 0x107] = idx | px;
-		if ((px = this.fg[q | 0x10]) !== 0) data[p + 0x200] = idx | px;
-		if ((px = this.fg[q | 0x11]) !== 0) data[p + 0x201] = idx | px;
-		if ((px = this.fg[q | 0x12]) !== 0) data[p + 0x202] = idx | px;
-		if ((px = this.fg[q | 0x13]) !== 0) data[p + 0x203] = idx | px;
-		if ((px = this.fg[q | 0x14]) !== 0) data[p + 0x204] = idx | px;
-		if ((px = this.fg[q | 0x15]) !== 0) data[p + 0x205] = idx | px;
-		if ((px = this.fg[q | 0x16]) !== 0) data[p + 0x206] = idx | px;
-		if ((px = this.fg[q | 0x17]) !== 0) data[p + 0x207] = idx | px;
-		if ((px = this.fg[q | 0x18]) !== 0) data[p + 0x300] = idx | px;
-		if ((px = this.fg[q | 0x19]) !== 0) data[p + 0x301] = idx | px;
-		if ((px = this.fg[q | 0x1a]) !== 0) data[p + 0x302] = idx | px;
-		if ((px = this.fg[q | 0x1b]) !== 0) data[p + 0x303] = idx | px;
-		if ((px = this.fg[q | 0x1c]) !== 0) data[p + 0x304] = idx | px;
-		if ((px = this.fg[q | 0x1d]) !== 0) data[p + 0x305] = idx | px;
-		if ((px = this.fg[q | 0x1e]) !== 0) data[p + 0x306] = idx | px;
-		if ((px = this.fg[q | 0x1f]) !== 0) data[p + 0x307] = idx | px;
-		if ((px = this.fg[q | 0x20]) !== 0) data[p + 0x400] = idx | px;
-		if ((px = this.fg[q | 0x21]) !== 0) data[p + 0x401] = idx | px;
-		if ((px = this.fg[q | 0x22]) !== 0) data[p + 0x402] = idx | px;
-		if ((px = this.fg[q | 0x23]) !== 0) data[p + 0x403] = idx | px;
-		if ((px = this.fg[q | 0x24]) !== 0) data[p + 0x404] = idx | px;
-		if ((px = this.fg[q | 0x25]) !== 0) data[p + 0x405] = idx | px;
-		if ((px = this.fg[q | 0x26]) !== 0) data[p + 0x406] = idx | px;
-		if ((px = this.fg[q | 0x27]) !== 0) data[p + 0x407] = idx | px;
-		if ((px = this.fg[q | 0x28]) !== 0) data[p + 0x500] = idx | px;
-		if ((px = this.fg[q | 0x29]) !== 0) data[p + 0x501] = idx | px;
-		if ((px = this.fg[q | 0x2a]) !== 0) data[p + 0x502] = idx | px;
-		if ((px = this.fg[q | 0x2b]) !== 0) data[p + 0x503] = idx | px;
-		if ((px = this.fg[q | 0x2c]) !== 0) data[p + 0x504] = idx | px;
-		if ((px = this.fg[q | 0x2d]) !== 0) data[p + 0x505] = idx | px;
-		if ((px = this.fg[q | 0x2e]) !== 0) data[p + 0x506] = idx | px;
-		if ((px = this.fg[q | 0x2f]) !== 0) data[p + 0x507] = idx | px;
-		if ((px = this.fg[q | 0x30]) !== 0) data[p + 0x600] = idx | px;
-		if ((px = this.fg[q | 0x31]) !== 0) data[p + 0x601] = idx | px;
-		if ((px = this.fg[q | 0x32]) !== 0) data[p + 0x602] = idx | px;
-		if ((px = this.fg[q | 0x33]) !== 0) data[p + 0x603] = idx | px;
-		if ((px = this.fg[q | 0x34]) !== 0) data[p + 0x604] = idx | px;
-		if ((px = this.fg[q | 0x35]) !== 0) data[p + 0x605] = idx | px;
-		if ((px = this.fg[q | 0x36]) !== 0) data[p + 0x606] = idx | px;
-		if ((px = this.fg[q | 0x37]) !== 0) data[p + 0x607] = idx | px;
-		if ((px = this.fg[q | 0x38]) !== 0) data[p + 0x700] = idx | px;
-		if ((px = this.fg[q | 0x39]) !== 0) data[p + 0x701] = idx | px;
-		if ((px = this.fg[q | 0x3a]) !== 0) data[p + 0x702] = idx | px;
-		if ((px = this.fg[q | 0x3b]) !== 0) data[p + 0x703] = idx | px;
-		if ((px = this.fg[q | 0x3c]) !== 0) data[p + 0x704] = idx | px;
-		if ((px = this.fg[q | 0x3d]) !== 0) data[p + 0x705] = idx | px;
-		if ((px = this.fg[q | 0x3e]) !== 0) data[p + 0x706] = idx | px;
-		if ((px = this.fg[q | 0x3f]) !== 0) data[p + 0x707] = idx | px;
+		if ((px = this.fg[q | 0x00])) data[p + 0x000] = idx | px;
+		if ((px = this.fg[q | 0x01])) data[p + 0x001] = idx | px;
+		if ((px = this.fg[q | 0x02])) data[p + 0x002] = idx | px;
+		if ((px = this.fg[q | 0x03])) data[p + 0x003] = idx | px;
+		if ((px = this.fg[q | 0x04])) data[p + 0x004] = idx | px;
+		if ((px = this.fg[q | 0x05])) data[p + 0x005] = idx | px;
+		if ((px = this.fg[q | 0x06])) data[p + 0x006] = idx | px;
+		if ((px = this.fg[q | 0x07])) data[p + 0x007] = idx | px;
+		if ((px = this.fg[q | 0x08])) data[p + 0x100] = idx | px;
+		if ((px = this.fg[q | 0x09])) data[p + 0x101] = idx | px;
+		if ((px = this.fg[q | 0x0a])) data[p + 0x102] = idx | px;
+		if ((px = this.fg[q | 0x0b])) data[p + 0x103] = idx | px;
+		if ((px = this.fg[q | 0x0c])) data[p + 0x104] = idx | px;
+		if ((px = this.fg[q | 0x0d])) data[p + 0x105] = idx | px;
+		if ((px = this.fg[q | 0x0e])) data[p + 0x106] = idx | px;
+		if ((px = this.fg[q | 0x0f])) data[p + 0x107] = idx | px;
+		if ((px = this.fg[q | 0x10])) data[p + 0x200] = idx | px;
+		if ((px = this.fg[q | 0x11])) data[p + 0x201] = idx | px;
+		if ((px = this.fg[q | 0x12])) data[p + 0x202] = idx | px;
+		if ((px = this.fg[q | 0x13])) data[p + 0x203] = idx | px;
+		if ((px = this.fg[q | 0x14])) data[p + 0x204] = idx | px;
+		if ((px = this.fg[q | 0x15])) data[p + 0x205] = idx | px;
+		if ((px = this.fg[q | 0x16])) data[p + 0x206] = idx | px;
+		if ((px = this.fg[q | 0x17])) data[p + 0x207] = idx | px;
+		if ((px = this.fg[q | 0x18])) data[p + 0x300] = idx | px;
+		if ((px = this.fg[q | 0x19])) data[p + 0x301] = idx | px;
+		if ((px = this.fg[q | 0x1a])) data[p + 0x302] = idx | px;
+		if ((px = this.fg[q | 0x1b])) data[p + 0x303] = idx | px;
+		if ((px = this.fg[q | 0x1c])) data[p + 0x304] = idx | px;
+		if ((px = this.fg[q | 0x1d])) data[p + 0x305] = idx | px;
+		if ((px = this.fg[q | 0x1e])) data[p + 0x306] = idx | px;
+		if ((px = this.fg[q | 0x1f])) data[p + 0x307] = idx | px;
+		if ((px = this.fg[q | 0x20])) data[p + 0x400] = idx | px;
+		if ((px = this.fg[q | 0x21])) data[p + 0x401] = idx | px;
+		if ((px = this.fg[q | 0x22])) data[p + 0x402] = idx | px;
+		if ((px = this.fg[q | 0x23])) data[p + 0x403] = idx | px;
+		if ((px = this.fg[q | 0x24])) data[p + 0x404] = idx | px;
+		if ((px = this.fg[q | 0x25])) data[p + 0x405] = idx | px;
+		if ((px = this.fg[q | 0x26])) data[p + 0x406] = idx | px;
+		if ((px = this.fg[q | 0x27])) data[p + 0x407] = idx | px;
+		if ((px = this.fg[q | 0x28])) data[p + 0x500] = idx | px;
+		if ((px = this.fg[q | 0x29])) data[p + 0x501] = idx | px;
+		if ((px = this.fg[q | 0x2a])) data[p + 0x502] = idx | px;
+		if ((px = this.fg[q | 0x2b])) data[p + 0x503] = idx | px;
+		if ((px = this.fg[q | 0x2c])) data[p + 0x504] = idx | px;
+		if ((px = this.fg[q | 0x2d])) data[p + 0x505] = idx | px;
+		if ((px = this.fg[q | 0x2e])) data[p + 0x506] = idx | px;
+		if ((px = this.fg[q | 0x2f])) data[p + 0x507] = idx | px;
+		if ((px = this.fg[q | 0x30])) data[p + 0x600] = idx | px;
+		if ((px = this.fg[q | 0x31])) data[p + 0x601] = idx | px;
+		if ((px = this.fg[q | 0x32])) data[p + 0x602] = idx | px;
+		if ((px = this.fg[q | 0x33])) data[p + 0x603] = idx | px;
+		if ((px = this.fg[q | 0x34])) data[p + 0x604] = idx | px;
+		if ((px = this.fg[q | 0x35])) data[p + 0x605] = idx | px;
+		if ((px = this.fg[q | 0x36])) data[p + 0x606] = idx | px;
+		if ((px = this.fg[q | 0x37])) data[p + 0x607] = idx | px;
+		if ((px = this.fg[q | 0x38])) data[p + 0x700] = idx | px;
+		if ((px = this.fg[q | 0x39])) data[p + 0x701] = idx | px;
+		if ((px = this.fg[q | 0x3a])) data[p + 0x702] = idx | px;
+		if ((px = this.fg[q | 0x3b])) data[p + 0x703] = idx | px;
+		if ((px = this.fg[q | 0x3c])) data[p + 0x704] = idx | px;
+		if ((px = this.fg[q | 0x3d])) data[p + 0x705] = idx | px;
+		if ((px = this.fg[q | 0x3e])) data[p + 0x706] = idx | px;
+		if ((px = this.fg[q | 0x3f])) data[p + 0x707] = idx | px;
 	}
 
 	xfer8x8b(data, p, k) {

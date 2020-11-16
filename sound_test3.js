@@ -39,8 +39,8 @@ class SoundTest {
 			this.cpu.memorymap[0x40 + i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x80 + i].read = addr => sound.read(addr);
-			this.cpu.memorymap[0x80 + i].write = (addr, data) => sound.write(addr, data, this.count);
+			this.cpu.memorymap[0x80 + i].read = (addr) => { return sound.read(addr); };
+			this.cpu.memorymap[0x80 + i].write = (addr, data) => { sound.write(addr, data, this.count); };
 		}
 		this.cpu.memorymap[0x90].base = this.ram.base[0x20];
 		this.cpu.memorymap[0x90].write = null;
@@ -52,7 +52,7 @@ class SoundTest {
 			this.ram[0x2200 | addr & 0xff] = data;
 		};
 
-		this.cpu.breakpoint = addr => {
+		this.cpu.breakpoint = (addr) => {
 			switch (addr) {
 			case 0x0000:
 				return void(this.cpu.pc = 0x0ea5);
@@ -166,7 +166,7 @@ class SoundTest {
 			const freq = reg[i * 4] << 1 | reg[1 + i * 4] << 9;
 			const vol = reg[2 + i * 4] >> 4 || reg[3 + i * 4] >> 4 || reg[3 + i * 4] & 0x0f || reg[0x23 + i * 4] >> 4;
 			const pitch = Math.floor(Math.log2(freq * 48000 / (1 << 21) / 440) * 12 + 45.5);
-			if (vol === 0 || pitch < 0 || pitch >= 12 * 8)
+			if (!vol || pitch < 0 || pitch >= 12 * 8)
 				continue;
 			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
 		}
@@ -188,13 +188,18 @@ class SoundTest {
 const key = [];
 let PRG, SND;
 
-void function () {
+read('polepos2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG = Uint8Array.concat(...['pp4_9.6h', 'pp4_10.5h'].map(e => zip.decompress(e))).addBase();
+	SND = zip.decompress('pp1-5.3b');
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
+	game = new SoundTest();
+	sound = new PolePositionSound({SND, resolution: 2});
+	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -204,14 +209,6 @@ void function () {
 			game.right();
 		game.triggerA();
 	});
-}();
-
-read('polepos2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = Uint8Array.concat(...['pp4_9.6h', 'pp4_10.5h'].map(e => zip.decompress(e))).addBase();
-	SND = zip.decompress('pp1-5.3b');
-	game = new SoundTest();
-	sound = new PolePositionSound({SND, resolution: 2});
-	game.initial = true;
 	init({game, sound});
 });
 

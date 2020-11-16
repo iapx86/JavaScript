@@ -28,7 +28,7 @@ export default class MC6805 extends Cpu {
 	}
 
 	interrupt(vector) {
-		if (!super.interrupt() || (this.ccr & 8) !== 0)
+		if (!super.interrupt() || this.ccr & 8)
 			return false;
 		this.psh16(this.pc), this.psh(this.x, this.a, this.ccr), this.ccr |= 8;
 		switch (vector) {

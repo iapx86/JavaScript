@@ -46,7 +46,7 @@ class Polaris {
 		}
 		for (let i = 0; i < 0x20; i++) {
 			this.cpu.memorymap[0xc0 + i].base = this.ram.base[0x20 + i];
-			this.cpu.memorymap[0xc0 + i].write = (addr, data) => void(this.ram[0x2000 | addr & 0x1f9f] = data);
+			this.cpu.memorymap[0xc0 + i].write = (addr, data) => { this.ram[0x2000 | addr & 0x1f9f] = data; };
 		}
 		this.cpu.iomap.base = this.io;
 		this.cpu.iomap.write = (addr, data) => {

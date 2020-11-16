@@ -91,11 +91,11 @@ class NewRallyX {
 			};
 		}
 		for (let i = 0; i < 0x100; i++)
-			this.cpu.iomap[i].write = (addr, data) => void((addr & 0xff) === 0 && (this.vector = data, this.cpu_irq = false));
+			this.cpu.iomap[i].write = (addr, data) => { (addr & 0xff) === 0 && (this.vector = data, this.cpu_irq = false); };
 
-		this.cpu.check_interrupt = () => this.cpu_irq && this.cpu.interrupt(this.vector);
+		this.cpu.check_interrupt = () => { return this.cpu_irq && this.cpu.interrupt(this.vector); };
 
-		this.cpu.breakpoint = addr => {
+		this.cpu.breakpoint = (addr) => {
 			switch (addr) {
 			case 0x0d39:
 				if (!this.adwCount[(this.ixl | this.ixh << 8) - 0x8088 >> 5])
@@ -683,12 +683,12 @@ class NewRallyX {
 		const idx = src >> 6 & 0xfc;
 		let px;
 
-		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) < 4 * 0x100 || dst >= 304 * 0x100)
+		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || dst < 4 * 0x100 || dst >= 304 * 0x100)
 			return;
 		src = src << 6 & 0x3f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.color[idx | this.obj[src++]]) !== 0)
+				if ((px = this.color[idx | this.obj[src++]]))
 					data[dst] = px;
 	}
 
@@ -696,12 +696,12 @@ class NewRallyX {
 		const idx = src >> 6 & 0xfc;
 		let px;
 
-		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) < 4 * 0x100 || dst >= 304 * 0x100)
+		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || dst < 4 * 0x100 || dst >= 304 * 0x100)
 			return;
 		src = (src << 6 & 0x3f00) + 256 - 16;
 		for (let i = 16; i !== 0; src -= 32, dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.color[idx | this.obj[src++]]) !== 0)
+				if ((px = this.color[idx | this.obj[src++]]))
 					data[dst] = px;
 	}
 
@@ -709,12 +709,12 @@ class NewRallyX {
 		const idx = src >> 6 & 0xfc;
 		let px;
 
-		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) < 4 * 0x100 || dst >= 304 * 0x100)
+		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || dst < 4 * 0x100 || dst >= 304 * 0x100)
 			return;
 		src = (src << 6 & 0x3f00) + 16;
 		for (let i = 16; i !== 0; src += 32, dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.color[idx | this.obj[--src]]) !== 0)
+				if ((px = this.color[idx | this.obj[--src]]))
 					data[dst] = px;
 	}
 
@@ -722,12 +722,12 @@ class NewRallyX {
 		const idx = src >> 6 & 0xfc;
 		let px;
 
-		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) < 4 * 0x100 || dst >= 304 * 0x100)
+		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || dst < 4 * 0x100 || dst >= 304 * 0x100)
 			return;
 		src = (src << 6 & 0x3f00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.color[idx | this.obj[--src]]) !== 0)
+				if ((px = this.color[idx | this.obj[--src]]))
 					data[dst] = px;
 	}
 }

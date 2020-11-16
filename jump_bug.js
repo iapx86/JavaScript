@@ -43,7 +43,7 @@ class JumpBug {
 	obj = new Uint8Array(0x10000);
 	rgb = new Uint32Array(0x80);
 
-	se = [BOMB, SHOT].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+	se = [BOMB, SHOT].map(buf => ({buf, loop: false, start: false, stop: false}));
 
 	cpu = new Z80();
 
@@ -64,17 +64,17 @@ class JumpBug {
 				this.cpu.memorymap[page].base = this.ram.base[0x0c];
 				this.cpu.memorymap[page].write = null;
 			} else if (range(page, 0x58, 0x58))
-				this.cpu.memorymap[page].write = (addr, data) => sound[0].write(this.psg.addr, data);
+				this.cpu.memorymap[page].write = (addr, data) => { sound[0].write(this.psg.addr, data); };
 			else if (range(page, 0x59, 0x59))
-				this.cpu.memorymap[page].write = (addr, data) => void(this.psg.addr = data);
+				this.cpu.memorymap[page].write = (addr, data) => { this.psg.addr = data; };
 			else if (range(page, 0x60, 0x60, 0x07)) {
-				this.cpu.memorymap[page].read = () => this.in[0];
+				this.cpu.memorymap[page].read = () => { return this.in[0]; };
 				this.cpu.memorymap[page].write = (addr, data) => {
 					this.mmo[addr & 0xff] = data & 1;
 					this.bank = this.mmo[2] | this.mmo[3] << 1 | this.mmo[6] << 2;
 				};
 			} else if (range(page, 0x68, 0x68, 0x07)) {
-				this.cpu.memorymap[page].read = () => this.in[1];
+				this.cpu.memorymap[page].read = () => { return this.in[1]; };
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 7) {
 					case 3: // BOMB
@@ -84,7 +84,7 @@ class JumpBug {
 					}
 				};
 			} else if (range(page, 0x70, 0x70, 0x07)) {
-				this.cpu.memorymap[page].read = () => this.in[2];
+				this.cpu.memorymap[page].read = () => { return this.in[2]; };
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 7) {
 					case 1:
@@ -96,7 +96,7 @@ class JumpBug {
 			} else if (range(page, 0x80, 0xa7))
 				this.cpu.memorymap[page].base = PRG.base[0x40 | page & 0x3f];
 			else if (range(page, 0xb0, 0xbf))
-				this.cpu.memorymap[page].read = addr => {
+				this.cpu.memorymap[page].read = (addr) => {
 					const index = [0x114, 0x118, 0x214, 0x235, 0x311].indexOf(addr & 0xfff);
 					return index < 0 ? 0xff : [0x4f, 0xd3, 0xcf, 0x02, 0xff][index];
 				};
@@ -291,7 +291,7 @@ class JumpBug {
 			for (let y = 0; y < 256; y++) {
 				const cy = sr >> 4 ^ ~sr >> 16;
 				sr = cy & 1 | sr << 1;
-				if ((sr & 0x100ff) === 0xff && (color = sr >> 8 & 0x3f) !== 0 && color !== 0x3f) {
+				if ((sr & 0x100ff) === 0xff && (color = sr >> 8 & 0x3f) && color !== 0x3f) {
 					this.stars[i].x = x & 0xff;
 					this.stars[i].y = y;
 					this.stars[i].color = color;
@@ -465,7 +465,7 @@ class JumpBug {
 			src = src << 8 & 0x3f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0)
+				if ((px = this.obj[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -481,7 +481,7 @@ class JumpBug {
 			src = (src << 8 & 0x3f00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0)
+				if ((px = this.obj[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -497,7 +497,7 @@ class JumpBug {
 			src = (src << 8 & 0x3f00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0)
+				if ((px = this.obj[--src]))
 					data[dst] = idx | px;
 	}
 
@@ -513,7 +513,7 @@ class JumpBug {
 			src = (src << 8 & 0x3f00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0)
+				if ((px = this.obj[--src]))
 					data[dst] = idx | px;
 	}
 }

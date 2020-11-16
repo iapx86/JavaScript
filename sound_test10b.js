@@ -37,7 +37,7 @@ class SoundTest {
 			this.cpu2.memorymap[0xf0 + i].write = null;
 		}
 		for (let i = 0; i < 0x100; i++) {
-			this.cpu2.iomap[i].read = addr => {
+			this.cpu2.iomap[i].read = (addr) => {
 				switch (addr & 0xff) {
 				case 1:
 					return this.fm.status;
@@ -59,9 +59,9 @@ class SoundTest {
 						break;
 					case 0x14: // CSM/F RESET/IRQEN/LOAD
 						this.fm.status &= ~(data >> 4 & 3);
-						if ((data & ~this.fm.reg[0x14] & 1) !== 0)
+						if (data & ~this.fm.reg[0x14] & 1)
 							this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
-						if ((data & ~this.fm.reg[0x14] & 2) !== 0)
+						if (data & ~this.fm.reg[0x14] & 2)
 							this.fm.timerb = this.fm.reg[0x12];
 						break;
 					}
@@ -76,7 +76,7 @@ class SoundTest {
 			};
 		}
 
-		this.cpu2.check_interrupt = () => (this.fm.status & 3) !== 0 && this.cpu2.interrupt(0xef);
+		this.cpu2.check_interrupt = () => { return this.fm.status & 3 && this.cpu2.interrupt(0xef); };
 	}
 
 	execute() {
@@ -87,11 +87,11 @@ class SoundTest {
 			this.cpu2.execute(73);
 			this.cpu2.non_maskable_interrupt();
 			this.cpu2.execute(73);
-			if ((this.fm.reg[0x14] & 1) !== 0 && (this.fm.timera += 16) >= 0x400) {
+			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400) {
 				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
 			}
-			if ((this.fm.reg[0x14] & 2) !== 0 && ++this.fm.timerb >= 0x100) {
+			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100) {
 				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
 			}
@@ -198,13 +198,18 @@ class SoundTest {
 const key = [];
 let PRG2, PCM;
 
-void function () {
+read('rtype2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG2 = zip.decompress('ic17.4f').addBase();
+	PCM = zip.decompress('ic14.4c');
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
+	game = new SoundTest();
+	sound = new YM2151({clock: 3579545, resolution: 58, gain: 2});
+	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -214,14 +219,6 @@ void function () {
 			game.right();
 		game.triggerA();
 	});
-}();
-
-read('rtype2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG2 = zip.decompress('ic17.4f').addBase();
-	PCM = zip.decompress('ic14.4c');
-	game = new SoundTest();
-	sound = new YM2151({clock: 3579545, resolution: 58, gain: 2});
-	game.initial = true;
 	init({game, sound});
 });
 

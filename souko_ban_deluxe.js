@@ -66,22 +66,22 @@ class SoukoBanDeluxe {
 
 		for (let page = 0; page < 0x8000; page++)
 			if (range(page, 0x2e00, 0x2e17)) {
-				this.memorymap[page].read = addr => this.rgb[addr & 0x7ff] >> (addr >> 8 & 0x18) & 0xff;
+				this.memorymap[page].read = (addr) => { return this.rgb[addr & 0x7ff] >> (addr >> 8 & 0x18) & 0xff; };
 				this.memorymap[page].write = (addr, data) => {
 					const idx = addr & 0x7ff, shift = addr >> 8 & 0x18;
 					this.rgb[idx] = this.rgb[idx] & ~(0xff << shift) | data << shift;
 				};
 			} else if (range(page, 0x2e18, 0x2e1f, 0x60)) {
-				this.memorymap[page].read = addr => this.ram[0x7800 | addr & 0xf];
-				this.memorymap[page].write = (addr, data) => void(this.ram[0x7800 | addr & 0xf] = data);
+				this.memorymap[page].read = (addr) => { return this.ram[0x7800 | addr & 0xf]; };
+				this.memorymap[page].write = (addr, data) => { this.ram[0x7800 | addr & 0xf] = data; };
 			} else if (range(page, 0x2e20, 0x2e37)) {
-				this.memorymap[page].read = addr => this.rgb[0x800 | addr & 0x7ff] >> (addr >> 8 & 0x18) & 0xff;
+				this.memorymap[page].read = (addr) => { return this.rgb[0x800 | addr & 0x7ff] >> (addr >> 8 & 0x18) & 0xff; };
 				this.memorymap[page].write = (addr, data) => {
 					const idx = 0x800 | addr & 0x7ff, shift = addr >> 8 & 0x18;
 					this.rgb[idx] = this.rgb[idx] & ~(0xff << shift) | data << shift;
 				};
 			} else if (range(page, 0x2e40, 0x2e57)) {
-				this.memorymap[page].read = addr => this.rgb[0x1000 | addr & 0x7ff] >> (addr >> 8 & 0x18) & 0xff;
+				this.memorymap[page].read = (addr) => { return this.rgb[0x1000 | addr & 0x7ff] >> (addr >> 8 & 0x18) & 0xff; };
 				this.memorymap[page].write = (addr, data) => {
 					const idx = 0x1000 | addr & 0x7ff, shift = addr >> 8 & 0x18;
 					this.rgb[idx] = this.rgb[idx] & ~(0xff << shift) | data << shift;
@@ -93,17 +93,17 @@ class SoukoBanDeluxe {
 				this.memorymap[page].base = this.ram.base[0x80 | page & 0x7f];
 				this.memorymap[page].write = null;
 			} else if (range(page, 0x2f80, 0x2f9f)) {
-				this.memorymap[page].read = addr => [0, 0, 55, Math.floor(Math.random() * 256), addr << 4 & 0xf0 | this.key[0] & 0xf, 0, 0, 0][addr >> 4 & 7];
-				this.memorymap[page].write = (addr, data) => void(this.key[addr >> 4 & 7] = data);
+				this.memorymap[page].read = (addr) => { return [0, 0, 55, Math.floor(Math.random() * 256), addr << 4 & 0xf0 | this.key[0] & 0xf, 0, 0, 0][addr >> 4 & 7]; };
+				this.memorymap[page].write = (addr, data) => { this.key[addr >> 4 & 7] = data; };
 			} else if (range(page, 0x2fc0, 0x2fcf)) {
 				this.memorymap[page].base = this.ram.base[0x50 | page & 0xf];
 				this.memorymap[page].write = null;
 			} else if (range(page, 0x2fd0, 0x2fdf)) {
-				this.memorymap[page].read = addr => this.ram[0x4000 | addr & 0x1f];
-				this.memorymap[page].write = (addr, data) => void(this.ram[0x4000 | addr & 0x1f] = data);
+				this.memorymap[page].read = (addr) => { return this.ram[0x4000 | addr & 0x1f]; };
+				this.memorymap[page].write = (addr, data) => { this.ram[0x4000 | addr & 0x1f] = data; };
 			} else if (range(page, 0x2fe0, 0x2fef)) {
-				this.memorymap[page].read = addr => sound[1].read(addr);
-				this.memorymap[page].write = (addr, data) => sound[1].write(addr, data, this.count);
+				this.memorymap[page].read = (addr) => { return sound[1].read(addr); };
+				this.memorymap[page].write = (addr, data) => { sound[1].write(addr, data, this.count); };
 			} else if (range(page, 0x2ff0, 0x2fff)) {
 				this.memorymap[page].base = this.ram2.base[page & 7];
 				this.memorymap[page].write = null;
@@ -135,7 +135,7 @@ class SoukoBanDeluxe {
 				}
 			};
 
-		this.cpu.check_interrupt = () => this.cpu_irq && this.cpu.interrupt();
+		this.cpu.check_interrupt = () => { return this.cpu_irq && this.cpu.interrupt(); };
 
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[0xe0 + i].write = (addr, data) => {
@@ -150,11 +150,11 @@ class SoukoBanDeluxe {
 				}
 			};
 
-		this.cpu2.check_interrupt = () => this.cpu2_irq && this.cpu2.interrupt() || this.cpu2_firq && this.cpu2.fast_interrupt();
+		this.cpu2.check_interrupt = () => { return this.cpu2_irq && this.cpu2.interrupt() || this.cpu2_firq && this.cpu2.fast_interrupt(); };
 
 		for (let i = 0; i < 0x40; i++)
 			this.cpu3.memorymap[i].base = SND.base[0x40 + i];
-		this.cpu3.memorymap[0x40].read = addr => addr === 0x4001 ? this.fm.status : 0xff;
+		this.cpu3.memorymap[0x40].read = (addr) => { return addr === 0x4001 ? this.fm.status : 0xff; };
 		this.cpu3.memorymap[0x40].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
@@ -162,17 +162,17 @@ class SoukoBanDeluxe {
 			case 1:
 				if (this.fm.addr === 0x14) { // CSM/F RESET/IRQEN/LOAD
 					this.fm.status &= ~(data >> 4 & 3);
-					if ((data & ~this.fm.reg[0x14] & 1) !== 0)
+					if (data & ~this.fm.reg[0x14] & 1)
 						this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
-					if ((data & ~this.fm.reg[0x14] & 2) !== 0)
+					if (data & ~this.fm.reg[0x14] & 2)
 						this.fm.timerb = this.fm.reg[0x12];
 				}
 				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
 			}
 		};
 		for (let i = 0; i < 8; i++) {
-			this.cpu3.memorymap[0x50 + i].read = addr => sound[1].read(addr);
-			this.cpu3.memorymap[0x50 + i].write = (addr, data) => sound[1].write(addr, data, this.count);
+			this.cpu3.memorymap[0x50 + i].read = (addr) => { return sound[1].read(addr); };
+			this.cpu3.memorymap[0x50 + i].write = (addr, data) => { sound[1].write(addr, data, this.count); };
 		}
 		for (let i = 0; i < 8; i++) {
 			this.cpu3.memorymap[0x70 + i].base = this.ram2.base[i];
@@ -184,13 +184,13 @@ class SoukoBanDeluxe {
 		}
 		for (let i = 0; i < 0x40; i++)
 			this.cpu3.memorymap[0xc0 + i].base = SND.base[i];
-		this.cpu3.memorymap[0xc0].write = (addr, data) => this.bankswitch3(data << 2 & 0x1c0);
-		this.cpu3.memorymap[0xe0].write = () => void(this.cpu3_irq = false);
+		this.cpu3.memorymap[0xc0].write = (addr, data) => { this.bankswitch3(data << 2 & 0x1c0); };
+		this.cpu3.memorymap[0xe0].write = () => { this.cpu3_irq = false; };
 
-		this.cpu3.check_interrupt = () => this.cpu3_irq && this.cpu3.interrupt() || (this.fm.status & 3) !== 0 && this.cpu3.fast_interrupt();
+		this.cpu3.check_interrupt = () => { return this.cpu3_irq && this.cpu3.interrupt() || this.fm.status & 3 && this.cpu3.fast_interrupt(); };
 
 		this.mcu.memorymap[0].base = this.ram4.base[0];
-		this.mcu.memorymap[0].read = addr => {
+		this.mcu.memorymap[0].read = (addr) => {
 			let data;
 			switch (addr) {
 			case 2:
@@ -207,30 +207,30 @@ class SoukoBanDeluxe {
 			}
 			this.ram4[addr] = data;
 		};
-		this.mcu.memorymap[0x10].read = addr => this.in[2] >> (~addr << 1 & 4) | 0xf0;
-		this.mcu.memorymap[0x14].read = addr => this.in[addr & 1];
+		this.mcu.memorymap[0x10].read = (addr) => { return this.in[2] >> (~addr << 1 & 4) | 0xf0; };
+		this.mcu.memorymap[0x14].read = (addr) => { return this.in[addr & 1]; };
 		for (let i = 0; i < 0x80; i++)
 			this.mcu.memorymap[0x40 + i].base = VOI.base[0x80 + i];
 		for (let i = 0; i < 8; i++) {
 			this.mcu.memorymap[0xc0 + i].base = this.ram2.base[i];
 			this.mcu.memorymap[0xc0 + i].write = null;
 		}
-		this.mcu.memorymap[0xc0].write = (addr, data) => void(addr === 0xc000 && this.ram2[0] === 0xa6 || (this.ram2[addr & 0xff] = data));
+		this.mcu.memorymap[0xc0].write = (addr, data) => { addr === 0xc000 && this.ram2[0] === 0xa6 || (this.ram2[addr & 0xff] = data); };
 		for (let i = 0; i < 8; i++) {
 			this.mcu.memorymap[0xc8 + i].base = this.ram4.base[1 + i];
 			this.mcu.memorymap[0xc8 + i].write = null;
 		}
-		this.mcu.memorymap[0xd0].write = (addr, data) => sound[2].write(0, data, this.count);
-		this.mcu.memorymap[0xd4].write = (addr, data) => sound[2].write(1, data, this.count);
+		this.mcu.memorymap[0xd0].write = (addr, data) => { sound[2].write(0, data, this.count); };
+		this.mcu.memorymap[0xd4].write = (addr, data) => { sound[2].write(1, data, this.count); };
 		this.mcu.memorymap[0xd8].write = (addr, data) => {
 			const index = [0xf8, 0xf4, 0xec, 0xdc, 0xbc, 0x7c].indexOf(data & 0xfc);
 			this.bankswitch4(index > 0 ? index << 9 | data << 7 & 0x180 : index === 0 ? data << 7 & 0x180 ^ 0x100 : 0);
 		};
 		for (let i = 0; i < 0x10; i++)
 			this.mcu.memorymap[0xf0 + i].base = MCU.base[i];
-		this.mcu.memorymap[0xf0].write = () => void(this.mcu_irq = false);
+		this.mcu.memorymap[0xf0].write = () => { this.mcu_irq = false; };
 
-		this.mcu.check_interrupt = () => this.mcu_irq && this.mcu.interrupt() || (this.ram4[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf');
+		this.mcu.check_interrupt = () => { return this.mcu_irq && this.mcu.interrupt() || (this.ram4[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf'); };
 
 		// Videoの初期化
 		this.convertCHR();
@@ -289,11 +289,11 @@ class SoukoBanDeluxe {
 		this.cpu_irq = this.cpu2_irq = this.cpu3_irq = this.mcu_irq = true;
 		for (this.count = 0; this.count < 29; this.count++) {
 			Cpu.multiple_execute([this.cpu, this.cpu2, this.cpu3], 146);
-			if ((this.fm.reg[0x14] & 1) !== 0 && (this.fm.timera += 16) >= 0x400) {
+			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400) {
 				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
 			}
-			if ((this.fm.reg[0x14] & 2) !== 0 && ++this.fm.timerb >= 0x100) {
+			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100) {
 				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
 			}
@@ -304,11 +304,11 @@ class SoukoBanDeluxe {
 		}
 		for (this.count = 29; this.count < 58; this.count++) { // 3579580 / 60 / 1024
 			Cpu.multiple_execute([this.cpu, this.cpu2, this.cpu3], 146);
-			if ((this.fm.reg[0x14] & 1) !== 0 && (this.fm.timera += 16) >= 0x400) {
+			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400) {
 				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
 			}
-			if ((this.fm.reg[0x14] & 2) !== 0 && ++this.fm.timerb >= 0x100) {
+			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100) {
 				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
 			}
@@ -472,12 +472,12 @@ class SoukoBanDeluxe {
 			// bg描画
 			if (ram[0x4010] === pri) {
 				const vScroll = ram[0x4001] | ram[0x4000] << 8, hScroll = ram[0x4003] | ram[0x4002] << 8, color = ram[0x4018] << 8 & 0x700 | 0x800;
-				if ((ram[0x5ff6] & 1) === 0) {
-					p = 256 * 8 * 2 + 232 - (48 + vScroll & 7) * 256 + (24 + hScroll & 7);
-					k = 48 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0x8000;
-				} else {
+				if (ram[0x5ff6] & 1) {
 					p = 256 * 8 * 2 + 232 - (176 - vScroll & 7) * 256 + (264 - hScroll & 7);
 					k = 176 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0x8000;
+				} else {
+					p = 256 * 8 * 2 + 232 - (48 + vScroll & 7) * 256 + (24 + hScroll & 7);
+					k = 48 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0x8000;
 				}
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0x1f80 | 0x8000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0xff80, p += 256 * 8, j++)
@@ -485,12 +485,12 @@ class SoukoBanDeluxe {
 			}
 			if (ram[0x4011] === pri) {
 				const vScroll = ram[0x4005] | ram[0x4004] << 8, hScroll = ram[0x4007] | ram[0x4006] << 8, color = ram[0x4019] << 8 & 0x700 | 0x800;
-				if ((ram[0x5ff6] & 1) === 0) {
-					p = 256 * 8 * 2 + 232 - (46 + vScroll & 7) * 256 + (24 + hScroll & 7);
-					k = 46 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0xa000;
-				} else {
+				if (ram[0x5ff6] & 1) {
 					p = 256 * 8 * 2 + 232 - (178 - vScroll & 7) * 256 + (264 - hScroll & 7);
 					k = 178 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0xa000;
+				} else {
+					p = 256 * 8 * 2 + 232 - (46 + vScroll & 7) * 256 + (24 + hScroll & 7);
+					k = 46 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0xa000;
 				}
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0x1f80 | 0xa000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0xff80, p += 256 * 8, j++)
@@ -498,12 +498,12 @@ class SoukoBanDeluxe {
 			}
 			if (ram[0x4012] === pri) {
 				const vScroll = ram[0x4009] | ram[0x4008] << 8, hScroll = ram[0x400b] | ram[0x400a] << 8, color = ram[0x401a] << 8 & 0x700 | 0x800;
-				if ((ram[0x5ff6] & 1) === 0) {
-					p = 256 * 8 * 2 + 232 - (45 + vScroll & 7) * 256 + (24 + hScroll & 7);
-					k = 45 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0xc000;
-				} else {
+				if (ram[0x5ff6] & 1) {
 					p = 256 * 8 * 2 + 232 - (179 - vScroll & 7) * 256 + (264 - hScroll & 7);
 					k = 179 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0xc000;
+				} else {
+					p = 256 * 8 * 2 + 232 - (45 + vScroll & 7) * 256 + (24 + hScroll & 7);
+					k = 45 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0xc000;
 				}
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0x1f80 | 0xc000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0xff80, p += 256 * 8, j++)
@@ -511,12 +511,12 @@ class SoukoBanDeluxe {
 			}
 			if (ram[0x4013] === pri) {
 				const vScroll = ram[0x400d] | ram[0x400c] << 8, hScroll = ram[0x400f], color = ram[0x401b] << 8 & 0x700 | 0x800;
-				if ((ram[0x5ff6] & 1) === 0) {
-					p = 256 * 8 * 2 + 232 - (44 + vScroll & 7) * 256 + (24 + hScroll & 7);
-					k = 44 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0xf80 | 0xe000;
-				} else {
+				if (ram[0x5ff6] & 1) {
 					p = 256 * 8 * 2 + 232 - (180 - vScroll & 7) * 256 + (8 - hScroll & 7);
 					k = 180 - vScroll >> 2 & 0x7e | 8 - hScroll << 4 & 0xf80 | 0xe000;
+				} else {
+					p = 256 * 8 * 2 + 232 - (44 + vScroll & 7) * 256 + (24 + hScroll & 7);
+					k = 44 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0xf80 | 0xe000;
 				}
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0xe000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0xff80, p += 256 * 8, j++)
@@ -544,8 +544,8 @@ class SoukoBanDeluxe {
 				if (ram[k + 8] >> 5 !== pri)
 					continue;
 				const w = [16, 8, 32, 4][ram[k + 8] >> 1 & 3], h = [16, 8, 32, 4][ram[k + 4] >> 6];
-				const x = w + ram[k + 9] + ram[0x5ff7] - ((ram[0x5ff6] & 1) === 0 ? 2 : 0) & 0xff;
-				const y = (ram[k + 7] | ram[k + 6] << 8) + (ram[0x5ff5] | ram[0x5ff4] << 8) - ((ram[0x5ff6] & 1) === 0 ? 57 : 135) & 0x1ff;
+				const x = w + ram[k + 9] + ram[0x5ff7] - (ram[0x5ff6] & 1 ? 0 : 2) & 0xff;
+				const y = (ram[k + 7] | ram[k + 6] << 8) + (ram[0x5ff5] | ram[0x5ff4] << 8) - (ram[0x5ff6] & 1 ? 135 : 57) & 0x1ff;
 				const src = (~ram[k + 8] & 0x18 | 7) & -w | (ram[k + 4] & -h) << 5 & 0x300 | ram[k + 5] << 10 & 0x3fc00 | ram[k + 4] << 18 & 0x1c0000;
 				const color = ram[k + 6] << 3 & 0x7f0;
 				if (color === 0x7f0)
@@ -606,7 +606,7 @@ class SoukoBanDeluxe {
 		const c = this.ram[k] << 8 & 0x1f00 | this.ram[k + 1], q1 = c << 3, q2 = q1 << 3;
 
 		if (this.isspace[c])
-			return ;
+			return;
 		if ((CHR8[q1 | 0] & 0x80) !== 0) data[p + 0x007] = color | this.chr[q2 | 0x00];
 		if ((CHR8[q1 | 0] & 0x40) !== 0) data[p + 0x107] = color | this.chr[q2 | 0x01];
 		if ((CHR8[q1 | 0] & 0x20) !== 0) data[p + 0x207] = color | this.chr[q2 | 0x02];

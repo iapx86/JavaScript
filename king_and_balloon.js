@@ -39,7 +39,7 @@ class KingAndBalloon {
 	obj = new Uint8Array(0x4000);
 	rgb = new Uint32Array(0x20);
 
-	se = [BOMB, SHOT, WAVE1111, HELP, THANKYOU, BYEBYE].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+	se = [BOMB, SHOT, WAVE1111, HELP, THANKYOU, BYEBYE].map(buf => ({buf, loop: false, start: false, stop: false}));
 
 	cpu = new Z80();
 
@@ -59,31 +59,25 @@ class KingAndBalloon {
 		this.cpu.memorymap[0x98].write = null;
 		this.cpu.memorymap[0xa0].base = this.ioport;
 		this.cpu.memorymap[0xa0].write = (addr, data) => {
-			if ((addr & 0xf) === 4) {
-				if ((data & 1) !== 0)
-					this.se[2].start = true;
-				else
-					this.se[2].stop = true;
-			}
-			this.mmo[addr & 0xf] = data;
+			if ((addr & 7) === 4)
+				(data & 1) !== 0 ? (this.se[2].start = true) : (this.se[2].stop = true);
+			this.mmo[addr & 7] = data & 1;
 		};
 		this.cpu.memorymap[0xa8].base = this.ioport.subarray(0x10);
 		this.cpu.memorymap[0xa8].write = (addr, data) => {
-			switch (addr & 0xf) {
+			switch (addr & 7) {
 			case 3: // BOMB
-				if ((data & 1) !== 0)
-					this.se[0].start = this.se[0].stop = true;
+				(data & 1) !== 0 && (this.se[0].start = this.se[0].stop = true);
 				break;
 			case 5: // SHOT
-				if ((data & 1) !== 0 && !this.mmo[0x10 | addr & 0xf])
-					this.se[1].start = this.se[1].stop = true;
+				(data & 1) !== 0 && !this.mmo[0x15] && (this.se[1].start = this.se[1].stop = true);
 				break;
 			}
-			this.mmo[0x10 | addr & 0xf] = data & 1;
+			this.mmo[addr & 7 | 0x10] = data & 1;
 		};
 		this.cpu.memorymap[0xb0].base = this.ioport.subarray(0x20);
 		this.cpu.memorymap[0xb0].write = (addr, data) => {
-			switch (addr & 0xf) {
+			switch (addr & 7) {
 			case 1:
 				this.fInterruptEnable = (data & 1) !== 0;
 				break;
@@ -107,26 +101,18 @@ class KingAndBalloon {
 				}
 				break;
 			case 3:
-				if (data) {
-					this.ioport[0x30] = this.fVoice ? 0x40 : 0;
-					this.cpu.memorymap[0xa0].base = this.ioport.subarray(0x30);
-				} else
+				if ((data & 1) !== 0)
+					this.ioport[0x30] = this.fVoice ? 0x40 : 0, this.cpu.memorymap[0xa0].base = this.ioport.subarray(0x30);
+				else
 					this.cpu.memorymap[0xa0].base = this.ioport;
 				break;
 			case 4:
-				if (!this.fSoundEnable)
-					this.mmo[0x30] = 0xff;
-				this.fSoundEnable = (data & 1) !== 0;
-				break;
-			default:
+				!this.fSoundEnable && (this.mmo[0x30] = 0xff), this.fSoundEnable = (data & 1) !== 0;
 				break;
 			}
-			this.mmo[0x20 | addr & 0xf] = data;
+			this.mmo[addr & 7 | 0x20] = data;
 		};
-		this.cpu.memorymap[0xb8].write = (addr, data) => {
-			if ((addr & 0xf) === 0)
-				this.mmo[0x30] = data; // SOUND FREQUENCY
-		};
+		this.cpu.memorymap[0xb8].write = (addr, data) => { this.mmo[0x30] = data; }; // SOUND FREQUENCY
 
 		// Videoの初期化
 		this.convertRGB();
@@ -475,7 +461,7 @@ class KingAndBalloon {
 		src = src << 8 & 0x3f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0)
+				if ((px = this.obj[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -488,7 +474,7 @@ class KingAndBalloon {
 		src = (src << 8 & 0x3f00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0)
+				if ((px = this.obj[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -501,7 +487,7 @@ class KingAndBalloon {
 		src = (src << 8 & 0x3f00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0)
+				if ((px = this.obj[--src]))
 					data[dst] = idx | px;
 	}
 
@@ -514,7 +500,7 @@ class KingAndBalloon {
 		src = (src << 8 & 0x3f00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0)
+				if ((px = this.obj[--src]))
 					data[dst] = idx | px;
 	}
 }

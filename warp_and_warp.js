@@ -34,7 +34,7 @@ class WarpAndWarp {
 	bg = new Uint8Array(0x4000);
 	rgb = new Uint32Array(0x100);
 
-	se = [WAVE02, WAVE10, WAVE11, WAVE14, WAVE16].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+	se = [WAVE02, WAVE10, WAVE11, WAVE14, WAVE16].map(buf => ({buf, loop: false, start: false, stop: false}));
 
 	cpu = new I8080();
 

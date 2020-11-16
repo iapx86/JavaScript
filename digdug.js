@@ -91,17 +91,15 @@ class DigDug {
 					}
 				};
 			else if (range(page, 0x70)) {
-				this.cpu[0].memorymap[page].read = addr => {
+				this.cpu[0].memorymap[page].read = (addr) => {
 					let data = 0xff;
-					(this.dmactrl & 1) !== 0 && (data &= this.mcu.o, this.mcu.k |= 8, interrupt(this.mcu));
-					(this.dmactrl & 2) !== 0 && (data &= this.ioport[addr & 0xff]);
+					this.dmactrl & 1 && (data &= this.mcu.o, this.mcu.k |= 8, interrupt(this.mcu));
+					this.dmactrl & 2 && (data &= this.ioport[addr & 0xff]);
 					return data;
 				};
-				this.cpu[0].memorymap[page].write = (addr, data) => {
-					(this.dmactrl & 1) !== 0 && (this.mcu.k = data & 7, interrupt(this.mcu));
-				};
+				this.cpu[0].memorymap[page].write = (addr, data) => { this.dmactrl & 1 && (this.mcu.k = data & 7, interrupt(this.mcu));	};
 			} else if (range(page, 0x71)) {
-				this.cpu[0].memorymap[page].read = () => this.dmactrl;
+				this.cpu[0].memorymap[page].read = () => { return this.dmactrl; };
 				this.cpu[0].memorymap[page].write = (addr, data) => {
 					this.fNmiEnable = (data & 0xe0) !== 0;
 					switch (this.dmactrl = data) {

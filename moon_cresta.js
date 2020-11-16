@@ -44,7 +44,7 @@ class MoonCresta {
 	obj = new Uint8Array(0x8000);
 	rgb = new Uint32Array(0x80);
 
-	se = [BOMB, SHOT].map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+	se = [BOMB, SHOT].map(buf => ({buf, loop: false, start: false, stop: false}));
 
 	cpu = new Z80();
 
@@ -65,35 +65,36 @@ class MoonCresta {
 				this.cpu.memorymap[page].base = this.ram.base[8];
 				this.cpu.memorymap[page].write = null;
 			} else if (range(page, 0xa0, 0xa0, 0x07)) {
-				this.cpu.memorymap[page].read = () => this.in[0];
+				this.cpu.memorymap[page].read = () => { return this.in[0]; };
 				this.cpu.memorymap[page].write = (addr, data) => { this.mmo[addr & 7] = data & 1, this.bank = this.mmo[0] | this.mmo[1] << 1; };
 			} else if (range(page, 0xa8, 0xa8, 0x07)) {
-				this.cpu.memorymap[page].read = () => this.in[1];
+				this.cpu.memorymap[page].read = () => { return this.in[1]; };
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 7) {
 					case 3: // BOMB
 						(data & 1) !== 0 ? (this.se[0].start = true) : (this.se[0].stop = true);
 						break;
 					case 5: // SHOT
-						(data & 1) !== 0 && !this.mmo[addr & 7 | 0x10] && (this.se[1].start = this.se[1].stop = true);
+						(data & 1) !== 0 && !this.mmo[0x15] && (this.se[1].start = this.se[1].stop = true);
 						break;
 					}
 					this.mmo[addr & 7 | 0x10] = data & 1;
 				};
 			} else if (range(page, 0xb0, 0xb0, 0x07)) {
-				this.cpu.memorymap[page].read = () => this.in[2];
+				this.cpu.memorymap[page].read = () => { return this.in[2]; };
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 7) {
 					case 0:
-						return void(this.fInterruptEnable = (data & 1) !== 0);
+						this.fInterruptEnable = (data & 1) !== 0;
+						break;
 					case 4:
-						this.fSoundEnable === false && (this.mmo[0x30] = 0xff);
-						return void(this.fStarEnable = this.fSoundEnable = (data & 1) !== 0);
+						!this.fSoundEnable && (this.mmo[0x30] = 0xff), this.fStarEnable = this.fSoundEnable = (data & 1) !== 0;
+						break;
 					}
 					this.mmo[addr & 7 | 0x20] = data & 1;
 				};
 			} else if (range(page, 0xb8, 0xb8, 0x07))
-				this.cpu.memorymap[page].write = (addr, data) => void(this.mmo[0x30] = data);
+				this.cpu.memorymap[page].write = (addr, data) => { this.mmo[0x30] = data; };
 
 		MoonCresta.decodeROM();
 
@@ -262,7 +263,7 @@ class MoonCresta {
 			for (let y = 0; y < 256; y++) {
 				const cy = sr >> 4 ^ ~sr >> 16;
 				sr = cy & 1 | sr << 1;
-				if ((sr & 0x100ff) === 0xff && (color = sr >> 8 & 0x3f) !== 0 && color !== 0x3f) {
+				if ((sr & 0x100ff) === 0xff && (color = sr >> 8 & 0x3f) && color !== 0x3f) {
 					this.stars[i].x = x & 0xff;
 					this.stars[i].y = y;
 					this.stars[i].color = color;
@@ -436,7 +437,7 @@ class MoonCresta {
 			src = src << 8 & 0x3f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0)
+				if ((px = this.obj[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -452,7 +453,7 @@ class MoonCresta {
 			src = (src << 8 & 0x3f00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0)
+				if ((px = this.obj[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -468,7 +469,7 @@ class MoonCresta {
 			src = (src << 8 & 0x3f00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0)
+				if ((px = this.obj[--src]))
 					data[dst] = idx | px;
 	}
 
@@ -484,7 +485,7 @@ class MoonCresta {
 			src = (src << 8 & 0x3f00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0)
+				if ((px = this.obj[--src]))
 					data[dst] = idx | px;
 	}
 }

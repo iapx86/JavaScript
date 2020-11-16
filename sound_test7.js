@@ -40,10 +40,10 @@ class SoundTest {
 			this.cpu2.memorymap[0x80 + i].base = this.ram2.base[i];
 			this.cpu2.memorymap[0x80 + i].write = null;
 		}
-		this.cpu2.memorymap[0xa0].read = addr => addr === 0xa000 && this.command.length ? this.command.shift() : 0xff;
-		this.cpu2.memorymap[0xb0].read = addr => addr < 0xb00e ? sound[1].read(addr, this.count) : 0xff;
-		this.cpu2.memorymap[0xb0].write = (addr, data) => void(addr < 0xb00e && sound[1].write(addr, data, this.count));
-		this.cpu2.memorymap[0xc0].read = addr => addr === 0xc001 ? this.fm.status : 0xff;
+		this.cpu2.memorymap[0xa0].read = (addr) => { return addr === 0xa000 && this.command.length ? this.command.shift() : 0xff; };
+		this.cpu2.memorymap[0xb0].read = (addr) => { return addr < 0xb00e ? sound[1].read(addr, this.count) : 0xff; };
+		this.cpu2.memorymap[0xb0].write = (addr, data) => { addr < 0xb00e && sound[1].write(addr, data, this.count); };
+		this.cpu2.memorymap[0xc0].read = (addr) => { return addr === 0xc001 ? this.fm.status : 0xff; };
 		this.cpu2.memorymap[0xc0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
@@ -55,22 +55,22 @@ class SoundTest {
 					break;
 				case 0x14: // CSM/F RESET/IRQEN/LOAD
 					this.fm.status &= ~(data >> 4 & 3);
-					if ((data & ~this.fm.reg[0x14] & 1) !== 0)
+					if (data & ~this.fm.reg[0x14] & 1)
 						this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
-					if ((data & ~this.fm.reg[0x14] & 2) !== 0)
+					if (data & ~this.fm.reg[0x14] & 2)
 						this.fm.timerb = this.fm.reg[0x12];
 					break;
 				}
 				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
 			}
 		};
-		this.cpu2.memorymap[0xd0].write = (addr, data) => void(addr === 0xd000 && (this.vlm_latch = data));
-		this.cpu2.memorymap[0xe0].read = addr => addr === 0xe000 ? this.wd ^= 1 : 0xff;
+		this.cpu2.memorymap[0xd0].write = (addr, data) => { addr === 0xd000 && (this.vlm_latch = data); };
+		this.cpu2.memorymap[0xe0].read = (addr) => { return addr === 0xe000 ? this.wd ^= 1 : 0xff; };
 		this.cpu2.memorymap[0xf0].write = (addr, data) => {
 			if (addr === 0xf000) {
-				if ((~data & this.vlm_control & 1) !== 0)
+				if (~data & this.vlm_control & 1)
 					sound[2].rst(this.vlm_latch);
-				if ((~data & this.vlm_control & 2) !== 0)
+				if (~data & this.vlm_control & 2)
 					sound[2].st(this.vlm_latch);
 				this.vlm_control = data;
 			}
@@ -81,11 +81,11 @@ class SoundTest {
 		for (this.count = 0; this.count < 58; this.count++) { // 14318180 / 4 / 60 / 1024
 			this.command.length && this.cpu2.interrupt();
 			this.cpu2.execute(146);
-			if ((this.fm.reg[0x14] & 1) !== 0 && (this.fm.timera += 16) >= 0x400) {
+			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400) {
 				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
 			}
-			if ((this.fm.reg[0x14] & 2) !== 0 && ++this.fm.timerb >= 0x100) {
+			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100) {
 				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
 			}
@@ -192,13 +192,23 @@ class SoundTest {
 const key = [];
 let PRG2, VLM, SND;
 
-void function () {
+read('salamand.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG2 = zip.decompress('587-d09.11j').addBase();
+	VLM = zip.decompress('587-d08.8g');
+	SND = zip.decompress('587-c01.10a');
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
+	game = new SoundTest();
+	sound = [
+		new YM2151({clock: 14318180 / 4, resolution: 58, gain: 5}),
+		new K007232({SND, clock: 14318180 / 4, resolution: 58, gain: 0.2}),
+		new VLM5030({VLM, clock: 14318180 / 4, gain: 5}),
+	];
+	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -208,19 +218,6 @@ void function () {
 			game.right();
 		game.triggerA();
 	});
-}();
-
-read('salamand.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG2 = zip.decompress('587-d09.11j').addBase();
-	VLM = zip.decompress('587-d08.8g');
-	SND = zip.decompress('587-c01.10a');
-	game = new SoundTest();
-	sound = [
-		new YM2151({clock: 14318180 / 4, resolution: 58, gain: 5}),
-		new K007232({SND, clock: 14318180 / 4, resolution: 58, gain: 0.2}),
-		new VLM5030({VLM, clock: 14318180 / 4, gain: 5}),
-	];
-	game.initial = true;
 	init({game, sound});
 });
 

@@ -69,15 +69,15 @@ class TimeTunnel {
 			this.cpu.memorymap[0x80 + i].write = null;
 		}
 		for (let i = 0; i < 8; i++)
-			this.cpu.memorymap[0x88 + i].read = addr => (addr & 1) === 0 ? 0 : 0xff;
+			this.cpu.memorymap[0x88 + i].read = (addr) => { return (addr & 1) === 0 ? 0 : 0xff; };
 		for (let i = 0; i < 0x42; i++) {
 			this.cpu.memorymap[0x90 + i].base = this.ram.base[8 + i];
 			this.cpu.memorymap[0x90 + i].write = null;
 		}
-		this.cpu.memorymap[0xd2].read = addr => this.ram[0x4a00 | addr & 0x7f];
-		this.cpu.memorymap[0xd2].write = (addr, data) => void(this.ram[0x4a00 | addr & 0x7f] = data);
-		this.cpu.memorymap[0xd3].write = (addr, data) => void(this.priority = data);
-		this.cpu.memorymap[0xd4].read = addr => {
+		this.cpu.memorymap[0xd2].read = (addr) => { return this.ram[0x4a00 | addr & 0x7f]; };
+		this.cpu.memorymap[0xd2].write = (addr, data) => { this.ram[0x4a00 | addr & 0x7f] = data; };
+		this.cpu.memorymap[0xd3].write = (addr, data) => { this.priority = data; };
+		this.cpu.memorymap[0xd4].read = (addr) => {
 			switch (addr & 0x0f) {
 			case 0:
 			case 1:
@@ -139,11 +139,10 @@ class TimeTunnel {
 					return;
 				for (let i = 0; i < 0x20; i++)
 					this.cpu.memorymap[0x60 + i].base = PRG1.base[bank + i];
-				this.bank = bank;
-				return;
+				return void(this.bank = bank);
 			}
 		};
-		this.cpu.memorymap[0xd6].write = (addr, data) => void(this.mode = data);
+		this.cpu.memorymap[0xd6].write = (addr, data) => { this.mode = data; };
 
 		for (let i = 0; i < 0x10; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
@@ -152,7 +151,7 @@ class TimeTunnel {
 			this.cpu2.memorymap[0x40 + i].write = null;
 		}
 		for (let i = 0; i < 8; i++) {
-			this.cpu2.memorymap[0x48 + i].read = addr => {
+			this.cpu2.memorymap[0x48 + i].read = (addr) => {
 				switch (addr & 7) {
 				case 1:
 					return sound[1].read(this.psg[1].addr);
@@ -186,7 +185,7 @@ class TimeTunnel {
 					return sound[3].write(this.psg[3].addr, data, this.count);
 				}
 			};
-			this.cpu2.memorymap[0x50 + i].read = addr => {
+			this.cpu2.memorymap[0x50 + i].read = (addr) => {
 				switch (addr & 3) {
 				case 0:
 					return this.cpu2_flag = 0, this.cpu2_command;
@@ -195,7 +194,7 @@ class TimeTunnel {
 				}
 				return 0xff;
 			};
-			this.cpu2.memorymap[0x50 + i].write = addr => {
+			this.cpu2.memorymap[0x50 + i].write = (addr) => {
 				switch (addr & 3) {
 				case 0:
 					return void(this.cpu2_command &= 0x7f);
@@ -229,7 +228,7 @@ class TimeTunnel {
 
 		// 効果音の初期化
 		TimeTunnel.convertPCM(rate);
-		this.se = pcm.map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+		this.se = pcm.map(buf => ({buf, loop: false, start: false, stop: false}));
 	}
 
 	execute() {
@@ -485,7 +484,7 @@ class TimeTunnel {
 			data.fill(this.colorbank[1] << 3 & 0x38, p, p + 224);
 
 		// bg描画
-		if ((this.mode & 0x10) !== 0) {
+		if (this.mode & 0x10) {
 			const color = this.colorbank[0];
 			const scroll = -(this.scroll[0] & 0xf8) + (this.scroll[0] + 3 & 7) + 8;
 			for (let k = 0x3c00; k < 0x4000; k++) {
@@ -495,7 +494,7 @@ class TimeTunnel {
 					this.xfer8x8(this.layer[1], color, x | y << 8, k);
 			}
 		}
-		if ((this.mode & 0x20) !== 0) {
+		if (this.mode & 0x20) {
 			const color = this.colorbank[0] >> 4;
 			const scroll = -(this.scroll[2] & 0xf8) + (this.scroll[2] + 1 & 7) + 10;
 			for (let k = 0x4000; k < 0x4400; k++) {
@@ -505,7 +504,7 @@ class TimeTunnel {
 					this.xfer8x8(this.layer[2], color, x | y << 8, k);
 			}
 		}
-		if ((this.mode & 0x40) !== 0) {
+		if (this.mode & 0x40) {
 			const color = this.colorbank[1];
 			const scroll = -(this.scroll[4] & 0xf8) + (this.scroll[4] - 1 & 7) + 12;
 			for (let k = 0x4400; k < 0x4800; k++) {
@@ -517,14 +516,14 @@ class TimeTunnel {
 		}
 
 		// obj描画
-		if ((this.mode & 0x80) !== 0) {
+		if (this.mode & 0x80) {
 			this.layer[0].fill(0);
 			this.drawObj(0x497c | this.mode << 5 & 0x80);
 			for (let k = 0x4900 | this.mode << 5 & 0x80, i = 0; i < 31; k += 4, i++) {
 				if (i >= 16 && i < 24)
 					continue;
 				const collision = this.drawObj(k);
-				if ((collision & 8) !== 0)
+				if (collision & 8)
 					this.collision[i >= 16 ? 2 : i >> 3] |= 1 << (i & 7);
 				this.collision[3] |= collision & 7;
 			}
@@ -691,17 +690,17 @@ class TimeTunnel {
 		src = src << 8 & 0x7f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, dst -= (dst >= 0x11000) * 0x10000, --i)
 			for (let j = 16; j !== 0; dst++, --j) {
-				if ((px = this.obj[src++]) === 0 || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
+				if (!(px = this.obj[src++]) || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
 					continue;
 				if (this.layer[0][dst] === 0)
 					this.layer[0][dst] = idx | px;
 				else
 					collision |= 8;
-				if ((this.mode & 0x10) !== 0 && (this.layer[1][dst] & 7) !== 0)
+				if (this.mode & 0x10 && (this.layer[1][dst] & 7) !== 0)
 					collision |= 1;
-				if ((this.mode & 0x20) !== 0 && (this.layer[2][dst] & 7) !== 0)
+				if (this.mode & 0x20 && (this.layer[2][dst] & 7) !== 0)
 					collision |= 2;
-				if ((this.mode & 0x40) !== 0 && (this.layer[3][dst] & 7) !== 0)
+				if (this.mode & 0x40 && (this.layer[3][dst] & 7) !== 0)
 					collision |= 4;
 			}
 		return collision;
@@ -716,17 +715,17 @@ class TimeTunnel {
 		src = (src << 8 & 0x7f00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, dst -= (dst >= 0x11000) * 0x10000, --i)
 			for (let j = 16; j !== 0; dst++, --j) {
-				if ((px = this.obj[src++]) === 0 || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
+				if (!(px = this.obj[src++]) || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
 					continue;
 				if (this.layer[0][dst] === 0)
 					this.layer[0][dst] = idx | px;
 				else
 					collision |= 8;
-				if ((this.mode & 0x10) !== 0 && (this.layer[1][dst] & 7) !== 0)
+				if (this.mode & 0x10 && (this.layer[1][dst] & 7) !== 0)
 					collision |= 1;
-				if ((this.mode & 0x20) !== 0 && (this.layer[2][dst] & 7) !== 0)
+				if (this.mode & 0x20 && (this.layer[2][dst] & 7) !== 0)
 					collision |= 2;
-				if ((this.mode & 0x40) !== 0 && (this.layer[3][dst] & 7) !== 0)
+				if (this.mode & 0x40 && (this.layer[3][dst] & 7) !== 0)
 					collision |= 4;
 			}
 		return collision;
@@ -741,17 +740,17 @@ class TimeTunnel {
 		src = (src << 8 & 0x7f00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, dst -= (dst >= 0x11000) * 0x10000, --i)
 			for (let j = 16; j !== 0; dst++, --j) {
-				if ((px = this.obj[--src]) === 0 || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
+				if (!(px = this.obj[--src]) || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
 					continue;
 				if (this.layer[0][dst] === 0)
 					this.layer[0][dst] = idx | px;
 				else
 					collision |= 8;
-				if ((this.mode & 0x10) !== 0 && (this.layer[1][dst] & 7) !== 0)
+				if (this.mode & 0x10 && (this.layer[1][dst] & 7) !== 0)
 					collision |= 1;
-				if ((this.mode & 0x20) !== 0 && (this.layer[2][dst] & 7) !== 0)
+				if (this.mode & 0x20 && (this.layer[2][dst] & 7) !== 0)
 					collision |= 2;
-				if ((this.mode & 0x40) !== 0 && (this.layer[3][dst] & 7) !== 0)
+				if (this.mode & 0x40 && (this.layer[3][dst] & 7) !== 0)
 					collision |= 4;
 			}
 		return collision;
@@ -766,17 +765,17 @@ class TimeTunnel {
 		src = (src << 8 & 0x7f00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, dst -= (dst >= 0x11000) * 0x10000, --i)
 			for (let j = 16; j !== 0; dst++, --j) {
-				if ((px = this.obj[--src]) === 0 || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
+				if (!(px = this.obj[--src]) || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
 					continue;
 				if (this.layer[0][dst] === 0)
 					this.layer[0][dst] = idx | px;
 				else
 					collision |= 8;
-				if ((this.mode & 0x10) !== 0 && (this.layer[1][dst] & 7) !== 0)
+				if (this.mode & 0x10 && (this.layer[1][dst] & 7) !== 0)
 					collision |= 1;
-				if ((this.mode & 0x20) !== 0 && (this.layer[2][dst] & 7) !== 0)
+				if (this.mode & 0x20 && (this.layer[2][dst] & 7) !== 0)
 					collision |= 2;
-				if ((this.mode & 0x40) !== 0 && (this.layer[3][dst] & 7) !== 0)
+				if (this.mode & 0x40 && (this.layer[3][dst] & 7) !== 0)
 					collision |= 4;
 			}
 		return collision;

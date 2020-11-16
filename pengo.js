@@ -48,7 +48,7 @@ class Pengo {
 			this.cpu.memorymap[0x80 + i].base = this.ram.base[i];
 			this.cpu.memorymap[0x80 + i].write = null;
 		}
-		this.cpu.memorymap[0x90].read = addr => this.in[addr >> 6 & 3];
+		this.cpu.memorymap[0x90].read = (addr) => { return this.in[addr >> 6 & 3]; };
 		this.cpu.memorymap[0x90].write = (addr, data) => {
 			switch (addr >> 4 & 0xf) {
 			case 0:
@@ -383,18 +383,18 @@ class Pengo {
 			src = src << 6 & 0x3f00 | this.ram[0x1047] << 14;
 			for (let i = 16; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]))
 						data[dst] = px;
 		} else {
 			src = src << 6 & 0x3f00 | this.ram[0x1047] << 14;
 			for (let i = h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]))
 						data[dst] = px;
 			dst -= 0x10000;
 			for (let i = 16 - h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]))
 						data[dst] = px;
 		}
 	}
@@ -409,18 +409,18 @@ class Pengo {
 			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 256 - 16;
 			for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]))
 						data[dst] = px;
 		} else {
 			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 256 - 16;
 			for (let i = h; i !== 0; dst += 256 - 16, src -= 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]))
 						data[dst] = px;
 			dst -= 0x10000;
 			for (let i = 16 - h; i !== 0; dst += 256 - 16, src -= 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]))
 						data[dst] = px;
 		}
 	}
@@ -435,18 +435,18 @@ class Pengo {
 			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 16;
 			for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]))
 						data[dst] = px;
 		} else {
 			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 16;
 			for (let i = h; i !== 0; dst += 256 - 16, src += 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]))
 						data[dst] = px;
 			dst -= 0x10000;
 			for (let i = 16 - h; i !== 0; dst += 256 - 16, src += 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]))
 						data[dst] = px;
 		}
 	}
@@ -461,18 +461,18 @@ class Pengo {
 			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 256;
 			for (let i = 16; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]))
 						data[dst] = px;
 		} else {
 			src = (src << 6 & 0x3f00 | this.ram[0x1047] << 14) + 256;
 			for (let i = h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]))
 						data[dst] = px;
 			dst -= 0x10000;
 			for (let i = 16 - h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]))
 						data[dst] = px;
 		}
 	}

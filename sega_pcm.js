@@ -70,18 +70,18 @@ export default class SegaPCM {
 				if (this.wheel.length)
 					this.wheel.shift().forEach(({addr, data}) => reg[addr] = data);
 			for (let j = 0; j < 0x80; j += 8)
-				if ((reg[0x86 | j] & 1) === 0) {
+				if (~reg[0x86 | j] & 1) {
 					const vol = ((reg[2 | j] & 0x7f) + (reg[3 | j] & 0x7f)) / 0xfe;
 					data[i] += this.pcm[reg[0x86 | j] << 12 & 0x70000 | reg[0x85 | j] << 8 | reg[0x84 | j]] * vol;
 				}
 			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate)
 				for (let j = 0; j < 0x80; j += 8)
-					if ((reg[0x86 | j] & 1) === 0) {
+					if (~reg[0x86 | j] & 1) {
 						const addr = (reg[0x85 | j] << 16 | reg[0x84 | j] << 8 | this.low[j >> 3]) + reg[7 | j];
 						reg[0x85 | j] = addr >> 16, reg[0x84 | j] = addr >> 8, this.low[j >> 3] = addr;
 						if (reg[0x85 | j] === (reg[6 | j] + 1 & 0xff)) {
 							this.low[j >> 3] = 0;
-							if ((reg[0x86 | j] & 2) === 0)
+							if (~reg[0x86 | j] & 2)
 								reg[0x85 | j] = reg[5 | j], reg[0x84 | j] = reg[4 | j];
 							else
 								reg[0x86 | j] |= 1;

@@ -59,7 +59,7 @@ class StarForce {
 			this.cpu.memorymap[0x80 + i].base = this.ram.base[i];
 			this.cpu.memorymap[0x80 + i].write = null;
 		}
-		this.cpu.memorymap[0xd0].read = addr => (addr &= 0xff) < 6 ? this.in[addr] : 0xff;
+		this.cpu.memorymap[0xd0].read = (addr) => { return (addr &= 0xff) < 6 ? this.in[addr] : 0xff; };
 		this.cpu.memorymap[0xd0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 2:
@@ -69,7 +69,7 @@ class StarForce {
 			}
 		};
 
-		this.cpu.check_interrupt = () => this.cpu_irq && this.cpu.interrupt();
+		this.cpu.check_interrupt = () => { return this.cpu_irq && this.cpu.interrupt(); };
 
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
@@ -77,12 +77,12 @@ class StarForce {
 			this.cpu2.memorymap[0x40 + i].base = this.ram2.base[i];
 			this.cpu2.memorymap[0x40 + i].write = null;
 		}
-		this.cpu2.memorymap[0x80].write = (addr, data) => sound[0].write(data, this.count);
-		this.cpu2.memorymap[0x90].write = (addr, data) => sound[1].write(data, this.count);
-		this.cpu2.memorymap[0xa0].write = (addr, data) => sound[2].write(data, this.count);
-		this.cpu2.memorymap[0xd0].write = (addr, data) => sound[3].write(1, data & 15, this.count);
+		this.cpu2.memorymap[0x80].write = (addr, data) => { sound[0].write(data, this.count); };
+		this.cpu2.memorymap[0x90].write = (addr, data) => { sound[1].write(data, this.count); };
+		this.cpu2.memorymap[0xa0].write = (addr, data) => { sound[2].write(data, this.count); };
+		this.cpu2.memorymap[0xd0].write = (addr, data) => { sound[3].write(1, data & 15, this.count); };
 		for (let i = 0; i < 0x100; i++) {
-			this.cpu2.iomap[i].read = addr => (addr & 0xff) === 0 ? this.cpu2_command : 0xff;
+			this.cpu2.iomap[i].read = (addr) => { return (addr & 0xff) === 0 ? this.cpu2_command : 0xff; };
 			this.cpu2.iomap[i].write = (addr, data) => {
 				switch (addr & 0xff) {
 				case 1:
@@ -90,8 +90,8 @@ class StarForce {
 				case 9:
 					return void(data === 0xd7 && (this.ctc.fInterruptEnable = true));
 				case 0xa:
-					if ((this.ctc.cmd & 4) !== 0) {
-						sound[3].write(0, (data ? data : 256) * ((this.ctc.cmd & 0x20) !== 0 ? 16 : 1), this.count);
+					if (this.ctc.cmd & 4) {
+						sound[3].write(0, (data ? data : 256) * (this.ctc.cmd & 0x20 ? 16 : 1), this.count);
 						this.ctc.cmd &= ~4;
 					} else if ((data & 1) !== 0)
 						this.ctc.cmd = data;
@@ -489,70 +489,70 @@ class StarForce {
 		const q = (this.ram[k] | this.ram[k + 0x400] << 4 & 0x100) << 6, idx = this.ram[k + 0x400] << 3 & 0x38;
 		let px;
 
-		if ((px = this.fg[q | 0x00]) !== 0) data[p + 0x000] = idx | px;
-		if ((px = this.fg[q | 0x01]) !== 0) data[p + 0x001] = idx | px;
-		if ((px = this.fg[q | 0x02]) !== 0) data[p + 0x002] = idx | px;
-		if ((px = this.fg[q | 0x03]) !== 0) data[p + 0x003] = idx | px;
-		if ((px = this.fg[q | 0x04]) !== 0) data[p + 0x004] = idx | px;
-		if ((px = this.fg[q | 0x05]) !== 0) data[p + 0x005] = idx | px;
-		if ((px = this.fg[q | 0x06]) !== 0) data[p + 0x006] = idx | px;
-		if ((px = this.fg[q | 0x07]) !== 0) data[p + 0x007] = idx | px;
-		if ((px = this.fg[q | 0x08]) !== 0) data[p + 0x100] = idx | px;
-		if ((px = this.fg[q | 0x09]) !== 0) data[p + 0x101] = idx | px;
-		if ((px = this.fg[q | 0x0a]) !== 0) data[p + 0x102] = idx | px;
-		if ((px = this.fg[q | 0x0b]) !== 0) data[p + 0x103] = idx | px;
-		if ((px = this.fg[q | 0x0c]) !== 0) data[p + 0x104] = idx | px;
-		if ((px = this.fg[q | 0x0d]) !== 0) data[p + 0x105] = idx | px;
-		if ((px = this.fg[q | 0x0e]) !== 0) data[p + 0x106] = idx | px;
-		if ((px = this.fg[q | 0x0f]) !== 0) data[p + 0x107] = idx | px;
-		if ((px = this.fg[q | 0x10]) !== 0) data[p + 0x200] = idx | px;
-		if ((px = this.fg[q | 0x11]) !== 0) data[p + 0x201] = idx | px;
-		if ((px = this.fg[q | 0x12]) !== 0) data[p + 0x202] = idx | px;
-		if ((px = this.fg[q | 0x13]) !== 0) data[p + 0x203] = idx | px;
-		if ((px = this.fg[q | 0x14]) !== 0) data[p + 0x204] = idx | px;
-		if ((px = this.fg[q | 0x15]) !== 0) data[p + 0x205] = idx | px;
-		if ((px = this.fg[q | 0x16]) !== 0) data[p + 0x206] = idx | px;
-		if ((px = this.fg[q | 0x17]) !== 0) data[p + 0x207] = idx | px;
-		if ((px = this.fg[q | 0x18]) !== 0) data[p + 0x300] = idx | px;
-		if ((px = this.fg[q | 0x19]) !== 0) data[p + 0x301] = idx | px;
-		if ((px = this.fg[q | 0x1a]) !== 0) data[p + 0x302] = idx | px;
-		if ((px = this.fg[q | 0x1b]) !== 0) data[p + 0x303] = idx | px;
-		if ((px = this.fg[q | 0x1c]) !== 0) data[p + 0x304] = idx | px;
-		if ((px = this.fg[q | 0x1d]) !== 0) data[p + 0x305] = idx | px;
-		if ((px = this.fg[q | 0x1e]) !== 0) data[p + 0x306] = idx | px;
-		if ((px = this.fg[q | 0x1f]) !== 0) data[p + 0x307] = idx | px;
-		if ((px = this.fg[q | 0x20]) !== 0) data[p + 0x400] = idx | px;
-		if ((px = this.fg[q | 0x21]) !== 0) data[p + 0x401] = idx | px;
-		if ((px = this.fg[q | 0x22]) !== 0) data[p + 0x402] = idx | px;
-		if ((px = this.fg[q | 0x23]) !== 0) data[p + 0x403] = idx | px;
-		if ((px = this.fg[q | 0x24]) !== 0) data[p + 0x404] = idx | px;
-		if ((px = this.fg[q | 0x25]) !== 0) data[p + 0x405] = idx | px;
-		if ((px = this.fg[q | 0x26]) !== 0) data[p + 0x406] = idx | px;
-		if ((px = this.fg[q | 0x27]) !== 0) data[p + 0x407] = idx | px;
-		if ((px = this.fg[q | 0x28]) !== 0) data[p + 0x500] = idx | px;
-		if ((px = this.fg[q | 0x29]) !== 0) data[p + 0x501] = idx | px;
-		if ((px = this.fg[q | 0x2a]) !== 0) data[p + 0x502] = idx | px;
-		if ((px = this.fg[q | 0x2b]) !== 0) data[p + 0x503] = idx | px;
-		if ((px = this.fg[q | 0x2c]) !== 0) data[p + 0x504] = idx | px;
-		if ((px = this.fg[q | 0x2d]) !== 0) data[p + 0x505] = idx | px;
-		if ((px = this.fg[q | 0x2e]) !== 0) data[p + 0x506] = idx | px;
-		if ((px = this.fg[q | 0x2f]) !== 0) data[p + 0x507] = idx | px;
-		if ((px = this.fg[q | 0x30]) !== 0) data[p + 0x600] = idx | px;
-		if ((px = this.fg[q | 0x31]) !== 0) data[p + 0x601] = idx | px;
-		if ((px = this.fg[q | 0x32]) !== 0) data[p + 0x602] = idx | px;
-		if ((px = this.fg[q | 0x33]) !== 0) data[p + 0x603] = idx | px;
-		if ((px = this.fg[q | 0x34]) !== 0) data[p + 0x604] = idx | px;
-		if ((px = this.fg[q | 0x35]) !== 0) data[p + 0x605] = idx | px;
-		if ((px = this.fg[q | 0x36]) !== 0) data[p + 0x606] = idx | px;
-		if ((px = this.fg[q | 0x37]) !== 0) data[p + 0x607] = idx | px;
-		if ((px = this.fg[q | 0x38]) !== 0) data[p + 0x700] = idx | px;
-		if ((px = this.fg[q | 0x39]) !== 0) data[p + 0x701] = idx | px;
-		if ((px = this.fg[q | 0x3a]) !== 0) data[p + 0x702] = idx | px;
-		if ((px = this.fg[q | 0x3b]) !== 0) data[p + 0x703] = idx | px;
-		if ((px = this.fg[q | 0x3c]) !== 0) data[p + 0x704] = idx | px;
-		if ((px = this.fg[q | 0x3d]) !== 0) data[p + 0x705] = idx | px;
-		if ((px = this.fg[q | 0x3e]) !== 0) data[p + 0x706] = idx | px;
-		if ((px = this.fg[q | 0x3f]) !== 0) data[p + 0x707] = idx | px;
+		if ((px = this.fg[q | 0x00])) data[p + 0x000] = idx | px;
+		if ((px = this.fg[q | 0x01])) data[p + 0x001] = idx | px;
+		if ((px = this.fg[q | 0x02])) data[p + 0x002] = idx | px;
+		if ((px = this.fg[q | 0x03])) data[p + 0x003] = idx | px;
+		if ((px = this.fg[q | 0x04])) data[p + 0x004] = idx | px;
+		if ((px = this.fg[q | 0x05])) data[p + 0x005] = idx | px;
+		if ((px = this.fg[q | 0x06])) data[p + 0x006] = idx | px;
+		if ((px = this.fg[q | 0x07])) data[p + 0x007] = idx | px;
+		if ((px = this.fg[q | 0x08])) data[p + 0x100] = idx | px;
+		if ((px = this.fg[q | 0x09])) data[p + 0x101] = idx | px;
+		if ((px = this.fg[q | 0x0a])) data[p + 0x102] = idx | px;
+		if ((px = this.fg[q | 0x0b])) data[p + 0x103] = idx | px;
+		if ((px = this.fg[q | 0x0c])) data[p + 0x104] = idx | px;
+		if ((px = this.fg[q | 0x0d])) data[p + 0x105] = idx | px;
+		if ((px = this.fg[q | 0x0e])) data[p + 0x106] = idx | px;
+		if ((px = this.fg[q | 0x0f])) data[p + 0x107] = idx | px;
+		if ((px = this.fg[q | 0x10])) data[p + 0x200] = idx | px;
+		if ((px = this.fg[q | 0x11])) data[p + 0x201] = idx | px;
+		if ((px = this.fg[q | 0x12])) data[p + 0x202] = idx | px;
+		if ((px = this.fg[q | 0x13])) data[p + 0x203] = idx | px;
+		if ((px = this.fg[q | 0x14])) data[p + 0x204] = idx | px;
+		if ((px = this.fg[q | 0x15])) data[p + 0x205] = idx | px;
+		if ((px = this.fg[q | 0x16])) data[p + 0x206] = idx | px;
+		if ((px = this.fg[q | 0x17])) data[p + 0x207] = idx | px;
+		if ((px = this.fg[q | 0x18])) data[p + 0x300] = idx | px;
+		if ((px = this.fg[q | 0x19])) data[p + 0x301] = idx | px;
+		if ((px = this.fg[q | 0x1a])) data[p + 0x302] = idx | px;
+		if ((px = this.fg[q | 0x1b])) data[p + 0x303] = idx | px;
+		if ((px = this.fg[q | 0x1c])) data[p + 0x304] = idx | px;
+		if ((px = this.fg[q | 0x1d])) data[p + 0x305] = idx | px;
+		if ((px = this.fg[q | 0x1e])) data[p + 0x306] = idx | px;
+		if ((px = this.fg[q | 0x1f])) data[p + 0x307] = idx | px;
+		if ((px = this.fg[q | 0x20])) data[p + 0x400] = idx | px;
+		if ((px = this.fg[q | 0x21])) data[p + 0x401] = idx | px;
+		if ((px = this.fg[q | 0x22])) data[p + 0x402] = idx | px;
+		if ((px = this.fg[q | 0x23])) data[p + 0x403] = idx | px;
+		if ((px = this.fg[q | 0x24])) data[p + 0x404] = idx | px;
+		if ((px = this.fg[q | 0x25])) data[p + 0x405] = idx | px;
+		if ((px = this.fg[q | 0x26])) data[p + 0x406] = idx | px;
+		if ((px = this.fg[q | 0x27])) data[p + 0x407] = idx | px;
+		if ((px = this.fg[q | 0x28])) data[p + 0x500] = idx | px;
+		if ((px = this.fg[q | 0x29])) data[p + 0x501] = idx | px;
+		if ((px = this.fg[q | 0x2a])) data[p + 0x502] = idx | px;
+		if ((px = this.fg[q | 0x2b])) data[p + 0x503] = idx | px;
+		if ((px = this.fg[q | 0x2c])) data[p + 0x504] = idx | px;
+		if ((px = this.fg[q | 0x2d])) data[p + 0x505] = idx | px;
+		if ((px = this.fg[q | 0x2e])) data[p + 0x506] = idx | px;
+		if ((px = this.fg[q | 0x2f])) data[p + 0x507] = idx | px;
+		if ((px = this.fg[q | 0x30])) data[p + 0x600] = idx | px;
+		if ((px = this.fg[q | 0x31])) data[p + 0x601] = idx | px;
+		if ((px = this.fg[q | 0x32])) data[p + 0x602] = idx | px;
+		if ((px = this.fg[q | 0x33])) data[p + 0x603] = idx | px;
+		if ((px = this.fg[q | 0x34])) data[p + 0x604] = idx | px;
+		if ((px = this.fg[q | 0x35])) data[p + 0x605] = idx | px;
+		if ((px = this.fg[q | 0x36])) data[p + 0x606] = idx | px;
+		if ((px = this.fg[q | 0x37])) data[p + 0x607] = idx | px;
+		if ((px = this.fg[q | 0x38])) data[p + 0x700] = idx | px;
+		if ((px = this.fg[q | 0x39])) data[p + 0x701] = idx | px;
+		if ((px = this.fg[q | 0x3a])) data[p + 0x702] = idx | px;
+		if ((px = this.fg[q | 0x3b])) data[p + 0x703] = idx | px;
+		if ((px = this.fg[q | 0x3c])) data[p + 0x704] = idx | px;
+		if ((px = this.fg[q | 0x3d])) data[p + 0x705] = idx | px;
+		if ((px = this.fg[q | 0x3e])) data[p + 0x706] = idx | px;
+		if ((px = this.fg[q | 0x3f])) data[p + 0x707] = idx | px;
 	}
 
 	xfer16x16_1(data, dst, src) {
@@ -562,7 +562,7 @@ class StarForce {
 		src = src << 8 & 0xff00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.bg1[src++]) !== 0)
+				if ((px = this.bg1[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -573,7 +573,7 @@ class StarForce {
 		src = src << 8 & 0xff00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.bg2[src++]) !== 0)
+				if ((px = this.bg2[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -584,7 +584,7 @@ class StarForce {
 		src = src << 8 & 0x7f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.bg3[src++]) !== 0)
+				if ((px = this.bg3[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -597,7 +597,7 @@ class StarForce {
 		src = src << 8 & 0x1ff00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0)
+				if ((px = this.obj[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -610,7 +610,7 @@ class StarForce {
 		src = (src << 8 & 0x1ff00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0)
+				if ((px = this.obj[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -623,7 +623,7 @@ class StarForce {
 		src = (src << 8 & 0x1ff00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0)
+				if ((px = this.obj[--src]))
 					data[dst] = idx | px;
 	}
 
@@ -636,7 +636,7 @@ class StarForce {
 		src = (src << 8 & 0x1ff00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0)
+				if ((px = this.obj[--src]))
 					data[dst] = idx | px;
 	}
 }

@@ -24,7 +24,7 @@ export default class MC6801 extends Cpu {
 	}
 
 	interrupt(cause) {
-		if (!super.interrupt() || (this.ccr & 0x10) !== 0)
+		if (!super.interrupt() || this.ccr & 0x10)
 			return false;
 		this.psh16(this.pc, this.x), this.psh(this.a, this.b, this.ccr), this.ccr |= 0x10;
 		switch (cause) {
@@ -645,9 +645,9 @@ export default class MC6801 extends Cpu {
 
 	daa() {
 		let cf = 0;
-		if ((this.ccr & 0x20) !== 0 && (this.a & 0xf) < 4 || (this.a & 0xf) > 9)
+		if (this.ccr & 0x20 && (this.a & 0xf) < 4 || (this.a & 0xf) > 9)
 			cf += 6;
-		if ((this.ccr & 1) !== 0 && (this.a & 0xf0) < 0x40 || (this.a & 0xf0) > 0x90 || (this.a & 0xf0) > 0x80 && (this.a & 0xf) > 9)
+		if (this.ccr & 1 && (this.a & 0xf0) < 0x40 || (this.a & 0xf0) > 0x90 || (this.a & 0xf0) > 0x80 && (this.a & 0xf) > 9)
 			cf += 0x60, this.ccr |= 1;
 		this.a = this.a + cf & 0xff, this.ccr = this.ccr & ~0x0c | this.a >> 4 & 8 | !this.a << 2;
 	}

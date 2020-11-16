@@ -77,7 +77,7 @@ class Scramble {
 					}
 				};
 			else if (range(page, 0x80, 0x80, 0x7f)) {
-				this.cpu.memorymap[page].read = addr => {
+				this.cpu.memorymap[page].read = (addr) => {
 					let data = 0xff;
 					if ((addr & 0x0100) !== 0)
 						data &= this.ppi0[addr & 3];
@@ -112,7 +112,7 @@ class Scramble {
 				this.cpu2.memorymap[page].write = null;
 			}
 		for (let page = 0; page < 0x100; page++) {
-			this.cpu2.iomap[page].read = addr => {
+			this.cpu2.iomap[page].read = (addr) => {
 				let data = 0xff;
 				if ((addr & 0x20) !== 0)
 					data &= sound[1].read(this.psg[1].addr);
@@ -316,7 +316,7 @@ class Scramble {
 			for (let y = 0; y < 256; y++) {
 				const cy = sr >> 4 ^ ~sr >> 16;
 				sr = cy & 1 | sr << 1;
-				if ((sr & 0x100ff) === 0xff && (color = sr >> 8 & 0x3f) !== 0 && color !== 0x3f) {
+				if ((sr & 0x100ff) === 0xff && (color = sr >> 8 & 0x3f) && color !== 0x3f) {
 					this.stars[i].x = x & 0xff;
 					this.stars[i].y = y;
 					this.stars[i].color = color;
@@ -481,7 +481,7 @@ class Scramble {
 		src = src << 8 & 0x3f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0)
+				if ((px = this.obj[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -494,7 +494,7 @@ class Scramble {
 		src = (src << 8 & 0x3f00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0)
+				if ((px = this.obj[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -507,7 +507,7 @@ class Scramble {
 		src = (src << 8 & 0x3f00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0)
+				if ((px = this.obj[--src]))
 					data[dst] = idx | px;
 	}
 
@@ -520,7 +520,7 @@ class Scramble {
 		src = (src << 8 & 0x3f00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0)
+				if ((px = this.obj[--src]))
 					data[dst] = idx | px;
 	}
 }

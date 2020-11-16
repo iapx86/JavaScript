@@ -30,11 +30,11 @@ class SoundTest {
 		this.mcu.memorymap[0].base = this.ram2.base[0];
 		this.mcu.memorymap[0].write = null;
 		for (let i = 0; i < 4; i++) {
-			this.mcu.memorymap[0x10 + i].read = addr => sound.read(addr);
-			this.mcu.memorymap[0x10 + i].write = (addr, data) => sound.write(addr, data);
+			this.mcu.memorymap[0x10 + i].read = (addr) => { return sound.read(addr); };
+			this.mcu.memorymap[0x10 + i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 0x40; i++)
-			this.mcu.memorymap[0x40 + i].write = addr => void(this.fInterruptEnable1 = (addr & 0x2000) === 0);
+			this.mcu.memorymap[0x40 + i].write = (addr) => { this.fInterruptEnable1 = (addr & 0x2000) === 0; };
 		for (let i = 0; i < 0x20; i++)
 			this.mcu.memorymap[0x80 + i].base = PRG2.base[i];
 		for (let i = 0; i < 8; i++) {
@@ -49,7 +49,7 @@ class SoundTest {
 		if (this.fInterruptEnable1)
 			this.mcu.interrupt();
 		this.mcu.execute(0x1000);
-		if ((this.ram2[8] & 8) !== 0)
+		if (this.ram2[8] & 8)
 			this.mcu.interrupt('ocf');
 		this.mcu.execute(0x1000);
 		return this;
@@ -134,7 +134,7 @@ class SoundTest {
 
 		for (let i = 0; i < 8; i++) {
 			const vol = reg[i * 8] & 0x0f;
-			if (vol === 0)
+			if (!vol)
 				continue;
 			if (i < 4 && (reg[-4 + i * 8 & 0x3f] & 0x80) !== 0)
 				SoundTest.Xfer28x16(data, 256 * 16 * i, key[1]);
@@ -164,13 +164,18 @@ class SoundTest {
 const key = [];
 let PRG2, PRG2I;
 
-void function () {
+read('pacland.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG2 = zip.decompress('pl1_7.3e').addBase();
+	PRG2I = zip.decompress('cus60-60a1.mcu').addBase();
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
+	game = new SoundTest();
+	sound = new C30();
+	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -180,14 +185,6 @@ void function () {
 			game.right();
 		game.triggerA();
 	});
-}();
-
-read('pacland.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG2 = zip.decompress('pl1_7.3e').addBase();
-	PRG2I = zip.decompress('cus60-60a1.mcu').addBase();
-	game = new SoundTest();
-	sound = new C30();
-	game.initial = true;
 	init({game, sound});
 });
 

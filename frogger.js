@@ -69,7 +69,7 @@ class Frogger {
 						this.fInterruptEnable = (data & 1) !== 0;
 				};
 			else if (range(page, 0xc0, 0xff)) {
-				this.cpu.memorymap[page].read = addr => {
+				this.cpu.memorymap[page].read = (addr) => {
 					let data = 0xff;
 					if ((addr & 0x1000) !== 0)
 						data &= this.ppi1[addr >> 1 & 3];
@@ -96,7 +96,7 @@ class Frogger {
 				this.cpu2.memorymap[page].write = null;
 			}
 		for (let page = 0; page < 0x100; page++) {
-			this.cpu2.iomap[page].read = addr => (addr & 0x40) !== 0 ? sound.read(this.psg.addr) : 0xff;
+			this.cpu2.iomap[page].read = (addr) => { return (addr & 0x40) !== 0 ? sound.read(this.psg.addr) : 0xff; };
 			this.cpu2.iomap[page].write = (addr, data) => {
 				if ((addr & 0x40) !== 0)
 					sound.write(this.psg.addr, data, this.count);
@@ -412,7 +412,7 @@ class Frogger {
 		src = src << 8 & 0x3f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0)
+				if ((px = this.obj[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -425,7 +425,7 @@ class Frogger {
 		src = (src << 8 & 0x3f00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[src++]) !== 0)
+				if ((px = this.obj[src++]))
 					data[dst] = idx | px;
 	}
 
@@ -438,7 +438,7 @@ class Frogger {
 		src = (src << 8 & 0x3f00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0)
+				if ((px = this.obj[--src]))
 					data[dst] = idx | px;
 	}
 
@@ -451,7 +451,7 @@ class Frogger {
 		src = (src << 8 & 0x3f00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.obj[--src]) !== 0)
+				if ((px = this.obj[--src]))
 					data[dst] = idx | px;
 	}
 }

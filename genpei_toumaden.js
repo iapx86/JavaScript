@@ -63,8 +63,8 @@ class GenpeiToumaDen {
 			this.cpu.memorymap[i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x40 + i].read = addr => sound[1].read(addr);
-			this.cpu.memorymap[0x40 + i].write = (addr, data) => sound[1].write(addr, data);
+			this.cpu.memorymap[0x40 + i].read = (addr) => { return sound[1].read(addr); };
+			this.cpu.memorymap[0x40 + i].write = (addr, data) => { sound[1].write(addr, data); };
 		}
 		for (let i = 0; i < 0x1c; i++) {
 			this.cpu.memorymap[0x44 + i].base = this.ram.base[0x44 + i];
@@ -91,9 +91,9 @@ class GenpeiToumaDen {
 		}
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[0x80 + i].base = PRG1.base[0x100 + i];
-		this.cpu.memorymap[0x84].write = () => void(this.cpu_irq = false);
+		this.cpu.memorymap[0x84].write = () => { this.cpu_irq = false; };
 		for (let i = 0; i < 8; i++)
-			this.cpu.memorymap[0x88 + i].write = addr => void(this.bgbank = addr >> 10 & 1);
+			this.cpu.memorymap[0x88 + i].write = (addr) => { this.bgbank = addr >> 10 & 1; };
 		this.cpu.memorymap[0x90].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
@@ -126,32 +126,32 @@ class GenpeiToumaDen {
 				return void(this.hScroll[3] = data);
 			}
 		};
-		this.cpu.memorymap[0xa0].write = (addr, data) => void(this.backcolor = data);
+		this.cpu.memorymap[0xa0].write = (addr, data) => { this.backcolor = data; };
 
-		this.cpu.check_interrupt = () => this.cpu_irq && this.cpu.interrupt();
+		this.cpu.check_interrupt = () => { return this.cpu_irq && this.cpu.interrupt(); };
 
 		for (let i = 0; i < 0x60; i++) {
 			this.cpu2.memorymap[i].base = this.ram.base[i];
 			this.cpu2.memorymap[i].write = null;
 		}
-		this.cpu2.memorymap[0x88].write = () => void(this.cpu2_irq = false);
+		this.cpu2.memorymap[0x88].write = () => { this.cpu2_irq = false; };
 		for (let i = 0; i < 0x40; i++)
 			this.cpu2.memorymap[0xc0 + i].base = PRG2.base[i];
 
-		this.cpu2.check_interrupt = () => this.cpu2_irq && this.cpu2.interrupt();
+		this.cpu2.check_interrupt = () => { return this.cpu2_irq && this.cpu2.interrupt(); };
 
 		this.mcu.memorymap[0].base = this.ram3.base[0];
-		this.mcu.memorymap[0].read = addr => addr === 2 ? this.in[2] : this.ram3[addr];
+		this.mcu.memorymap[0].read = (addr) => { return addr === 2 ? this.in[2] : this.ram3[addr]; };
 		this.mcu.memorymap[0].write = null;
 		for (let i = 0; i < 4; i++) {
-			this.mcu.memorymap[0x10 + i].read = addr => sound[1].read(addr);
-			this.mcu.memorymap[0x10 + i].write = (addr, data) => sound[1].write(addr, data);
+			this.mcu.memorymap[0x10 + i].read = (addr) => { return sound[1].read(addr); };
+			this.mcu.memorymap[0x10 + i].write = (addr, data) => { sound[1].write(addr, data); };
 		}
 		for (let i = 0; i < 0x0c; i++) {
 			this.mcu.memorymap[0x14 + i].base = this.ram3.base[1 + i];
 			this.mcu.memorymap[0x14 + i].write = null;
 		}
-		this.mcu.memorymap[0x28].read = addr => {
+		this.mcu.memorymap[0x28].read = (addr) => {
 			switch (addr & 0xff) {
 			case 1:
 				return 0;
@@ -189,7 +189,7 @@ class GenpeiToumaDen {
 		this.cpu_irq = this.cpu2_irq = true;
 		this.mcu.interrupt();
 		Cpu.multiple_execute([this.cpu, this.cpu2, this.mcu], 0x1000);
-		if ((this.ram3[8] & 8) !== 0)
+		if (this.ram3[8] & 8)
 			this.mcu.interrupt('ocf');
 		Cpu.multiple_execute([this.cpu, this.cpu2, this.mcu], 0x1000);
 		return this;
@@ -402,48 +402,48 @@ class GenpeiToumaDen {
 		for (let pri = 0; pri < 8; pri++) {
 			// bg描画
 			if ((this.vScroll[3] >> 9 & 7) === pri) {
-				if ((ram[0x5ff6] & 1) === 0) {
-					p = 256 * 8 * 2 + 232 - (19 + this.vScroll[3] & 7) * 256 + (25 + this.hScroll[3] & 7);
-					k = 19 + this.vScroll[3] >> 2 & 0x7e | 25 + this.hScroll[3] << 4 & 0xf80 | 0x3000;
-				} else {
+				if (ram[0x5ff6] & 1) {
 					p = 256 * 8 * 2 + 232 - (205 - this.vScroll[3] & 7) * 256 + (7 - this.hScroll[3] & 7);
 					k = 205 - this.vScroll[3] >> 2 & 0x7e | 7 - this.hScroll[3] << 4 & 0xf80 | 0x3000;
+				} else {
+					p = 256 * 8 * 2 + 232 - (19 + this.vScroll[3] & 7) * 256 + (25 + this.hScroll[3] & 7);
+					k = 19 + this.vScroll[3] >> 2 & 0x7e | 25 + this.hScroll[3] << 4 & 0xf80 | 0x3000;
 				}
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0x3000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
 						this.xfer8x8b2(data, p, k, 1);
 			}
 			if ((this.vScroll[2] >> 9 & 7) === pri) {
-				if ((ram[0x5ff6] & 1) === 0) {
-					p = 256 * 8 * 2 + 232 - (21 + this.vScroll[2] & 7) * 256 + (25 + this.hScroll[2] & 7);
-					k = 21 + this.vScroll[2] >> 2 & 0x7e | 25 + this.hScroll[2] << 4 & 0xf80 | 0x2000;
-				} else {
+				if (ram[0x5ff6] & 1) {
 					p = 256 * 8 * 2 + 232 - (203 - this.vScroll[2] & 7) * 256 + (7 - this.hScroll[2] & 7);
 					k = 203 - this.vScroll[2] >> 2 & 0x7e | 7 - this.hScroll[2] << 4 & 0xf80 | 0x2000;
+				} else {
+					p = 256 * 8 * 2 + 232 - (21 + this.vScroll[2] & 7) * 256 + (25 + this.hScroll[2] & 7);
+					k = 21 + this.vScroll[2] >> 2 & 0x7e | 25 + this.hScroll[2] << 4 & 0xf80 | 0x2000;
 				}
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0x2000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
 						this.xfer8x8b2(data, p, k, 0);
 			}
 			if ((this.vScroll[1] >> 9 & 7) === pri) {
-				if ((ram[0x5ff6] & 1) === 0) {
-					p = 256 * 8 * 2 + 232 - (18 + this.vScroll[1] & 7) * 256 + (25 + this.hScroll[1] & 7);
-					k = 18 + this.vScroll[1] >> 2 & 0x7e | 25 + this.hScroll[1] << 4 & 0xf80 | 0x1000;
-				} else {
+				if (ram[0x5ff6] & 1) {
 					p = 256 * 8 * 2 + 232 - (206 - this.vScroll[1] & 7) * 256 + (7 - this.hScroll[1] & 7);
 					k = 206 - this.vScroll[1] >> 2 & 0x7e | 7 - this.hScroll[1] << 4 & 0xf80 | 0x1000;
+				} else {
+					p = 256 * 8 * 2 + 232 - (18 + this.vScroll[1] & 7) * 256 + (25 + this.hScroll[1] & 7);
+					k = 18 + this.vScroll[1] >> 2 & 0x7e | 25 + this.hScroll[1] << 4 & 0xf80 | 0x1000;
 				}
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0x1000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
 						this.xfer8x8b1(data, p, k, 1);
 			}
 			if ((this.vScroll[0] >> 9 & 7) === pri) {
-				if ((ram[0x5ff6] & 1) === 0) {
-					p = 256 * 8 * 2 + 232 - (20 + this.vScroll[0] & 7) * 256 + (25 + this.hScroll[0] & 7);
-					k = 20 + this.vScroll[0] >> 2 & 0x7e | 25 + this.hScroll[0] << 4 & 0xf80;
-				} else {
+				if (ram[0x5ff6] & 1) {
 					p = 256 * 8 * 2 + 232 - (204 - this.vScroll[0] & 7) * 256 + (7 - this.hScroll[0] & 7);
 					k = 204 - this.vScroll[0] >> 2 & 0x7e | 7 - this.hScroll[0] << 4 & 0xf80;
+				} else {
+					p = 256 * 8 * 2 + 232 - (20 + this.vScroll[0] & 7) * 256 + (25 + this.hScroll[0] & 7);
+					k = 20 + this.vScroll[0] >> 2 & 0x7e | 25 + this.hScroll[0] << 4 & 0xf80;
 				}
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
@@ -455,8 +455,8 @@ class GenpeiToumaDen {
 				if (ram[k + 8] >> 5 !== pri)
 					continue;
 				const w = [16, 8, 32, 4][ram[k + 8] >> 1 & 3], h = [16, 8, 32, 4][ram[k + 4] >> 6];
-				const x = w + ram[k + 9] + ram[0x5ff7] - ((ram[0x5ff6] & 1) === 0 ? 2 : 0) & 0xff;
-				const y = (ram[k + 7] | ram[k + 6] << 8) + (ram[0x5ff5] | ram[0x5ff4] << 8) - ((ram[0x5ff6] & 1) === 0 ? 51 : 141) & 0x1ff;
+				const x = w + ram[k + 9] + ram[0x5ff7] - (ram[0x5ff6] & 1 ? 0 : 2) & 0xff;
+				const y = (ram[k + 7] | ram[k + 6] << 8) + (ram[0x5ff5] | ram[0x5ff4] << 8) - (ram[0x5ff6] & 1 ? 141 : 51) & 0x1ff;
 				const src = (~ram[k + 8] & 0x18 | 7) & -w | (ram[k + 4] & -h) << 5 & 0x300 | ram[k + 5] << 10 & 0x3fc00 | ram[k + 4] << 18 & 0x1c0000;
 				const color = ram[k + 6] << 3 & 0x7f0;
 				switch (ram[k + 8] & 1 | ram[k + 4] >> 4 & 2) {

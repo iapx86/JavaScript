@@ -63,29 +63,29 @@ class Gaplus {
 			this.cpu.memorymap[i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x60 + i].read = addr => sound[0].read(addr);
-			this.cpu.memorymap[0x60 + i].write = (addr, data) => sound[0].write(addr, data);
+			this.cpu.memorymap[0x60 + i].read = (addr) => { return sound[0].read(addr); };
+			this.cpu.memorymap[0x60 + i].write = (addr, data) => { sound[0].write(addr, data); };
 		}
-		this.cpu.memorymap[0x68].read = addr => this.port[addr & 0x3f] | 0xf0;
+		this.cpu.memorymap[0x68].read = (addr) => { return this.port[addr & 0x3f] | 0xf0; };
 		this.cpu.memorymap[0x68].write = (addr, data) => {
 			this.port[addr & 0x3f] = data & 0xf;
 			(addr & 0x38) === 0x28 && (sound[1].mcu.cause |= 4);
 		};
-		this.cpu.memorymap[0x74].write = () => void(this.fInterruptEnable0 = true);
-		this.cpu.memorymap[0x7c].write = () => void(this.fInterruptEnable0 = false);
-		this.cpu.memorymap[0x84].write = () => (this.cpu2.enable(), this.cpu3.enable());
-		this.cpu.memorymap[0x8c].write = () => (this.cpu2.disable(), this.cpu3.disable());
-		this.cpu.memorymap[0x94].write = () => void(this.fPortTest = false);
-		this.cpu.memorymap[0x9c].write = () => void(this.fPortTest = true);
+		this.cpu.memorymap[0x74].write = () => { this.fInterruptEnable0 = true; };
+		this.cpu.memorymap[0x7c].write = () => { this.fInterruptEnable0 = false; };
+		this.cpu.memorymap[0x84].write = () => { this.cpu2.enable(), this.cpu3.enable(); };
+		this.cpu.memorymap[0x8c].write = () => { this.cpu2.disable(), this.cpu3.disable(); };
+		this.cpu.memorymap[0x94].write = () => { this.fPortTest = false; };
+		this.cpu.memorymap[0x9c].write = () => { this.fPortTest = true; };
 		for (let i = 0; i < 0x60; i++)
 			this.cpu.memorymap[0xa0 + i].base = PRG1.base[i];
-		this.cpu.memorymap[0xa0].write = (addr, data) => void(this.starport[addr & 0xff] = data);
+		this.cpu.memorymap[0xa0].write = (addr, data) => { this.starport[addr & 0xff] = data; };
 
 		for (let i = 0; i < 0x20; i++) {
 			this.cpu2.memorymap[i].base = this.ram.base[i];
 			this.cpu2.memorymap[i].write = null;
 		}
-		this.cpu2.memorymap[0x60].write = addr => {
+		this.cpu2.memorymap[0x60].write = (addr) => {
 			switch (addr & 0xff) {
 			case 0x01: // INTERRUPT START
 				return void(this.fInterruptEnable1 = true);
@@ -99,11 +99,11 @@ class Gaplus {
 			this.cpu2.memorymap[0xa0 + i].base = PRG2.base[i];
 
 		for (let i = 0; i < 4; i++) {
-			this.cpu3.memorymap[i].read = addr => sound[0].read(addr);
-			this.cpu3.memorymap[i].write = (addr, data) => sound[0].write(addr, data);
+			this.cpu3.memorymap[i].read = (addr) => { return sound[0].read(addr); };
+			this.cpu3.memorymap[i].write = (addr, data) => { sound[0].write(addr, data); };
 		}
-		this.cpu3.memorymap[0x40].write = () => void(this.fInterruptEnable2 = true);
-		this.cpu3.memorymap[0x60].write = () => void(this.fInterruptEnable2 = false);
+		this.cpu3.memorymap[0x40].write = () => { this.fInterruptEnable2 = true; };
+		this.cpu3.memorymap[0x60].write = () => { this.fInterruptEnable2 = false; };
 		for (let i = 0; i < 0x20; i++)
 			this.cpu3.memorymap[0xe0 + i].base = PRG3.base[i];
 
@@ -440,7 +440,7 @@ class Gaplus {
 			for (let y = 0; y < 288; y++) {
 				const cy = ~sr << 5 ^ ~sr << 10 ^ ~sr << 12 ^ sr << 15;
 				sr = cy & 0x8000 | sr >> 1;
-				if ((sr & 0xf429) === 0xf000 && (color = sr << 1 & 0x20 | sr << 2 & 0x18 | sr >> 6 & 0x07) !== 0) {
+				if ((sr & 0xf429) === 0xf000 && (color = sr << 1 & 0x20 | sr << 2 & 0x18 | sr >> 6 & 0x07)) {
 					this.stars[i].x = x;
 					this.stars[i].y = y;
 					this.stars[i].color = color;
@@ -544,7 +544,7 @@ class Gaplus {
 
 		// obj描画
 		for (let k = 0x0f80, i = 64; i !== 0; k += 2, --i) {
-			if ((this.ram[k + 0x1001] & 0x80) === 0)
+			if (~this.ram[k + 0x1001] & 0x80)
 				continue;
 			const x = this.ram[k + 0x800] + 8 & 0xff;
 			const y = (this.ram[k + 0x801] | this.ram[k + 0x1001] << 8) - 0x37 & 0x1ff;
@@ -817,7 +817,7 @@ class Gaplus {
 		// star 1描画
 		for (let i = 0; i < 32 && this.stars1[i].color; i++) {
 			const x = this.stars1[i].x, y = this.stars1[i].y;
-			if ((this.starport[0] & 2) === 0 || y < 0x10 || y >= 0x110)
+			if (~this.starport[0] & 2 || y < 0x10 || y >= 0x110)
 				continue;
 			if (data[p + (x | y << 8)] === 0xff)
 				data[p + (x | y << 8)] = 0x100 | this.stars1[i].color;
@@ -826,7 +826,7 @@ class Gaplus {
 		// star 2描画
 		for (let i = 0; i < 64 && this.stars2[i].color; i++) {
 			const x = this.stars2[i].x, y = this.stars2[i].y;
-			if ((this.starport[0] & 8) === 0 || y < 0x10 || y >= 0x110)
+			if (~this.starport[0] & 8 || y < 0x10 || y >= 0x110)
 				continue;
 			if (this.starport[3] & 0x80 && this.stars2[i].blk === (this.dwCount >> 1 & 3))
 				continue;
@@ -837,7 +837,7 @@ class Gaplus {
 		// star 0描画
 		for (let i = 0; i < 64 && this.stars0[i].color; i++) {
 			const x = this.stars0[i].x, y = this.stars0[i].y;
-			if ((this.starport[0] & 4) === 0 || y < 0x10 || y >= 0x110)
+			if (~this.starport[0] & 4 || y < 0x10 || y >= 0x110)
 				continue;
 			if (data[p + (x | y << 8)] === 0xff)
 				data[p + (x | y << 8)] = 0x100 | this.stars0[i].color;

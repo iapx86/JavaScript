@@ -83,17 +83,17 @@ class SuperXevious {
 			} else if (range(page, 0x70)) {
 				this.cpu[0].memorymap[page].read = () => {
 					let data = 0xff;
-					(this.dmactrl & 1) !== 0 && (data &= this.mcu[0].o, this.mcu[0].k |= 8, interrupt(this.mcu[0]));
-					(this.dmactrl & 4) !== 0 && (data &= this.mcu[1].o, this.mcu[1].r |= 0x100, interrupt(this.mcu[1]));
+					this.dmactrl & 1 && (data &= this.mcu[0].o, this.mcu[0].k |= 8, interrupt(this.mcu[0]));
+					this.dmactrl & 4 && (data &= this.mcu[1].o, this.mcu[1].r |= 0x100, interrupt(this.mcu[1]));
 					return data;
 				};
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					(this.dmactrl & 1) !== 0 && (addr < 0x7005 || data !== 1) && (this.mcu[0].k = data & 7, interrupt(this.mcu[0]));
-					(this.dmactrl & 4) !== 0 && (this.mcu[1].r = data & 15, this.mcu[1].k = data >> 4, interrupt(this.mcu[1]));
-					(this.dmactrl & 8) !== 0 && sound[1].write(data);
+					this.dmactrl & 1 && (addr < 0x7005 || data !== 1) && (this.mcu[0].k = data & 7, interrupt(this.mcu[0]));
+					this.dmactrl & 4 && (this.mcu[1].r = data & 15, this.mcu[1].k = data >> 4, interrupt(this.mcu[1]));
+					this.dmactrl & 8 && sound[1].write(data);
 				};
 			} else if (range(page, 0x71)) {
-				this.cpu[0].memorymap[page].read = () => this.dmactrl;
+				this.cpu[0].memorymap[page].read = () => { return this.dmactrl; };
 				this.cpu[0].memorymap[page].write = (addr, data) => {
 					this.fNmiEnable = (data & 0xe0) !== 0;
 					switch (this.dmactrl = data) {
@@ -490,7 +490,7 @@ class SuperXevious {
 			const x = this.ram[k] + 1 & 0xff;
 			const y = (this.ram[k + 1] | this.ram[k + 0x801] << 8) - 24 & 0x1ff;
 			const src = this.ram[k + 0x1000] | this.ram[k + 0x1001] << 8;
-			if ((this.ram[k + 0x800] & 0x80) !== 0)
+			if (this.ram[k + 0x800] & 0x80)
 				switch (this.ram[k + 0x800] & 0x0f) {
 				case 0x00: // ノーマル
 					this.xfer16x16x2(data, x | y << 8, src);

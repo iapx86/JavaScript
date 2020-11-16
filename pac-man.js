@@ -51,12 +51,12 @@ class PacMan {
 				this.cpu.memorymap[page].base = this.ram.base[page & 7];
 				this.cpu.memorymap[page].write = null;
 			} else if (range(page, 0x48, 0x48, 0xa3))
-				this.cpu.memorymap[page].read = () => 0xbf;
+				this.cpu.memorymap[page].read = () => { return 0xbf; };
 			else if (range(page, 0x4c, 0x4f, 0xa0)) {
 				this.cpu.memorymap[page].base = this.ram.base[8 | page & 3];
 				this.cpu.memorymap[page].write = null;
 			} else if (range(page, 0x50, 0x50, 0xaf)) {
-				this.cpu.memorymap[page].read = addr => this.in[addr >> 6 & 3];
+				this.cpu.memorymap[page].read = (addr) => { return this.in[addr >> 6 & 3]; };
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr >> 4 & 0xf) {
 					case 0:
@@ -76,7 +76,7 @@ class PacMan {
 				};
 			}
 		for (let page = 0; page < 0x100; page++)
-			this.cpu.iomap[page].write = (addr, data) => void((addr & 0xff) === 0 && (this.vector = data));
+			this.cpu.iomap[page].write = (addr, data) => { (addr & 0xff) === 0 && (this.vector = data); };
 
 		// Videoの初期化
 		this.convertRGB();
@@ -389,18 +389,18 @@ class PacMan {
 			src = src << 6 & 0x3f00;
 			for (let i = 16; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]))
 						data[dst] = px;
 		} else {
 			src = src << 6 & 0x3f00;
 			for (let i = h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]))
 						data[dst] = px;
 			dst -= 0x10000;
 			for (let i = 16 - h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]))
 						data[dst] = px;
 		}
 	}
@@ -415,18 +415,18 @@ class PacMan {
 			src = (src << 6 & 0x3f00) + 256 - 16;
 			for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]))
 						data[dst] = px;
 		} else {
 			src = (src << 6 & 0x3f00) + 256 - 16;
 			for (let i = h; i !== 0; dst += 256 - 16, src -= 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]))
 						data[dst] = px;
 			dst -= 0x10000;
 			for (let i = 16 - h; i !== 0; dst += 256 - 16, src -= 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[src++]]) !== 0)
+					if ((px = this.color[idx | this.obj[src++]]))
 						data[dst] = px;
 		}
 	}
@@ -441,18 +441,18 @@ class PacMan {
 			src = (src << 6 & 0x3f00) + 16;
 			for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]))
 						data[dst] = px;
 		} else {
 			src = (src << 6 & 0x3f00) + 16;
 			for (let i = h; i !== 0; dst += 256 - 16, src += 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]))
 						data[dst] = px;
 			dst -= 0x10000;
 			for (let i = 16 - h; i !== 0; dst += 256 - 16, src += 32, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]))
 						data[dst] = px;
 		}
 	}
@@ -467,18 +467,18 @@ class PacMan {
 			src = (src << 6 & 0x3f00) + 256;
 			for (let i = 16; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]))
 						data[dst] = px;
 		} else {
 			src = (src << 6 & 0x3f00) + 256;
 			for (let i = h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]))
 						data[dst] = px;
 			dst -= 0x10000;
 			for (let i = 16 - h; i !== 0; dst += 256 - 16, --i)
 				for (let j = 16; j !== 0; dst++, --j)
-					if ((px = this.color[idx | this.obj[--src]]) !== 0)
+					if ((px = this.color[idx | this.obj[--src]]))
 						data[dst] = px;
 		}
 	}

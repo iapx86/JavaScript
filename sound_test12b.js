@@ -41,7 +41,7 @@ class SoundTest {
 		// CPU周りの初期化
 		for (let i = 0; i < 0x40; i++)
 			this.cpu3.memorymap[i].base = SND.base[0x40 + i];
-		this.cpu3.memorymap[0x40].read = addr => addr === 0x4001 ? this.fm.status : 0xff;
+		this.cpu3.memorymap[0x40].read = (addr) => { return addr === 0x4001 ? this.fm.status : 0xff; };
 		this.cpu3.memorymap[0x40].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
@@ -53,9 +53,9 @@ class SoundTest {
 					break;
 				case 0x14: // CSM/F RESET/IRQEN/LOAD
 					this.fm.status &= ~(data >> 4 & 3);
-					if ((data & ~this.fm.reg[0x14] & 1) !== 0)
+					if (data & ~this.fm.reg[0x14] & 1)
 						this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
-					if ((data & ~this.fm.reg[0x14] & 2) !== 0)
+					if (data & ~this.fm.reg[0x14] & 2)
 						this.fm.timerb = this.fm.reg[0x12];
 					break;
 				}
@@ -63,8 +63,8 @@ class SoundTest {
 			}
 		};
 		for (let i = 0; i < 8; i++) {
-			this.cpu3.memorymap[0x50 + i].read = addr => sound[1].read(addr);
-			this.cpu3.memorymap[0x50 + i].write = (addr, data) => sound[1].write(addr, data, this.count);
+			this.cpu3.memorymap[0x50 + i].read = (addr) => { return sound[1].read(addr); };
+			this.cpu3.memorymap[0x50 + i].write = (addr, data) => { sound[1].write(addr, data, this.count); };
 		}
 		for (let i = 0; i < 8; i++) {
 			this.cpu3.memorymap[0x70 + i].base = this.ram2.base[i];
@@ -76,13 +76,13 @@ class SoundTest {
 		}
 		for (let i = 0; i < 0x40; i++)
 			this.cpu3.memorymap[0xc0 + i].base = SND.base[i];
-		this.cpu3.memorymap[0xc0].write = (addr, data) => this.bankswitch3(data << 2 & 0x1c0);
-		this.cpu3.memorymap[0xe0].write = () => void(this.cpu3_irq = false);
+		this.cpu3.memorymap[0xc0].write = (addr, data) => { this.bankswitch3(data << 2 & 0x1c0); };
+		this.cpu3.memorymap[0xe0].write = () => { this.cpu3_irq = false; };
 
-		this.cpu3.check_interrupt = () => this.cpu3_irq && this.cpu3.interrupt() || (this.fm.status & 3) !== 0 && this.cpu3.fast_interrupt();
+		this.cpu3.check_interrupt = () => { return this.cpu3_irq && this.cpu3.interrupt() || this.fm.status & 3 && this.cpu3.fast_interrupt(); };
 
 		this.mcu.memorymap[0].base = this.ram4.base[0];
-		this.mcu.memorymap[0].read = addr => {
+		this.mcu.memorymap[0].read = (addr) => {
 			let data;
 			switch (addr) {
 			case 2:
@@ -105,22 +105,22 @@ class SoundTest {
 			this.mcu.memorymap[0xc0 + i].base = this.ram2.base[i];
 			this.mcu.memorymap[0xc0 + i].write = null;
 		}
-		this.mcu.memorymap[0xc0].write = (addr, data) => void(addr === 0xc000 && this.ram2[0] === 0xa6 || (this.ram2[addr & 0xff] = data));
+		this.mcu.memorymap[0xc0].write = (addr, data) => { addr === 0xc000 && this.ram2[0] === 0xa6 || (this.ram2[addr & 0xff] = data); };
 		for (let i = 0; i < 8; i++) {
 			this.mcu.memorymap[0xc8 + i].base = this.ram4.base[1 + i];
 			this.mcu.memorymap[0xc8 + i].write = null;
 		}
-		this.mcu.memorymap[0xd0].write = (addr, data) => sound[2].write(0, data, this.count);
-		this.mcu.memorymap[0xd4].write = (addr, data) => sound[2].write(1, data, this.count);
+		this.mcu.memorymap[0xd0].write = (addr, data) => { sound[2].write(0, data, this.count); };
+		this.mcu.memorymap[0xd4].write = (addr, data) => { sound[2].write(1, data, this.count); };
 		this.mcu.memorymap[0xd8].write = (addr, data) => {
 			const index = [0xf8, 0xf4, 0xec, 0xdc, 0xbc, 0x7c].indexOf(data & 0xfc);
 			this.bankswitch4(index > 0 ? index << 9 | data << 7 & 0x180 : index === 0 ? data << 7 & 0x180 ^ 0x100 : 0);
 		};
 		for (let i = 0; i < 0x10; i++)
 			this.mcu.memorymap[0xf0 + i].base = MCU.base[i];
-		this.mcu.memorymap[0xf0].write = () => void(this.mcu_irq = false);
+		this.mcu.memorymap[0xf0].write = () => { this.mcu_irq = false; };
 
-		this.mcu.check_interrupt = () => this.mcu_irq && this.mcu.interrupt() || (this.ram4[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf');
+		this.mcu.check_interrupt = () => { return this.mcu_irq && this.mcu.interrupt() || (this.ram4[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf'); };
 	}
 
 	bankswitch3(bank) {
@@ -151,11 +151,11 @@ class SoundTest {
 		this.cpu3_irq = this.mcu_irq = true;
 		for (this.count = 0; this.count < 29; this.count++) {
 			this.cpu3.execute(146);
-			if ((this.fm.reg[0x14] & 1) !== 0 && (this.fm.timera += 16) >= 0x400) {
+			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400) {
 				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
 			}
-			if ((this.fm.reg[0x14] & 2) !== 0 && ++this.fm.timerb >= 0x100) {
+			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100) {
 				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
 			}
@@ -166,11 +166,11 @@ class SoundTest {
 		}
 		for (this.count = 29; this.count < 58; this.count++) { // 3579580 / 60 / 1024
 			this.cpu3.execute(146);
-			if ((this.fm.reg[0x14] & 1) !== 0 && (this.fm.timera += 16) >= 0x400) {
+			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400) {
 				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
 			}
-			if ((this.fm.reg[0x14] & 2) !== 0 && ++this.fm.timerb >= 0x100) {
+			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100) {
 				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
 			}
@@ -296,7 +296,7 @@ class SoundTest {
 
 		for (let i = 0; i < 8; i++) {
 			const vol = reg[i * 8] & 0x0f;
-			if (vol === 0)
+			if (!vol)
 				continue;
 			if (i < 4 && (reg[-4 + i * 8 & 0x3f] & 0x80) !== 0)
 				SoundTest.Xfer28x16(data, 256 * 16 * (8 + i), key[1]);
@@ -326,13 +326,23 @@ class SoundTest {
 const key = [];
 let SND, MCU, VOI;
 
-void function () {
+read('tankfrce.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	SND = zip.decompress('tf1_snd0.bin').addBase();
+	MCU = zip.decompress('cus64-64a1.mcu').addBase();
+	VOI = Uint8Array.concat(...['tf1_voi0.bin', 'tf1_voi1.bin'].map(e => zip.decompress(e))).addBase();
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
+	game = new SoundTest();
+	sound = [
+		new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
+		new C30({clock: 49152000 / 2048 / 2, resolution: 58}),
+		new Dac8Bit2Ch({resolution: 100, gain: 0.5}),
+	];
+	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -342,19 +352,6 @@ void function () {
 			game.right();
 		game.triggerA();
 	});
-}();
-
-read('tankfrce.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	SND = zip.decompress('tf1_snd0.bin').addBase();
-	MCU = zip.decompress('cus64-64a1.mcu').addBase();
-	VOI = Uint8Array.concat(...['tf1_voi0.bin', 'tf1_voi1.bin'].map(e => zip.decompress(e))).addBase();
-	game = new SoundTest();
-	sound = [
-		new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
-		new C30({clock: 49152000 / 2048 / 2, resolution: 58}),
-		new Dac8Bit2Ch({resolution: 100, gain: 0.5}),
-	];
-	game.initial = true;
 	init({game, sound});
 });
 

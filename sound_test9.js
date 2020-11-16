@@ -33,15 +33,15 @@ class SoundTest {
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[i].base = PRG3.base[i];
 		for (let i = 0; i < 8; i++) {
-			this.cpu.memorymap[0xf0 + i].read = addr => sound[1].read(addr);
-			this.cpu.memorymap[0xf0 + i].write = (addr, data) => sound[1].write(addr, data, this.count);
+			this.cpu.memorymap[0xf0 + i].read = (addr) => { return sound[1].read(addr); };
+			this.cpu.memorymap[0xf0 + i].write = (addr, data) => { sound[1].write(addr, data, this.count); };
 		}
 		for (let i = 0; i < 8; i++) {
 			this.cpu.memorymap[0xf8 + i].base = this.ram.base[i];
 			this.cpu.memorymap[0xf8 + i].write = null;
 		}
 		for (let i = 0; i < 0x100; i++) {
-			this.cpu.iomap[i].read = addr => {
+			this.cpu.iomap[i].read = (addr) => {
 				switch (addr >> 6 & 3) {
 				case 0:
 					return (addr & 1) !== 0 ? this.fm.status : 0xff;
@@ -61,9 +61,9 @@ class SoundTest {
 					break;
 				case 0x14: // CSM/F RESET/IRQEN/LOAD
 					this.fm.status &= ~(data >> 4 & 3);
-					if ((data & ~this.fm.reg[0x14] & 1) !== 0)
+					if (data & ~this.fm.reg[0x14] & 1)
 						this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
-					if ((data & ~this.fm.reg[0x14] & 2) !== 0)
+					if (data & ~this.fm.reg[0x14] & 2)
 						this.fm.timerb = this.fm.reg[0x12];
 					break;
 				}
@@ -76,11 +76,11 @@ class SoundTest {
 		for (this.count = 0; this.count < 65; this.count++) { // 4000000 / 60 / 1024
 			this.command.length && this.cpu.non_maskable_interrupt();
 			this.cpu.execute(128);
-			if ((this.fm.reg[0x14] & 1) !== 0 && (this.fm.timera += 16) >= 0x400) {
+			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400) {
 				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
 			}
-			if ((this.fm.reg[0x14] & 2) !== 0 && ++this.fm.timerb >= 0x100) {
+			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100) {
 				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
 			}
@@ -187,13 +187,23 @@ class SoundTest {
 const key = [];
 let PRG3, PCM;
 
-void function () {
+read('outrun.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG3 = zip.decompress('epr-10187.88').addBase();
+	PCM = Uint8Array.concat(...['opr-10193.66', 'opr-10193.66', 'opr-10192.67', 'opr-10192.67', 'opr-10191.68'].map(e => zip.decompress(e)));
+	PCM = Uint8Array.concat(PCM, ...['opr-10191.68', 'opr-10190.69', 'opr-10190.69', 'opr-10189.70', 'opr-10189.70'].map(e => zip.decompress(e)));
+	PCM = Uint8Array.concat(PCM, ...['opr-10188.71', 'opr-10188.71'].map(e => zip.decompress(e)), new Uint8Array(0x20000).fill(0xff));
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
+	game = new SoundTest();
+	sound = [
+		new YM2151({clock: 4000000, resolution: 65}),
+		new SegaPCM({PCM, clock: 4000000, resolution: 65}),
+	];
+	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -203,19 +213,6 @@ void function () {
 			game.right();
 		game.triggerA();
 	});
-}();
-
-read('outrun.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG3 = zip.decompress('epr-10187.88').addBase();
-	PCM = Uint8Array.concat(...['opr-10193.66', 'opr-10193.66', 'opr-10192.67', 'opr-10192.67', 'opr-10191.68'].map(e => zip.decompress(e)));
-	PCM = Uint8Array.concat(PCM, ...['opr-10191.68', 'opr-10190.69', 'opr-10190.69', 'opr-10189.70', 'opr-10189.70'].map(e => zip.decompress(e)));
-	PCM = Uint8Array.concat(PCM, ...['opr-10188.71', 'opr-10188.71'].map(e => zip.decompress(e)), new Uint8Array(0x20000).fill(0xff));
-	game = new SoundTest();
-	sound = [
-		new YM2151({clock: 4000000, resolution: 65}),
-		new SegaPCM({PCM, clock: 4000000, resolution: 65}),
-	];
-	game.initial = true;
 	init({game, sound});
 });
 

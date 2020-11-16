@@ -31,13 +31,13 @@ class SoundTest {
 		// CPU周りの初期化
 		for (let i = 0; i < 0x80; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
-		this.cpu2.memorymap[0xe8].read = addr => addr === 0xe800 && this.command.length ? this.command.shift() : 0xff;
+		this.cpu2.memorymap[0xe8].read = (addr) => { return addr === 0xe800 && this.command.length ? this.command.shift() : 0xff; };
 		for (let i = 0; i < 8; i++) {
 			this.cpu2.memorymap[0xf8 + i].base = this.ram2.base[i];
 			this.cpu2.memorymap[0xf8 + i].write = null;
 		}
 		for (let i = 0; i < 0x100; i++) {
-			this.cpu2.iomap[i].read = addr => {
+			this.cpu2.iomap[i].read = (addr) => {
 				switch (addr >> 6 & 3) {
 				case 0:
 					return (addr & 1) !== 0 ? this.fm.status : 0xff;
@@ -57,9 +57,9 @@ class SoundTest {
 					break;
 				case 0x14: // CSM/F RESET/IRQEN/LOAD
 					this.fm.status &= ~(data >> 4 & 3);
-					if ((data & ~this.fm.reg[0x14] & 1) !== 0)
+					if (data & ~this.fm.reg[0x14] & 1)
 						this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
-					if ((data & ~this.fm.reg[0x14] & 2) !== 0)
+					if (data & ~this.fm.reg[0x14] & 2)
 						this.fm.timerb = this.fm.reg[0x12];
 					break;
 				}
@@ -72,11 +72,11 @@ class SoundTest {
 		for (this.count = 0; this.count < 65; this.count++) { // 4000000 / 60 / 1024
 			this.command.length && this.cpu2.non_maskable_interrupt();
 			this.cpu2.execute(128);
-			if ((this.fm.reg[0x14] & 1) !== 0 && (this.fm.timera += 16) >= 0x400) {
+			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400) {
 				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
 			}
-			if ((this.fm.reg[0x14] & 2) !== 0 && ++this.fm.timerb >= 0x100) {
+			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100) {
 				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
 				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
 			}
@@ -92,7 +92,7 @@ class SoundTest {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.nSound = 0x80;
+			this.nSound = 0x81;
 			this.command.splice(0);
 			this.cpu2.reset();
 		}
@@ -183,13 +183,17 @@ class SoundTest {
 const key = [];
 let PRG2;
 
-void function () {
+read('fantzone.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
+	PRG2 = zip.decompress('fantzone1/epr-7535.12').addBase();
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
+	game = new SoundTest();
+	sound = new YM2151({clock: 4000000, resolution: 65});
+	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)
 			game.initial = false;
@@ -199,13 +203,6 @@ void function () {
 			game.right();
 		game.triggerA();
 	});
-}();
-
-read('fantzone.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG2 = zip.decompress('fantzone1/epr-7535.12').addBase();
-	game = new SoundTest();
-	sound = new YM2151({clock: 4000000, resolution: 65});
-	game.initial = true;
 	init({game, sound});
 });
 

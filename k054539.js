@@ -78,7 +78,7 @@ export default class K054539 {
 			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
 				if (this.wheel.length)
 					this.wheel.shift().forEach(e => this.regwrite(e));
-			if ((reg[0x22f] & 1) === 0)
+			if (~reg[0x22f] & 1)
 				return;
 			this.channel.forEach((ch, j) => ch.play && (data[i] += ch.output / 32767 * Math.pow(10, -36 / 0x40 / 20 * reg[3 | j << 5])));
 			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate)
@@ -92,7 +92,7 @@ outer:				switch (reg[0x200 | j << 1] & 0x2c) {
 					case 0:
 						for (ch.frac += rate; ch.frac >= 0x10000; ch.frac -= 0x10000)
 							if ((ch.output = this.pcm[ch.addr += 1] << 24 >> 16) === -0x8000) {
-								if ((reg[0x201 | j << 1] & 1) === 0)
+								if (~reg[0x201 | j << 1] & 1)
 									break outer;
 								ch.output = this.pcm[ch.addr = loop] << 24 >> 16;
 							}
@@ -100,7 +100,7 @@ outer:				switch (reg[0x200 | j << 1] & 0x2c) {
 					case 4:
 						for (ch.frac += rate; ch.frac >= 0x10000; ch.frac -= 0x10000)
 							if ((ch.output = (this.pcm[ch.addr += 2] | this.pcm[ch.addr + 1] << 8) << 16 >> 16) === -0x8000) {
-								if ((reg[0x201 | j << 1] & 1) === 0)
+								if (~reg[0x201 | j << 1] & 1)
 									break outer;
 								ch.output = (this.pcm[ch.addr = loop] | this.pcm[ch.addr + 1] << 8) << 16 >> 16;
 							}
@@ -108,18 +108,18 @@ outer:				switch (reg[0x200 | j << 1] & 0x2c) {
 					case 8:
 						for (ch.frac += rate; ch.frac >= 0x10000; ch.frac -= 0x10000) {
 							if ((val = this.pcm[(ch.addr += 1) >> 1]) === 0x88) {
-								if ((reg[0x201 | j << 1] & 1) === 0)
+								if (~reg[0x201 | j << 1] & 1)
 									break outer;
 								val = this.pcm[(ch.addr = loop << 1) >> 1];
 							}
-							ch.output += [0, 1, 4, 9, 16, 25, 36, 49, -64, -49, -36, -25, -16, -9, -4, -1][(ch.addr & 1) === 0 ? val & 15 : val >> 4] << 8;
+							ch.output += [0, 1, 4, 9, 16, 25, 36, 49, -64, -49, -36, -25, -16, -9, -4, -1][ch.addr & 1 ? val >> 4 : val & 15] << 8;
 							ch.output = ch.output < -0x7f00 ? -0x7f00 : ch.output > 0x7f00 ? 0x7f00 : ch.output;
 						}
 						return;
 					case 0x20:
 						for (ch.frac -= rate; ch.frac < 0; ch.frac += 0x10000)
 							if ((ch.output = this.pcm[ch.addr -= 1] << 24 >> 16) === -0x8000) {
-								if ((reg[0x201 | j << 1] & 1) === 0)
+								if (~reg[0x201 | j << 1] & 1)
 									break outer;
 								ch.output = this.pcm[ch.addr = loop] << 24 >> 16;
 							}
@@ -127,7 +127,7 @@ outer:				switch (reg[0x200 | j << 1] & 0x2c) {
 					case 0x24:
 						for (ch.frac -= rate; ch.frac < 0; ch.frac += 0x10000)
 							if ((ch.output = (this.pcm[ch.addr -= 2] | this.pcm[ch.addr + 1] << 8) << 16 >> 16) === -0x8000) {
-								if ((reg[0x201 | j << 1] & 1) === 0)
+								if (~reg[0x201 | j << 1] & 1)
 									break outer;
 								ch.output = (this.pcm[ch.addr = loop] | this.pcm[ch.addr + 1] << 8) << 16 >> 16;
 							}
@@ -135,11 +135,11 @@ outer:				switch (reg[0x200 | j << 1] & 0x2c) {
 					case 0x28:
 						for (ch.frac -= rate; ch.frac < 0; ch.frac += 0x10000) {
 							if ((val = this.pcm[(ch.addr -= 1) >> 1]) === 0x88) {
-								if ((reg[0x201 | j << 1] & 1) === 0)
+								if (~reg[0x201 | j << 1] & 1)
 									break outer;
 								val = this.pcm[(ch.addr = loop << 1) >> 1];
 							}
-							ch.output -= [0, 1, 4, 9, 16, 25, 36, 49, -64, -49, -36, -25, -16, -9, -4, -1][(ch.addr & 1) === 0 ? val & 15 : val >> 4] << 8;
+							ch.output -= [0, 1, 4, 9, 16, 25, 36, 49, -64, -49, -36, -25, -16, -9, -4, -1][ch.addr & 1 ? val >> 4 : val & 15] << 8;
 							ch.output = ch.output < -0x7f00 ? -0x7f00 : ch.output > 0x7f00 ? 0x7f00 : ch.output;
 						}
 						return;

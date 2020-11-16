@@ -96,17 +96,17 @@ class Bosconian {
 			} else if (range(page, 0x70)) {
 				this.cpu[0].memorymap[page].read = () => {
 					let data = 0xff;
-					(this.dmactrl0 & 1) !== 0 && (data &= this.mcu[0].o, this.mcu[0].k |= 8, interrupt(this.mcu[0]));
-					(this.dmactrl0 & 4) !== 0 && (data &= this.mcu[1].o, this.mcu[1].r |= 0x100, interrupt(this.mcu[1]));
+					this.dmactrl0 & 1 && (data &= this.mcu[0].o, this.mcu[0].k |= 8, interrupt(this.mcu[0]));
+					this.dmactrl0 & 4 && (data &= this.mcu[1].o, this.mcu[1].r |= 0x100, interrupt(this.mcu[1]));
 					return data;
 				};
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					(this.dmactrl0 & 1) !== 0 && (this.mcu[0].k = data & 7, interrupt(this.mcu[0]));
-					(this.dmactrl0 & 4) !== 0 && (this.mcu[1].r = data & 15, this.mcu[1].k = data >> 4, interrupt(this.mcu[1]));
-					(this.dmactrl0 & 8) !== 0 && sound[1].write(data);
+					this.dmactrl0 & 1 && (this.mcu[0].k = data & 7, interrupt(this.mcu[0]));
+					this.dmactrl0 & 4 && (this.mcu[1].r = data & 15, this.mcu[1].k = data >> 4, interrupt(this.mcu[1]));
+					this.dmactrl0 & 8 && sound[1].write(data);
 				};
 			} else if (range(page, 0x71)) {
-				this.cpu[0].memorymap[page].read = () => this.dmactrl0;
+				this.cpu[0].memorymap[page].read = () => { return this.dmactrl0; };
 				this.cpu[0].memorymap[page].write = (addr, data) => {
 					this.fNmiEnable0 = (data & 0xe0) !== 0;
 					switch (this.dmactrl0 = data) {
@@ -133,15 +133,15 @@ class Bosconian {
 			} else if (range(page, 0x90)) {
 				this.cpu[0].memorymap[page].read = () => {
 					let data = 0xff;
-					(this.dmactrl1 & 1) !== 0 && (data &= this.mcu[2].o, this.mcu[2].r |= 0x100, interrupt(this.mcu[2]));
+					this.dmactrl1 & 1 && (data &= this.mcu[2].o, this.mcu[2].r |= 0x100, interrupt(this.mcu[2]));
 					return data;
 				};
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					(this.dmactrl1 & 1) !== 0 && (this.mcu[2].r = data & 15, this.mcu[2].k = data >> 4, interrupt(this.mcu[2]));
-					(this.dmactrl1 & 2) !== 0 && data !== 0 && (this.se[data - 1].start = this.se[data - 1].stop = true);
+					this.dmactrl1 & 1 && (this.mcu[2].r = data & 15, this.mcu[2].k = data >> 4, interrupt(this.mcu[2]));
+					this.dmactrl1 & 2 && data && (this.se[data - 1].start = this.se[data - 1].stop = true);
 				};
 			} else if (range(page, 0x91)) {
-				this.cpu[0].memorymap[page].read = () => this.dmactrl1;
+				this.cpu[0].memorymap[page].read = () => { return this.dmactrl1; };
 				this.cpu[0].memorymap[page].write = (addr, data) => {
 					this.fNmiEnable1 = (data & 0xe0) !== 0;
 					switch (this.dmactrl1 = data) {
@@ -193,7 +193,7 @@ class Bosconian {
 			const start = VOI[i] | VOI[0x10 + i] << 8, end = VOI[1 + i] | VOI[0x11 + i] << 8;
 			voi.push(buf.subarray(start * 2, end * 2));
 		}
-		this.se = voi.map(buf => ({buf: buf, loop: false, start: false, stop: false}));
+		this.se = voi.map(buf => ({buf, loop: false, start: false, stop: false}));
 	}
 
 	execute() {
@@ -430,7 +430,7 @@ class Bosconian {
 			for (let x = 0; x < 288; x++) {
 				const cy = ~sr << 5 ^ ~sr << 10 ^ ~sr << 12 ^ sr << 15;
 				sr = cy & 0x8000 | sr >> 1;
-				if ((sr & 0xf429) === 0xf000 && (color = sr << 1 & 0x20 | sr << 2 & 0x18 | sr >> 6 & 0x07) !== 0) {
+				if ((sr & 0xf429) === 0xf000 && (color = sr << 1 & 0x20 | sr << 2 & 0x18 | sr >> 6 & 0x07)) {
 					this.stars[i].x = x;
 					this.stars[i].y = y;
 					this.stars[i].color = color;
@@ -938,7 +938,7 @@ class Bosconian {
 		const idx = src >> 6 & 0xfc;
 		let px;
 
-		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) < 4 * 0x100 || dst >= 304 * 0x100)
+		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || dst < 4 * 0x100 || dst >= 304 * 0x100)
 			return;
 		src = src << 6 & 0x3f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
@@ -951,7 +951,7 @@ class Bosconian {
 		const idx = src >> 6 & 0xfc;
 		let px;
 
-		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) < 4 * 0x100 || dst >= 304 * 0x100)
+		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || dst < 4 * 0x100 || dst >= 304 * 0x100)
 			return;
 		src = (src << 6 & 0x3f00) + 256 - 16;
 		for (let i = 16; i !== 0; src -= 32, dst += 256 - 16, --i)
@@ -964,7 +964,7 @@ class Bosconian {
 		const idx = src >> 6 & 0xfc;
 		let px;
 
-		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) < 4 * 0x100 || dst >= 304 * 0x100)
+		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || dst < 4 * 0x100 || dst >= 304 * 0x100)
 			return;
 		src = (src << 6 & 0x3f00) + 16;
 		for (let i = 16; i !== 0; src += 32, dst += 256 - 16, --i)
@@ -977,7 +977,7 @@ class Bosconian {
 		const idx = src >> 6 & 0xfc;
 		let px;
 
-		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || (dst & 0x1ff00) < 4 * 0x100 || dst >= 304 * 0x100)
+		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240 || dst < 4 * 0x100 || dst >= 304 * 0x100)
 			return;
 		src = (src << 6 & 0x3f00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
