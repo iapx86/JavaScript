@@ -163,19 +163,8 @@ class DragonBuster {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.in[4] &= ~(1 << 0), --this.fCoin;
-		else
-			this.in[4] |= 1 << 0;
-		if (this.fStart1P)
-			this.in[4] &= ~(1 << 3), --this.fStart1P;
-		else
-			this.in[4] |= 1 << 3;
-		if (this.fStart2P)
-			this.in[4] &= ~(1 << 4), --this.fStart2P;
-		else
-			this.in[4] |= 1 << 4;
+		this.in[4] = this.in[4] & ~0x19 | !this.fCoin << 0 | !this.fStart1P << 3 | !this.fStart2P << 4;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		return this;
 	}
 
@@ -192,45 +181,27 @@ class DragonBuster {
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.in[6] = this.in[6] & ~(1 << 3) | 1 << 2;
-		else
-			this.in[6] |= 1 << 3;
+		this.in[6] = this.in[6] & ~(1 << 3) | fDown << 2 | !fDown << 3;
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.in[6] = this.in[6] & ~(1 << 1) | 1 << 0;
-		else
-			this.in[6] |= 1 << 1;
+		this.in[6] = this.in[6] & ~(1 << 1) | fDown << 0 | !fDown << 1;
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.in[6] = this.in[6] & ~(1 << 2) | 1 << 3;
-		else
-			this.in[6] |= 1 << 2;
+		this.in[6] = this.in[6] & ~(1 << 2) | fDown << 3 | !fDown << 2;
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.in[6] = this.in[6] & ~(1 << 0) | 1 << 1;
-		else
-			this.in[6] |= 1 << 0;
+		this.in[6] = this.in[6] & ~(1 << 0) | fDown << 1 | !fDown << 0;
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.in[6] &= ~(1 << 4);
-		else
-			this.in[6] |= 1 << 4;
+		this.in[6] = this.in[6] & ~(1 << 4) | !fDown << 4;
 	}
 
 	triggerB(fDown) {
-		if (fDown)
-			this.in[3] &= ~(1 << 3);
-		else
-			this.in[3] |= 1 << 3;
+		this.in[3] = this.in[3] & ~(1 << 3) | !fDown << 3;
 	}
 
 	convertRGB() {

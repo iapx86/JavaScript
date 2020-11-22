@@ -26,8 +26,7 @@ class Galaga {
 	fCoin = 0;
 	fStart1P = 0;
 	fStart2P = 0;
-	dwStick = 0;
-	abStick = Uint8Array.of(~0, ~1, ~2, ~1, ~4, ~0, ~2, ~2, ~8, ~8, ~0, ~1, ~4, ~8, ~4, ~0);
+	dwStick = 0xf;
 	nMyShip = 3;
 	nRank = 'NORMAL';
 	nBonus = 'B';
@@ -283,8 +282,8 @@ class Galaga {
 	}
 
 	updateInput() {
-		this.mcu.r = this.mcu.r & ~0x4c0f | this.abStick[this.dwStick] & 0xf | (this.fStart1P <= 0) << 10 | (this.fStart2P <= 0) << 11 | (this.fCoin <= 0) << 14;
-		this.fCoin -= (this.fCoin > 0), this.fStart1P -= (this.fStart1P > 0), this.fStart2P -= (this.fStart2P > 0);
+		this.mcu.r = this.mcu.r & ~0x4c0f | this.dwStick | !this.fCoin << 14 | !this.fStart1P << 10 | !this.fStart2P << 11;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		return this;
 	}
 
@@ -301,26 +300,23 @@ class Galaga {
 	}
 
 	up(fDown) {
-		this.dwStick = fDown ? this.dwStick & ~(1 << 2) | 1 << 0 : this.dwStick & ~(1 << 0);
+		this.dwStick = this.dwStick & ~(1 << 0) | fDown << 2 | !fDown << 0;
 	}
 
 	right(fDown) {
-		this.dwStick = fDown ? this.dwStick & ~(1 << 3) | 1 << 1 : this.dwStick & ~(1 << 1);
+		this.dwStick = this.dwStick & ~(1 << 1) | fDown << 3 | !fDown << 1;
 	}
 
 	down(fDown) {
-		this.dwStick = fDown ? this.dwStick & ~(1 << 0) | 1 << 2 : this.dwStick & ~(1 << 2);
+		this.dwStick = this.dwStick & ~(1 << 2) | fDown << 0 | !fDown << 2;
 	}
 
 	left(fDown) {
-		this.dwStick = fDown ? this.dwStick & ~(1 << 1) | 1 << 3 : this.dwStick & ~(1 << 3);
+		this.dwStick = this.dwStick & ~(1 << 3) | fDown << 1 | !fDown << 3;
 	}
 
 	triggerA(fDown) {
-		this.mcu.r = this.mcu.r & ~0x100 | !fDown << 8;
-	}
-
-	triggerB(fDown) {
+		this.mcu.r = this.mcu.r & ~(1 << 8) | !fDown << 8;
 	}
 
 	convertRGB() {

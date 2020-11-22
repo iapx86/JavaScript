@@ -131,19 +131,8 @@ class SpaceChaser {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.io[1] &= ~(1 << 7), --this.fCoin;
-		else
-			this.io[1] |= 1 << 7;
-		if (this.fStart1P)
-			this.io[1] |= 1 << 6, --this.fStart1P;
-		else
-			this.io[1] &= ~(1 << 6);
-		if (this.fStart2P)
-			this.io[1] |= 1 << 5, --this.fStart2P;
-		else
-			this.io[1] &= ~(1 << 5);
+		this.io[1] = this.io[1] & ~0xe0 | !this.fCoin << 7 | !!this.fStart1P << 6 | !!this.fStart2P << 5;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		return this;
 	}
 
@@ -160,41 +149,23 @@ class SpaceChaser {
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.io[1] = this.io[1] & ~(1 << 2) | 1 << 0;
-		else
-			this.io[1] &= ~(1 << 0);
+		this.io[1] = this.io[1] & ~(1 << 0 | fDown << 2) | fDown << 0;
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.io[1] = this.io[1] & ~(1 << 1) | 1 << 3;
-		else
-			this.io[1] &= ~(1 << 3);
+		this.io[1] = this.io[1] & ~(1 << 3 | fDown << 1) | fDown << 3;
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.io[1] = this.io[1] & ~(1 << 0) | 1 << 2;
-		else
-			this.io[1] &= ~(1 << 2);
+		this.io[1] = this.io[1] & ~(1 << 2 | fDown << 0) | fDown << 2;
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.io[1] = this.io[1] & ~(1 << 3) | 1 << 1;
-		else
-			this.io[1] &= ~(1 << 1);
+		this.io[1] = this.io[1] & ~(1 << 1 | fDown << 3) | fDown << 1;
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.io[1] |= 1 << 4;
-		else
-			this.io[1] &= ~(1 << 4);
-	}
-
-	triggerB(fDown) {
+		this.io[1] = this.io[1] & ~(1 << 4) | fDown << 4;
 	}
 
 	makeBitmap(data) {

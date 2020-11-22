@@ -202,19 +202,8 @@ class ChacknPop {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.in[2] &= ~(1 << 2), --this.fCoin;
-		else
-			this.in[2] |= 1 << 2;
-		if (this.fStart1P)
-			this.in[2] &= ~(1 << 4), --this.fStart1P;
-		else
-			this.in[2] |= 1 << 4;
-		if (this.fStart2P)
-			this.in[2] &= ~(1 << 5), --this.fStart2P;
-		else
-			this.in[2] |= 1 << 5;
+		this.in[2] = this.in[2] & ~0x34 | !this.fCoin << 2 | !this.fStart1P << 4 | !this.fStart2P << 5;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		return this;
 	}
 
@@ -231,45 +220,27 @@ class ChacknPop {
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.in[1] = this.in[1] & ~(1 << 3) | 1 << 2;
-		else
-			this.in[1] |= 1 << 3;
+		this.in[1] = this.in[1] & ~(1 << 3) | fDown << 2 | !fDown << 3;
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.in[1] = this.in[1] & ~(1 << 1) | 1 << 0;
-		else
-			this.in[1] |= 1 << 1;
+		this.in[1] = this.in[1] & ~(1 << 1) | fDown << 0 | !fDown << 1;
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.in[1] = this.in[1] & ~(1 << 2) | 1 << 3;
-		else
-			this.in[1] |= 1 << 2;
+		this.in[1] = this.in[1] & ~(1 << 2) | fDown << 3 | !fDown << 2;
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.in[1] = this.in[1] & ~(1 << 0) | 1 << 1;
-		else
-			this.in[1] |= 1 << 0;
+		this.in[1] = this.in[1] & ~(1 << 0) | fDown << 1 | !fDown << 0;
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.in[1] &= ~(1 << 4);
-		else
-			this.in[1] |= 1 << 4;
+		this.in[1] = this.in[1] & ~(1 << 4) | !fDown << 4;
 	}
 
 	triggerB(fDown) {
-		if (fDown)
-			this.in[1] &= ~(1 << 5);
-		else
-			this.in[1] |= 1 << 5;
+		this.in[1] = this.in[1] & ~(1 << 5) | !fDown << 5;
 	}
 
 	convertRGB() {
@@ -501,6 +472,8 @@ class ChacknPop {
 }
 
 const keydown = e => {
+	if (e.repeat)
+		return;
 	switch (e.code) {
 	case 'ArrowLeft':
 		return void game.left(true);

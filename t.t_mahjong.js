@@ -109,19 +109,10 @@ class TTMahjong {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.in[7] |= 1 << 7, --this.fCoin;
-		else
-			this.in[7] &= ~(1 << 7);
-		if (this.fStart1P)
-			this.in[0] |= 1 << 5, --this.fStart1P;
-		else
-			this.in[0] &= ~(1 << 5);
-		if (this.fStart2P)
-			this.in[1] |= 1 << 5, --this.fStart2P;
-		else
-			this.in[1] &= ~(1 << 5);
+		this.in[7] = this.in[7] & ~(1 << 7) | !!this.fCoin << 7;
+		this.in[0] = this.in[0] & ~(1 << 5) | !!this.fStart1P << 5;
+		this.in[1] = this.in[1] & ~(1 << 5) | !!this.fStart2P << 5;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		return this;
 	}
 
@@ -150,6 +141,8 @@ class TTMahjong {
 }
 
 const keydown = e => {
+	if (e.repeat)
+		return;
 	switch (e.code) {
 	case 'Digit0':
 		return void game.coin();

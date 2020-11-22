@@ -182,19 +182,9 @@ class RoyalMahjong {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.in[5] &= ~(1 << 6), --this.fCoin;
-		else
-			this.in[5] |= 1 << 6;
-		if (this.fStart1P)
-			this.in[0] &= ~(1 << 5), --this.fStart1P;
-		else
-			this.in[0] |= 1 << 5;
-		if (this.fStart2P)
-			this.in[5] &= ~(1 << 5), --this.fStart2P;
-		else
-			this.in[5] |= 1 << 5;
+		this.in[5] = this.in[5] & ~0x60 | !this.fCoin << 6 | !this.fStart2P << 5;
+		this.in[0] = this.in[0] & ~(1 << 5) | !this.fStart1P << 5;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		return this;
 	}
 
@@ -231,6 +221,8 @@ class RoyalMahjong {
 }
 
 const keydown = e => {
+	if (e.repeat)
+		return;
 	switch (e.code) {
 	case 'Digit0':
 		return void game.coin();

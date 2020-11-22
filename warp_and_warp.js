@@ -25,7 +25,6 @@ class WarpAndWarp {
 	fStart1P = 0;
 	fStart2P = 0;
 	dwStick = 0;
-	abStick = Uint8Array.of(0, 1, 2, 0, 4, 1, 4, 4, 8, 8, 2, 8, 0, 1, 2, 0);
 	nFighter = 3;
 	nBonus = 'A';
 
@@ -150,36 +149,11 @@ class WarpAndWarp {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.ram[0xc07] = 0xfe, --this.fCoin;
-		else
-			this.ram[0xc07] = 0xff;
-		if (this.fStart1P)
-			this.ram[0xc02] = 0xfe, --this.fStart1P;
-		else
-			this.ram[0xc02] = 0xff;
-		if (this.fStart2P)
-			this.ram[0xc03] = 0xfe, --this.fStart2P;
-		else
-			this.ram[0xc03] = 0xff;
-		switch (this.abStick[this.dwStick]) {
-		case 1:
-			this.ram[0xc10] = 0x0c;
-			break;
-		case 2:
-			this.ram[0xc10] = 0x2c;
-			break;
-		case 4:
-			this.ram[0xc10] = 0x58;
-			break;
-		case 8:
-			this.ram[0xc10] = 0x8c;
-			break;
-		default:
-			this.ram[0xc10] = 0xd4;
-			break;
-		}
+		this.ram[0xc07] = ~(1 << 0) | !this.fCoin << 0;
+		this.ram[0xc02] = ~(1 << 0) | !this.fStart1P << 0;
+		this.ram[0xc03] = ~(1 << 0) | !this.fStart2P << 0;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
+		this.ram[0xc10] = [212, 12, 44, 212, 88, 12, 88, 212, 140, 140, 44, 212, 212, 212, 212, 212][this.dwStick];
 		return this;
 	}
 
@@ -196,45 +170,24 @@ class WarpAndWarp {
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~1 | 2;
-		else
-			this.dwStick &= ~2;
+		this.dwStick = this.dwStick & ~(1 << 1 | fDown << 0) | fDown << 1;
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~4 | 8;
-		else
-			this.dwStick &= ~8;
+		this.dwStick = this.dwStick & ~(1 << 3 | fDown << 2) | fDown << 3;
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~2 | 1;
-		else
-			this.dwStick &= ~1;
+		this.dwStick = this.dwStick & ~(1 << 0 | fDown << 1) | fDown << 0;
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~8 | 4;
-		else
-			this.dwStick &= ~4;
+		this.dwStick = this.dwStick & ~(1 << 2 | fDown << 3) | fDown << 2;
 	}
 
 	triggerA(fDown) {
-		if (fDown) {
-			this.ram[0xc04] = 0xfe;
-//			this.ram[0xc01] = 0xfe; //2P
-		}
-		else {
-			this.ram[0xc04] = 0xff;
-//			this.ram[0xc01] = 0xff; // 2P
-		}
-	}
-
-	triggerB(fDown) {
+		this.ram[0xc04] = ~(1 << 0) | !fDown << 0;
+//		this.ram[0xc01] = ~(1 << 0) | !fDown << 0; //2P
 	}
 
 	convertRGB() {

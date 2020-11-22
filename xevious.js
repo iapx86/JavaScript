@@ -26,7 +26,7 @@ class Xevious {
 	fCoin = 0;
 	fStart1P = 0;
 	fStart2P = 0;
-	dwStick = 0;
+	dwStick = 0xf;
 	nSolvalou = 3;
 	nRank = 'NORMAL';
 	nBonus = 'A';
@@ -292,8 +292,8 @@ class Xevious {
 	}
 
 	updateInput() {
-		this.mcu[0].r = this.mcu[0].r & ~0x4c0f | ~this.dwStick & 0xf | (this.fStart1P <= 0) << 10 | (this.fStart2P <= 0) << 11 | (this.fCoin <= 0) << 14;
-		this.fCoin -= (this.fCoin > 0), this.fStart1P -= (this.fStart1P > 0), this.fStart2P -= (this.fStart2P > 0);
+		this.mcu[0].r = this.mcu[0].r & ~0x4c0f | this.dwStick | !this.fCoin << 14 | !this.fStart1P << 10 | !this.fStart2P << 11;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		return this;
 	}
 
@@ -310,69 +310,37 @@ class Xevious {
 	}
 
 	up(fDown) {
-		this.dwStick = fDown ? this.dwStick & ~(1 << 2) | 1 << 0 : this.dwStick & ~(1 << 0);
+		this.dwStick = this.dwStick & ~(1 << 0) | fDown << 2 | !fDown << 0;
 	}
 
 	right(fDown) {
-		this.dwStick = fDown ? this.dwStick & ~(1 << 3) | 1 << 1 : this.dwStick & ~(1 << 1);
+		this.dwStick = this.dwStick & ~(1 << 1) | fDown << 3 | !fDown << 1;
 	}
 
 	down(fDown) {
-		this.dwStick = fDown ? this.dwStick & ~(1 << 0) | 1 << 2 : this.dwStick & ~(1 << 2);
+		this.dwStick = this.dwStick & ~(1 << 2) | fDown << 0 | !fDown << 2;
 	}
 
 	left(fDown) {
-		this.dwStick = fDown ? this.dwStick & ~(1 << 1) | 1 << 3 : this.dwStick & ~(1 << 3);
+		this.dwStick = this.dwStick & ~(1 << 3) | fDown << 1 | !fDown << 3;
 	}
 
 	triggerA(fDown) {
-		this.mcu[0].r = this.mcu[0].r & ~0x100 | !fDown << 8;
+		this.mcu[0].r = this.mcu[0].r & ~(1 << 8) | !fDown << 8;
 	}
 
 	triggerB(fDown) {
-		this.mmi[0] = this.mmi[0] & ~1 | !fDown;
+		this.mmi[0] = this.mmi[0] & ~(1 << 0) | !fDown << 0;
 	}
 
 	convertMAP() {
-		let i, j, k, l, n;
-
 		// MAP table の作成
-		for (i = 0; i < 0x80; i++) {
-			for (j = 0; j < 0x100; j++) {
-				k = (i >> 1) * 0x80 + (j >> 1);			// ROM9. ROM10 address
-				n = MAPTBL[k + 0x1000] << 2;			// ROM11 A9~A2
-				switch (k & 1) {
-				case 0:
-					l = (MAPTBL[k >> 1] & 6) >> 1;		// ROM9 [d1|d2],[d5|d6]
-					if ((MAPTBL[k >> 1] & 1) !== 0)
-						n |= 0x400;						// ROM11 A10
-					break;
-				case 1:
-					l = (MAPTBL[k >> 1] & 0x60) >> 5;	// ROM9 [d1|d2],[d5|d6]
-					if ((MAPTBL[k >> 1] & 0x10) !== 0)
-						n |= 0x400;						// ROM11 A10
-					break;
-				}
-				switch (l) {
-				case 0x00:
-				case 0x03:
-					break;
-				case 0x01:
-					l = 0x02;
-					break;
-				case 0x02:
-					l = 0x01;
-					break;
-				}
-				this.mapatr[i * 0x100 + j] = l << 6;
-				/* ROM11 D7~D6 */
-				k = ((i & 1) << 1) + (j & 1);
-				/* $F000: D8, D0 */
-				n |= k ^ l;
-				/* ROM11 A1~A0 */
-				this.maptbl[i * 0x100 + j] = n;
+		for (let i = 0; i < 0x80; i++)
+			for (let j = 0; j < 0x100; j++) {
+				const k = (i >> 1) * 0x80 + (j >> 1), l = [0, 2, 1, 3][MAPTBL[k >> 1] >> 1 + (k << 2 & 4) & 3];
+				this.mapatr[i << 8 | j] = l << 6;
+				this.maptbl[i << 8 | j] = (i << 1 & 2 | j & 1) ^ l | MAPTBL[k + 0x1000] << 2 | MAPTBL[k >> 1] << 10 - (k << 2 & 4) & 0x400;
 			}
-		}
 	}
 
 	convertRGB() {

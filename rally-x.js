@@ -25,8 +25,7 @@ class RallyX {
 	fCoin = 0;
 	fStart1P = 0;
 	fStart2P = 0;
-	dwStick = 0;
-	abStick = Uint8Array.of(~0, ~1, ~2, ~0, ~4, ~4, ~2, ~4, ~8, ~1, ~8, ~8, ~0, ~1, ~2, ~0);
+	dwStick = 0xf;
 	nMyCar = 3;
 	nRank = 'A';
 	nBonus = 'A';
@@ -209,21 +208,9 @@ class RallyX {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.mmi[0] &= ~(1 << 7), --this.fCoin;
-		else
-			this.mmi[0] |= 1 << 7;
-		if (this.fStart1P)
-			this.mmi[0] &= ~(1 << 6), --this.fStart1P;
-		else
-			this.mmi[0] |= 1 << 6;
-		if (this.fStart2P)
-			this.mmi[0x80] &= ~(1 << 6), --this.fStart2P;
-		else
-			this.mmi[0x80] |= 1 << 6;
-
-		this.mmi[0] = this.mmi[0] & 0xc3 | this.abStick[this.dwStick] << 2 & 0x3c;
+		this.mmi[0] = this.mmi[0] & ~0xfc | this.dwStick << 2 | !this.fCoin << 7 | !this.fStart1P << 6;
+		this.mmi[0x80] = this.mmi[0x80] & ~(1 << 6) | !this.fStart2P << 6;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		return this;
 	}
 
@@ -240,41 +227,23 @@ class RallyX {
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 2) | 1 << 3;
-		else
-			this.dwStick &= ~(1 << 3);
+		this.dwStick = this.dwStick & ~(1 << 3) | fDown << 2 | !fDown << 3;
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 0) | 1 << 1;
-		else
-			this.dwStick &= ~(1 << 1);
+		this.dwStick = this.dwStick & ~(1 << 1) | fDown << 0 | !fDown << 1;
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 3) | 1 << 2;
-		else
-			this.dwStick &= ~(1 << 2);
+		this.dwStick = this.dwStick & ~(1 << 2) | fDown << 3 | !fDown << 2;
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.dwStick = this.dwStick & ~(1 << 1) | 1 << 0;
-		else
-			this.dwStick &= ~(1 << 0);
+		this.dwStick = this.dwStick & ~(1 << 0) | fDown << 1 | !fDown << 0;
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.mmi[0] &= ~(1 << 1);
-		else
-			this.mmi[0] |= 1 << 1;
-	}
-
-	triggerB(fDown) {
+		this.mmi[0] = this.mmi[0] & ~(1 << 1) | !fDown << 1;
 	}
 
 	convertRGB() {

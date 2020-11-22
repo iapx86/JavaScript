@@ -8,7 +8,6 @@ export default class Namco63701X {
 	pcm;
 	rate;
 	sampleRate;
-	gain;
 	cycles = 0;
 	channel = [];
 
@@ -20,17 +19,12 @@ export default class Namco63701X {
 		this.pcm = PCM;
 		this.rate = Math.floor(clock / 1000);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
-		this.gain = gain;
 		for (let i = 0; i < 2; i++)
 			this.channel.push({select: 0, play: false, pos: 0, vol: 0, count: 0});
 		this.gainNode.gain.value = gain;
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0).fill(0));
 		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
 		this.source.start();
-	}
-
-	mute(flag) {
-		this.gainNode.gain.value = flag ? 0 : this.gain;
 	}
 
 	write(addr, data) {
@@ -46,8 +40,7 @@ export default class Namco63701X {
 			ch.play = false;
 	}
 
-	update() {
-	}
+	update() {}
 
 	makeSound(data) {
 		data.forEach((e, i) => {

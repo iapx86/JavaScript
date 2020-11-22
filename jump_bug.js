@@ -162,19 +162,9 @@ class JumpBug {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.in[0] |= 1 << 0, --this.fCoin;
-		else
-			this.in[0] &= ~(1 << 0);
-		if (this.fStart1P)
-			this.in[1] |= 1 << 0, --this.fStart1P;
-		else
-			this.in[1] &= ~(1 << 0);
-		if (this.fStart2P)
-			this.in[1] |= 1 << 1, --this.fStart2P;
-		else
-			this.in[1] &= ~(1 << 1);
+		this.in[0] = this.in[0] & ~(1 << 0) | !!this.fCoin << 0;
+		this.in[1] = this.in[1] & ~3 | !!this.fStart1P << 0 | !!this.fStart2P << 1;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		return this;
 	}
 
@@ -191,41 +181,23 @@ class JumpBug {
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.in[0] = this.in[0] & ~(1 << 6) | 1 << 7;
-		else
-			this.in[0] &= ~(1 << 7);
+		this.in[0] = this.in[0] & ~(1 << 7 | fDown << 6) | fDown << 7;
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.in[0] = this.in[0] & ~(1 << 2) | 1 << 3;
-		else
-			this.in[0] &= ~(1 << 3);
+		this.in[0] = this.in[0] & ~(1 << 3 | fDown << 2) | fDown << 3;
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.in[0] = this.in[0] & ~(1 << 7) | 1 << 6;
-		else
-			this.in[0] &= ~(1 << 6);
+		this.in[0] = this.in[0] & ~(1 << 6 | fDown << 7) | fDown << 6;
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.in[0] = this.in[0] & ~(1 << 3) | 1 << 2;
-		else
-			this.in[0] &= ~(1 << 2);
+		this.in[0] = this.in[0] & ~(1 << 2 | fDown << 3) | fDown << 2;
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.in[0] |= 1 << 4;
-		else
-			this.in[0] &= ~(1 << 4);
-	}
-
-	triggerB(fDown) {
+		this.in[0] = this.in[0] & ~(1 << 4) | fDown << 4;
 	}
 
 	convertRGB() {

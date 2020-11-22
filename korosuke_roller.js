@@ -173,19 +173,9 @@ class KorosukeRoller {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.in[0] &= ~(1 << 6), --this.fCoin;
-		else
-			this.in[0] |= 1 << 6;
-		if (this.fStart1P)
-			this.in[1] &= ~(1 << 5), --this.fStart1P;
-		else
-			this.in[1] |= 1 << 5;
-		if (this.fStart2P)
-			this.in[1] &= ~(1 << 6), --this.fStart2P;
-		else
-			this.in[1] |= 1 << 6;
+		this.in[0] = this.in[0] & ~(1 << 6) | !this.fCoin << 6;
+		this.in[1] = this.in[1] & ~0x60 | !this.fStart1P << 5 | !this.fStart2P << 6;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		return this;
 	}
 
@@ -202,41 +192,27 @@ class KorosukeRoller {
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.in[0] = this.in[0] & ~(1 << 0) | 1 << 3, this.in[1] = this.in[1] & ~(1 << 0) | 1 << 3;
-		else
-			this.in[0] |= 1 << 0, this.in[1] |= 1 << 0;
+		this.in[0] = this.in[0] & ~(1 << 0) | fDown << 3 | !fDown << 0;
+		this.in[1] = this.in[1] & ~(1 << 0) | fDown << 3 | !fDown << 0;
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.in[0] = this.in[0] & ~(1 << 2) | 1 << 1, this.in[1] = this.in[1] & ~(1 << 2) | 1 << 1;
-		else
-			this.in[0] |= 1 << 2, this.in[1] |= 1 << 2;
+		this.in[0] = this.in[0] & ~(1 << 2) | fDown << 1 | !fDown << 2;
+		this.in[1] = this.in[1] & ~(1 << 2) | fDown << 1 | !fDown << 2;
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.in[0] = this.in[0] & ~(1 << 3) | 1 << 0, this.in[1] = this.in[1] & ~(1 << 3) | 1 << 0;
-		else
-			this.in[0] |= 1 << 3, this.in[1] |= 1 << 3;
+		this.in[0] = this.in[0] & ~(1 << 3) | fDown << 0 | !fDown << 3;
+		this.in[1] = this.in[1] & ~(1 << 3) | fDown << 0 | !fDown << 3;
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.in[0] = this.in[0] & ~(1 << 1) | 1 << 2, this.in[1] = this.in[1] & ~(1 << 1) | 1 << 2;
-		else
-			this.in[0] |= 1 << 1, this.in[1] |= 1 << 1;
+		this.in[0] = this.in[0] & ~(1 << 1) | fDown << 2 | !fDown << 1;
+		this.in[1] = this.in[1] & ~(1 << 1) | fDown << 2 | !fDown << 1;
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.in[0] &= ~(1 << 7 | 1 << 5);
-		else
-			this.in[0] |= 1 << 7 | 1 << 5;
-	}
-
-	triggerB(fDown) {
+		this.in[0] = this.in[0] & ~0xa0 | !fDown << 7 | !fDown << 5;
 	}
 
 	convertRGB() {

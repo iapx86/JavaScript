@@ -51,6 +51,8 @@ export function init({keydown, keyup, ...args} = {}) {
 			audioCtx.resume().catch();
 	});
 	document.addEventListener('keydown', keydown ? keydown : e => {
+		if (e.repeat)
+			return;
 		switch (e.code) {
 		case 'ArrowLeft':
 			return void('left' in game && game.left(true));

@@ -194,8 +194,8 @@ class Toypop {
 	}
 
 	updateInput() {
-		this.in[0] = (this.fCoin !== 0) << 3, this.in[3] = this.in[3] & 3 | (this.fStart1P !== 0) << 2 | (this.fStart2P !== 0) << 3;
-		this.fCoin -= (this.fCoin > 0), this.fStart1P -= (this.fStart1P > 0), this.fStart2P -= (this.fStart2P > 0);
+		this.in[0] = !!this.fCoin << 3, this.in[3] = this.in[3] & 3 | !!this.fStart1P << 2 | !!this.fStart2P << 3;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		if (this.port[8] === 1)
 			this.port.set(this.in.subarray(0, 4), 4);
 		else if (this.port[8] === 5)
@@ -224,26 +224,23 @@ class Toypop {
 	}
 
 	up(fDown) {
-		this.in[1] = fDown ? this.in[1] & ~(1 << 2) | 1 << 0 : this.in[1] & ~(1 << 0);
+		this.in[1] = this.in[1] & ~(1 << 0 | fDown << 2) | fDown << 0;
 	}
 
 	right(fDown) {
-		this.in[1] = fDown ? this.in[1] & ~(1 << 3) | 1 << 1 : this.in[1] & ~(1 << 1);
+		this.in[1] = this.in[1] & ~(1 << 1 | fDown << 3) | fDown << 1;
 	}
 
 	down(fDown) {
-		this.in[1] = fDown ? this.in[1] & ~(1 << 0) | 1 << 2 : this.in[1] & ~(1 << 2);
+		this.in[1] = this.in[1] & ~(1 << 2 | fDown << 0) | fDown << 2;
 	}
 
 	left(fDown) {
-		this.in[1] = fDown ? this.in[1] & ~(1 << 1) | 1 << 3 : this.in[1] & ~(1 << 3);
+		this.in[1] = this.in[1] & ~(1 << 3 | fDown << 1) | fDown << 3;
 	}
 
 	triggerA(fDown) {
-		this.in[3] = fDown ? this.in[3] | 1 << 0: this.in[3] & ~(1 << 0);
-	}
-
-	triggerB(fDown) {
+		this.in[3] = this.in[3] & ~(1 << 0) | fDown << 0;
 	}
 
 	convertRGB() {

@@ -221,23 +221,9 @@ class FantasyZone {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.in[0] &= ~(1 << 3), --this.fCoin;
-		else
-			this.in[0] |= 1 << 3;
-		if (this.fStart1P)
-			this.in[0] &= ~(1 << 4), --this.fStart1P;
-		else
-			this.in[0] |= 1 << 4;
-		if (this.fStart2P)
-			this.in[0] &= ~(1 << 5), --this.fStart2P;
-		else
-			this.in[0] |= 1 << 5;
-
-		// 連射処理
-		if (this.fTurbo)
-			this.in[1] ^= 1 << 1;
+		this.in[0] = this.in[0] & ~0x38 | !this.fCoin << 3 | !this.fStart1P << 4 | !this.fStart2P << 5;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
+		this.fTurbo && (this.in[1] ^= 1 << 1);
 		return this;
 	}
 
@@ -254,57 +240,35 @@ class FantasyZone {
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.in[1] = this.in[1] & ~(1 << 5) | 1 << 4;
-		else
-			this.in[1] |= 1 << 5;
+		this.in[1] = this.in[1] & ~(1 << 5) | fDown << 4 | !fDown << 5;
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.in[1] = this.in[1] & ~(1 << 6) | 1 << 7;
-		else
-			this.in[1] |= 1 << 6;
+		this.in[1] = this.in[1] & ~(1 << 6) | fDown << 7 | !fDown << 6;
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.in[1] = this.in[1] & ~(1 << 4) | 1 << 5;
-		else
-			this.in[1] |= 1 << 4;
+		this.in[1] = this.in[1] & ~(1 << 4) | fDown << 5 | !fDown << 4;
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.in[1] = this.in[1] & ~(1 << 7) | 1 << 6;
-		else
-			this.in[1] |= 1 << 7;
+		this.in[1] = this.in[1] & ~(1 << 7) | fDown << 6 | !fDown << 7;
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.in[1] &= ~(1 << 1);
-		else
-			this.in[1] |= 1 << 1;
+		this.in[1] = this.in[1] & ~(1 << 1) | !fDown << 1;
 	}
 
 	triggerB(fDown) {
-		if (fDown)
-			this.in[1] &= ~(1 << 2);
-		else
-			this.in[1] |= 1 << 2;
+		this.in[1] = this.in[1] & ~(1 << 2) | !fDown << 2;
 	}
 
 	triggerX(fDown) {
-		if (fDown)
-			this.in[1] &= ~(1 << 0);
-		else
-			this.in[1] |= 1 << 0;
+		this.in[1] = this.in[1] & ~(1 << 0) | !fDown << 0;
 	}
 
 	triggerY(fDown) {
-		if ((this.fTurbo = fDown) === false)
-			this.in[1] |= 1 << 1;
+		!(this.fTurbo = fDown) && (this.in[1] |= 1 << 1);
 	}
 
 	convertBG() {

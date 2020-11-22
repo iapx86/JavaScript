@@ -7,7 +7,6 @@
 export default class Dac8Bit2Ch {
 	sampleRate;
 	resolution;
-	gain;
 	tmpwheel;
 	wheel = [];
 	cycles = 0;
@@ -21,7 +20,6 @@ export default class Dac8Bit2Ch {
 	constructor({resolution = 1, gain = 1}) {
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.resolution = resolution;
-		this.gain = gain;
 		this.tmpwheel = [new Uint8Array(resolution).fill(0x80), new Uint8Array(resolution).fill(0x80)];
 		for (let i = 0; i < 2; i++)
 			this.channel.push({output: 0, gain: 1});
@@ -29,10 +27,6 @@ export default class Dac8Bit2Ch {
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0).fill(0));
 		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
 		this.source.start();
-	}
-
-	mute(flag) {
-		this.gainNode.gain.value = flag ? 0 : this.gain;
 	}
 
 	write(ch, data, timer = 0) {

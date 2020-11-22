@@ -8,7 +8,6 @@ export default class VLM5030 {
 	base;
 	rate;
 	sampleRate;
-	gain;
 	BSY = 0;
 	cycles = 0;
 	param = 0;
@@ -40,7 +39,6 @@ export default class VLM5030 {
 		this.base = VLM;
 		this.rate = Math.floor(clock / 440);
 		this.sampleRate = sampleRate;
-		this.gain = gain;
 		this.cycles = sampleRate - 1;
 		this.k1 = this.k0;
 		this.gainNode.gain.value = gain;
@@ -49,12 +47,7 @@ export default class VLM5030 {
 		this.source.start();
 	}
 
-	mute(flag) {
-		this.gainNode.gain.value = flag ? 0 : this.gain;
-	}
-
-	update() {
-	}
+	update() {}
 
 	rst(data) {
 		if (this.BSY) {

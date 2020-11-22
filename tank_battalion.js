@@ -155,19 +155,10 @@ class TankBattalion {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.rport[0x05] &= ~0x80, --this.fCoin;
-		else
-			this.rport[0x05] |= 0x80;
-		if (this.fStart1P)
-			this.rport[0x0d] &= ~0x80, --this.fStart1P;
-		else
-			this.rport[0x0d] |= 0x80;
-		if (this.fStart2P)
-			this.rport[0x0e] &= ~0x80, --this.fStart2P;
-		else
-			this.rport[0x0e] |= 0x80;
+		this.rport[5] = this.rport[5] & ~(1 << 7) | !this.fCoin << 7;
+		this.rport[0xd] = this.rport[0xd] & ~(1 << 7) | !this.fStart1P << 7;
+		this.rport[0xe] = this.rport[0xe] & ~(1 << 7) | !this.fStart2P << 7;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		return this;
 	}
 
@@ -184,41 +175,23 @@ class TankBattalion {
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.rport[0] &= ~0x80, this.rport[2] |= 0x80;
-		else
-			this.rport[0] |= 0x80;
+		this.rport[0] = this.rport[0] & ~(1 << 7) | !fDown << 7, this.rport[2] |= fDown << 7;
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.rport[3] &= ~0x80, this.rport[1] |= 0x80;
-		else
-			this.rport[3] |= 0x80;
+		this.rport[3] = this.rport[3] & ~(1 << 7) | !fDown << 7, this.rport[1] |= fDown << 7;
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.rport[2] &= ~0x80, this.rport[0] |= 0x80;
-		else
-			this.rport[2] |= 0x80;
+		this.rport[2] = this.rport[2] & ~(1 << 7) | !fDown << 7, this.rport[0] |= fDown << 7;
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.rport[1] &= ~0x80, this.rport[3] |= 0x80;
-		else
-			this.rport[1] |= 0x80;
+		this.rport[1] = this.rport[1] & ~(1 << 7) | !fDown << 7, this.rport[3] |= fDown << 7;
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.rport[4] &= ~0x80;
-		else
-			this.rport[4] |= 0x80;
-	}
-
-	triggerB(fDown) {
+		this.rport[4] = this.rport[4] & ~(1 << 7) | !fDown << 7;
 	}
 
 	convertRGB() {

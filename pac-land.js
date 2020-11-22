@@ -210,19 +210,9 @@ class PacLand {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.in[3] &= ~(1 << 5), --this.fCoin;
-		else
-			this.in[3] |= 1 << 5;
-		if (this.fStart1P)
-			this.in[2] &= ~(1 << 4), --this.fStart1P;
-		else
-			this.in[2] |= 1 << 4;
-		if (this.fStart2P)
-			this.in[2] &= ~(1 << 5), --this.fStart2P;
-		else
-			this.in[2] |= 1 << 5;
+		this.in[3] = this.in[3] & ~(1 << 5) | !this.fCoin << 5;
+		this.in[2] = this.in[2] & ~0x30 | !this.fStart1P << 4 | !this.fStart2P << 5;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		return this;
 	}
 
@@ -238,34 +228,16 @@ class PacLand {
 		this.fStart2P = 2;
 	}
 
-	up(fDown) {
-	}
-
 	right(fDown) {
-		if (fDown)
-			this.in[4] &= ~(1 << 5);
-		else
-			this.in[4] |= 1 << 5;
-	}
-
-	down(fDown) {
+		this.in[4] = this.in[4] & ~(1 << 5) | !fDown << 5;
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.in[4] &= ~(1 << 4);
-		else
-			this.in[4] |= 1 << 4;
+		this.in[4] = this.in[4] & ~(1 << 4) | !fDown << 4;
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.in[4] &= ~(1 << 3);
-		else
-			this.in[4] |= 1 << 3;
-	}
-
-	triggerB(fDown) {
+		this.in[4] = this.in[4] & ~(1 << 3) | !fDown << 3;
 	}
 
 	convertRGB() {

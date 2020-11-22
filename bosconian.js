@@ -6,7 +6,7 @@
 
 import PacManSound from './pac-man_sound.js';
 import Namco54XX from './namco_54xx.js';
-import SoundEffect from './sound_effect.js';
+import Namco52XX from './namco_52xx.js';
 import Cpu, {init, read} from './main.js';
 import Z80 from './z80.js';
 import MB8840 from './mb8840.js';
@@ -27,7 +27,7 @@ class Bosconian {
 	fCoin = 0;
 	fStart1P = 0;
 	fStart2P = 0;
-	dwStick = 0;
+	dwStick = 0xf;
 	nMyShip = 3;
 	nBonus = 'F';
 	nRank = 'AUTO';
@@ -51,8 +51,6 @@ class Bosconian {
 	bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf | 0x10);
 	objcolor = Uint8Array.from(BGCOLOR, e => e & 0xf);
 	rgb = new Uint32Array(0x80);
-
-	se;
 
 	cpu = [new Z80(), new Z80(), new Z80()];
 	mcu = [new MB8840(), new MB8840(), new MB8840()];
@@ -88,7 +86,7 @@ class Bosconian {
 					case 0x21:
 						return void(this.fInterruptEnable1 = (data & 1) !== 0);
 					case 0x22:
-						return this.fSoundEnable = (data & 1) !== 0, void(!this.fSoundEnable && this.se.forEach(se => se.stop = true));
+						return void(this.fSoundEnable = (data & 1) !== 0);
 					case 0x23:
 						return (data & 1) !== 0 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
 					}
@@ -138,7 +136,7 @@ class Bosconian {
 				};
 				this.cpu[0].memorymap[page].write = (addr, data) => {
 					this.dmactrl1 & 1 && (this.mcu[2].r = data & 15, this.mcu[2].k = data >> 4, interrupt(this.mcu[2]));
-					this.dmactrl1 & 2 && data && (this.se[data - 1].start = this.se[data - 1].stop = true);
+					this.dmactrl1 & 2 && sound[2].write(data);
 				};
 			} else if (range(page, 0x91)) {
 				this.cpu[0].memorymap[page].read = () => { return this.dmactrl1; };
@@ -183,17 +181,6 @@ class Bosconian {
 		this.convertBG();
 		this.convertOBJ();
 		this.initializeStar();
-
-		// 効果音の初期化
-		const buf = new Int16Array(VOI.length * 2);
-		for (let i = 0; i < VOI.length; i++)
-			buf[i * 2] = VOI[i] - 8 << 12, buf[i * 2 + 1] = (VOI[i] >> 4) - 8 << 12;
-		const voi = [];
-		for (let i = 0; i < 5; i++) {
-			const start = VOI[i] | VOI[0x10 + i] << 8, end = VOI[1 + i] | VOI[0x11 + i] << 8;
-			voi.push(buf.subarray(start * 2, end * 2));
-		}
-		this.se = voi.map(buf => ({buf, loop: false, start: false, stop: false}));
 	}
 
 	execute() {
@@ -316,6 +303,7 @@ class Bosconian {
 			this.fReset = false;
 			this.fSoundEnable = false;
 			sound[1].reset();
+			sound[2].reset();
 			this.fInterruptEnable0 = this.fInterruptEnable1 = false;
 			this.fNmiEnable0 = this.fNmiEnable1 = false;
 			this.cpu[0].reset();
@@ -330,8 +318,8 @@ class Bosconian {
 	}
 
 	updateInput() {
-		this.mcu[0].r = this.mcu[0].r & ~0x4c0f | ~this.dwStick & 0xf | (this.fStart1P <= 0) << 10 | (this.fStart2P <= 0) << 11 | (this.fCoin <= 0) << 14;
-		this.fCoin -= (this.fCoin > 0), this.fStart1P -= (this.fStart1P > 0), this.fStart2P -= (this.fStart2P > 0);
+		this.mcu[0].r = this.mcu[0].r & ~0x4c0f | this.dwStick | !this.fCoin << 14 | !this.fStart1P << 10 | !this.fStart2P << 11;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		return this;
 	}
 
@@ -348,26 +336,23 @@ class Bosconian {
 	}
 
 	up(fDown) {
-		this.dwStick = fDown ? this.dwStick & ~(1 << 2) | 1 << 0 : this.dwStick & ~(1 << 0);
+		this.dwStick = this.dwStick & ~(1 << 0) | fDown << 2 | !fDown << 0;
 	}
 
 	right(fDown) {
-		this.dwStick = fDown ? this.dwStick & ~(1 << 3) | 1 << 1 : this.dwStick & ~(1 << 1);
+		this.dwStick = this.dwStick & ~(1 << 1) | fDown << 3 | !fDown << 1;
 	}
 
 	down(fDown) {
-		this.dwStick = fDown ? this.dwStick & ~(1 << 0) | 1 << 2 : this.dwStick & ~(1 << 2);
+		this.dwStick = this.dwStick & ~(1 << 2) | fDown << 0 | !fDown << 2;
 	}
 
 	left(fDown) {
-		this.dwStick = fDown ? this.dwStick & ~(1 << 1) | 1 << 3 : this.dwStick & ~(1 << 3);
+		this.dwStick = this.dwStick & ~(1 << 3) | fDown << 1 | !fDown << 3;
 	}
 
 	triggerA(fDown) {
-		this.mcu[0].r = this.mcu[0].r & ~0x100 | !fDown << 8;
-	}
-
-	triggerB(fDown) {
+		this.mcu[0].r = this.mcu[0].r & ~(1 << 8) | !fDown << 8;
 	}
 
 	convertRGB() {
@@ -1015,7 +1000,7 @@ read('bosco.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zi
 	sound = [
 		new PacManSound({SND, resolution: 2}),
 		new Namco54XX({PRG, clock: 1536000}),
-		new SoundEffect({se: game.se, freq: 4000, gain: 0.25}),
+		new Namco52XX({VOI, clock: 1536000}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

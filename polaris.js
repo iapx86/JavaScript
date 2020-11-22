@@ -118,19 +118,8 @@ class Polaris {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.io[1] &= ~(1 << 0), --this.fCoin;
-		else
-			this.io[1] |= 1 << 0;
-		if (this.fStart1P)
-			this.io[1] |= 1 << 2, --this.fStart1P;
-		else
-			this.io[1] &= ~(1 << 2);
-		if (this.fStart2P)
-			this.io[1] |= 1 << 1, --this.fStart2P;
-		else
-			this.io[1] &= ~(1 << 1);
+		this.io[1] = this.io[1] & ~7 | !this.fCoin << 0 | !!this.fStart1P << 2 | !!this.fStart2P << 1;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		return this;
 	}
 
@@ -147,41 +136,23 @@ class Polaris {
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.io[1] = this.io[1] & ~(1 << 5) | 1 << 7;
-		else
-			this.io[1] &= ~(1 << 7);
+		this.io[1] = this.io[1] & ~(1 << 7 | fDown << 5) | fDown << 7;
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.io[1] = this.io[1] & ~(1 << 6) | 1 << 4;
-		else
-			this.io[1] &= ~(1 << 4);
+		this.io[1] = this.io[1] & ~(1 << 4 | fDown << 6) | fDown << 4;
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.io[1] = this.io[1] & ~(1 << 7) | 1 << 5;
-		else
-			this.io[1] &= ~(1 << 5);
+		this.io[1] = this.io[1] & ~(1 << 5 | fDown << 7) | fDown << 5;
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.io[1] = this.io[1] & ~(1 << 4) | 1 << 6;
-		else
-			this.io[1] &= ~(1 << 6);
+		this.io[1] = this.io[1] & ~(1 << 6 | fDown << 4) | fDown << 6;
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.io[1] |= 1 << 3;
-		else
-			this.io[1] &= ~(1 << 3);
-	}
-
-	triggerB(fDown) {
+		this.io[1] = this.io[1] & ~(1 << 3) | fDown << 3;
 	}
 
 	makeBitmap(data) {

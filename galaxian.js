@@ -181,19 +181,9 @@ class Galaxian {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.ioport[0] |= 1 << 0, --this.fCoin;
-		else
-			this.ioport[0] &= ~(1 << 0);
-		if (this.fStart1P)
-			this.ioport[0x10] |= 1 << 0, --this.fStart1P;
-		else
-			this.ioport[0x10] &= ~(1 << 0);
-		if (this.fStart2P)
-			this.ioport[0x10] |= 1 << 1, --this.fStart2P;
-		else
-			this.ioport[0x10] &= ~(1 << 1);
+		this.ioport[0] = this.ioport[0] & ~(1 << 0) | !!this.fCoin << 0;
+		this.ioport[0x10] = this.ioport[0x10] & ~3 | !!this.fStart1P << 0 | !!this.fStart2P << 1;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		return this;
 	}
 
@@ -209,34 +199,16 @@ class Galaxian {
 		this.fStart2P = 2;
 	}
 
-	up(fDown) {
-	}
-
 	right(fDown) {
-		if (fDown)
-			this.ioport[0] = this.ioport[0] & ~(1 << 2) | 1 << 3;
-		else
-			this.ioport[0] &= ~(1 << 3);
-	}
-
-	down(fDown) {
+		this.ioport[0] = this.ioport[0] & ~(1 << 3 | fDown << 2) | fDown << 3;
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.ioport[0] = this.ioport[0] & ~(1 << 3) | 1 << 2;
-		else
-			this.ioport[0] &= ~(1 << 2);
+		this.ioport[0] = this.ioport[0] & ~(1 << 2 | fDown << 3) | fDown << 2;
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.ioport[0] |= 1 << 4;
-		else
-			this.ioport[0] &= ~(1 << 4);
-	}
-
-	triggerB(fDown) {
+		this.ioport[0] = this.ioport[0] & ~(1 << 4) | fDown << 4;
 	}
 
 	convertRGB() {

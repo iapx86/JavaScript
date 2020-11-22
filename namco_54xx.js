@@ -32,7 +32,6 @@ class BiquadFilter {
 export default class Namco54XX {
 	rate;
 	sampleRate;
-	gain;
 	cycles = 0;
 	mcu = new MB8840();
 	bq = [new BiquadFilter(), new BiquadFilter(), new BiquadFilter()];
@@ -44,7 +43,6 @@ export default class Namco54XX {
 	constructor({PRG, clock, gain = 0.5}) {
 		this.rate = Math.floor(clock / 6);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
-		this.gain = gain;
 		this.mcu.rom.set(PRG);
 		[[200, 1], [200, 1], [2200, 1]].forEach((e, i) => this.bq[i].bandpass(...e));
 		this.gainNode.gain.value = gain;

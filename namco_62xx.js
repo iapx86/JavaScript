@@ -9,7 +9,6 @@ import MB8840 from './mb8840.js';
 export default class Namco62XX {
 	rate;
 	sampleRate;
-	gain;
 	cycles = 0;
 	mcu = new MB8840();
 	delta = 0;
@@ -22,7 +21,6 @@ export default class Namco62XX {
 	constructor({PRG, clock, gain = 0.75}) {
 		this.rate = Math.floor(clock / 6);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
-		this.gain = gain;
 		this.mcu.rom.set(PRG);
 		this.biquadFilter.type = 'bandpass';
 		this.biquadFilter.frequency.value = 200;

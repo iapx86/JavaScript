@@ -169,19 +169,9 @@ class Frogger {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.ppi0[0] &= ~(1 << 7), --this.fCoin;
-		else
-			this.ppi0[0] |= 1 << 7;
-		if (this.fStart1P)
-			this.ppi0[1] &= ~(1 << 7), --this.fStart1P;
-		else
-			this.ppi0[1] |= 1 << 7;
-		if (this.fStart2P)
-			this.ppi0[1] &= ~(1 << 6), --this.fStart2P;
-		else
-			this.ppi0[1] |= 1 << 6;
+		this.ppi0[0] = this.ppi0[0] & ~(1 << 7) | !this.fCoin << 7;
+		this.ppi0[1] = this.ppi0[1] & ~0xc0 | !this.fStart1P << 7 | !this.fStart2P << 6;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		return this;
 	}
 
@@ -198,45 +188,27 @@ class Frogger {
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.ppi0[2] = this.ppi0[2] & ~(1 << 4) | 1 << 6;
-		else
-			this.ppi0[2] |= 1 << 4;
+		this.ppi0[2] = this.ppi0[2] & ~(1 << 4) | fDown << 6 | !fDown << 4;
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.ppi0[0] = this.ppi0[0] & ~(1 << 4) | 1 << 5;
-		else
-			this.ppi0[0] |= 1 << 4;
+		this.ppi0[0] = this.ppi0[0] & ~(1 << 4) | fDown << 5 | !fDown << 4;
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.ppi0[2] = this.ppi0[2] & ~(1 << 6) | 1 << 4;
-		else
-			this.ppi0[2] |= 1 << 6;
+		this.ppi0[2] = this.ppi0[2] & ~(1 << 6) | fDown << 4 | !fDown << 6;
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.ppi0[0] = this.ppi0[0] & ~(1 << 5) | 1 << 4;
-		else
-			this.ppi0[0] |= 1 << 5;
+		this.ppi0[0] = this.ppi0[0] & ~(1 << 5) | fDown << 4 | !fDown << 5;
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.ppi0[0] &= ~(1 << 3);
-		else
-			this.ppi0[0] |= 1 << 3;
+		this.ppi0[0] = this.ppi0[0] & ~(1 << 3) | !fDown << 3;
 	}
 
 	triggerB(fDown) {
-		if (fDown)
-			this.ppi0[0] &= ~(1 << 1);
-		else
-			this.ppi0[0] |= 1 << 1;
+		this.ppi0[0] = this.ppi0[0] & ~(1 << 1) | !fDown << 1;
 	}
 
 	convertRGB() {

@@ -228,19 +228,9 @@ class TheReturnOfIshtar {
 	}
 
 	updateInput() {
-		// クレジット/スタートボタン処理
-		if (this.fCoin)
-			this.in[1] &= ~(1 << 4), --this.fCoin;
-		else
-			this.in[1] |= 1 << 4;
-		if (this.fStart1P)
-			this.in[0] &= ~(1 << 6), --this.fStart1P;
-		else
-			this.in[0] |= 1 << 6;
-		if (this.fStart2P)
-			this.in[1] &= ~(1 << 6), --this.fStart2P;
-		else
-			this.in[1] |= 1 << 6;
+		this.in[1] = this.in[1] & ~0x50 | !this.fCoin << 4 | !this.fStart2P << 6;
+		this.in[0] = this.in[0] & ~(1 << 6) | !this.fStart1P << 6;
+		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P, this.fStart2P -= !!this.fStart2P;
 		return this;
 	}
 
@@ -257,73 +247,43 @@ class TheReturnOfIshtar {
 	}
 
 	up(fDown) {
-		if (fDown)
-			this.in[1] &= ~(1 << 2), this.in[0] |= 1 << 2;
-		else
-			this.in[1] |= 1 << 2;
+		this.in[1] = this.in[1] & ~(1 << 2) | !fDown << 2, this.in[0] |= fDown << 2;
 	}
 
 	right(fDown) {
-		if (fDown)
-			this.in[2] = this.in[2] & ~(1 << 5) | 1 << 4;
-		else
-			this.in[2] |= 1 << 5;
+		this.in[2] = this.in[2] & ~(1 << 5) | fDown << 4 | !fDown << 5;
 	}
 
 	down(fDown) {
-		if (fDown)
-			this.in[0] &= ~(1 << 2), this.in[1] |= 1 << 2;
-		else
-			this.in[0] |= 1 << 2;
+		this.in[0] = this.in[0] & ~(1 << 2) | !fDown << 2, this.in[1] |= fDown << 2;
 	}
 
 	left(fDown) {
-		if (fDown)
-			this.in[2] = this.in[2] & ~(1 << 4) | 1 << 5;
-		else
-			this.in[2] |= 1 << 4;
+		this.in[2] = this.in[2] & ~(1 << 4) | fDown << 5 | !fDown << 4;
 	}
 
 	up2(fDown) {
-		if (fDown)
-			this.in[1] &= ~(1 << 3), this.in[0] |= 1 << 3;
-		else
-			this.in[1] |= 1 << 3;
+		this.in[1] = this.in[1] & ~(1 << 3) | !fDown << 3, this.in[0] |= 1 << 3;
 	}
 
 	right2(fDown) {
-		if (fDown)
-			this.in[0] &= ~(1 << 4), this.in[2] |= 1 << 7;
-		else
-			this.in[0] |= 1 << 4;
+		this.in[0] = this.in[0] & ~(1 << 4) | !fDown << 4, this.in[2] |= 1 << 7;
 	}
 
 	down2(fDown) {
-		if (fDown)
-			this.in[0] &= ~(1 << 3), this.in[1] |= 1 << 3;
-		else
-			this.in[0] |= 1 << 3;
+		this.in[0] = this.in[0] & ~(1 << 3) | !fDown << 3, this.in[1] |= 1 << 3;
 	}
 
 	left2(fDown) {
-		if (fDown)
-			this.in[2] &= ~(1 << 7), this.in[0] |= 1 << 4;
-		else
-			this.in[2] |= 1 << 7;
+		this.in[2] = this.in[2] & ~(1 << 7) | !fDown << 7, this.in[0] |= 1 << 4;
 	}
 
 	triggerA(fDown) {
-		if (fDown)
-			this.in[2] &= ~(1 << 3);
-		else
-			this.in[2] |= 1 << 3;
+		this.in[2] = this.in[2] & ~(1 << 3) | !fDown << 3;
 	}
 
 	triggerB(fDown) {
-		if (fDown)
-			this.in[0] &= ~(1 << 1);
-		else
-			this.in[0] |= 1 << 1;
+		this.in[0] = this.in[0] & ~(1 << 1) | !fDown << 1;
 	}
 
 	convertRGB() {
