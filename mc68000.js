@@ -3464,7 +3464,7 @@ export default class MC68000 extends Cpu {
 		case 0o130: // SHI Dn
 			return this.rwop8(op, this.thru, (this.sr >> 2 | this.sr) & 1 ? 0 : 0xff);
 		case 0o131: // DBHI Dn,<label>
-			return this.dbcc(op, ((this.sr >> 2 | this.sr) & 1) === 0);
+			return this.dbcc(op, !((this.sr >> 2 | this.sr) & 1));
 		case 0o132: // SHI (An)
 		case 0o133: // SHI (An)+
 		case 0o134: // SHI -(An)
@@ -3570,7 +3570,7 @@ export default class MC68000 extends Cpu {
 		case 0o230: // SCC Dn
 			return this.rwop8(op, this.thru, this.sr & 1 ? 0 : 0xff);
 		case 0o231: // DBCC Dn,<label>
-			return this.dbcc(op, (this.sr & 1) === 0);
+			return this.dbcc(op, !(this.sr & 1));
 		case 0o232: // SCC (An)
 		case 0o233: // SCC (An)+
 		case 0o234: // SCC -(An)
@@ -3676,7 +3676,7 @@ export default class MC68000 extends Cpu {
 		case 0o330: // SNE Dn
 			return this.rwop8(op, this.thru, this.sr & 4 ? 0 : 0xff);
 		case 0o331: // DBNE Dn,<label>
-			return this.dbcc(op, (this.sr & 4) === 0);
+			return this.dbcc(op, !(this.sr & 4));
 		case 0o332: // SNE (An)
 		case 0o333: // SNE (An)+
 		case 0o334: // SNE -(An)
@@ -3782,7 +3782,7 @@ export default class MC68000 extends Cpu {
 		case 0o430: // SVC Dn
 			return this.rwop8(op, this.thru, this.sr & 2 ? 0 : 0xff);
 		case 0o431: // DBVC Dn,<label>
-			return this.dbcc(op, (this.sr & 2) === 0);
+			return this.dbcc(op, !(this.sr & 2));
 		case 0o432: // SVC (An)
 		case 0o433: // SVC (An)+
 		case 0o434: // SVC -(An)
@@ -3888,7 +3888,7 @@ export default class MC68000 extends Cpu {
 		case 0o530: // SPL Dn
 			return this.rwop8(op, this.thru, this.sr & 8 ? 0 : 0xff);
 		case 0o531: // DBPL Dn,<label>
-			return this.dbcc(op, (this.sr & 8) === 0);
+			return this.dbcc(op, !(this.sr & 8));
 		case 0o532: // SPL (An)
 		case 0o533: // SPL (An)+
 		case 0o534: // SPL -(An)
@@ -3994,7 +3994,7 @@ export default class MC68000 extends Cpu {
 		case 0o630: // SGE Dn
 			return this.rwop8(op, this.thru, (this.sr >> 2 ^ this.sr) & 2 ? 0 : 0xff);
 		case 0o631: // DBGE Dn,<label>
-			return this.dbcc(op, ((this.sr >> 2 ^ this.sr) & 2) === 0);
+			return this.dbcc(op, !((this.sr >> 2 ^ this.sr) & 2));
 		case 0o632: // SGE (An)
 		case 0o633: // SGE (An)+
 		case 0o634: // SGE -(An)
@@ -4100,7 +4100,7 @@ export default class MC68000 extends Cpu {
 		case 0o730: // SGT Dn
 			return this.rwop8(op, this.thru, (this.sr >> 2 ^ this.sr | this.sr >> 1) & 2 ? 0 : 0xff);
 		case 0o731: // DBGT Dn,<label>
-			return this.dbcc(op, ((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2) === 0);
+			return this.dbcc(op, !((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2));
 		case 0o732: // SGT (An)
 		case 0o733: // SGT (An)+
 		case 0o734: // SGT -(An)
@@ -4170,7 +4170,7 @@ export default class MC68000 extends Cpu {
 	}
 
 	execute_6(op) {
-		const addr = (op & 0xff) === 0 ? this.disp(this.pc) : this.pc + (op << 24 >> 24) | 0;
+		const addr = op & 0xff ? this.pc + (op << 24 >> 24) | 0 : this.disp(this.pc);
 
 		switch (op >> 8 & 0xf) {
 		case 0x0: // BRA <label>
@@ -9956,71 +9956,71 @@ export default class MC68000 extends Cpu {
 		const list = this.fetch16();
 		let ea = this.lea(op);
 		if ((op & 0o70) === 0o40) {
-			if ((list & 1) !== 0)
+			if (list & 1)
 				ea = ea - 2 | 0, this.write16(this.a7, ea);
-			if ((list & 2) !== 0)
+			if (list & 2)
 				ea = ea - 2 | 0, this.write16(this.a6, ea);
-			if ((list & 4) !== 0)
+			if (list & 4)
 				ea = ea - 2 | 0, this.write16(this.a5, ea);
-			if ((list & 8) !== 0)
+			if (list & 8)
 				ea = ea - 2 | 0, this.write16(this.a4, ea);
-			if ((list & 0x10) !== 0)
+			if (list & 0x10)
 				ea = ea - 2 | 0, this.write16(this.a3, ea);
-			if ((list & 0x20) !== 0)
+			if (list & 0x20)
 				ea = ea - 2 | 0, this.write16(this.a2, ea);
-			if ((list & 0x40) !== 0)
+			if (list & 0x40)
 				ea = ea - 2 | 0, this.write16(this.a1, ea);
-			if ((list & 0x80) !== 0)
+			if (list & 0x80)
 				ea = ea - 2 | 0, this.write16(this.a0, ea);
-			if ((list & 0x100) !== 0)
+			if (list & 0x100)
 				ea = ea - 2 | 0, this.write16(this.d7, ea);
-			if ((list & 0x200) !== 0)
+			if (list & 0x200)
 				ea = ea - 2 | 0, this.write16(this.d6, ea);
-			if ((list & 0x400) !== 0)
+			if (list & 0x400)
 				ea = ea - 2 | 0, this.write16(this.d5, ea);
-			if ((list & 0x800) !== 0)
+			if (list & 0x800)
 				ea = ea - 2 | 0, this.write16(this.d4, ea);
-			if ((list & 0x1000) !== 0)
+			if (list & 0x1000)
 				ea = ea - 2 | 0, this.write16(this.d3, ea);
-			if ((list & 0x2000) !== 0)
+			if (list & 0x2000)
 				ea = ea - 2 | 0, this.write16(this.d2, ea);
-			if ((list & 0x4000) !== 0)
+			if (list & 0x4000)
 				ea = ea - 2 | 0, this.write16(this.d1, ea);
-			if ((list & 0x8000) !== 0)
+			if (list & 0x8000)
 				ea = ea - 2 | 0, this.write16(this.d0, ea);
 			this.rwop32(op & 7 | 0o10, this.thru, ea);
 		} else {
-			if ((list & 1) !== 0)
+			if (list & 1)
 				this.write16(this.d0, ea), ea = ea + 2 | 0;
-			if ((list & 2) !== 0)
+			if (list & 2)
 				this.write16(this.d1, ea), ea = ea + 2 | 0;
-			if ((list & 4) !== 0)
+			if (list & 4)
 				this.write16(this.d2, ea), ea = ea + 2 | 0;
-			if ((list & 8) !== 0)
+			if (list & 8)
 				this.write16(this.d3, ea), ea = ea + 2 | 0;
-			if ((list & 0x10) !== 0)
+			if (list & 0x10)
 				this.write16(this.d4, ea), ea = ea + 2 | 0;
-			if ((list & 0x20) !== 0)
+			if (list & 0x20)
 				this.write16(this.d5, ea), ea = ea + 2 | 0;
-			if ((list & 0x40) !== 0)
+			if (list & 0x40)
 				this.write16(this.d6, ea), ea = ea + 2 | 0;
-			if ((list & 0x80) !== 0)
+			if (list & 0x80)
 				this.write16(this.d7, ea), ea = ea + 2 | 0;
-			if ((list & 0x100) !== 0)
+			if (list & 0x100)
 				this.write16(this.a0, ea), ea = ea + 2 | 0;
-			if ((list & 0x200) !== 0)
+			if (list & 0x200)
 				this.write16(this.a1, ea), ea = ea + 2 | 0;
-			if ((list & 0x400) !== 0)
+			if (list & 0x400)
 				this.write16(this.a2, ea), ea = ea + 2 | 0;
-			if ((list & 0x800) !== 0)
+			if (list & 0x800)
 				this.write16(this.a3, ea), ea = ea + 2 | 0;
-			if ((list & 0x1000) !== 0)
+			if (list & 0x1000)
 				this.write16(this.a4, ea), ea = ea + 2 | 0;
-			if ((list & 0x2000) !== 0)
+			if (list & 0x2000)
 				this.write16(this.a5, ea), ea = ea + 2 | 0;
-			if ((list & 0x4000) !== 0)
+			if (list & 0x4000)
 				this.write16(this.a6, ea), ea = ea + 2 | 0;
-			if ((list & 0x8000) !== 0)
+			if (list & 0x8000)
 				this.write16(this.a7, ea);
 		}
 	}
@@ -10029,71 +10029,71 @@ export default class MC68000 extends Cpu {
 		const list = this.fetch16();
 		let ea = this.lea(op);
 		if ((op & 0o70) === 0o40) {
-			if ((list & 1) !== 0)
+			if (list & 1)
 				ea = ea - 4 | 0, this.write32(this.a7, ea);
-			if ((list & 2) !== 0)
+			if (list & 2)
 				ea = ea - 4 | 0, this.write32(this.a6, ea);
-			if ((list & 4) !== 0)
+			if (list & 4)
 				ea = ea - 4 | 0, this.write32(this.a5, ea);
-			if ((list & 8) !== 0)
+			if (list & 8)
 				ea = ea - 4 | 0, this.write32(this.a4, ea);
-			if ((list & 0x10) !== 0)
+			if (list & 0x10)
 				ea = ea - 4 | 0, this.write32(this.a3, ea);
-			if ((list & 0x20) !== 0)
+			if (list & 0x20)
 				ea = ea - 4 | 0, this.write32(this.a2, ea);
-			if ((list & 0x40) !== 0)
+			if (list & 0x40)
 				ea = ea - 4 | 0, this.write32(this.a1, ea);
-			if ((list & 0x80) !== 0)
+			if (list & 0x80)
 				ea = ea - 4 | 0, this.write32(this.a0, ea);
-			if ((list & 0x100) !== 0)
+			if (list & 0x100)
 				ea = ea - 4 | 0, this.write32(this.d7, ea);
-			if ((list & 0x200) !== 0)
+			if (list & 0x200)
 				ea = ea - 4 | 0, this.write32(this.d6, ea);
-			if ((list & 0x400) !== 0)
+			if (list & 0x400)
 				ea = ea - 4 | 0, this.write32(this.d5, ea);
-			if ((list & 0x800) !== 0)
+			if (list & 0x800)
 				ea = ea - 4 | 0, this.write32(this.d4, ea);
-			if ((list & 0x1000) !== 0)
+			if (list & 0x1000)
 				ea = ea - 4 | 0, this.write32(this.d3, ea);
-			if ((list & 0x2000) !== 0)
+			if (list & 0x2000)
 				ea = ea - 4 | 0, this.write32(this.d2, ea);
-			if ((list & 0x4000) !== 0)
+			if (list & 0x4000)
 				ea = ea - 4 | 0, this.write32(this.d1, ea);
-			if ((list & 0x8000) !== 0)
+			if (list & 0x8000)
 				ea = ea - 4 | 0, this.write32(this.d0, ea);
 			this.rwop32(op & 7 | 0o10, this.thru, ea);
 		} else {
-			if ((list & 1) !== 0)
+			if (list & 1)
 				this.write32(this.d0, ea), ea = ea + 4 | 0;
-			if ((list & 2) !== 0)
+			if (list & 2)
 				this.write32(this.d1, ea), ea = ea + 4 | 0;
-			if ((list & 4) !== 0)
+			if (list & 4)
 				this.write32(this.d2, ea), ea = ea + 4 | 0;
-			if ((list & 8) !== 0)
+			if (list & 8)
 				this.write32(this.d3, ea), ea = ea + 4 | 0;
-			if ((list & 0x10) !== 0)
+			if (list & 0x10)
 				this.write32(this.d4, ea), ea = ea + 4 | 0;
-			if ((list & 0x20) !== 0)
+			if (list & 0x20)
 				this.write32(this.d5, ea), ea = ea + 4 | 0;
-			if ((list & 0x40) !== 0)
+			if (list & 0x40)
 				this.write32(this.d6, ea), ea = ea + 4 | 0;
-			if ((list & 0x80) !== 0)
+			if (list & 0x80)
 				this.write32(this.d7, ea), ea = ea + 4 | 0;
-			if ((list & 0x100) !== 0)
+			if (list & 0x100)
 				this.write32(this.a0, ea), ea = ea + 4 | 0;
-			if ((list & 0x200) !== 0)
+			if (list & 0x200)
 				this.write32(this.a1, ea), ea = ea + 4 | 0;
-			if ((list & 0x400) !== 0)
+			if (list & 0x400)
 				this.write32(this.a2, ea), ea = ea + 4 | 0;
-			if ((list & 0x800) !== 0)
+			if (list & 0x800)
 				this.write32(this.a3, ea), ea = ea + 4 | 0;
-			if ((list & 0x1000) !== 0)
+			if (list & 0x1000)
 				this.write32(this.a4, ea), ea = ea + 4 | 0;
-			if ((list & 0x2000) !== 0)
+			if (list & 0x2000)
 				this.write32(this.a5, ea), ea = ea + 4 | 0;
-			if ((list & 0x4000) !== 0)
+			if (list & 0x4000)
 				this.write32(this.a6, ea), ea = ea + 4 | 0;
-			if ((list & 0x8000) !== 0)
+			if (list & 0x8000)
 				this.write32(this.a7, ea);
 		}
 	}
@@ -10101,37 +10101,37 @@ export default class MC68000 extends Cpu {
 	movem16mr(op) {
 		const list = this.fetch16();
 		let ea = this.lea(op);
-		if ((list & 1) !== 0)
+		if (list & 1)
 			this.d0 = this.read16s(ea), ea = ea + 2 | 0;
-		if ((list & 2) !== 0)
+		if (list & 2)
 			this.d1 = this.read16s(ea), ea = ea + 2 | 0;
-		if ((list & 4) !== 0)
+		if (list & 4)
 			this.d2 = this.read16s(ea), ea = ea + 2 | 0;
-		if ((list & 8) !== 0)
+		if (list & 8)
 			this.d3 = this.read16s(ea), ea = ea + 2 | 0;
-		if ((list & 0x10) !== 0)
+		if (list & 0x10)
 			this.d4 = this.read16s(ea), ea = ea + 2 | 0;
-		if ((list & 0x20) !== 0)
+		if (list & 0x20)
 			this.d5 = this.read16s(ea), ea = ea + 2 | 0;
-		if ((list & 0x40) !== 0)
+		if (list & 0x40)
 			this.d6 = this.read16s(ea), ea = ea + 2 | 0;
-		if ((list & 0x80) !== 0)
+		if (list & 0x80)
 			this.d7 = this.read16s(ea), ea = ea + 2 | 0;
-		if ((list & 0x100) !== 0)
+		if (list & 0x100)
 			this.a0 = this.read16s(ea), ea = ea + 2 | 0;
-		if ((list & 0x200) !== 0)
+		if (list & 0x200)
 			this.a1 = this.read16s(ea), ea = ea + 2 | 0;
-		if ((list & 0x400) !== 0)
+		if (list & 0x400)
 			this.a2 = this.read16s(ea), ea = ea + 2 | 0;
-		if ((list & 0x800) !== 0)
+		if (list & 0x800)
 			this.a3 = this.read16s(ea), ea = ea + 2 | 0;
-		if ((list & 0x1000) !== 0)
+		if (list & 0x1000)
 			this.a4 = this.read16s(ea), ea = ea + 2 | 0;
-		if ((list & 0x2000) !== 0)
+		if (list & 0x2000)
 			this.a5 = this.read16s(ea), ea = ea + 2 | 0;
-		if ((list & 0x4000) !== 0)
+		if (list & 0x4000)
 			this.a6 = this.read16s(ea), ea = ea + 2 | 0;
-		if ((list & 0x8000) !== 0)
+		if (list & 0x8000)
 			this.a7 = this.read16s(ea), ea = ea + 2 | 0;
 		if ((op & 0o70) === 0o30)
 			this.rwop32(op & 7 | 0o10, this.thru, ea);
@@ -10140,37 +10140,37 @@ export default class MC68000 extends Cpu {
 	movem32mr(op) {
 		const list = this.fetch16();
 		let ea = this.lea(op);
-		if ((list & 1) !== 0)
+		if (list & 1)
 			this.d0 = this.read32(ea), ea = ea + 4 | 0;
-		if ((list & 2) !== 0)
+		if (list & 2)
 			this.d1 = this.read32(ea), ea = ea + 4 | 0;
-		if ((list & 4) !== 0)
+		if (list & 4)
 			this.d2 = this.read32(ea), ea = ea + 4 | 0;
-		if ((list & 8) !== 0)
+		if (list & 8)
 			this.d3 = this.read32(ea), ea = ea + 4 | 0;
-		if ((list & 0x10) !== 0)
+		if (list & 0x10)
 			this.d4 = this.read32(ea), ea = ea + 4 | 0;
-		if ((list & 0x20) !== 0)
+		if (list & 0x20)
 			this.d5 = this.read32(ea), ea = ea + 4 | 0;
-		if ((list & 0x40) !== 0)
+		if (list & 0x40)
 			this.d6 = this.read32(ea), ea = ea + 4 | 0;
-		if ((list & 0x80) !== 0)
+		if (list & 0x80)
 			this.d7 = this.read32(ea), ea = ea + 4 | 0;
-		if ((list & 0x100) !== 0)
+		if (list & 0x100)
 			this.a0 = this.read32(ea), ea = ea + 4 | 0;
-		if ((list & 0x200) !== 0)
+		if (list & 0x200)
 			this.a1 = this.read32(ea), ea = ea + 4 | 0;
-		if ((list & 0x400) !== 0)
+		if (list & 0x400)
 			this.a2 = this.read32(ea), ea = ea + 4 | 0;
-		if ((list & 0x800) !== 0)
+		if (list & 0x800)
 			this.a3 = this.read32(ea), ea = ea + 4 | 0;
-		if ((list & 0x1000) !== 0)
+		if (list & 0x1000)
 			this.a4 = this.read32(ea), ea = ea + 4 | 0;
-		if ((list & 0x2000) !== 0)
+		if (list & 0x2000)
 			this.a5 = this.read32(ea), ea = ea + 4 | 0;
-		if ((list & 0x4000) !== 0)
+		if (list & 0x4000)
 			this.a6 = this.read32(ea), ea = ea + 4 | 0;
-		if ((list & 0x8000) !== 0)
+		if (list & 0x8000)
 			this.a7 = this.read32(ea), ea = ea + 4 | 0;
 		if ((op & 0o70) === 0o30)
 			this.rwop32(op & 7 | 0o10, this.thru, ea);

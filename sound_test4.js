@@ -158,7 +158,7 @@ class SoundTest {
 			const vol = reg[i * 8] & 0x0f;
 			if (!vol)
 				continue;
-			if (i < 4 && (reg[-4 + i * 8 & 0x3f] & 0x80) !== 0)
+			if (i < 4 && reg[-4 + i * 8 & 0x3f] & 0x80)
 				SoundTest.Xfer28x16(data, 256 * 16 * i, key[1]);
 			else {
 				const freq = reg[3 + i * 8] | reg[2 + i * 8] << 8 | reg[1 + i * 8] << 16 & 0xf0000;

@@ -53,8 +53,7 @@ export default class YM2151 {
 	makeSound(data) {
 		data.forEach((e, i) => {
 			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
-				if (this.wheel.length)
-					this.wheel.shift().forEach(({addr, data}) => this.opm.SetReg(addr, data));
+				this.wheel.length && this.wheel.shift().forEach(({addr, data}) => this.opm.SetReg(addr, data));
 			const ch0 = [], ch1 = [];
 			this.opm.Mix(ch0, ch1, 0, 1);
 			data[i] = (ch0[0] + ch1[0]) / 2;

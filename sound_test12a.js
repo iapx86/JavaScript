@@ -114,7 +114,7 @@ class SoundTest {
 		this.mcu.memorymap[0xd4].write = (addr, data) => { sound[2].write(1, data, this.count); };
 		this.mcu.memorymap[0xd8].write = (addr, data) => {
 			const index = [0xf8, 0xf4, 0xec, 0xdc, 0xbc, 0x7c].indexOf(data & 0xfc);
-			this.bankswitch4(index > 0 ? index << 9 | data << 7 & 0x180 : index === 0 ? data << 7 & 0x180 ^ 0x100 : 0);
+			this.bankswitch4(index < 0 ? 0 : index ? index << 9 | data << 7 & 0x180 : data << 7 & 0x180 ^ 0x100);
 		};
 		for (let i = 0; i < 0x10; i++)
 			this.mcu.memorymap[0xf0 + i].base = MCU.base[i];
@@ -298,7 +298,7 @@ class SoundTest {
 			const vol = reg[i * 8] & 0x0f;
 			if (!vol)
 				continue;
-			if (i < 4 && (reg[-4 + i * 8 & 0x3f] & 0x80) !== 0)
+			if (i < 4 && reg[-4 + i * 8 & 0x3f] & 0x80)
 				SoundTest.Xfer28x16(data, 256 * 16 * (8 + i), key[1]);
 			else {
 				const freq = reg[3 + i * 8] | reg[2 + i * 8] << 8 | reg[1 + i * 8] << 16 & 0xf0000;

@@ -11,7 +11,7 @@ export default class AY_3_8910 {
 		const repeat = 16;
 		this.noiseBuffer = new AudioBuffer({length: 131071 * repeat, sampleRate: audioCtx.sampleRate});
 		for (let data = this.noiseBuffer.getChannelData(0), rng = 0xffff, i = 0; i < data.length; i++) {
-			if (i % repeat === 0)
+			if (!(i % repeat))
 				rng = (rng >>> 16 ^ rng >>> 13 ^ 1) & 1 | rng << 1;
 			data[i] = (rng & 1) * 2 - 1;
 		}
@@ -77,14 +77,14 @@ export default class AY_3_8910 {
 			this.channel.forEach((ch, i) => {
 				const freq = reg[i * 2] | reg[1 + i * 2] << 8 & 0xf00;
 				freq >= this.minfreq && ch.oscillator.frequency.setValueAtTime(this.clock / 16 / (freq ? freq : 1), start);
-				const vol = (reg[7] >> i & 1) !== 0 ? 0 : (reg[8 + i] >> 4 & 1) !== 0 ? evol : reg[8 + i] & 0x0f;
+				const vol = reg[7] >> i & 1 ? 0 : reg[8 + i] >> 4 & 1 ? evol : reg[8 + i] & 0x0f;
 				ch.gainNode.gain.setValueAtTime(vol && !this.muteflag && freq >= this.minfreq ? Math.pow(10, (vol - 15) / 10) * this.gain : 0, start);
 			});
 			const nfreq = reg[6] & 0x1f;
 			this.noise.source.playbackRate.setValueAtTime(this.pbRate / (nfreq ? nfreq : 1), start);
 			let nvol = 0;
 			for (let i = 0; i < 3; i++) {
-				const vol = (reg[7] >> i + 3 & 1) !== 0 ? 0 : (reg[8 + i] >> 4 & 1) !== 0 ? evol : reg[8 + i] & 0x0f;
+				const vol = reg[7] >> i + 3 & 1 ? 0 : reg[8 + i] >> 4 & 1 ? evol : reg[8 + i] & 0x0f;
 				nvol += vol && !this.muteflag ? Math.pow(10, (vol - 15) / 10) * this.gain : 0;
 			}
 			this.noise.gainNode.gain.setValueAtTime(nvol, start);

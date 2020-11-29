@@ -72,7 +72,7 @@ class SoundTest {
 	updateStatus() {
 		// コマンド処理
 		if (this.command.length) {
-			if (this.command[0] === 0) {
+			if (!this.command[0]) {
 				for (let i = 0; i < 0x20; i++)
 					sound[1].write(0x285 + i, 0);
 				sound[1].write(0x380, 0);
@@ -168,7 +168,7 @@ class SoundTest {
 			const vol = reg[i * 8] & 0x0f;
 			if (!vol)
 				continue;
-			if (i < 4 && (reg[-4 + i * 8 & 0x3f] & 0x80) !== 0)
+			if (i < 4 && reg[-4 + i * 8 & 0x3f] & 0x80)
 				SoundTest.Xfer28x16(data, 256 * 16 * (8 + i), key[1]);
 			else {
 				const freq = reg[3 + i * 8] | reg[2 + i * 8] << 8 | reg[1 + i * 8] << 16 & 0xf0000;

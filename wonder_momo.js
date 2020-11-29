@@ -78,12 +78,12 @@ class WonderMomo {
 				case 3:
 					return sound[2].write(addr >> 9 & 3, data);
 				case 4:
-					const bank = data << 5 & 0xe0;
-					if (bank === this.bank)
+					const _bank = data << 5 & 0xe0;
+					if (_bank === this.bank)
 						return;
 					for (let i = 0; i < 0x20; i++)
-						this.cpu.memorymap[0x60 + i].base = PRG1.base[bank + i];
-					return void(this.bank = bank);
+						this.cpu.memorymap[0x60 + i].base = PRG1.base[_bank + i];
+					return void(this.bank = _bank);
 				}
 			};
 		}
@@ -337,60 +337,39 @@ class WonderMomo {
 	}
 
 	makeBitmap(data) {
-		const ram = this.ram;
-		let p, k;
+		const ram = this.ram, flip = !!(ram[0x5ff6] & 1);
 
 		// 画面クリア
-		p = 256 * 16 + 16;
+		let p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256, i++)
 			data.fill(BGCOLOR[this.backcolor << 3 | 7], p, p + 224);
 
 		for (let pri = 0; pri < 8; pri++) {
 			// bg描画
 			if ((this.vScroll[3] >> 9 & 7) === pri) {
-				if (ram[0x5ff6] & 1) {
-					p = 256 * 8 * 2 + 232 - (205 - this.vScroll[3] & 7) * 256 + (7 - this.hScroll[3] & 7);
-					k = 205 - this.vScroll[3] >> 2 & 0x7e | 7 - this.hScroll[3] << 4 & 0xf80 | 0x3000;
-				} else {
-					p = 256 * 8 * 2 + 232 - (19 + this.vScroll[3] & 7) * 256 + (25 + this.hScroll[3] & 7);
-					k = 19 + this.vScroll[3] >> 2 & 0x7e | 25 + this.hScroll[3] << 4 & 0xf80 | 0x3000;
-				}
+				p = flip ? 256 * 8 * 2 + 232 - (205 - this.vScroll[3] & 7) * 256 + (7 - this.hScroll[3] & 7) : 256 * 8 * 2 + 232 - (19 + this.vScroll[3] & 7) * 256 + (25 + this.hScroll[3] & 7);
+				let k = flip ? 205 - this.vScroll[3] >> 2 & 0x7e | 7 - this.hScroll[3] << 4 & 0xf80 | 0x3000 : 19 + this.vScroll[3] >> 2 & 0x7e | 25 + this.hScroll[3] << 4 & 0xf80 | 0x3000;
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0x3000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
 						this.xfer8x8b2(data, p, k, 1);
 			}
 			if ((this.vScroll[2] >> 9 & 7) === pri) {
-				if (ram[0x5ff6] & 1) {
-					p = 256 * 8 * 2 + 232 - (203 - this.vScroll[2] & 7) * 256 + (7 - this.hScroll[2] & 7);
-					k = 203 - this.vScroll[2] >> 2 & 0x7e | 7 - this.hScroll[2] << 4 & 0xf80 | 0x2000;
-				} else {
-					p = 256 * 8 * 2 + 232 - (21 + this.vScroll[2] & 7) * 256 + (25 + this.hScroll[2] & 7);
-					k = 21 + this.vScroll[2] >> 2 & 0x7e | 25 + this.hScroll[2] << 4 & 0xf80 | 0x2000;
-				}
+				p = flip ? 256 * 8 * 2 + 232 - (203 - this.vScroll[2] & 7) * 256 + (7 - this.hScroll[2] & 7) : 256 * 8 * 2 + 232 - (21 + this.vScroll[2] & 7) * 256 + (25 + this.hScroll[2] & 7);
+				let k = flip ? 203 - this.vScroll[2] >> 2 & 0x7e | 7 - this.hScroll[2] << 4 & 0xf80 | 0x2000 : 21 + this.vScroll[2] >> 2 & 0x7e | 25 + this.hScroll[2] << 4 & 0xf80 | 0x2000;
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0x2000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
 						this.xfer8x8b2(data, p, k, 0);
 			}
 			if ((this.vScroll[1] >> 9 & 7) === pri) {
-				if (ram[0x5ff6] & 1) {
-					p = 256 * 8 * 2 + 232 - (206 - this.vScroll[1] & 7) * 256 + (7 - this.hScroll[1] & 7);
-					k = 206 - this.vScroll[1] >> 2 & 0x7e | 7 - this.hScroll[1] << 4 & 0xf80 | 0x1000;
-				} else {
-					p = 256 * 8 * 2 + 232 - (18 + this.vScroll[1] & 7) * 256 + (25 + this.hScroll[1] & 7);
-					k = 18 + this.vScroll[1] >> 2 & 0x7e | 25 + this.hScroll[1] << 4 & 0xf80 | 0x1000;
-				}
+				p = flip ? 256 * 8 * 2 + 232 - (206 - this.vScroll[1] & 7) * 256 + (7 - this.hScroll[1] & 7) : 256 * 8 * 2 + 232 - (18 + this.vScroll[1] & 7) * 256 + (25 + this.hScroll[1] & 7);
+				let k = flip ? 206 - this.vScroll[1] >> 2 & 0x7e | 7 - this.hScroll[1] << 4 & 0xf80 | 0x1000 : 18 + this.vScroll[1] >> 2 & 0x7e | 25 + this.hScroll[1] << 4 & 0xf80 | 0x1000;
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0x1000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
 						this.xfer8x8b1(data, p, k, 1);
 			}
 			if ((this.vScroll[0] >> 9 & 7) === pri) {
-				if (ram[0x5ff6] & 1) {
-					p = 256 * 8 * 2 + 232 - (204 - this.vScroll[0] & 7) * 256 + (7 - this.hScroll[0] & 7);
-					k = 204 - this.vScroll[0] >> 2 & 0x7e | 7 - this.hScroll[0] << 4 & 0xf80;
-				} else {
-					p = 256 * 8 * 2 + 232 - (20 + this.vScroll[0] & 7) * 256 + (25 + this.hScroll[0] & 7);
-					k = 20 + this.vScroll[0] >> 2 & 0x7e | 25 + this.hScroll[0] << 4 & 0xf80;
-				}
+				p = flip ? 256 * 8 * 2 + 232 - (204 - this.vScroll[0] & 7) * 256 + (7 - this.hScroll[0] & 7) : 256 * 8 * 2 + 232 - (20 + this.vScroll[0] & 7) * 256 + (25 + this.hScroll[0] & 7);
+				let k = flip ? 204 - this.vScroll[0] >> 2 & 0x7e | 7 - this.hScroll[0] << 4 & 0xf80 : 20 + this.vScroll[0] >> 2 & 0x7e | 25 + this.hScroll[0] << 4 & 0xf80;
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
 						this.xfer8x8b1(data, p, k, 0);
@@ -401,8 +380,8 @@ class WonderMomo {
 				if (ram[k + 8] >> 5 !== pri)
 					continue;
 				const w = [16, 8, 32, 4][ram[k + 8] >> 1 & 3], h = [16, 8, 32, 4][ram[k + 4] >> 6];
-				const x = w + ram[k + 9] + ram[0x5ff7] - (ram[0x5ff6] & 1 ? 0 : 2) & 0xff;
-				const y = (ram[k + 7] | ram[k + 6] << 8) + (ram[0x5ff5] | ram[0x5ff4] << 8) - (ram[0x5ff6] & 1 ? 141 : 51) & 0x1ff;
+				const x = w + ram[k + 9] + ram[0x5ff7] - (flip ? 0 : 2) & 0xff;
+				const y = (ram[k + 7] | ram[k + 6] << 8) + (ram[0x5ff5] | ram[0x5ff4] << 8) - (flip ? 141 : 51) & 0x1ff;
 				const src = (~ram[k + 8] & 0x18 | 7) & -w | (ram[k + 4] & -h) << 5 & 0x300 | ram[k + 5] << 10 & 0x1fc00 | ram[k + 4] << 17 & 0xe0000;
 				const color = ram[k + 6] << 3 & 0x7f0;
 				switch (ram[k + 8] & 1 | ram[k + 4] >> 4 & 2) {
@@ -630,7 +609,7 @@ class WonderMomo {
  *
  */
 
-let PRG1, PRG2, BG1, BG2, OBJ, RED, BLUE, BGCOLOR, OBJCOLOR, BGADDR, PRG3, PRG3I, PCM;
+let PRG1, PRG2, BG1, BG2, OBJ, RED, BLUE, BGCOLOR, OBJCOLOR, /* BGADDR, */ PRG3, PRG3I, PCM;
 
 read('wndrmomo.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG1 = Uint8Array.concat(...['wm1_16.f1', 'wm1_1.9c'].map(e => zip.decompress(e))).addBase();
@@ -643,7 +622,7 @@ read('wndrmomo.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	BLUE = zip.decompress('wm1-2.3s');
 	BGCOLOR = zip.decompress('wm1-3.4v');
 	OBJCOLOR = zip.decompress('wm1-4.5v');
-	BGADDR = zip.decompress('wm1-5.6u');
+//	BGADDR = zip.decompress('wm1-5.6u');
 	PRG3 = zip.decompress('wm1_3.6b').addBase();
 	PRG3I = zip.decompress('cus60-60a1.mcu').addBase();
 	PCM = Uint8Array.concat(...['wm1_17.f3', 'wm1_17.f3','wm1_18.h3', 'wm1_18.h3'].map(e => zip.decompress(e)));

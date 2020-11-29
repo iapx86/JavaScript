@@ -62,8 +62,8 @@ class Salamander {
 			this.cpu.memorymap[0x800 + i].write = null;
 		}
 		for (let i = 0; i < 0x20; i++) {
-			this.cpu.memorymap[0x900 + i].read = (addr) => { return (addr & 1) !== 0 ? this.ram[0x8000 | addr >> 1 & 0xfff] : 0; };
-			this.cpu.memorymap[0x900 + i].write = (addr, data) => { (addr & 1) !== 0 && (this.ram[0x8000 | addr >> 1 & 0xfff] = data); };
+			this.cpu.memorymap[0x900 + i].read = (addr) => { return addr & 1 ? this.ram[0x8000 | addr >> 1 & 0xfff] : 0; };
+			this.cpu.memorymap[0x900 + i].write = (addr, data) => { addr & 1 && (this.ram[0x8000 | addr >> 1 & 0xfff] = data); };
 		}
 		this.cpu.memorymap[0xa00].write = (addr, data) => {
 			if (addr === 0xa0001)
@@ -121,10 +121,8 @@ class Salamander {
 			case 1:
 				if (this.fm.addr === 0x14) { // CSM/F RESET/IRQEN/LOAD
 					this.fm.status &= ~(data >> 4 & 3);
-					if (data & ~this.fm.reg[0x14] & 1)
-						this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
-					if (data & ~this.fm.reg[0x14] & 2)
-						this.fm.timerb = this.fm.reg[0x12];
+					data & ~this.fm.reg[0x14] & 1 && (this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
+					data & ~this.fm.reg[0x14] & 2 && (this.fm.timerb = this.fm.reg[0x12]);
 				}
 				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
 			}
@@ -283,10 +281,10 @@ class Salamander {
 
 		// bg描画
 		for (let k = 0x9000; k < 0xa000; k += 2)
-			if ((this.ram[k] & 0x50) === 0 && this.ram[k] & 0xf8)
+			if (!(this.ram[k] & 0x50) && this.ram[k] & 0xf8)
 				this.xfer8x8(data, k);
 		for (let k = 0xa000; k < 0xb000; k += 2)
-			if ((this.ram[k] & 0x50) === 0 && this.ram[k] & 0xf8)
+			if (!(this.ram[k] & 0x50) && this.ram[k] & 0xf8)
 				this.xfer8x8(data, k);
 		for (let k = 0x9000; k < 0xa000; k += 2)
 			if ((this.ram[k] & 0x50) === 0x40 && this.ram[k] & 0xf8)
@@ -303,9 +301,9 @@ class Salamander {
 					continue;
 				let zoom = this.ram[k + 5];
 				let src = this.ram[k + 9] << 9 & 0x18000 | this.ram[k + 7] << 7;
-				if (this.ram[k + 4] === 0 && this.ram[k + 6] !== 0xff)
+				if (!this.ram[k + 4] && this.ram[k + 6] !== 0xff)
 					src = src + (this.ram[k + 6] << 15) & 0x1ff80;
-				if (zoom === 0xff && src === 0 || (zoom |= this.ram[k + 3] << 2 & 0x300) === 0)
+				if (zoom === 0xff && !src || !(zoom |= this.ram[k + 3] << 2 & 0x300))
 					continue;
 				const color = this.ram[k + 9] << 3 & 0xf0;
 				const y = (this.ram[k + 9] << 8 | this.ram[k + 11]) + 16 & 0x1ff;
@@ -347,7 +345,7 @@ class Salamander {
 		const color = this.ram[k + 0x2001] << 4 & 0x7f0;
 		let src = (this.ram[k] << 8 & 0x700 | this.ram[k + 1]) << 6, px;
 
-		if (x0 < 16 && x0 >= 247)
+		if (x0 < 16 || x0 >= 247)
 			return;
 		if (~this.ram[k] & 0x20 || (this.ram[k] & 0xc0) === 0x40)
 			switch ((this.ram[k] >> 2 & 2 | this.ram[k + 0x2001] >> 7) ^ this.flip) {
@@ -492,7 +490,7 @@ class Salamander {
 			return;
 		for (let x = x0, i = 0; i >> 7 < w; x = x - 1 & 0xff, i += zoom)
 			for (let y = y0, j = 0; j >> 7 < h; y = y + 1 & 0x1ff, j += zoom)
-				if ((px = this.chr[src | (i >> 7) * h | j >> 7]) !== 0)
+				if ((px = this.chr[src | (i >> 7) * h | j >> 7]))
 					data[y << 8 | x] = color | px;
 	}
 
@@ -504,7 +502,7 @@ class Salamander {
 			return;
 		for (let x = x0, i = 0; i >> 7 < w; x = x - 1 & 0xff, i += zoom)
 			for (let y = y1, j = 0; j >> 7 < h; y = y - 1 & 0x1ff, j += zoom)
-				if ((px = this.chr[src | (i >> 7) * h | j >> 7]) !== 0)
+				if ((px = this.chr[src | (i >> 7) * h | j >> 7]))
 					data[y << 8 | x] = color | px;
 	}
 
@@ -516,7 +514,7 @@ class Salamander {
 			return;
 		for (let x = x1, i = 0; i >> 7 < w; x = x + 1 & 0xff, i += zoom)
 			for (let y = y0, j = 0; j >> 7 < h; y = y + 1 & 0x1ff, j += zoom)
-				if ((px = this.chr[src | (i >> 7) * h | j >> 7]) !== 0)
+				if ((px = this.chr[src | (i >> 7) * h | j >> 7]))
 					data[y << 8 | x] = color | px;
 	}
 
@@ -528,7 +526,7 @@ class Salamander {
 			return;
 		for (let x = x1, i = 0; i >> 7 < w; x = x + 1 & 0xff, i += zoom)
 			for (let y = y1, j = 0; j >> 7 < h; y = y - 1 & 0x1ff, j += zoom)
-				if ((px = this.chr[src | (i >> 7) * h | j >> 7]) !== 0)
+				if ((px = this.chr[src | (i >> 7) * h | j >> 7]))
 					data[y << 8 | x] = color | px;
 	}
 }

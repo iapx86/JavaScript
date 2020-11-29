@@ -212,14 +212,13 @@ class TankBattalion {
 	makeBitmap(data) {
 		// bg描画
 		let p = 256 * 8 * 2 + 232;
-		let k = 0x0040;
-		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
+		for (let k = 0x0040, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
 				this.xfer8x8(data, p, k);
 
 		// 弾描画
 		for (let k = 0, i = 0; i < 8; k += 2, i++) {
-			const p = this.ram[k] | this.ram[k + 1] + 16 << 8;
+			p = this.ram[k] | this.ram[k + 1] + 16 << 8;
 			if (!data[p])
 				data[p] = 0xe;
 			if (!data[p + 1])

@@ -82,16 +82,16 @@ export default class VLM5030 {
 		data.forEach((e, i) => {
 			data[i] = this.output;
 			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {
-				if (this.BSY === 0)
+				if (!this.BSY)
 					continue;
-				if (this.scount === 0) {
+				if (!this.scount) {
 					this.scount = [40, 30, 20, 20, 40, 60, 50, 50][this.param >> 3 & 7];
-					if (this.icount === 0) {
+					if (!this.icount) {
 						[this.pitch0, this.energy0, this.k0] = [this.npitch, this.nenergy, this.nk];
 						this.npitch = this.nenergy = 0;
 						this.nk = new Int16Array(10);
 						const frame = this.base.subarray(this.offset);
-						if ((frame[0] & 1) === 0) {
+						if (~frame[0] & 1) {
 							this.npitch = VLM5030.table.p[frame[0] >> 1 & 0x1f] + [0, 8, -8, -8][this.param >> 6 & 3] & 0xff;
 							this.nenergy = VLM5030.table.e[frame[0] >> 6 | frame[1] << 2 & 0x1c];
 							this.nk[9] = VLM5030.table.k4_9[frame[1] >> 3 & 7];
@@ -106,16 +106,16 @@ export default class VLM5030 {
 							this.nk[0] = VLM5030.table.k0[frame[5] >> 2];
 							this.offset += 6;
 							this.icount = 4;
-						} else if ((frame[0] & 2) === 0) {
+						} else if (~frame[0] & 2) {
 							this.offset++;
 							this.icount = (frame[0] & 0xc) + 4 << 1;
-						} else if (this.energy0 !== 0)
+						} else if (this.energy0)
 							this.icount = 4;
 						else {
 							this.BSY = 0;
 							continue;
 						}
-						if (this.energy0 !== 0)
+						if (this.energy0)
 							[this.pitch1, this.energy1, this.k1] = [this.npitch, this.nenergy, this.nk];
 						else
 							[this.pitch1, this.energy1, this.k1] = [this.pitch0, this.energy0, this.k0];
@@ -127,7 +127,7 @@ export default class VLM5030 {
 						this.k[j] = this.k0[j] + ((this.k1[j] - this.k0[j]) * ieffect >> 2);
 				}
 				const u = new Int32Array(11);
-				u[10] = this.pitch0 > 1 ? this.energy * (this.pcount === 0) : Math.random() >= 0.5 ? this.energy : -this.energy;
+				u[10] = this.pitch0 > 1 ? this.energy * !this.pcount : Math.random() >= 0.5 ? this.energy : -this.energy;
 				for (let j = 9; j >= 0; --j)
 					u[j] = u[j + 1] + (this.k[j] * this.x[j] >> 9);
 				for (let j = 9; j >= 1; --j)

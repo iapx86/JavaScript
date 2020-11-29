@@ -158,7 +158,7 @@ export default class Z80 extends Cpu {
 		case 0x1f: // RRA
 			return v = this.f, this.f = this.f & ~0x13 | this.a & 1, void(this.a = this.a >> 1 | v << 7 & 0x80);
 		case 0x20: // JR NZ,e
-			return this.jr((this.f & 0x40) === 0);
+			return this.jr(!(this.f & 0x40));
 		case 0x21: // LD HL,nn
 			return void([this.l, this.h] = this.split(this.fetch16()));
 		case 0x22: // LD (nn),HL
@@ -190,7 +190,7 @@ export default class Z80 extends Cpu {
 		case 0x2f: // CPL
 			return this.f =  this.f | 0x12, void(this.a = ~this.a & 0xff);
 		case 0x30: // JR NC,e
-			return this.jr((this.f & 1) === 0);
+			return this.jr(!(this.f & 1));
 		case 0x31: // LD SP,nn
 			return void(this.sp = this.fetch16());
 		case 0x32: // LD (nn),A
@@ -478,15 +478,15 @@ export default class Z80 extends Cpu {
 		case 0xbf: // CP A
 			return void(this.sub8(this.a, this.a));
 		case 0xc0: // RET NZ
-			return this.ret((this.f & 0x40) === 0);
+			return this.ret(!(this.f & 0x40));
 		case 0xc1: // POP BC
 			return void([this.c, this.b] = this.split(this.pop16()));
 		case 0xc2: // JP NZ,nn
-			return this.jp((this.f & 0x40) === 0);
+			return this.jp(!(this.f & 0x40));
 		case 0xc3: // JP nn
 			return this.jp(true);
 		case 0xc4: // CALL NZ,nn
-			return this.call((this.f & 0x40) === 0);
+			return this.call(!(this.f & 0x40));
 		case 0xc5: // PUSH BC
 			return this.push16(this.c | this.b << 8);
 		case 0xc6: // ADD A,n
@@ -510,15 +510,15 @@ export default class Z80 extends Cpu {
 		case 0xcf: // RST 08h
 			return this.rst(0x08);
 		case 0xd0: // RET NC
-			return this.ret((this.f & 1) === 0);
+			return this.ret(!(this.f & 1));
 		case 0xd1: // POP DE
 			return void([this.e, this.d] = this.split(this.pop16()));
 		case 0xd2: // JP NC,nn
-			return this.jp((this.f & 1) === 0);
+			return this.jp(!(this.f & 1));
 		case 0xd3: // OUT n,A
 			return this.iowrite(this.a, this.fetch(), this.a);
 		case 0xd4: // CALL NC,nn
-			return this.call((this.f & 1) === 0);
+			return this.call(!(this.f & 1));
 		case 0xd5: // PUSH DE
 			return this.push16(this.e | this.d << 8);
 		case 0xd6: // SUB n
@@ -545,15 +545,15 @@ export default class Z80 extends Cpu {
 		case 0xdf: // RST 18h
 			return this.rst(0x18);
 		case 0xe0: // RET PO
-			return this.ret((this.f & 4) === 0);
+			return this.ret(!(this.f & 4));
 		case 0xe1: // POP HL
 			return void([this.l, this.h] = this.split(this.pop16()));
 		case 0xe2: // JP PO,nn
-			return this.jp((this.f & 4) === 0);
+			return this.jp(!(this.f & 4));
 		case 0xe3: // EX (SP),HL
 			return v = this.l | this.h << 8, [this.l, this.h] = this.split(this.pop16()), this.push16(v);
 		case 0xe4: // CALL PO,nn
-			return this.call((this.f & 4) === 0);
+			return this.call(!(this.f & 4));
 		case 0xe5: // PUSH HL
 			return this.push16(this.l | this.h << 8);
 		case 0xe6: // AND n
@@ -577,15 +577,15 @@ export default class Z80 extends Cpu {
 		case 0xef: // RST 28h
 			return this.rst(0x28);
 		case 0xf0: // RET P
-			return this.ret((this.f & 0x80) === 0);
+			return this.ret(!(this.f & 0x80));
 		case 0xf1: // POP AF
 			return void([this.f, this.a] = this.split(this.pop16()));
 		case 0xf2: // JP P,nn
-			return this.jp((this.f & 0x80) === 0);
+			return this.jp(!(this.f & 0x80));
 		case 0xf3: // DI
 			return void(this.iff = 0);
 		case 0xf4: // CALL P,nn
-			return this.call((this.f & 0x80) === 0);
+			return this.call(!(this.f & 0x80));
 		case 0xf5: // PUSH AF
 			return this.push16(this.f | this.a << 8);
 		case 0xf6: // OR n

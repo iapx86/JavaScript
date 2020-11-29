@@ -34,7 +34,7 @@ class Grobda {
 	fPortTest = false;
 	fInterruptEnable0 = false;
 	fInterruptEnable1 = false;
-	fSoundEnable = false;
+//	fSoundEnable = false;
 	ram = new Uint8Array(0x2000).addBase();
 	port = new Uint8Array(0x40);
 	in = Uint8Array.of(0, 0, 0, 0, 0, 0, 6, 3, 0, 0);
@@ -76,9 +76,9 @@ class Grobda {
 			case 0x03: // INTERRUPT START
 				return void(this.fInterruptEnable0 = true);
 			case 0x06: // SND STOP
-				return this.fSoundEnable = false, void(this.se[0].stop = true);
-			case 0x07: // SND START
-				return void(this.fSoundEnable = true);
+				return /* this.fSoundEnable = false, */ void(this.se[0].stop = true);
+//			case 0x07: // SND START
+//				return void(this.fSoundEnable = true);
 			case 0x08: // PORT TEST START
 				return void(this.fPortTest = true);
 			case 0x09: // PORT TEST END
@@ -112,7 +112,7 @@ class Grobda {
 	}
 
 	execute() {
-		sound[0].mute(!this.fSoundEnable);
+//		sound[0].mute(!this.fSoundEnable);
 		if (this.fInterruptEnable0)
 			this.cpu.interrupt();
 		if (this.fInterruptEnable1)
@@ -192,7 +192,7 @@ class Grobda {
 		if (this.fReset) {
 			this.fReset = false;
 			this.se[0].stop = true;
-			this.fSoundEnable = false;
+//			this.fSoundEnable = false;
 			this.cpu.reset();
 			this.cpu2.disable();
 		}

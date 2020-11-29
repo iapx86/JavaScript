@@ -58,8 +58,7 @@ export default class PacManSound {
 		const reg = this.reg;
 		data.forEach((e, i) => {
 			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
-				if (this.wheel.length)
-					this.wheel.shift().forEach(({addr, data}) => reg[addr] = data);
+				this.wheel.length && this.wheel.shift().forEach(({addr, data}) => reg[addr] = data);
 			for (let j = 0; j < 3; j++) {
 				data[i] += this.snd[reg[0x05 + j * 5] << 5 & 0xe0 | this.phase[j] >>> 27] * reg[0x15 + j * 5] / 15;
 				this.phase[j] = this.phase[j] + ((j ? 0 : reg[0x10]) | reg[0x11 + j * 5] << 4 | reg[0x12 + j * 5] << 8 | reg[0x13 + j * 5] << 12 | reg[0x14 + j * 5] << 16) * this.rate | 0;

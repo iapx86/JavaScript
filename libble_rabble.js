@@ -68,13 +68,13 @@ class LibbleRabble {
 		this.cpu.memorymap[0x68].read = (addr) => { return this.port[addr & 0x3f] | 0xf0; };
 		this.cpu.memorymap[0x68].write = (addr, data) => { this.port[addr & 0x3f] = data & 0xf; };
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0x70 + i].write = (addr) => { this.fInterruptEnable = (addr & 0x800) === 0; };
+			this.cpu.memorymap[0x70 + i].write = (addr) => { this.fInterruptEnable = !(addr & 0x800); };
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[0x80 + i].base = PRG1.base[i];
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0x80 + i].write = (addr) => { (addr & 0x800) === 0 ? this.cpu3.enable() : this.cpu3.disable(); };
+			this.cpu.memorymap[0x80 + i].write = (addr) => { addr & 0x800 ? this.cpu3.disable() : this.cpu3.enable(); };
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0x90 + i].write = (addr) => { (addr & 0x800) === 0 ? this.cpu2.enable() : this.cpu2.disable(); };
+			this.cpu.memorymap[0x90 + i].write = (addr) => { addr & 0x800 ? this.cpu2.disable() : this.cpu2.enable(); };
 		this.cpu.memorymap[0xa0].write = (addr) => { this.palette = addr << 7 & 0x80; };
 
 		for (let i = 0; i < 4; i++) {
@@ -103,7 +103,7 @@ class LibbleRabble {
 			this.cpu3.memorymap[0x1900 + i].write = null;
 		}
 		for (let i = 0; i < 0x1000; i++)
-			this.cpu3.memorymap[0x3000 + i].write16 = (addr) => { this.fInterruptEnable2 = (addr & 0x80000) === 0; };
+			this.cpu3.memorymap[0x3000 + i].write16 = (addr) => { this.fInterruptEnable2 = !(addr & 0x80000); };
 
 		// Videoの初期化
 		this.convertRGB();
@@ -349,33 +349,27 @@ class LibbleRabble {
 	makeBitmap(data) {
 		// graphic描画
 		let p = 256 * 8 * 2 + 239;
-		let k = 0x200;
 		let idx = 0x60 | this.palette;
-		for (let i = 0; i < 224; p -= 256 * 288 + 1, i++)
+		for (let k = 0x200, i = 0; i < 224; p -= 256 * 288 + 1, i++)
 			for (let j = 0; j < 288; k++, p += 256, j++)
 				data[p] = idx | this.vram[k];
 
 		// bg描画
 		p = 256 * 8 * 4 + 232;
-		k = 0x40;
-		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
+		for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
 				this.xfer8x8(data, p, k);
 		p = 256 * 8 * 36 + 232;
-		k = 2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k);
 		p = 256 * 8 * 37 + 232;
-		k = 0x22;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x22, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k);
 		p = 256 * 8 * 2 + 232;
-		k = 0x3c2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x3c2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k);
 		p = 256 * 8 * 3 + 232;
-		k = 0x3e2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x3e2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k);
 
 		// obj描画

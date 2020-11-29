@@ -64,8 +64,8 @@ class TwinBee {
 			this.cpu.memorymap[0x100 + i].write = null;
 		}
 		for (let i = 0; i < 0x80; i++) {
-			this.cpu.memorymap[0x200 + i].read = (addr) => { return (addr & 1) !== 0 ? this.ram2[addr >> 1 & 0x3fff] : 0; };
-			this.cpu.memorymap[0x200 + i].write = (addr, data) => { (addr & 1) !== 0 && (this.ram2[addr >> 1 & 0x3fff] = data); };
+			this.cpu.memorymap[0x200 + i].read = (addr) => { return addr & 1 ? this.ram2[addr >> 1 & 0x3fff] : 0; };
+			this.cpu.memorymap[0x200 + i].write = (addr, data) => { addr & 1 && (this.ram2[addr >> 1 & 0x3fff] = data); };
 		}
 		for (let i = 0; i < 0x100; i++) {
 			this.cpu.memorymap[0x300 + i].base = this.ram.base[0x100 + i];
@@ -165,22 +165,22 @@ class TwinBee {
 		// Videoの初期化
 
 		// 輝度の計算
-		const intensity = new Array(32);
+		const _intensity = new Array(32);
 		const r = [4700, 2400, 1200, 620, 300];
 		for (let i = 0; i < 32; i++) {
 			let rt = 0, v = 0;
 			for (let j = 0; j < r.length; j++)
 				if (~i >> j & 1)
 					rt += 1 / r[j], v += 0.05 / r[j];
-			intensity[i] = ((v + 0.005) / (rt + 0.001) - 0.7) * 255 / 5.0 + 0.4;
+			_intensity[i] = ((v + 0.005) / (rt + 0.001) - 0.7) * 255 / 5.0 + 0.4;
 		}
-		const black = intensity[0], white = 255 / (intensity[31] - black);
-		this.intensity.set(intensity.map(e => (e - black) * white + 0.5));
+		const black = _intensity[0], white = 255 / (_intensity[31] - black);
+		this.intensity.set(_intensity.map(e => (e - black) * white + 0.5));
 	}
 
 	execute() {
 		for (let vpos = 0; vpos < 256; vpos++) {
-			if (vpos === 0 && this.fInterrupt2Enable)
+			if (!vpos && this.fInterrupt2Enable)
 				this.cpu.interrupt(2);
 			if (vpos === 120 && this.fInterrupt4Enable)
 				this.cpu.interrupt(4);
@@ -322,10 +322,10 @@ class TwinBee {
 
 		// bg描画
 		for (let k = 0x23000; k < 0x24000; k += 2)
-			if ((this.ram[k] & 0x50) === 0 && this.ram[k] & 0xf8)
+			if (!(this.ram[k] & 0x50) && this.ram[k] & 0xf8)
 				this.xfer8x8(data, k);
 		for (let k = 0x22000; k < 0x23000; k += 2)
-			if ((this.ram[k] & 0x50) === 0 && this.ram[k] & 0xf8)
+			if (!(this.ram[k] & 0x50) && this.ram[k] & 0xf8)
 				this.xfer8x8(data, k);
 		for (let k = 0x23000; k < 0x24000; k += 2)
 			if ((this.ram[k] & 0x50) === 0x40 && this.ram[k] & 0xf8)
@@ -342,9 +342,9 @@ class TwinBee {
 					continue;
 				let zoom = this.ram[k + 5];
 				let src = this.ram[k + 9] << 9 & 0x18000 | this.ram[k + 7] << 7;
-				if (this.ram[k + 4] === 0 && this.ram[k + 6] !== 0xff)
+				if (!this.ram[k + 4] && this.ram[k + 6] !== 0xff)
 					src = src + (this.ram[k + 6] << 15) & 0x1ff80;
-				if (zoom === 0xff && src === 0 || (zoom |= this.ram[k + 3] << 2 & 0x300) === 0)
+				if (zoom === 0xff && !src || !(zoom |= this.ram[k + 3] << 2 & 0x300))
 					continue;
 				const color = this.ram[k + 9] << 3 & 0xf0;
 				const y = (this.ram[k + 9] << 8 | this.ram[k + 11]) + 16 & 0x1ff;
@@ -386,7 +386,7 @@ class TwinBee {
 		const color = this.ram[k + 0x2001] << 4 & 0x7f0;
 		let src = (this.ram[k] << 8 & 0x700 | this.ram[k + 1]) << 6, px;
 
-		if (x0 < 16 && x0 >= 247)
+		if (x0 < 16 || x0 >= 247)
 			return;
 		if (~this.ram[k] & 0x20 || (this.ram[k] & 0xc0) === 0x40)
 			switch ((this.ram[k] >> 2 & 2 | this.ram[k + 0x2001] >> 7) ^ this.flip) {

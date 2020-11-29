@@ -45,10 +45,7 @@ export default class PolePositionSound {
 	}
 
 	write(addr, data, timer = 0) {
-		this.ram[addr &= 0x3ff] = data;
-		if (addr < 0x3c0)
-			return;
-		this.tmpwheel[timer].push({addr: addr & 0x3f, data});
+		this.ram[addr &= 0x3ff] = data, addr >= 0x3c0 && this.tmpwheel[timer].push({addr: addr & 0x3f, data});
 	}
 
 	update() {
@@ -66,8 +63,7 @@ export default class PolePositionSound {
 		const reg = this.reg;
 		data.forEach((e, i) => {
 			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
-				if (this.wheel.length)
-					this.wheel.shift().forEach(({addr, data}) => reg[addr] = data);
+				this.wheel.length && this.wheel.shift().forEach(({addr, data}) => reg[addr] = data);
 			for (let j = 2; j < 8; j++) {
 				const vol = reg[2 + j * 4] >> 4 || reg[3 + j * 4] >> 4 || reg[3 + j * 4] & 0xf || reg[0x23 + j * 4] >> 4;
 				data[i] += this.snd[reg[0x23 + j * 4] << 5 & 0xe0 | this.phase[j] >>> 27] * vol / 15;

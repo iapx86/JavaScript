@@ -29,13 +29,13 @@ export default class Namco63701X {
 
 	write(addr, data) {
 		const ch = this.channel[addr >> 1 & 1];
-		if ((addr & 1) !== 0)
+		if (addr & 1)
 			ch.select = data;
-		else if ((ch.select & 0x1f) !== 0) {
+		else if (ch.select & 0x1f) {
 			const bank = ch.select << 11 & 0x70000, offs = ch.select - 1 << 1 & 0x3e;
 			ch.vol = [26, 84, 200, 258][data >> 6];
 			ch.play = this.pcm[ch.pos = bank | this.pcm[bank | offs] << 8 | this.pcm[bank | offs + 1]] !== 0xff;
-			ch.count = this.pcm[ch.pos] === 0 ? this.pcm[++ch.pos] + 1 : 0;
+			ch.count = this.pcm[ch.pos] ? 0 : this.pcm[++ch.pos] + 1;
 		} else
 			ch.play = false;
 	}
@@ -47,10 +47,8 @@ export default class Namco63701X {
 			this.channel.forEach(ch => ch.play && !ch.count && (data[i] += (this.pcm[ch.pos] - 0x80) * ch.vol / 32767));
 			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate)
 				this.channel.forEach(ch => {
-					if (!ch.play || ch.count && --ch.count)
-						return;
-					ch.play = this.pcm[++ch.pos] !== 0xff;
-					ch.count = this.pcm[ch.pos] === 0 ? this.pcm[++ch.pos] + 1 : 0;
+					if (ch.play && !(ch.count && --ch.count))
+						ch.play = this.pcm[++ch.pos] !== 0xff, ch.count = this.pcm[ch.pos] ? 0 : this.pcm[++ch.pos] + 1;
 				});
 		});
 	}

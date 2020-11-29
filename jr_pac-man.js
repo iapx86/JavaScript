@@ -77,7 +77,7 @@ class JrPacMan {
 		for (let i = 0; i < 0x60; i++)
 			this.cpu.memorymap[0x80 + i].base = PRG.base[0x40 + i];
 		for (let i = 0; i < 0x100; i++)
-			this.cpu.iomap[i].write = (addr, data) => { (addr & 0xff) === 0 && (this.vector = data); };
+			this.cpu.iomap[i].write = (addr, data) => { !(addr & 0xff) && (this.vector = data); };
 
 		JrPacMan.patchROM();
 
@@ -281,7 +281,7 @@ class JrPacMan {
 			data.fill(0, p, p + 224);
 
 		// bg描画
-		if (this.ram[0x1073] === 0)
+		if (!this.ram[0x1073])
 			this.drawBG(data);
 
 		// obj描画

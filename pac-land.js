@@ -60,13 +60,13 @@ class PacLand {
 		this.cpu.memorymap[0x38].write = (addr, data) => { this.dwScroll0 = data | addr << 8 & 0x100; };
 		this.cpu.memorymap[0x3a].write = (addr, data) => { this.dwScroll1 = data | addr << 8 & 0x100; };
 		this.cpu.memorymap[0x3c].write = (addr, data) => {
-			const bank = (data << 5 & 0xe0) + 0x80;
-			if ((addr & 0xff) !== 0)
+			const _bank = (data << 5 & 0xe0) + 0x80;
+			if (addr & 0xff)
 				return;
-			if (bank !== this.bank) {
+			if (_bank !== this.bank) {
 				for (let i = 0; i < 0x20; i++)
-					this.cpu.memorymap[0x40 + i].base = PRG1.base[bank + i];
-				this.bank = bank;
+					this.cpu.memorymap[0x40 + i].base = PRG1.base[_bank + i];
+				this.bank = _bank;
 			}
 			this.palette = data << 5 & 0x300;
 		};
@@ -77,13 +77,13 @@ class PacLand {
 			this.cpu.memorymap[0x68 + i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0x70 + i].write = (addr) => { this.fInterruptEnable0 = (addr & 0x800) === 0; };
+			this.cpu.memorymap[0x70 + i].write = (addr) => { this.fInterruptEnable0 = !(addr & 0x800); };
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[0x80 + i].base = PRG1.base[i];
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0x80 + i].write = (addr) => { (addr & 0x800) === 0 ? this.mcu.enable() : this.mcu.disable(); };
+			this.cpu.memorymap[0x80 + i].write = (addr) => { addr & 0x800 ? this.mcu.disable() : this.mcu.enable(); };
 		for (let i = 0; i < 0x10; i++)
-			this.cpu.memorymap[0x90 + i].write = (addr) => { this.fFlip = (addr & 0x800) === 0; };
+			this.cpu.memorymap[0x90 + i].write = (addr) => { this.fFlip = !(addr & 0x800); };
 
 		this.mcu.memorymap[0].base = this.ram2.base[0];
 		this.mcu.memorymap[0].read = (addr) => { return addr === 2 ? this.in[4] : this.ram2[addr]; };
@@ -93,14 +93,14 @@ class PacLand {
 			this.mcu.memorymap[0x10 + i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 0x40; i++)
-			this.mcu.memorymap[0x40 + i].write = (addr) => { this.fInterruptEnable1 = (addr & 0x2000) === 0; };
+			this.mcu.memorymap[0x40 + i].write = (addr) => { this.fInterruptEnable1 = !(addr & 0x2000); };
 		for (let i = 0; i < 0x20; i++)
 			this.mcu.memorymap[0x80 + i].base = PRG2.base[i];
 		for (let i = 0; i < 8; i++) {
 			this.mcu.memorymap[0xc0 + i].base = this.ram2.base[1 + i];
 			this.mcu.memorymap[0xc0 + i].write = null;
 		}
-		this.mcu.memorymap[0xd0].read = (addr) => { return (addr & 0xfc) === 0 ? this.in[addr & 3] : 0xff; };
+		this.mcu.memorymap[0xd0].read = (addr) => { return addr & 0xfc ? 0xff : this.in[addr & 3]; };
 		for (let i = 0; i < 0x10; i++)
 			this.mcu.memorymap[0xf0 + i].base = PRG2I.base[i];
 

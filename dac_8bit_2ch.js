@@ -34,9 +34,7 @@ export default class Dac8Bit2Ch {
 	}
 
 	update() {
-		if (this.wheel.length >= 2)
-			this.wheel.splice(0), this.position = 0;
-		this.wheel.push(this.tmpwheel);
+		this.wheel.length >= 2 && (this.wheel.splice(0), this.position = 0), this.wheel.push(this.tmpwheel);
 		this.tmpwheel = [new Uint8Array(this.resolution).fill(0x80), new Uint8Array(this.resolution).fill(0x80)];
 	}
 
@@ -44,10 +42,8 @@ export default class Dac8Bit2Ch {
 		data.forEach((e, i) => {
 			this.channel.forEach(ch => data[i] += ch.output * ch.gain);
 			for (this.cycles += 60 * this.resolution; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {
-				if (this.position >= this.resolution && this.wheel.length > 0)
-					this.wheel.shift(), this.position = 0;
-				if (this.wheel.length)
-					this.channel.forEach((ch, j) => ch.output = (this.wheel[0][j][this.position] - 0x80) / 128), this.position++;
+				this.position >= this.resolution && this.wheel.length > 0 && (this.wheel.shift(), this.position = 0);
+				this.wheel.length && this.channel.forEach((ch, j) => ch.output = (this.wheel[0][j][this.position] - 0x80) / 128), this.position++;
 			}
 		});
 	}

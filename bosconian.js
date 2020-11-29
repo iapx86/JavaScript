@@ -68,10 +68,10 @@ class Bosconian {
 		this.mmi[7] = 3; // DIPSW B/A8
 
 		const range = (page, start, end = start, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
-		const interrupt = mcu => {
-			mcu.cause = mcu.cause & ~4 | !mcu.interrupt() << 2;
-			for (let op = mcu.execute(); op !== 0x3c && (op !== 0x25 || mcu.cause & 4); op = mcu.execute())
-				op === 0x25 && (mcu.cause &= ~4);
+		const interrupt = (_mcu) => {
+			_mcu.cause = _mcu.cause & ~4 | !_mcu.interrupt() << 2;
+			for (let op = _mcu.execute(); op !== 0x3c && (op !== 0x25 || _mcu.cause & 4); op = _mcu.execute())
+				op === 0x25 && (_mcu.cause &= ~4);
 		};
 
 		for (let page = 0; page < 0x100; page++)
@@ -88,7 +88,7 @@ class Bosconian {
 					case 0x22:
 						return void(this.fSoundEnable = (data & 1) !== 0);
 					case 0x23:
-						return (data & 1) !== 0 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
+						return data & 1 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
 					}
 				};
 			} else if (range(page, 0x70)) {
@@ -166,7 +166,7 @@ class Bosconian {
 			else if (range(page, 0x40, 0xff))
 				this.cpu[2].memorymap[page] = this.cpu[0].memorymap[page];
 		this.cpu[2].memorymap[0x68] = {base: this.mmi, read: null, write: (addr, data) => {
-			(addr & 0xe0) === 0 && sound[0].write(addr, data, this.count);
+			!(addr & 0xe0) && sound[0].write(addr, data, this.count);
 		}, fetch: null};
 
 		this.mcu[0].rom.set(IO);
@@ -427,7 +427,7 @@ class Bosconian {
 	}
 
 	moveStars() {
-		if ((this.mmi[0x140] & 1) !== 0)
+		if (this.mmi[0x140] & 1)
 			return;
 		for (let i = 0; i < 256 && this.stars[i].color; i++) {
 			switch (this.mmi[0x130] & 7) {
@@ -522,8 +522,7 @@ class Bosconian {
 		// bg描画
 		// スクロール部
 		let p = 256 * (8 * 2 + 3) + 232 + (this.mmi[0x120] & 7) - (this.mmi[0x110] & 7) * 256;
-		let k = 0xc00 + (this.mmi[0x120] + 0x10 << 2 & 0x3e0 | this.mmi[0x110] >> 3);
-		for (let i = 0; i < 29; k = k + 3 & 0x1f | k + 0x20 & 0x3e0 | 0xc00, p -= 256 * 8 * 29 + 8, i++)
+		for (let k = 0xc00 + (this.mmi[0x120] + 0x10 << 2 & 0x3e0 | this.mmi[0x110] >> 3), i = 0; i < 29; k = k + 3 & 0x1f | k + 0x20 & 0x3e0 | 0xc00, p -= 256 * 8 * 29 + 8, i++)
 			for (let j = 0; j < 29; k = k + 1 & 0x1f | k & 0xfe0, p += 256 * 8, j++)
 				this.xfer8x8(data, p, k);
 
@@ -551,7 +550,7 @@ class Bosconian {
 		}
 
 		// star描画
-		if ((this.mmi[0x140] & 1) === 0) {
+		if (~this.mmi[0x140] & 1) {
 			let p = 256 * 16 + 16;
 			for (let i = 0; i < 256 && this.stars[i].color; i++) {
 				const px = this.stars[i].color;
@@ -581,8 +580,7 @@ class Bosconian {
 		// bg描画
 		// FIX部分
 		p = 256 * 8 * 34 + 232;
-		k = 0x0840;
-		for (let i = 0; i < 28; k += 24, p -= 8, i++) {
+		for (let k = 0x0840, i = 0; i < 28; k += 24, p -= 8, i++) {
 			for (let j = 0; j < 4; k++, p += 256 * 8, j++)
 				this.xfer8x8(data, p, k);
 			p -= 256 * 8 * 8;

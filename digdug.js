@@ -61,10 +61,10 @@ class DigDug {
 	constructor() {
 		// CPU周りの初期化
 		const range = (page, start, end = start, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
-		const interrupt = mcu => {
-			mcu.cause = mcu.cause & ~4 | !mcu.interrupt() << 2;
-			for (let op = mcu.execute(); op !== 0x3c && (op !== 0x25 || mcu.cause & 4); op = mcu.execute())
-				op === 0x25 && (mcu.cause &= ~4);
+		const interrupt = (_mcu) => {
+			_mcu.cause = _mcu.cause & ~4 | !_mcu.interrupt() << 2;
+			for (let op = _mcu.execute(); op !== 0x3c && (op !== 0x25 || _mcu.cause & 4); op = _mcu.execute())
+				op === 0x25 && (_mcu.cause &= ~4);
 		};
 
 		for (let page = 0; page < 0x100; page++)
@@ -85,7 +85,7 @@ class DigDug {
 						case 2:
 							return this.mmo[0x22] && !data && (this.fInterruptEnable2 = true), void(this.mmo[0x22] = data);
 						case 3:
-							return (data & 1) !== 0 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
+							return data & 1 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
 						}
 					}
 				};

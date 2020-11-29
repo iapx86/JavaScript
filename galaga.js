@@ -57,10 +57,10 @@ class Galaga {
 	constructor() {
 		// CPU周りの初期化
 		const range = (page, start, end = start, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
-		const interrupt = mcu => {
-			mcu.cause = mcu.cause & ~4 | !mcu.interrupt() << 2;
-			for (let op = mcu.execute(); op !== 0x3c && (op !== 0x25 || mcu.cause & 4); op = mcu.execute())
-				op === 0x25 && (mcu.cause &= ~4);
+		const interrupt = (_mcu) => {
+			_mcu.cause = _mcu.cause & ~4 | !_mcu.interrupt() << 2;
+			for (let op = _mcu.execute(); op !== 0x3c && (op !== 0x25 || _mcu.cause & 4); op = _mcu.execute())
+				op === 0x25 && (_mcu.cause &= ~4);
 		};
 
 		for (let page = 0; page < 0x100; page++)
@@ -77,7 +77,7 @@ class Galaga {
 					case 0x22:
 						return void(this.fSoundEnable = (data & 1) !== 0);
 					case 0x23:
-						return (data & 1) !== 0 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
+						return data & 1 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
 					}
 				};
 			} else if (range(page, 0x70)) {
@@ -145,7 +145,7 @@ class Galaga {
 			else if (range(page, 0x40, 0xff))
 				this.cpu[2].memorymap[page] = this.cpu[0].memorymap[page];
 		this.cpu[2].memorymap[0x68] = {base: this.mmi, read: null, write: (addr, data) => {
-			(addr & 0xe0) === 0 && sound[0].write(addr, data, this.count);
+			!(addr & 0xe0) && sound[0].write(addr, data, this.count);
 		}, fetch: null};
 
 		this.mcu.rom.set(IO);

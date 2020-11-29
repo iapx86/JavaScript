@@ -44,16 +44,16 @@ class SoundTest {
 			this.cpu.iomap[i].read = (addr) => {
 				switch (addr >> 6 & 3) {
 				case 0:
-					return (addr & 1) !== 0 ? this.fm.status : 0xff;
+					return addr & 1 ? this.fm.status : 0xff;
 				case 1:
 					return this.command.length ? this.command.shift() : 0xff;
 				}
 				return 0xff;
 			};
 			this.cpu.iomap[i].write = (addr, data) => {
-				if ((addr >> 6 & 3) !== 0)
+				if (addr >> 6 & 3)
 					return;
-				if ((addr & 1) === 0)
+				if (~addr & 1)
 					return void(this.fm.addr = data);
 				switch (this.fm.addr) {
 				case 8: // KON

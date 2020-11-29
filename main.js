@@ -147,9 +147,7 @@ export function init({keydown, keyup, ...args} = {}) {
 		case 'KeyR':
 			return game.reset();
 		case 'KeyT':
-			if ((game.fTest = !game.fTest) === true)
-				game.fReset = true;
-			return;
+			return void('fTest' in game && (game.fTest = !game.fTest) === true && (game.fReset = true));
 		case 'Space':
 		case 'KeyX':
 			return void('triggerA' in game && game.triggerA(true));

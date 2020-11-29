@@ -27,7 +27,7 @@ class StrategyX {
 	nLife = 3;
 
 	fInterruptEnable = false;
-	fSoundEnable = false;
+//	fSoundEnable = false;
 
 	ram = new Uint8Array(0xd00).addBase();
 	ppi0 = Uint8Array.of(0xff, 0xfc, 0xf1, 0);
@@ -72,8 +72,8 @@ class StrategyX {
 					switch (addr >> 2 & 3) {
 					case 0:
 						return this.command.push(data);
-					case 1:
-						return void(this.fSoundEnable = (data & 0x10) === 0);
+//					case 1:
+//						return void(this.fSoundEnable = (data & 0x10) === 0);
 					}
 				};
 			} else if (range(page, 0xb0, 0xb0))
@@ -100,20 +100,20 @@ class StrategyX {
 		for (let page = 0; page < 0x100; page++) {
 			this.cpu2.iomap[page].read = (addr) => {
 				let data = 0xff;
-				if ((addr & 0x20) !== 0)
+				if (addr & 0x20)
 					data &= sound[1].read(this.psg[1].addr);
-				if ((addr & 0x80) !== 0)
+				if (addr & 0x80)
 					data &= sound[0].read(this.psg[0].addr);
 				return data;
 			};
 			this.cpu2.iomap[page].write = (addr, data) => {
-				if ((addr & 0x10) !== 0)
+				if (addr & 0x10)
 					this.psg[1].addr = data;
-				else if ((addr & 0x20) !== 0)
+				else if (addr & 0x20)
 					sound[1].write(this.psg[1].addr, data, this.count);
-				if ((addr & 0x40) !== 0)
+				if (addr & 0x40)
 					this.psg[0].addr = data;
-				else if ((addr & 0x80) !== 0)
+				else if (addr & 0x80)
 					sound[0].write(this.psg[0].addr, data, this.count);
 			};
 		}
@@ -125,8 +125,8 @@ class StrategyX {
 	}
 
 	execute() {
-		sound[0].mute(!this.fSoundEnable);
-		sound[1].mute(!this.fSoundEnable);
+//		sound[0].mute(!this.fSoundEnable);
+//		sound[1].mute(!this.fSoundEnable);
 		if (this.fInterruptEnable)
 			this.cpu.non_maskable_interrupt();
 		this.cpu.execute(0x2000);
@@ -172,7 +172,7 @@ class StrategyX {
 			this.fReset = false;
 			this.cpu.reset();
 			this.fInterruptEnable = false;
-			this.fSoundEnable = false;
+//			this.fSoundEnable = false;
 			this.command.splice(0);
 			this.cpu2.reset();
 			this.timer = 0;
@@ -262,8 +262,7 @@ class StrategyX {
 	makeBitmap(data) {
 		// bg描画
 		let p = 256 * 32;
-		let k = 0xbe2;
-		for (let i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
+		for (let k = 0xbe2, i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0xc00 + i * 2];
 			for (let j = 0; j < 32; k -= 0x20, j++) {
 				this.xfer8x8(data, p + dwScroll, k, i);
@@ -299,8 +298,7 @@ class StrategyX {
 
 		// bg描画
 		p = 256 * 16;
-		k = 0xbe0;
-		for (let i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
+		for (let k = 0xbe0, i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0xc00 + i * 2];
 			for (let j = 0; j < 32; k -= 0x20, j++) {
 				this.xfer8x8(data, p + dwScroll, k, i);
@@ -311,12 +309,12 @@ class StrategyX {
 		// palette変換
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 256; p += 256 - 224, i++) {
-			const color = (this.fBackgroundBlue && (~MAP[i >> 3] & 1) !== 0 ? 0x00470000 : 0)
-						| (this.fBackgroundGreen && (~MAP[i >> 3] & 2) !== 0 ? 0x00003c00 : 0)
-						| (this.fBackgroundRed && (~MAP[i >> 3] & 2) !== 0 ? 0x0000007c : 0)
+			const color = (this.fBackgroundBlue && ~MAP[i >> 3] & 1 ? 0x00470000 : 0)
+						| (this.fBackgroundGreen && ~MAP[i >> 3] & 2 ? 0x00003c00 : 0)
+						| (this.fBackgroundRed && ~MAP[i >> 3] & 2 ? 0x0000007c : 0)
 						| 0xff000000;
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = (data[p] & 3) !== 0 ? this.rgb[data[p]] : color;
+				data[p] = data[p] & 3 ? this.rgb[data[p]] : color;
 		}
 	}
 

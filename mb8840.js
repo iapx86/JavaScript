@@ -41,9 +41,9 @@ export default class MB8840 {
 		this.cycles = 0;
 	}
 
-	interrupt(cause = 'external') {
+	interrupt(_cause = 'external') {
 		let vector = 0;
-		switch (cause) {
+		switch (_cause) {
 		default:
 		case 'external':
 			if (~this.mask & 4)
@@ -139,13 +139,13 @@ export default class MB8840 {
 		case 0x23: // RSTC
 			return this.cf = false, this.st = true, 0x23;
 		case 0x24: // TSTR
-			return this.st = (this.r & 1 << this.y) === 0, 0x24;
+			return this.st = !(this.r & 1 << this.y), 0x24;
 		case 0x25: // TSTI
-			return this.st = (this.cause & 4) === 0, 0x25;
+			return this.st = !(this.cause & 4), 0x25;
 		case 0x26: // TSTV
-			return this.st = (this.cause & 2) === 0, this.cause &= ~2, 0x26;
+			return this.st = !(this.cause & 2), this.cause &= ~2, 0x26;
 		case 0x27: // TSTS
-			return this.st = (this.cause & 1) === 0, this.cause &= ~1, 0x27;
+			return this.st = !(this.cause & 1), this.cause &= ~1, 0x27;
 		case 0x28: // TSTC
 			return this.st = !this.cf, 0x28;
 		case 0x29: // TSTZ
@@ -159,7 +159,7 @@ export default class MB8840 {
 		case 0x2d: // NEG
 			return this.a = -this.a & 15, this.st = !!this.a, 0x2d;
 		case 0x2e: // C
-			return v = this.m[this.x][this.y] - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0x2e;
+			return v = this.m[this.x][this.y] - this.a, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0x2e;
 		case 0x2f: // EOR
 			return this.a ^= this.m[this.x][this.y], this.zf = !this.a, this.st = !this.zf, 0x2f;
 		case 0x30: // SBIT 0
@@ -179,13 +179,13 @@ export default class MB8840 {
 		case 0x37: // RBIT 3
 			return this.m[this.x][this.y] &= ~8, this.st = true, 0x37;
 		case 0x38: // TBIT 0
-			return this.st = (this.m[this.x][this.y] & 1) === 0, 0x38;
+			return this.st = !(this.m[this.x][this.y] & 1), 0x38;
 		case 0x39: // TBIT 1
-			return this.st = (this.m[this.x][this.y] & 2) === 0, 0x39;
+			return this.st = !(this.m[this.x][this.y] & 2), 0x39;
 		case 0x3a: // TBIT 2
-			return this.st = (this.m[this.x][this.y] & 4) === 0, 0x3a;
+			return this.st = !(this.m[this.x][this.y] & 4), 0x3a;
 		case 0x3b: // TBIT 3
-			return this.st = (this.m[this.x][this.y] & 8) === 0, 0x3b;
+			return this.st = !(this.m[this.x][this.y] & 8), 0x3b;
 		case 0x3c: // RTI
 			return v = this.pop(), this.zf = (v & 1 << 13) !== 0, this.cf = (v & 1 << 14) !== 0, this.st = (v & 1 << 15) !== 0, this.pc = v & 0x7ff, 0x3c;
 		case 0x3d: // JPA addr
@@ -211,21 +211,21 @@ export default class MB8840 {
 		case 0x47: // RSTD 3
 			return this.r &= ~8, this.st = true, 0x47;
 		case 0x48: // TSTD 8
-			return this.st = (this.r & 256) === 0, 0x48;
+			return this.st = !(this.r & 256), 0x48;
 		case 0x49: // TSTD 9
-			return this.st = (this.r & 512) === 0, 0x49;
+			return this.st = !(this.r & 512), 0x49;
 		case 0x4a: // TSTD 10
-			return this.st = (this.r & 1024) === 0, 0x4a;
+			return this.st = !(this.r & 1024), 0x4a;
 		case 0x4b: // TSTD 11
-			return this.st = (this.r & 2048) === 0, 0x4b;
+			return this.st = !(this.r & 2048), 0x4b;
 		case 0x4c: // TBA 0
-			return this.st = (this.a & 1) === 0, 0x4c;
+			return this.st = !(this.a & 1), 0x4c;
 		case 0x4d: // TBA 1
-			return this.st = (this.a & 2) === 0, 0x4d;
+			return this.st = !(this.a & 2), 0x4d;
 		case 0x4e: // TBA 2
-			return this.st = (this.a & 4) === 0, 0x4e;
+			return this.st = !(this.a & 4), 0x4e;
 		case 0x4f: // TBA 3
-			return this.st = (this.a & 8) === 0, 0x4f;
+			return this.st = !(this.a & 8), 0x4f;
 		case 0x50: // XD 0
 			return v = this.m[0][0], this.m[0][0] = this.a, this.a = v, this.zf = !this.a, this.st = true, 0x50;
 		case 0x51: // XD 1
@@ -387,69 +387,69 @@ export default class MB8840 {
 		case 0x9f: // LI 15
 			return this.a = 15, this.zf = false, this.st = true, 0x9f;
 		case 0xa0: // CYI 0
-			return v = -this.y, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa0;
+			return v = -this.y, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa0;
 		case 0xa1: // CYI 1
-			return v = 1 - this.y, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa1;
+			return v = 1 - this.y, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa1;
 		case 0xa2: // CYI 2
-			return v = 2 - this.y, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa2;
+			return v = 2 - this.y, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa2;
 		case 0xa3: // CYI 3
-			return v = 3 - this.y, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa3;
+			return v = 3 - this.y, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa3;
 		case 0xa4: // CYI 4
-			return v = 4 - this.y, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa4;
+			return v = 4 - this.y, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa4;
 		case 0xa5: // CYI 5
-			return v = 5 - this.y, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa5;
+			return v = 5 - this.y, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa5;
 		case 0xa6: // CYI 6
-			return v = 6 - this.y, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa6;
+			return v = 6 - this.y, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa6;
 		case 0xa7: // CYI 7
-			return v = 7 - this.y, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa7;
+			return v = 7 - this.y, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa7;
 		case 0xa8: // CYI 8
-			return v = 8 - this.y, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa8;
+			return v = 8 - this.y, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa8;
 		case 0xa9: // CYI 9
-			return v = 9 - this.y, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa9;
+			return v = 9 - this.y, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xa9;
 		case 0xaa: // CYI 10
-			return v = 10 - this.y, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xaa;
+			return v = 10 - this.y, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xaa;
 		case 0xab: // CYI 11
-			return v = 11 - this.y, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xab;
+			return v = 11 - this.y, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xab;
 		case 0xac: // CYI 12
-			return v = 12 - this.y, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xac;
+			return v = 12 - this.y, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xac;
 		case 0xad: // CYI 13
-			return v = 13 - this.y, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xad;
+			return v = 13 - this.y, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xad;
 		case 0xae: // CYI 14
-			return v = 14 - this.y, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xae;
+			return v = 14 - this.y, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xae;
 		case 0xaf: // CYI 15
-			return v = 15 - this.y, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xaf;
+			return v = 15 - this.y, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xaf;
 		case 0xb0: // CI 0
-			return v = -this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb0;
+			return v = -this.a, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb0;
 		case 0xb1: // CI 1
-			return v = 1 - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb1;
+			return v = 1 - this.a, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb1;
 		case 0xb2: // CI 2
-			return v = 2 - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb2;
+			return v = 2 - this.a, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb2;
 		case 0xb3: // CI 3
-			return v = 3 - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb3;
+			return v = 3 - this.a, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb3;
 		case 0xb4: // CI 4
-			return v = 4 - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb4;
+			return v = 4 - this.a, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb4;
 		case 0xb5: // CI 5
-			return v = 5 - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb5;
+			return v = 5 - this.a, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb5;
 		case 0xb6: // CI 6
-			return v = 6 - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb6;
+			return v = 6 - this.a, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb6;
 		case 0xb7: // CI 7
-			return v = 7 - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb7;
+			return v = 7 - this.a, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb7;
 		case 0xb8: // CI 8
-			return v = 8 - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb8;
+			return v = 8 - this.a, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb8;
 		case 0xb9: // CI 9
-			return v = 9 - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb9;
+			return v = 9 - this.a, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xb9;
 		case 0xba: // CI 10
-			return v = 10 - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xba;
+			return v = 10 - this.a, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xba;
 		case 0xbb: // CI 11
-			return v = 11 - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xbb;
+			return v = 11 - this.a, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xbb;
 		case 0xbc: // CI 12
-			return v = 12 - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xbc;
+			return v = 12 - this.a, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xbc;
 		case 0xbd: // CI 13
-			return v = 13 - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xbd;
+			return v = 13 - this.a, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xbd;
 		case 0xbe: // CI 14
-			return v = 14 - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xbe;
+			return v = 14 - this.a, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xbe;
 		case 0xbf: // CI 15
-			return v = 15 - this.a, this.zf = (v & 15) === 0, this.cf = v >> 4 !== 0, this.st = !this.zf, 0xbf;
+			return v = 15 - this.a, this.zf = !(v & 15), this.cf = v >> 4 !== 0, this.st = !this.zf, 0xbf;
 		case 0xc0: // JMP 0
 			return this.st && (this.pc &= ~63), this.st = true, 0xc0;
 		case 0xc1: // JMP 1

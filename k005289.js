@@ -58,8 +58,7 @@ export default class K005289 {
 		const reg = this.reg;
 		data.forEach((e, i) => {
 			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
-				if (this.wheel.length)
-					this.wheel.shift().forEach(({addr, data}) => reg[addr] = data);
+				this.wheel.length && this.wheel.shift().forEach(({addr, data}) => reg[addr] = data);
 			for (let j = 0; j < 2; j++)
 				if (reg[j + 2]) {
 					data[i] += this.snd[j << 8 | reg[j] & 0xe0 | this.phase[j] >>> 27] * (reg[j] & 0xf) / 15;

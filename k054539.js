@@ -48,7 +48,7 @@ export default class K054539 {
 		case 0x214:
 			data &= ~this.ram[0x22c];
 			for (let i = 0; i < 8; i++)
-				if ((data & 1 << i) !== 0 && (this.ram[0x200 | i << 1] & 0xc) === 0xc)
+				if (data & 1 << i && (this.ram[0x200 | i << 1] & 0xc) === 0xc)
 					data &= ~(1 << i);
 			this.ram[0x22c] |= data;
 			break;
@@ -56,9 +56,7 @@ export default class K054539 {
 			this.ram[0x22c] &= ~data;
 			break;
 		}
-		this.ram[addr] = data;
-		if (addr < 0x230)
-			this.tmpwheel[timer].push({addr, data});
+		this.ram[addr] = data, addr < 0x230 && this.tmpwheel[timer].push({addr, data});
 	}
 
 	update() {
@@ -76,8 +74,7 @@ export default class K054539 {
 		const reg = this.reg;
 		data.forEach((e, i) => {
 			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
-				if (this.wheel.length)
-					this.wheel.shift().forEach(e => this.regwrite(e));
+				this.wheel.length && this.wheel.shift().forEach(e => this.regwrite(e));
 			if (~reg[0x22f] & 1)
 				return;
 			this.channel.forEach((ch, j) => ch.play && (data[i] += ch.output / 32767 * Math.pow(10, -36 / 0x40 / 20 * reg[3 | j << 5])));
@@ -155,7 +152,7 @@ outer:				switch (reg[0x200 | j << 1] & 0x2c) {
 		switch (addr) {
 		case 0x214:
 			this.channel.forEach((ch, i) => {
-				if ((data & 1 << i) === 0)
+				if (~data & 1 << i)
 					return;
 				Object.assign(ch, {play: true, output: 0, addr: reg[0xc | i << 5] | reg[0xd | i << 5] << 8 | reg[0xe | i << 5] << 16, frac: 0});
 				switch (reg[0x200 | i << 1] & 0xc) {
@@ -169,7 +166,7 @@ outer:				switch (reg[0x200 | j << 1] & 0x2c) {
 			});
 			break;
 		case 0x215:
-			this.channel.forEach((ch, i) => (data & 1 << i) !== 0 && (ch.play = false));
+			this.channel.forEach((ch, i) => data & 1 << i && (ch.play = false));
 			break;
 		}
 		reg[addr] = data;

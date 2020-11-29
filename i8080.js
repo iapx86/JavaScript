@@ -431,15 +431,15 @@ export default class I8080 extends Cpu {
 		case 0xbf: // CMP A
 			return void(this.sub8(this.a, this.a));
 		case 0xc0: // RNZ
-			return this.ret((this.f & 0x40) === 0);
+			return this.ret(!(this.f & 0x40));
 		case 0xc1: // POP B
 			return void([this.c, this.b] = this.split(this.pop16()));
 		case 0xc2: // JNZ addr
-			return this.jp((this.f & 0x40) === 0);
+			return this.jp(!(this.f & 0x40));
 		case 0xc3: // JMP addr
 			return this.jp(true);
 		case 0xc4: // CNZ addr
-			return this.call((this.f & 0x40) === 0);
+			return this.call(!(this.f & 0x40));
 		case 0xc5: // PUSH B
 			return this.push16(this.c | this.b << 8);
 		case 0xc6: // ADI data
@@ -461,15 +461,15 @@ export default class I8080 extends Cpu {
 		case 0xcf: // RST 08h
 			return this.rst(0x08);
 		case 0xd0: // RNC
-			return this.ret((this.f & 1) === 0);
+			return this.ret(!(this.f & 1));
 		case 0xd1: // POP D
 			return void([this.e, this.d] = this.split(this.pop16()));
 		case 0xd2: // JNC addr
-			return this.jp((this.f & 1) === 0);
+			return this.jp(!(this.f & 1));
 		case 0xd3: // OUT port
 			return this.iowrite(this.fetch(), this.a);
 		case 0xd4: // CNC addr
-			return this.call((this.f & 1) === 0);
+			return this.call(!(this.f & 1));
 		case 0xd5: // PUSH D
 			return this.push16(this.e | this.d << 8);
 		case 0xd6: // SUI data
@@ -489,15 +489,15 @@ export default class I8080 extends Cpu {
 		case 0xdf: // RST 18h
 			return this.rst(0x18);
 		case 0xe0: // RPO
-			return this.ret((this.f & 4) === 0);
+			return this.ret(!(this.f & 4));
 		case 0xe1: // POP H
 			return void([this.l, this.h] = this.split(this.pop16()));
 		case 0xe2: // JPO addr
-			return this.jp((this.f & 4) === 0);
+			return this.jp(!(this.f & 4));
 		case 0xe3: // XTHL
 			return v = this.l | this.h << 8, [this.l, this.h] = this.split(this.pop16()), this.push16(v);
 		case 0xe4: // CPO addr
-			return this.call((this.f & 4) === 0);
+			return this.call(!(this.f & 4));
 		case 0xe5: // PUSH H
 			return this.push16(this.l | this.h << 8);
 		case 0xe6: // ANI data
@@ -519,15 +519,15 @@ export default class I8080 extends Cpu {
 		case 0xef: // RST 28h
 			return this.rst(0x28);
 		case 0xf0: // RP
-			return this.ret((this.f & 0x80) === 0);
+			return this.ret(!(this.f & 0x80));
 		case 0xf1: // POP PSW
 			return void([this.f, this.a] = this.split(this.pop16()));
 		case 0xf2: // JP addr
-			return this.jp((this.f & 0x80) === 0);
+			return this.jp(!(this.f & 0x80));
 		case 0xf3: // DI
 			return void(this.iff = 0);
 		case 0xf4: // CP addr
-			return this.call((this.f & 0x80) === 0);
+			return this.call(!(this.f & 0x80));
 		case 0xf5: // PUSH PSW
 			return this.push16(this.f | this.a << 8);
 		case 0xf6: // ORI data

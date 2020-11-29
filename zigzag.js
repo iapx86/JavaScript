@@ -57,12 +57,11 @@ class ZigZag {
 				this.cpu.memorymap[page].write = (addr) => {
 					switch (addr & 0x0300) {
 					case 0x0000:
-						if ((addr & 1) === 0)
+						if (~addr & 1)
 							return;
-						if ((addr & 2) === 0)
+						if (~addr & 2)
 							return sound.write(this.psg.addr, this.psg.latch);
-						else
-							return void(this.psg.addr = this.psg.latch);
+						return void(this.psg.addr = this.psg.latch);
 					case 0x0100:
 						return void(this.psg.latch = addr);
 					}
@@ -84,14 +83,14 @@ class ZigZag {
 					case 1:
 						return void(this.fInterruptEnable = (data & 1) !== 0);
 					case 2:
-						const bank = data << 4 & 0x10 | 0x20;
-						if (bank === this.bank)
+						const _bank = data << 4 & 0x10 | 0x20;
+						if (_bank === this.bank)
 							return;
 						for (let i = 0; i < 0x10; i++) {
-							this.cpu.memorymap[0x20 + i].base = PRG.base[bank + i];
-							this.cpu.memorymap[0x30 + i].base = PRG.base[(bank ^ 0x10) + i];
+							this.cpu.memorymap[0x20 + i].base = PRG.base[_bank + i];
+							this.cpu.memorymap[0x30 + i].base = PRG.base[(_bank ^ 0x10) + i];
 						}
-						return void(this.bank = bank);
+						return void(this.bank = _bank);
 					case 4:
 						return void(this.fStarEnable = (data & 1) !== 0);
 					}
@@ -265,8 +264,7 @@ class ZigZag {
 	makeBitmap(data) {
 		// bg描画
 		let p = 256 * 32;
-		let k = 0x7e2;
-		for (let i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
+		for (let k = 0x7e2, i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0x800 + i * 2];
 			for (let j = 0; j < 32; k -= 0x20, j++) {
 				this.xfer8x8(data, p + dwScroll, k, i);
@@ -296,8 +294,7 @@ class ZigZag {
 
 		// bg描画
 		p = 256 * 16;
-		k = 0x7e0;
-		for (let i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
+		for (let k = 0x7e0, i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0x800 + i * 2];
 			for (let j = 0; j < 32; k -= 0x20, j++) {
 				this.xfer8x8(data, p + dwScroll, k, i);
@@ -313,9 +310,9 @@ class ZigZag {
 				if (!px)
 					break;
 				const x = this.stars[i].x, y = this.stars[i].y;
-				if ((x & 1) !== 0 && (y & 8) === 0 && (data[p + (x | y << 8)] & 3) === 0)
+				if (x & 1 && ~y & 8 && !(data[p + (x | y << 8)] & 3))
 					data[p + (x | y << 8)] = 0x40 | px;
-				else if ((x & 1) === 0 && (y & 8) !== 0 && (data[p + (x | y << 8)] & 3) === 0)
+				else if (~x & 1 && y & 8 && !(data[p + (x | y << 8)] & 3))
 					data[p + (x | y << 8)] = 0x40 | px;
 			}
 		}

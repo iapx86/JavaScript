@@ -72,7 +72,7 @@ export default class I80186 extends Cpu {
 	}
 
 	interrupt(vector) {
-		if (!super.interrupt() || this.intmask || (this.flags & 0x200) === 0)
+		if (!super.interrupt() || this.intmask || ~this.flags & 0x200)
 			return false;
 		this.exception(vector);
 		return true;
@@ -316,35 +316,35 @@ export default class I80186 extends Cpu {
 			case 0x70: // JO rel8
 				return this.jcc((this.flags & 0x800) !== 0);
 			case 0x71: // JNO rel8
-				return this.jcc((this.flags & 0x800) === 0);
+				return this.jcc(!(this.flags & 0x800));
 			case 0x72: // JB/JNAE/JC rel8
 				return this.jcc((this.flags & 1) !== 0);
 			case 0x73: // JNB/JAE/JNC rel8
-				return this.jcc((this.flags & 1) === 0);
+				return this.jcc(!(this.flags & 1));
 			case 0x74: // JE/JZ rel8
 				return this.jcc((this.flags & 0x40) !== 0);
 			case 0x75: // JNE/JNZ rel8
-				return this.jcc((this.flags & 0x40) === 0);
+				return this.jcc(!(this.flags & 0x40));
 			case 0x76: // JBE/JNA rel8
 				return this.jcc(((this.flags >>> 6 | this.flags) & 1) !== 0);
 			case 0x77: // JNBE/JA rel8
-				return this.jcc(((this.flags >>> 6 | this.flags) & 1) === 0);
+				return this.jcc(!((this.flags >>> 6 | this.flags) & 1));
 			case 0x78: // JS rel8
 				return this.jcc((this.flags & 0x80) !== 0);
 			case 0x79: // JNS rel8
-				return this.jcc((this.flags & 0x80) === 0);
+				return this.jcc(!(this.flags & 0x80));
 			case 0x7a: // JP/JPE rel8
 				return this.jcc((this.flags & 4) !== 0);
 			case 0x7b: // JNP/JPO rel8
-				return this.jcc((this.flags & 4) === 0);
+				return this.jcc(!(this.flags & 4));
 			case 0x7c: // JL/JNGE rel8
 				return this.jcc(((this.flags ^ this.flags << 4) & 0x800) !== 0);
 			case 0x7d: // JNL/JGE rel8
-				return this.jcc(((this.flags ^ this.flags << 4) & 0x800) === 0);
+				return this.jcc(!((this.flags ^ this.flags << 4) & 0x800));
 			case 0x7e: // JLE/JNG rel8
 				return this.jcc(((this.flags ^ this.flags << 4 | this.flags << 5) & 0x800) !== 0);
 			case 0x7f: // JNLE/JG rel8
-				return this.jcc(((this.flags ^ this.flags << 4 | this.flags << 5) & 0x800) === 0);
+				return this.jcc(!((this.flags ^ this.flags << 4 | this.flags << 5) & 0x800));
 			case 0x80:
 				return this.execute_80(sego);
 			case 0x81:
@@ -376,7 +376,7 @@ export default class I80186 extends Cpu {
 			case 0x8e: // MOV sreg,r/m16
 				return this.execute_8e(sego);
 			case 0x8f: // POP r/m16
-				if (((op = this.fetch8()) >>> 3 & 7) === 0)
+				if (!((op = this.fetch8()) >>> 3 & 7))
 					return this.wop8(op, sego, this.pop());
 				return this.exception(6);
 			case 0x90: // XCHG AX,AX/NOP
@@ -430,11 +430,11 @@ export default class I80186 extends Cpu {
 			case 0xa6: // CMPSB
 				this.sub8(this.read8(sego >= 0 ? sego : this.ds, this.si), this.read8(this.es, this.di));
 				[this.si, this.di] = [this.si - (this.flags >>> 9 & 2) + 1 & 0xffff, this.di - (this.flags >>> 9 & 2) + 1 & 0xffff];
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) && ((rep ^ this.flags >>> 6) & 1) === 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) && ~(rep ^ this.flags >>> 6) & 1 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0xa7: // CMPSW
 				this.sub16(this.read16(sego >= 0 ? sego : this.ds, this.si), this.read16(this.es, this.di));
 				[this.si, this.di] = [this.si - (this.flags >>> 8 & 4) + 2 & 0xffff, this.di - (this.flags >>> 8 & 4) + 2 & 0xffff];
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) && ((rep ^ this.flags >>> 6) & 1) === 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) && ~(rep ^ this.flags >>> 6) & 1 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0xa8: // TEST AL,imm8
 				return this.and8(this.ax, this.fetch8());
 			case 0xa9: // TEST AX,imm16
@@ -456,11 +456,11 @@ export default class I80186 extends Cpu {
 			case 0xae: // SCASB
 				this.sub8(this.ax, this.read8(this.es, this.di));
 				this.di = this.di - (this.flags >>> 9 & 2) + 1 & 0xffff;
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) && ((rep ^ this.flags >>> 6) & 1) === 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) && ~(rep ^ this.flags >>> 6) & 1 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0xaf: // SCASW
 				this.sub16(this.ax, this.read16(this.es, this.di));
 				this.di = this.di - (this.flags >>> 8 & 4) + 2 & 0xffff;
-				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) && ((rep ^ this.flags >>> 6) & 1) === 0 && (this.ip = this.ip - prefix - 1 & 0xffff));
+				return void(rep !== -1 && (this.cx = this.cx - 1 & 0xffff) && ~(rep ^ this.flags >>> 6) & 1 && (this.ip = this.ip - prefix - 1 & 0xffff));
 			case 0xb0: // MOV AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.fetch8());
 			case 0xb1: // MOV CL,imm8
@@ -507,11 +507,11 @@ export default class I80186 extends Cpu {
 			case 0xc5: // LDS r16,m16:16
 				return this.execute_c5(sego);
 			case 0xc6: // MOV r/m8,imm8
-				if (((op = this.fetch8()) >>> 3 & 7) === 0)
+				if (!((op = this.fetch8()) >>> 3 & 7))
 					return this.wop8i(op, sego);
 				return this.exception(6);
 			case 0xc7: // MOV r/m16,imm16
-				if (((op = this.fetch8()) >>> 3 & 7) === 0)
+				if (!((op = this.fetch8()) >>> 3 & 7))
 					return this.wop16i(op, sego);
 				return this.exception(6);
 			case 0xc8: // ENTER
@@ -562,7 +562,7 @@ export default class I80186 extends Cpu {
 			case 0xe2: // LOOP rel8
 				return this.jcc((this.cx = this.cx - 1 & 0xffff) !== 0);
 			case 0xe3: // JCXZ rel8
-				return this.jcc(this.cx === 0);
+				return this.jcc(!this.cx);
 			case 0xe4: // IN AL,imm8
 				return void(this.ax = this.ax & 0xff00 | this.ioread8(this.fetch8()));
 			case 0xe5: // IN AX,imm8
@@ -3541,7 +3541,7 @@ export default class I80186 extends Cpu {
 	}
 
 	read16(seg, offset) {
-		if ((offset & 1) !== 0)
+		if (offset & 1)
 			return this.read8(seg, offset) | this.read8(seg, offset + 1) << 8;
 		const addr = (seg << 4) + offset, page = this.memorymap[addr >>> 8 & 0xfff];
 		return page.read16 ? page.read16(addr) : page.read ? page.read(addr) | page.read(addr + 1) << 8 : page.base[addr & 0xff] | page.base[addr + 1 & 0xff] << 8;
@@ -3556,7 +3556,7 @@ export default class I80186 extends Cpu {
 	}
 
 	write16(seg, offset, data) {
-		if ((offset & 1) !== 0) {
+		if (offset & 1) {
 			this.write8(seg, offset, data);
 			this.write8(seg, offset + 1, data >>> 8);
 			return;
@@ -3579,7 +3579,7 @@ export default class I80186 extends Cpu {
 	}
 
 	ioread16(addr) {
-		if ((addr & 1) !== 0)
+		if (addr & 1)
 			return this.ioread8(addr) | this.read8(addr + 1 & 0xffff) << 8;
 		const page = this.iomap[addr >>> 8];
 		return page.read16 ? page.read16(addr) : page.read ? page.read(addr) | page.read(addr + 1) << 8 : page.base[addr & 0xff] | page.base[addr + 1 & 0xff] << 8;
@@ -3594,7 +3594,7 @@ export default class I80186 extends Cpu {
 	}
 
 	iowrite16(addr, data) {
-		if ((addr & 1) !== 0) {
+		if (addr & 1) {
 			this.iowrite8(addr, data);
 			this.iowrite8(addr + 1 & 0xffff, data >>> 8);
 			return;

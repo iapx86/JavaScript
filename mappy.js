@@ -32,7 +32,7 @@ class Mappy {
 	fPortTest = false;
 	fInterruptEnable0 = false;
 	fInterruptEnable1 = false;
-	fSoundEnable = false;
+//	fSoundEnable = false;
 	ram = new Uint8Array(0x2800).addBase();
 	port = new Uint8Array(0x40);
 	in = new Uint8Array(10);
@@ -74,10 +74,10 @@ class Mappy {
 				return void(this.fInterruptEnable0 = false);
 			case 0x03: // INTERRUPT START
 				return void(this.fInterruptEnable0 = true);
-			case 0x06: // SND STOP
-				return void(this.fSoundEnable = false);
-			case 0x07: // SND START
-				return void(this.fSoundEnable = true);
+//			case 0x06: // SND STOP
+//				return void(this.fSoundEnable = false);
+//			case 0x07: // SND START
+//				return void(this.fSoundEnable = true);
 			case 0x08: // PORT TEST START
 				return void(this.fPortTest = true);
 			case 0x09: // PORT TEST END
@@ -105,7 +105,7 @@ class Mappy {
 	}
 
 	execute() {
-		sound.mute(!this.fSoundEnable);
+//		sound.mute(!this.fSoundEnable);
 		if (this.fInterruptEnable0)
 			this.cpu.interrupt();
 		if (this.fInterruptEnable1)
@@ -208,7 +208,7 @@ class Mappy {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.fSoundEnable = false;
+//			this.fSoundEnable = false;
 			this.cpu.reset();
 			this.cpu2.disable();
 		}

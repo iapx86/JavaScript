@@ -78,9 +78,9 @@ class JumpBug {
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 7) {
 					case 3: // BOMB
-						return void((data & 1) !== 0 ? (this.se[0].start = true) : (this.se[0].stop = true));
+						return void(data & 1 ? (this.se[0].start = true) : (this.se[0].stop = true));
 					case 5: // SHOT
-						return void((data & 1) !== 0 ? (this.se[1].start = true) : (this.se[1].stop = true));
+						return void(data & 1 ? (this.se[1].start = true) : (this.se[1].stop = true));
 					}
 				};
 			} else if (range(page, 0x70, 0x70, 0x07)) {
@@ -286,8 +286,7 @@ class JumpBug {
 	makeBitmap(data) {
 		// bg描画
 		let p = 256 * 32;
-		let k = 0xbe2;
-		for (let i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
+		for (let k = 0xbe2, i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0xc00 + i * 2];
 			for (let j = 0; j < 32; k -= 0x20, j++) {
 				this.xfer8x8(data, p + dwScroll, k, i);
@@ -323,8 +322,7 @@ class JumpBug {
 
 		// bg描画
 		p = 256 * 16;
-		k = 0xbe0;
-		for (let i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
+		for (let k = 0xbe0, i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0xc00 + i * 2];
 			for (let j = 0; j < 32; k -= 0x20, j++) {
 				this.xfer8x8(data, p + dwScroll, k, i);
@@ -340,9 +338,9 @@ class JumpBug {
 				if (!px)
 					break;
 				const x = this.stars[i].x, y = this.stars[i].y;
-				if ((x & 1) !== 0 && (y & 8) === 0 && (data[p + (x | y << 8)] & 3) === 0)
+				if (x & 1 && ~y & 8 && !(data[p + (x | y << 8)] & 3))
 					data[p + (x | y << 8)] = 0x40 | px;
-				else if ((x & 1) === 0 && (y & 8) !== 0 && (data[p + (x | y << 8)] & 3) === 0)
+				else if (~x & 1 && y & 8 && !(data[p + (x | y << 8)] & 3))
 					data[p + (x | y << 8)] = 0x40 | px;
 			}
 		}

@@ -64,7 +64,7 @@ class Vulgus {
 			case 3:
 				return void(this.vScroll = this.vScroll & 0xff00 | data);
 			case 4:
-				return (data & 0x10) !== 0 ? this.cpu2.disable() : this.cpu2.enable();
+				return data & 0x10 ? this.cpu2.disable() : this.cpu2.enable();
 			case 5:
 				return void(this.palette = data << 6 & 0xc0);
 			}
@@ -90,7 +90,7 @@ class Vulgus {
 			this.cpu2.memorymap[0x40 + i].base = this.ram2.base[i];
 			this.cpu2.memorymap[0x40 + i].write = null;
 		}
-		this.cpu2.memorymap[0x60].read = (addr) => { return (addr & 0xff) === 0 ? this.command : 0xff; };
+		this.cpu2.memorymap[0x60].read = (addr) => { return addr & 0xff ? 0xff : this.command; };
 		this.cpu2.memorymap[0x80].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
@@ -117,9 +117,9 @@ class Vulgus {
 
 	execute() {
 		for (let i = 0; i < 16; i++) {
-			if (i === 0)
+			if (!i)
 				this.cpu.interrupt(0xd7); // RST 10H
-			if ((i & 1) === 0)
+			if (~i & 1)
 				this.timer = i >> 1, this.cpu2.interrupt();
 			Cpu.multiple_execute([this.cpu, this.cpu2], 600);
 		}
@@ -286,8 +286,7 @@ class Vulgus {
 
 		// bg描画
 		let p = 256 * 256 + 16 - (16 + this.hScroll & 0x0f) + (this.vScroll & 0x0f) * 256;
-		let k = 16 + this.hScroll >> 4 & 0x1f | this.vScroll << 1 & 0x3e0;
-		for (let i = 0; i < 17; k = k + 0x11 & 0x1f | k + 0x20 & 0x3e0, p -= 15 * 16 + 256 * 16, i++)
+		for (let k = 16 + this.hScroll >> 4 & 0x1f | this.vScroll << 1 & 0x3e0, i = 0; i < 17; k = k + 0x11 & 0x1f | k + 0x20 & 0x3e0, p -= 15 * 16 + 256 * 16, i++)
 			for (let j = 0; j < 15; k = k + 1 & 0x1f | k & 0x3e0, p += 16, j++)
 				this.xfer16x16x3(data, p, 0x900 + k);
 
@@ -316,8 +315,7 @@ class Vulgus {
 
 		// fg描画
 		p = 256 * 8 * 33 + 16;
-		k = 0x140;
-		for (let i = 0; i < 28; p += 256 * 8 * 32 + 8, i++)
+		for (let k = 0x140, i = 0; i < 28; p += 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p -= 256 * 8, j++)
 				this.xfer8x8(data, p, k);
 

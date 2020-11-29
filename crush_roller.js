@@ -19,7 +19,6 @@ class CrushRoller {
 	rotate = false;
 
 	fReset = false;
-	fTest = false;
 	fDIPSwitchChanged = true;
 	fCoin = 0;
 	fStart1P = 0;
@@ -123,7 +122,7 @@ class CrushRoller {
 				};
 			}
 		for (let page = 0; page < 0x100; page++)
-			this.cpu.iomap[page].write = (addr, data) => { (addr & 0xff) === 0 && (this.vector = data); };
+			this.cpu.iomap[page].write = (addr, data) => { !(addr & 0xff) && (this.vector = data); };
 
 		// Videoの初期化
 		this.convertRGB();
@@ -262,25 +261,20 @@ class CrushRoller {
 	makeBitmap(data) {
 		// bg描画
 		let p = 256 * 8 * 4 + 232;
-		let k = 0x40;
-		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
+		for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
 				this.xfer8x8(data, p, k);
 		p = 256 * 8 * 36 + 232;
-		k = 2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k);
 		p = 256 * 8 * 37 + 232;
-		k = 0x22;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x22, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k);
 		p = 256 * 8 * 2 + 232;
-		k = 0x3c2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x3c2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k);
 		p = 256 * 8 * 3 + 232;
-		k = 0x3e2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x3e2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k);
 
 		// obj描画

@@ -67,16 +67,16 @@ class _1942 {
 			case 3:
 				return void(this.dwScroll = this.dwScroll & 0xff | data << 8);
 			case 4:
-				return (data & 0x10) !== 0 ? this.cpu2.disable() : this.cpu2.enable();
+				return data & 0x10 ? this.cpu2.disable() : this.cpu2.enable();
 			case 5:
 				return void(this.palette = data << 4 & 0x30);
 			case 6:
-				const bank = (data << 6 & 0xc0) + 0x80;
-				if (bank === this.bank)
+				const _bank = (data << 6 & 0xc0) + 0x80;
+				if (_bank === this.bank)
 					return;
 				for (let i = 0; i < 0x40; i++)
-					this.cpu.memorymap[0x80 + i].base = PRG1.base[bank + i];
-				return void(this.bank = bank);
+					this.cpu.memorymap[0x80 + i].base = PRG1.base[_bank + i];
+				return void(this.bank = _bank);
 			}
 		};
 		this.cpu.memorymap[0xcc].base = this.ram.base[0];
@@ -104,7 +104,7 @@ class _1942 {
 			this.cpu2.memorymap[0x40 + i].base = this.ram2.base[i];
 			this.cpu2.memorymap[0x40 + i].write = null;
 		}
-		this.cpu2.memorymap[0x60].read = (addr) => { return (addr & 0xff) === 0 ? this.command : 0xff; };
+		this.cpu2.memorymap[0x60].read = (addr) => { return addr & 0xff ? 0xff : this.command; };
 		this.cpu2.memorymap[0x80].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
@@ -131,14 +131,9 @@ class _1942 {
 
 	execute() {
 		for (let i = 0; i < 16; i++) {
-			if (i === 0)
-				this.cpu_irq = true;
-			if (i === 1)
-				this.cpu_irq2 = true;
-			if ((i & 3) === 0) {
-				this.timer = i >> 2;
-				this.cpu2.interrupt();
-			}
+			!i && (this.cpu_irq = true);
+			i === 1 && (this.cpu_irq2 = true);
+			!(i & 3) && (this.timer = i >> 2, this.cpu2.interrupt());
 			Cpu.multiple_execute([this.cpu, this.cpu2], 800);
 		}
 		return this;
@@ -307,8 +302,7 @@ class _1942 {
 
 		// bg描画
 		let p = 256 * 256 + 16 + (this.dwScroll & 0xf) * 256;
-		let k = this.dwScroll << 1 & 0x3e0 | 1;
-		for (let i = 0; i < 17; k = k + 0x12 & 0x3ff, p -= 14 * 16 + 256 * 16, i++)
+		for (let k = this.dwScroll << 1 & 0x3e0 | 1, i = 0; i < 17; k = k + 0x12 & 0x3ff, p -= 14 * 16 + 256 * 16, i++)
 			for (let j = 0; j < 14; k++, p += 16, j++)
 				this.xfer16x16x3(data, p, 0x900 + k);
 
@@ -337,8 +331,7 @@ class _1942 {
 
 		// fg描画
 		p = 256 * 8 * 33 + 16;
-		k = 0x140;
-		for (let i = 0; i < 28; p += 256 * 8 * 32 + 8, i++)
+		for (let k = 0x140, i = 0; i < 28; p += 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p -= 256 * 8, j++)
 				this.xfer8x8(data, p, k);
 

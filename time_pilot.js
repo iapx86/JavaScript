@@ -29,7 +29,7 @@ class TimePilot {
 	nDifficulty = 4;
 
 	fInterruptEnable = false;
-	fSoundEnable = false;
+//	fSoundEnable = false;
 
 	ram = new Uint8Array(0x1400).addBase();
 	in = Uint8Array.of(0xff, 0xff, 0xff, 0xff, 0x4b);
@@ -76,8 +76,8 @@ class TimePilot {
 					switch (addr >> 1 & 0x7f) {
 					case 0:
 						return void(this.fInterruptEnable = (data & 1) !== 0);
-					case 3:
-						return void(this.fSoundEnable = (data & 1) === 0);
+//					case 3:
+//						return void(this.fSoundEnable = (data & 1) === 0);
 					}
 				};
 			}
@@ -106,11 +106,11 @@ class TimePilot {
 	}
 
 	execute() {
-		sound[0].mute(!this.fSoundEnable);
-		sound[1].mute(!this.fSoundEnable);
+//		sound[0].mute(!this.fSoundEnable);
+//		sound[1].mute(!this.fSoundEnable);
 		for (let i = 0; i < 256; i++) {
 			this.vpos = i + 144 & 0xff;
-			if (this.vpos === 0)
+			if (!this.vpos)
 				this.ram.copyWithin(0x1200, 0x1000, 0x1200);
 			if (this.vpos === 240 && this.fInterruptEnable)
 				this.cpu.non_maskable_interrupt();
@@ -288,53 +288,51 @@ class TimePilot {
 	makeBitmap(data) {
 		// bg描画
 		let p = 256 * 8 * 2 + 232;
-		let k = 0x40;
-		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
+		for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
 				this.xfer8x8(data, p, k, 0);
 
 		// obj描画
 		for (let k = 0x103e; k >= 0x1010; k -= 2) {
-			const src0 = this.ram[k + 0x301] - 1 & 0xff | this.ram[k + 0x200] + 16 << 8;
-			const dst0 = this.ram[k + 0x201] | this.ram[k + 0x300] << 8;
-			switch (dst0 >> 14) {
+			const dst0 = this.ram[k + 0x301] - 1 & 0xff | this.ram[k + 0x200] + 16 << 8;
+			const src0 = this.ram[k + 0x201] | this.ram[k + 0x300] << 8;
+			switch (src0 >> 14) {
 			case 0: // ノーマル
-				this.xfer16x16(data, src0, dst0);
+				this.xfer16x16(data, dst0, src0);
 				break;
 			case 1: // V反転
-				this.xfer16x16V(data, src0, dst0);
+				this.xfer16x16V(data, dst0, src0);
 				break;
 			case 2: // H反転
-				this.xfer16x16H(data, src0, dst0);
+				this.xfer16x16H(data, dst0, src0);
 				break;
 			case 3: // HV反転
-				this.xfer16x16HV(data, src0, dst0);
+				this.xfer16x16HV(data, dst0, src0);
 				break;
 			}
-			const src1 = this.ram[k + 0x101] - 1 & 0xff | this.ram[k] + 16 << 8;
-			const dst1 = this.ram[k + 1] | this.ram[k + 0x100] << 8;
-			if (src1 === src0 && dst1 === dst0)
+			const dst1 = this.ram[k + 0x101] - 1 & 0xff | this.ram[k] + 16 << 8;
+			const src1 = this.ram[k + 1] | this.ram[k + 0x100] << 8;
+			if (dst1 === dst0 && src1 === src0)
 				continue;
-			switch (dst1 >> 14) {
+			switch (src1 >> 14) {
 			case 0: // ノーマル
-				this.xfer16x16(data, src1, dst1);
+				this.xfer16x16(data, dst1, src1);
 				break;
 			case 1: // V反転
-				this.xfer16x16V(data, src1, dst1);
+				this.xfer16x16V(data, dst1, src1);
 				break;
 			case 2: // H反転
-				this.xfer16x16H(data, src1, dst1);
+				this.xfer16x16H(data, dst1, src1);
 				break;
 			case 3: // HV反転
-				this.xfer16x16HV(data, src1, dst1);
+				this.xfer16x16HV(data, dst1, src1);
 				break;
 			}
 		}
 
 		// bg描画
 		p = 256 * 8 * 2 + 232;
-		k = 0x40;
-		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
+		for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
 				this.xfer8x8(data, p, k, 1);
 

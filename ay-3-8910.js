@@ -50,10 +50,7 @@ export default class AY_3_8910 {
 	}
 
 	write(addr, data, timer = 0) {
-		this.ram[addr &= 0xf] = data;
-		if (addr >= 0xe)
-			return;
-		this.tmpwheel[timer].push({addr, data});
+		this.ram[addr &= 0xf] = data, addr < 0xe && this.tmpwheel[timer].push({addr, data});
 	}
 
 	update() {
@@ -71,32 +68,24 @@ export default class AY_3_8910 {
 		const reg = this.reg;
 		data.forEach((e, i) => {
 			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
-				if (this.wheel.length)
-					this.wheel.shift().forEach(e => this.regwrite(e));
+				this.wheel.length && this.wheel.shift().forEach(e => this.regwrite(e));
 			const nfreq = reg[6] & 0x1f, efreq = reg[11] | reg[12] << 8, etype = reg[13];
 			const evol = (~this.step ^ ((((etype ^ etype >> 1) & this.step >> 4 ^ ~etype >> 2) & 1) - 1)) & (~etype >> 3 & this.step >> 4 & 1) - 1 & 15;
 			this.channel.forEach((ch, j) => {
 				ch.freq = reg[j * 2] | reg[1 + j * 2] << 8 & 0xf00;
 				const vol = reg[8 + j] >> 4 & 1 ? evol : reg[8 + j] & 0xf;
-				data[i] += (((ch.freq === 0 | reg[7] >> j | ch.output) & (reg[7] >> j + 3 | this.rng) & 1) * 2 - 1) * (vol ? Math.pow(10, (vol - 15) / 10) : 0);
+				data[i] += (((!ch.freq | reg[7] >> j | ch.output) & (reg[7] >> j + 3 | this.rng) & 1) * 2 - 1) * (vol ? Math.pow(10, (vol - 15) / 10) : 0);
 			});
 			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {
-				this.channel.forEach(ch => {
-					if (++ch.count >= ch.freq)
-						ch.output = ~ch.output, ch.count = 0;
-				});
-				if (++this.ncount >= nfreq << 1)
-					this.rng = (this.rng >> 16 ^ this.rng >> 13 ^ 1) & 1 | this.rng << 1, this.ncount = 0;
-				if (++this.ecount >= efreq)
-					this.step += ((this.step < 16) | etype >> 3 & ~etype & 1) - (this.step >= 47) * 32, this.ecount = 0;
+				this.channel.forEach(ch => ++ch.count >= ch.freq && (ch.output = ~ch.output, ch.count = 0));
+				++this.ncount >= nfreq << 1 && (this.rng = (this.rng >> 16 ^ this.rng >> 13 ^ 1) & 1 | this.rng << 1, this.ncount = 0);
+				++this.ecount >= efreq && (this.step += ((this.step < 16) | etype >> 3 & ~etype & 1) - (this.step >= 47) * 32, this.ecount = 0);
 			}
 		});
 	}
 
 	regwrite({addr, data}) {
-		this.reg[addr] = data;
-		if (addr === 13)
-			this.step = 0;
+		this.reg[addr] = data, addr === 13 && (this.step = 0);
 	}
 }
 

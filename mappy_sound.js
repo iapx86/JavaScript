@@ -45,10 +45,7 @@ export default class MappySound {
 	}
 
 	write(addr, data, timer = 0) {
-		this.ram[addr &= 0x3ff] = data;
-		if (addr >= 0x40)
-			return;
-		this.tmpwheel[timer].push({addr, data});
+		this.ram[addr &= 0x3ff] = data, addr < 0x40 && this.tmpwheel[timer].push({addr, data});
 	}
 
 	update() {
@@ -66,8 +63,7 @@ export default class MappySound {
 		const reg = this.reg;
 		data.forEach((e, i) => {
 			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
-				if (this.wheel.length)
-					this.wheel.shift().forEach(({addr, data}) => reg[addr] = data);
+				this.wheel.length && this.wheel.shift().forEach(({addr, data}) => reg[addr] = data);
 			for (let j = 0; j < 8; j++) {
 				data[i] += this.snd[reg[6 + j * 8] << 1 & 0xe0 | this.phase[j] >>> 27] * (reg[3 + j * 8] & 0xf) / 15;
 				this.phase[j] = this.phase[j] + (reg[4 + j * 8] | reg[5 + j * 8] << 8 | reg[6 + j * 8] << 16 & 0xf0000) * this.rate | 0;

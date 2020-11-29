@@ -123,7 +123,7 @@ class KorosukeRoller {
 				};
 			}
 		for (let page = 0; page < 0x100; page++)
-			this.cpu.iomap[page].write = (addr, data) => { (addr & 0xff) === 0 && (this.vector = data); };
+			this.cpu.iomap[page].write = (addr, data) => { !(addr & 0xff) && (this.vector = data); };
 
 		// Videoの初期化
 		this.convertRGB();

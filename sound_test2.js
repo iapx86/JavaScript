@@ -34,7 +34,7 @@ class SoundTest {
 			this.mcu.memorymap[0x10 + i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 0x40; i++)
-			this.mcu.memorymap[0x40 + i].write = (addr) => { this.fInterruptEnable1 = (addr & 0x2000) === 0; };
+			this.mcu.memorymap[0x40 + i].write = (addr) => { this.fInterruptEnable1 = !(addr & 0x2000); };
 		for (let i = 0; i < 0x20; i++)
 			this.mcu.memorymap[0x80 + i].base = PRG2.base[i];
 		for (let i = 0; i < 8; i++) {
@@ -136,7 +136,7 @@ class SoundTest {
 			const vol = reg[i * 8] & 0x0f;
 			if (!vol)
 				continue;
-			if (i < 4 && (reg[-4 + i * 8 & 0x3f] & 0x80) !== 0)
+			if (i < 4 && reg[-4 + i * 8 & 0x3f] & 0x80)
 				SoundTest.Xfer28x16(data, 256 * 16 * i, key[1]);
 			else {
 				const freq = reg[3 + i * 8] | reg[2 + i * 8] << 8 | reg[1 + i * 8] << 16 & 0xf0000;

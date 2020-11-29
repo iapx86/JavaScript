@@ -278,8 +278,7 @@ class ChacknPop {
 	makeBitmap(data) {
 		// bg描画
 		let p = 256 * 8 * 2 + 232;
-		let k = 0x840;
-		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
+		for (let k = 0x840, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
 				this.xfer8x8(data, p, k);
 
@@ -304,7 +303,8 @@ class ChacknPop {
 		}
 
 		// bitmap描画
-		for (let p = 256 * 8 * 33 + 16, k = 0x0200, i = 256 >> 3; i !== 0; --i) {
+		p = 256 * 8 * 33 + 16;
+		for (let k = 0x0200, i = 256 >> 3; i !== 0; --i) {
 			for (let j = 224 >> 2; j !== 0; k += 0x80, p += 4, --j) {
 				let p0 = this.vram[k], p1 = this.vram[0x2000 + k], p2 = this.vram[0x4000 + k], p3 = this.vram[0x6000 + k];
 				data[p + 7 * 256] = this.rgb[p0 << 9 & 0x200 | p2 << 8 & 0x100 | p1 << 7 & 0x80 | p3 << 6 & 0x40 | data[p + 7 * 256]];

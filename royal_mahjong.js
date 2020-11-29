@@ -71,12 +71,12 @@ class RoyalMahjong {
 					const select = data;
 					data = this.in[0] | 0x3f;
 					for (let i = 0; i < 5; i++)
-						if ((select & 1 << i) === 0)
+						if (~select & 1 << i)
 							data &= this.in[i];
 					sound.write(0xe, data);
 					data = this.in[5] | 0x3f;
 					for (let i = 0; i < 5; i++)
-						if ((select & 1 << i) === 0)
+						if (~select & 1 << i)
 							data &= this.in[5 + i];
 					return sound.write(0xf, data);
 				}

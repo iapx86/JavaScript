@@ -124,13 +124,13 @@ class DragonSpirit {
 			this.cpu.memorymap[0xe0 + i].write = (addr, data) => {
 				const reg = addr >> 9 & 0xf;
 				if (reg < 8)
-					return this.bankswitch(reg, (addr & 1) === 0 ? data << 13 & 0x6000 | this.bank1[reg] & 0x1fe0 : this.bank1[reg] & 0x6000 | data << 5);
+					return this.bankswitch(reg, addr & 1 ? this.bank1[reg] & 0x6000 | data << 5 : data << 13 & 0x6000 | this.bank1[reg] & 0x1fe0);
 				switch (reg) {
 				case 8:
-					if ((data & 1) === 0)
-						return this.cpu2.disable(), this.cpu3.disable(), this.mcu.disable();
-					else
+					if (data & 1)
 						return this.cpu2.enable(), this.cpu3.enable(), this.mcu.enable();
+					else
+						return this.cpu2.disable(), this.cpu3.disable(), this.mcu.disable();
 				case 11:
 					return void(this.cpu_irq = false);
 				case 13:
@@ -146,7 +146,7 @@ class DragonSpirit {
 			this.cpu2.memorymap[0xe0 + i].write = (addr, data) => {
 				const reg = addr >> 9 & 0xf;
 				if (reg < 8)
-					return this.bankswitch2(reg, (addr & 1) === 0 ? data << 13 & 0x6000 | this.bank2[reg] & 0x1fe0 : this.bank2[reg] & 0x6000 | data << 5);
+					return this.bankswitch2(reg, addr & 1 ? this.bank2[reg] & 0x6000 | data << 5 : data << 13 & 0x6000 | this.bank2[reg] & 0x1fe0);
 				switch (reg) {
 				case 11:
 					return void(this.cpu2_irq = false);
@@ -167,10 +167,8 @@ class DragonSpirit {
 			case 1:
 				if (this.fm.addr === 0x14) { // CSM/F RESET/IRQEN/LOAD
 					this.fm.status &= ~(data >> 4 & 3);
-					if (data & ~this.fm.reg[0x14] & 1)
-						this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
-					if (data & ~this.fm.reg[0x14] & 2)
-						this.fm.timerb = this.fm.reg[0x12];
+					data & ~this.fm.reg[0x14] & 1 && (this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
+					data & ~this.fm.reg[0x14] & 2 && (this.fm.timerb = this.fm.reg[0x12]);
 				}
 				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
 			}
@@ -229,7 +227,7 @@ class DragonSpirit {
 		this.mcu.memorymap[0xd4].write = (addr, data) => { sound[2].write(1, data, this.count); };
 		this.mcu.memorymap[0xd8].write = (addr, data) => {
 			const index = [0xf8, 0xf4, 0xec, 0xdc, 0xbc, 0x7c].indexOf(data & 0xfc);
-			this.bankswitch4(index > 0 ? index << 9 | data << 7 & 0x180 : index === 0 ? data << 7 & 0x180 ^ 0x100 : 0);
+			this.bankswitch4(index < 0 ? 0 : index ? index << 9 | data << 7 & 0x180 : data << 7 & 0x180 ^ 0x100);
 		};
 		for (let i = 0; i < 0x10; i++)
 			this.mcu.memorymap[0xf0 + i].base = MCU.base[i];
@@ -448,11 +446,10 @@ class DragonSpirit {
 	}
 
 	makeBitmap(data) {
-		const ram = this.ram, black = 0x1800;
-		let p, k;
+		const ram = this.ram, black = 0x1800, flip = !!(ram[0x5ff6] & 1);
 
 		// 画面クリア
-		p = 256 * 16 + 16;
+		let p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256, i++)
 			data.fill(black, p, p + 224);
 
@@ -460,52 +457,32 @@ class DragonSpirit {
 			// bg描画
 			if (ram[0x4010] === pri) {
 				const vScroll = ram[0x4001] | ram[0x4000] << 8, hScroll = ram[0x4003] | ram[0x4002] << 8, color = ram[0x4018] << 8 & 0x700 | 0x800;
-				if (ram[0x5ff6] & 1) {
-					p = 256 * 8 * 2 + 232 - (176 - vScroll & 7) * 256 + (264 - hScroll & 7);
-					k = 176 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0x8000;
-				} else {
-					p = 256 * 8 * 2 + 232 - (48 + vScroll & 7) * 256 + (24 + hScroll & 7);
-					k = 48 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0x8000;
-				}
+				p = flip ? 256 * 8 * 2 + 232 - (176 - vScroll & 7) * 256 + (264 - hScroll & 7) : 256 * 8 * 2 + 232 - (48 + vScroll & 7) * 256 + (24 + hScroll & 7);
+				let k = flip ? 176 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0x8000 : 48 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0x8000;
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0x1f80 | 0x8000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0xff80, p += 256 * 8, j++)
 						this.xfer8x8(data, p, k, color);
 			}
 			if (ram[0x4011] === pri) {
 				const vScroll = ram[0x4005] | ram[0x4004] << 8, hScroll = ram[0x4007] | ram[0x4006] << 8, color = ram[0x4019] << 8 & 0x700 | 0x800;
-				if (ram[0x5ff6] & 1) {
-					p = 256 * 8 * 2 + 232 - (178 - vScroll & 7) * 256 + (264 - hScroll & 7);
-					k = 178 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0xa000;
-				} else {
-					p = 256 * 8 * 2 + 232 - (46 + vScroll & 7) * 256 + (24 + hScroll & 7);
-					k = 46 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0xa000;
-				}
+				p = flip ? 256 * 8 * 2 + 232 - (178 - vScroll & 7) * 256 + (264 - hScroll & 7) : 256 * 8 * 2 + 232 - (46 + vScroll & 7) * 256 + (24 + hScroll & 7);
+				let k = flip ? 178 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0xa000 : 46 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0xa000;
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0x1f80 | 0xa000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0xff80, p += 256 * 8, j++)
 						this.xfer8x8(data, p, k, color);
 			}
 			if (ram[0x4012] === pri) {
 				const vScroll = ram[0x4009] | ram[0x4008] << 8, hScroll = ram[0x400b] | ram[0x400a] << 8, color = ram[0x401a] << 8 & 0x700 | 0x800;
-				if (ram[0x5ff6] & 1) {
-					p = 256 * 8 * 2 + 232 - (179 - vScroll & 7) * 256 + (264 - hScroll & 7);
-					k = 179 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0xc000;
-				} else {
-					p = 256 * 8 * 2 + 232 - (45 + vScroll & 7) * 256 + (24 + hScroll & 7);
-					k = 45 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0xc000;
-				}
+				p = flip ? 256 * 8 * 2 + 232 - (179 - vScroll & 7) * 256 + (264 - hScroll & 7) : 256 * 8 * 2 + 232 - (45 + vScroll & 7) * 256 + (24 + hScroll & 7);
+				let k = flip ? 179 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0xc000 : 45 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0xc000;
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0x1f80 | 0xc000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0xff80, p += 256 * 8, j++)
 						this.xfer8x8(data, p, k, color);
 			}
 			if (ram[0x4013] === pri) {
 				const vScroll = ram[0x400d] | ram[0x400c] << 8, hScroll = ram[0x400f], color = ram[0x401b] << 8 & 0x700 | 0x800;
-				if (ram[0x5ff6] & 1) {
-					p = 256 * 8 * 2 + 232 - (180 - vScroll & 7) * 256 + (8 - hScroll & 7);
-					k = 180 - vScroll >> 2 & 0x7e | 8 - hScroll << 4 & 0xf80 | 0xe000;
-				} else {
-					p = 256 * 8 * 2 + 232 - (44 + vScroll & 7) * 256 + (24 + hScroll & 7);
-					k = 44 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0xf80 | 0xe000;
-				}
+				p = flip ? 256 * 8 * 2 + 232 - (180 - vScroll & 7) * 256 + (8 - hScroll & 7) : 256 * 8 * 2 + 232 - (44 + vScroll & 7) * 256 + (24 + hScroll & 7);
+				let k = flip ? 180 - vScroll >> 2 & 0x7e | 8 - hScroll << 4 & 0xf80 | 0xe000 : 44 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0xf80 | 0xe000;
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0xe000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0xff80, p += 256 * 8, j++)
 						this.xfer8x8(data, p, k, color);
@@ -513,16 +490,14 @@ class DragonSpirit {
 			if (ram[0x4014] === pri) {
 				const color = ram[0x401c] << 8 & 0x700 | 0x800;
 				p = 256 * 8 * 2 + 232;
-				k = 0xf010;
-				for (let i = 0; i < 28; p -= 256 * 8 * 36 + 8, i++)
+				for (let k = 0xf010, i = 0; i < 28; p -= 256 * 8 * 36 + 8, i++)
 					for (let j = 0; j < 36; k = k + 2, p += 256 * 8, j++)
 						this.xfer8x8(data, p, k, color);
 			}
 			if (ram[0x4015] === pri) {
 				const color = ram[0x401d] << 8 & 0x700 | 0x800;
 				p = 256 * 8 * 2 + 232;
-				k = 0xf810;
-				for (let i = 0; i < 28; p -= 256 * 8 * 36 + 8, i++)
+				for (let k = 0xf810, i = 0; i < 28; p -= 256 * 8 * 36 + 8, i++)
 					for (let j = 0; j < 36; k = k + 2, p += 256 * 8, j++)
 						this.xfer8x8(data, p, k, color);
 			}
@@ -532,8 +507,8 @@ class DragonSpirit {
 				if (ram[k + 8] >> 5 !== pri)
 					continue;
 				const w = [16, 8, 32, 4][ram[k + 8] >> 1 & 3], h = [16, 8, 32, 4][ram[k + 4] >> 6];
-				const x = w + ram[k + 9] + ram[0x5ff7] - (ram[0x5ff6] & 1 ? 0 : 2) & 0xff;
-				const y = (ram[k + 7] | ram[k + 6] << 8) + (ram[0x5ff5] | ram[0x5ff4] << 8) - (ram[0x5ff6] & 1 ? 135 : 57) & 0x1ff;
+				const x = w + ram[k + 9] + ram[0x5ff7] - (flip ? 0 : 2) & 0xff;
+				const y = (ram[k + 7] | ram[k + 6] << 8) + (ram[0x5ff5] | ram[0x5ff4] << 8) - (flip ? 135 : 57) & 0x1ff;
 				const src = (~ram[k + 8] & 0x18 | 7) & -w | (ram[k + 4] & -h) << 5 & 0x300 | ram[k + 5] << 10 & 0x3fc00 | ram[k + 4] << 18 & 0x1c0000;
 				const color = ram[k + 6] << 3 & 0x7f0;
 				if (color === 0x7f0)
@@ -595,70 +570,70 @@ class DragonSpirit {
 
 		if (this.isspace[c])
 			return;
-		if ((CHR8[q1 | 0] & 0x80) !== 0) data[p + 0x007] = color | this.chr[q2 | 0x00];
-		if ((CHR8[q1 | 0] & 0x40) !== 0) data[p + 0x107] = color | this.chr[q2 | 0x01];
-		if ((CHR8[q1 | 0] & 0x20) !== 0) data[p + 0x207] = color | this.chr[q2 | 0x02];
-		if ((CHR8[q1 | 0] & 0x10) !== 0) data[p + 0x307] = color | this.chr[q2 | 0x03];
-		if ((CHR8[q1 | 0] & 0x08) !== 0) data[p + 0x407] = color | this.chr[q2 | 0x04];
-		if ((CHR8[q1 | 0] & 0x04) !== 0) data[p + 0x507] = color | this.chr[q2 | 0x05];
-		if ((CHR8[q1 | 0] & 0x02) !== 0) data[p + 0x607] = color | this.chr[q2 | 0x06];
-		if ((CHR8[q1 | 0] & 0x01) !== 0) data[p + 0x707] = color | this.chr[q2 | 0x07];
-		if ((CHR8[q1 | 1] & 0x80) !== 0) data[p + 0x006] = color | this.chr[q2 | 0x08];
-		if ((CHR8[q1 | 1] & 0x40) !== 0) data[p + 0x106] = color | this.chr[q2 | 0x09];
-		if ((CHR8[q1 | 1] & 0x20) !== 0) data[p + 0x206] = color | this.chr[q2 | 0x0a];
-		if ((CHR8[q1 | 1] & 0x10) !== 0) data[p + 0x306] = color | this.chr[q2 | 0x0b];
-		if ((CHR8[q1 | 1] & 0x08) !== 0) data[p + 0x406] = color | this.chr[q2 | 0x0c];
-		if ((CHR8[q1 | 1] & 0x04) !== 0) data[p + 0x506] = color | this.chr[q2 | 0x0d];
-		if ((CHR8[q1 | 1] & 0x02) !== 0) data[p + 0x606] = color | this.chr[q2 | 0x0e];
-		if ((CHR8[q1 | 1] & 0x01) !== 0) data[p + 0x706] = color | this.chr[q2 | 0x0f];
-		if ((CHR8[q1 | 2] & 0x80) !== 0) data[p + 0x005] = color | this.chr[q2 | 0x10];
-		if ((CHR8[q1 | 2] & 0x40) !== 0) data[p + 0x105] = color | this.chr[q2 | 0x11];
-		if ((CHR8[q1 | 2] & 0x20) !== 0) data[p + 0x205] = color | this.chr[q2 | 0x12];
-		if ((CHR8[q1 | 2] & 0x10) !== 0) data[p + 0x305] = color | this.chr[q2 | 0x13];
-		if ((CHR8[q1 | 2] & 0x08) !== 0) data[p + 0x405] = color | this.chr[q2 | 0x14];
-		if ((CHR8[q1 | 2] & 0x04) !== 0) data[p + 0x505] = color | this.chr[q2 | 0x15];
-		if ((CHR8[q1 | 2] & 0x02) !== 0) data[p + 0x605] = color | this.chr[q2 | 0x16];
-		if ((CHR8[q1 | 2] & 0x01) !== 0) data[p + 0x705] = color | this.chr[q2 | 0x17];
-		if ((CHR8[q1 | 3] & 0x80) !== 0) data[p + 0x004] = color | this.chr[q2 | 0x18];
-		if ((CHR8[q1 | 3] & 0x40) !== 0) data[p + 0x104] = color | this.chr[q2 | 0x19];
-		if ((CHR8[q1 | 3] & 0x20) !== 0) data[p + 0x204] = color | this.chr[q2 | 0x1a];
-		if ((CHR8[q1 | 3] & 0x10) !== 0) data[p + 0x304] = color | this.chr[q2 | 0x1b];
-		if ((CHR8[q1 | 3] & 0x08) !== 0) data[p + 0x404] = color | this.chr[q2 | 0x1c];
-		if ((CHR8[q1 | 3] & 0x04) !== 0) data[p + 0x504] = color | this.chr[q2 | 0x1d];
-		if ((CHR8[q1 | 3] & 0x02) !== 0) data[p + 0x604] = color | this.chr[q2 | 0x1e];
-		if ((CHR8[q1 | 3] & 0x01) !== 0) data[p + 0x704] = color | this.chr[q2 | 0x1f];
-		if ((CHR8[q1 | 4] & 0x80) !== 0) data[p + 0x003] = color | this.chr[q2 | 0x20];
-		if ((CHR8[q1 | 4] & 0x40) !== 0) data[p + 0x103] = color | this.chr[q2 | 0x21];
-		if ((CHR8[q1 | 4] & 0x20) !== 0) data[p + 0x203] = color | this.chr[q2 | 0x22];
-		if ((CHR8[q1 | 4] & 0x10) !== 0) data[p + 0x303] = color | this.chr[q2 | 0x23];
-		if ((CHR8[q1 | 4] & 0x08) !== 0) data[p + 0x403] = color | this.chr[q2 | 0x24];
-		if ((CHR8[q1 | 4] & 0x04) !== 0) data[p + 0x503] = color | this.chr[q2 | 0x25];
-		if ((CHR8[q1 | 4] & 0x02) !== 0) data[p + 0x603] = color | this.chr[q2 | 0x26];
-		if ((CHR8[q1 | 4] & 0x01) !== 0) data[p + 0x703] = color | this.chr[q2 | 0x27];
-		if ((CHR8[q1 | 5] & 0x80) !== 0) data[p + 0x002] = color | this.chr[q2 | 0x28];
-		if ((CHR8[q1 | 5] & 0x40) !== 0) data[p + 0x102] = color | this.chr[q2 | 0x29];
-		if ((CHR8[q1 | 5] & 0x20) !== 0) data[p + 0x202] = color | this.chr[q2 | 0x2a];
-		if ((CHR8[q1 | 5] & 0x10) !== 0) data[p + 0x302] = color | this.chr[q2 | 0x2b];
-		if ((CHR8[q1 | 5] & 0x08) !== 0) data[p + 0x402] = color | this.chr[q2 | 0x2c];
-		if ((CHR8[q1 | 5] & 0x04) !== 0) data[p + 0x502] = color | this.chr[q2 | 0x2d];
-		if ((CHR8[q1 | 5] & 0x02) !== 0) data[p + 0x602] = color | this.chr[q2 | 0x2e];
-		if ((CHR8[q1 | 5] & 0x01) !== 0) data[p + 0x702] = color | this.chr[q2 | 0x2f];
-		if ((CHR8[q1 | 6] & 0x80) !== 0) data[p + 0x001] = color | this.chr[q2 | 0x30];
-		if ((CHR8[q1 | 6] & 0x40) !== 0) data[p + 0x101] = color | this.chr[q2 | 0x31];
-		if ((CHR8[q1 | 6] & 0x20) !== 0) data[p + 0x201] = color | this.chr[q2 | 0x32];
-		if ((CHR8[q1 | 6] & 0x10) !== 0) data[p + 0x301] = color | this.chr[q2 | 0x33];
-		if ((CHR8[q1 | 6] & 0x08) !== 0) data[p + 0x401] = color | this.chr[q2 | 0x34];
-		if ((CHR8[q1 | 6] & 0x04) !== 0) data[p + 0x501] = color | this.chr[q2 | 0x35];
-		if ((CHR8[q1 | 6] & 0x02) !== 0) data[p + 0x601] = color | this.chr[q2 | 0x36];
-		if ((CHR8[q1 | 6] & 0x01) !== 0) data[p + 0x701] = color | this.chr[q2 | 0x37];
-		if ((CHR8[q1 | 7] & 0x80) !== 0) data[p + 0x000] = color | this.chr[q2 | 0x38];
-		if ((CHR8[q1 | 7] & 0x40) !== 0) data[p + 0x100] = color | this.chr[q2 | 0x39];
-		if ((CHR8[q1 | 7] & 0x20) !== 0) data[p + 0x200] = color | this.chr[q2 | 0x3a];
-		if ((CHR8[q1 | 7] & 0x10) !== 0) data[p + 0x300] = color | this.chr[q2 | 0x3b];
-		if ((CHR8[q1 | 7] & 0x08) !== 0) data[p + 0x400] = color | this.chr[q2 | 0x3c];
-		if ((CHR8[q1 | 7] & 0x04) !== 0) data[p + 0x500] = color | this.chr[q2 | 0x3d];
-		if ((CHR8[q1 | 7] & 0x02) !== 0) data[p + 0x600] = color | this.chr[q2 | 0x3e];
-		if ((CHR8[q1 | 7] & 0x01) !== 0) data[p + 0x700] = color | this.chr[q2 | 0x3f];
+		if (CHR8[q1 | 0] & 0x80) data[p + 0x007] = color | this.chr[q2 | 0x00];
+		if (CHR8[q1 | 0] & 0x40) data[p + 0x107] = color | this.chr[q2 | 0x01];
+		if (CHR8[q1 | 0] & 0x20) data[p + 0x207] = color | this.chr[q2 | 0x02];
+		if (CHR8[q1 | 0] & 0x10) data[p + 0x307] = color | this.chr[q2 | 0x03];
+		if (CHR8[q1 | 0] & 0x08) data[p + 0x407] = color | this.chr[q2 | 0x04];
+		if (CHR8[q1 | 0] & 0x04) data[p + 0x507] = color | this.chr[q2 | 0x05];
+		if (CHR8[q1 | 0] & 0x02) data[p + 0x607] = color | this.chr[q2 | 0x06];
+		if (CHR8[q1 | 0] & 0x01) data[p + 0x707] = color | this.chr[q2 | 0x07];
+		if (CHR8[q1 | 1] & 0x80) data[p + 0x006] = color | this.chr[q2 | 0x08];
+		if (CHR8[q1 | 1] & 0x40) data[p + 0x106] = color | this.chr[q2 | 0x09];
+		if (CHR8[q1 | 1] & 0x20) data[p + 0x206] = color | this.chr[q2 | 0x0a];
+		if (CHR8[q1 | 1] & 0x10) data[p + 0x306] = color | this.chr[q2 | 0x0b];
+		if (CHR8[q1 | 1] & 0x08) data[p + 0x406] = color | this.chr[q2 | 0x0c];
+		if (CHR8[q1 | 1] & 0x04) data[p + 0x506] = color | this.chr[q2 | 0x0d];
+		if (CHR8[q1 | 1] & 0x02) data[p + 0x606] = color | this.chr[q2 | 0x0e];
+		if (CHR8[q1 | 1] & 0x01) data[p + 0x706] = color | this.chr[q2 | 0x0f];
+		if (CHR8[q1 | 2] & 0x80) data[p + 0x005] = color | this.chr[q2 | 0x10];
+		if (CHR8[q1 | 2] & 0x40) data[p + 0x105] = color | this.chr[q2 | 0x11];
+		if (CHR8[q1 | 2] & 0x20) data[p + 0x205] = color | this.chr[q2 | 0x12];
+		if (CHR8[q1 | 2] & 0x10) data[p + 0x305] = color | this.chr[q2 | 0x13];
+		if (CHR8[q1 | 2] & 0x08) data[p + 0x405] = color | this.chr[q2 | 0x14];
+		if (CHR8[q1 | 2] & 0x04) data[p + 0x505] = color | this.chr[q2 | 0x15];
+		if (CHR8[q1 | 2] & 0x02) data[p + 0x605] = color | this.chr[q2 | 0x16];
+		if (CHR8[q1 | 2] & 0x01) data[p + 0x705] = color | this.chr[q2 | 0x17];
+		if (CHR8[q1 | 3] & 0x80) data[p + 0x004] = color | this.chr[q2 | 0x18];
+		if (CHR8[q1 | 3] & 0x40) data[p + 0x104] = color | this.chr[q2 | 0x19];
+		if (CHR8[q1 | 3] & 0x20) data[p + 0x204] = color | this.chr[q2 | 0x1a];
+		if (CHR8[q1 | 3] & 0x10) data[p + 0x304] = color | this.chr[q2 | 0x1b];
+		if (CHR8[q1 | 3] & 0x08) data[p + 0x404] = color | this.chr[q2 | 0x1c];
+		if (CHR8[q1 | 3] & 0x04) data[p + 0x504] = color | this.chr[q2 | 0x1d];
+		if (CHR8[q1 | 3] & 0x02) data[p + 0x604] = color | this.chr[q2 | 0x1e];
+		if (CHR8[q1 | 3] & 0x01) data[p + 0x704] = color | this.chr[q2 | 0x1f];
+		if (CHR8[q1 | 4] & 0x80) data[p + 0x003] = color | this.chr[q2 | 0x20];
+		if (CHR8[q1 | 4] & 0x40) data[p + 0x103] = color | this.chr[q2 | 0x21];
+		if (CHR8[q1 | 4] & 0x20) data[p + 0x203] = color | this.chr[q2 | 0x22];
+		if (CHR8[q1 | 4] & 0x10) data[p + 0x303] = color | this.chr[q2 | 0x23];
+		if (CHR8[q1 | 4] & 0x08) data[p + 0x403] = color | this.chr[q2 | 0x24];
+		if (CHR8[q1 | 4] & 0x04) data[p + 0x503] = color | this.chr[q2 | 0x25];
+		if (CHR8[q1 | 4] & 0x02) data[p + 0x603] = color | this.chr[q2 | 0x26];
+		if (CHR8[q1 | 4] & 0x01) data[p + 0x703] = color | this.chr[q2 | 0x27];
+		if (CHR8[q1 | 5] & 0x80) data[p + 0x002] = color | this.chr[q2 | 0x28];
+		if (CHR8[q1 | 5] & 0x40) data[p + 0x102] = color | this.chr[q2 | 0x29];
+		if (CHR8[q1 | 5] & 0x20) data[p + 0x202] = color | this.chr[q2 | 0x2a];
+		if (CHR8[q1 | 5] & 0x10) data[p + 0x302] = color | this.chr[q2 | 0x2b];
+		if (CHR8[q1 | 5] & 0x08) data[p + 0x402] = color | this.chr[q2 | 0x2c];
+		if (CHR8[q1 | 5] & 0x04) data[p + 0x502] = color | this.chr[q2 | 0x2d];
+		if (CHR8[q1 | 5] & 0x02) data[p + 0x602] = color | this.chr[q2 | 0x2e];
+		if (CHR8[q1 | 5] & 0x01) data[p + 0x702] = color | this.chr[q2 | 0x2f];
+		if (CHR8[q1 | 6] & 0x80) data[p + 0x001] = color | this.chr[q2 | 0x30];
+		if (CHR8[q1 | 6] & 0x40) data[p + 0x101] = color | this.chr[q2 | 0x31];
+		if (CHR8[q1 | 6] & 0x20) data[p + 0x201] = color | this.chr[q2 | 0x32];
+		if (CHR8[q1 | 6] & 0x10) data[p + 0x301] = color | this.chr[q2 | 0x33];
+		if (CHR8[q1 | 6] & 0x08) data[p + 0x401] = color | this.chr[q2 | 0x34];
+		if (CHR8[q1 | 6] & 0x04) data[p + 0x501] = color | this.chr[q2 | 0x35];
+		if (CHR8[q1 | 6] & 0x02) data[p + 0x601] = color | this.chr[q2 | 0x36];
+		if (CHR8[q1 | 6] & 0x01) data[p + 0x701] = color | this.chr[q2 | 0x37];
+		if (CHR8[q1 | 7] & 0x80) data[p + 0x000] = color | this.chr[q2 | 0x38];
+		if (CHR8[q1 | 7] & 0x40) data[p + 0x100] = color | this.chr[q2 | 0x39];
+		if (CHR8[q1 | 7] & 0x20) data[p + 0x200] = color | this.chr[q2 | 0x3a];
+		if (CHR8[q1 | 7] & 0x10) data[p + 0x300] = color | this.chr[q2 | 0x3b];
+		if (CHR8[q1 | 7] & 0x08) data[p + 0x400] = color | this.chr[q2 | 0x3c];
+		if (CHR8[q1 | 7] & 0x04) data[p + 0x500] = color | this.chr[q2 | 0x3d];
+		if (CHR8[q1 | 7] & 0x02) data[p + 0x600] = color | this.chr[q2 | 0x3e];
+		if (CHR8[q1 | 7] & 0x01) data[p + 0x700] = color | this.chr[q2 | 0x3f];
 	}
 
 	shadowHxW(data, src, y0, x0, h, w) {

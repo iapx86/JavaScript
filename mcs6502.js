@@ -59,7 +59,7 @@ export default class MCS6502 extends Cpu {
 		case 0x0e: // ASL nn
 			return ea = this.fetch16(), this.write(ea, this.asl8(this.read(ea)));
 		case 0x10: // BPL
-			return this.bcc((this.ccr & 0x80) === 0);
+			return this.bcc(!(this.ccr & 0x80));
 		case 0x11: // ORA (n),Y
 			return void(this.a = this.mov8(this.a | this.read(this.read16z(this.fetch()) + this.iy & 0xffff)));
 		case 0x15: // ORA n,X
@@ -133,7 +133,7 @@ export default class MCS6502 extends Cpu {
 		case 0x4e: // LSR nn
 			return ea = this.fetch16(), this.write(ea, this.lsr8(this.read(ea)));
 		case 0x50: // BVC
-			return this.bcc((this.ccr & 0x40) === 0);
+			return this.bcc(!(this.ccr & 0x40));
 		case 0x51: // EOR (n),Y
 			return void(this.a = this.mov8(this.a ^ this.read(this.read16z(this.fetch()) + this.iy & 0xffff)));
 		case 0x55: // EOR n,X
@@ -203,7 +203,7 @@ export default class MCS6502 extends Cpu {
 		case 0x8e: // STX nn
 			return this.write(this.fetch16(), this.ix);
 		case 0x90: // BCC
-			return this.bcc((this.ccr & 1) === 0);
+			return this.bcc(!(this.ccr & 1));
 		case 0x91: // STA (n),Y
 			return this.write(this.read16z(this.fetch()) + this.iy & 0xffff, this.a);
 		case 0x94: // STY n,X
@@ -289,7 +289,7 @@ export default class MCS6502 extends Cpu {
 		case 0xce: // DEC nn
 			return ea = this.fetch16(), this.write(ea, this.mov8(this.read(ea) - 1 & 0xff));
 		case 0xd0: // BNE
-			return this.bcc((this.ccr & 2) === 0);
+			return this.bcc(!(this.ccr & 2));
 		case 0xd1: // CMP (n),Y
 			return this.cmp8(this.a, this.read(this.read16z(this.fetch()) + this.iy & 0xffff));
 		case 0xd5: // CMP n,X

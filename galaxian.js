@@ -64,10 +64,10 @@ class Galaxian {
 		this.cpu.memorymap[0x68].write = (addr, data) => {
 			switch (addr & 7) {
 			case 3: // BOMB
-				(data & 1) !== 0 && (this.se[0].start = this.se[0].stop = true);
+				data & 1 && (this.se[0].start = this.se[0].stop = true);
 				break;
 			case 5: // SHOT
-				(data & 1) !== 0 && !this.mmo[0x15] && (this.se[1].start = this.se[1].stop = true);
+				data & 1 && !this.mmo[0x15] && (this.se[1].start = this.se[1].stop = true);
 				break;
 			}
 			this.mmo[addr & 7 | 0x10] = data & 1;
@@ -170,14 +170,14 @@ class Galaxian {
 		return this;
 	}
 
-	emulateWave(mode) {
-		if (mode === this.mode)
+	emulateWave(_mode) {
+		if (_mode === this.mode)
 			return;
 		if (this.mode)
 			this.se[this.mode + 1].stop = true;
-		if (mode)
-			this.se[mode + 1].start = true;
-		this.mode = mode;
+		if (_mode)
+			this.se[_mode + 1].start = true;
+		this.mode = _mode;
 	}
 
 	updateInput() {
@@ -279,8 +279,7 @@ class Galaxian {
 	makeBitmap(data) {
 		// bg描画
 		let p = 256 * 32;
-		let k = 0x7e2;
-		for (let i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
+		for (let k = 0x7e2, i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0x800 + i * 2];
 			for (let j = 0; j < 32; k -= 0x20, j++) {
 				this.xfer8x8(data, p + dwScroll, k, i);
@@ -316,8 +315,7 @@ class Galaxian {
 
 		// bg描画
 		p = 256 * 16;
-		k = 0x7e0;
-		for (let i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
+		for (let k = 0x7e0, i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0x800 + i * 2];
 			for (let j = 0; j < 32; k -= 0x20, j++) {
 				this.xfer8x8(data, p + dwScroll, k, i);
@@ -333,9 +331,9 @@ class Galaxian {
 				if (!px)
 					break;
 				const x = this.stars[i].x, y = this.stars[i].y;
-				if ((x & 1) !== 0 && (y & 8) === 0 && (data[p + (x | y << 8)] & 3) === 0)
+				if (x & 1 && ~y & 8 && !(data[p + (x | y << 8)] & 3))
 					data[p + (x | y << 8)] = 0x40 | px;
-				else if ((x & 1) === 0 && (y & 8) !== 0 && (data[p + (x | y << 8)] & 3) === 0)
+				else if (~x & 1 && y & 8 && !(data[p + (x | y << 8)] & 3))
 					data[p + (x | y << 8)] = 0x40 | px;
 			}
 		}

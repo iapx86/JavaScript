@@ -31,7 +31,7 @@ class NewRallyX {
 	nBonus = 'A';
 
 	fInterruptEnable = false;
-	fSoundEnable = false;
+//	fSoundEnable = false;
 
 	ram = new Uint8Array(0x1800).addBase();
 	mmi = new Uint8Array(0x200).fill(0xff).addBase();
@@ -79,9 +79,9 @@ class NewRallyX {
 					case 1:
 						this.fInterruptEnable = (data & 1) !== 0, this.cpu_irq = false;
 						break;
-					case 2:
-						this.fSoundEnable = (data & 1) !== 0;
-						break;
+//					case 2:
+//						this.fSoundEnable = (data & 1) !== 0;
+//						break;
 					}
 					// fallthrough
 				default:
@@ -90,7 +90,7 @@ class NewRallyX {
 			};
 		}
 		for (let i = 0; i < 0x100; i++)
-			this.cpu.iomap[i].write = (addr, data) => { (addr & 0xff) === 0 && (this.vector = data, this.cpu_irq = false); };
+			this.cpu.iomap[i].write = (addr, data) => { !(addr & 0xff) && (this.vector = data, this.cpu_irq = false); };
 
 		this.cpu.check_interrupt = () => { return this.cpu_irq && this.cpu.interrupt(this.vector); };
 
@@ -298,7 +298,7 @@ class NewRallyX {
 
 		// レーダー描画
 		for (let k = 0x3c, i = 9; i !== 0; --k, --i) {
-			if (this.ram[k + 0x800] === 0)
+			if (!this.ram[k + 0x800])
 				continue;
 			const x = 1 + this.ram[k + 0x800] & 0xff;
 			const y = this.ram[k] + 32 & 0xff;

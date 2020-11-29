@@ -27,7 +27,7 @@ class Scramble {
 	nLife = 3;
 
 	fInterruptEnable = false;
-	fSoundEnable = false;
+//	fSoundEnable = false;
 
 	ram = new Uint8Array(0xd00).addBase();
 	ppi0 = Uint8Array.of(0xff, 0xfc, 0xf1, 0);
@@ -79,19 +79,19 @@ class Scramble {
 			else if (range(page, 0x80, 0x80, 0x7f)) {
 				this.cpu.memorymap[page].read = (addr) => {
 					let data = 0xff;
-					if ((addr & 0x0100) !== 0)
+					if (addr & 0x0100)
 						data &= this.ppi0[addr & 3];
-					if ((addr & 0x0200) !== 0)
+					if (addr & 0x0200)
 						data &= this.ppi1[addr & 3];
 					return data;
 				};
 				this.cpu.memorymap[page].write = (addr, data) => {
-					if ((addr & 0x0200) !== 0)
+					if (addr & 0x0200)
 						switch (addr & 3) {
 						case 0:
 							return void this.command.push(data);
-						case 1:
-							return void(this.fSoundEnable = (data & 0x10) === 0);
+//						case 1:
+//							return void(this.fSoundEnable = (data & 0x10) === 0);
 						case 2:
 							this.state = this.state << 4 & 0xff0 | data & 0x0f;
 							const index = [0xf09, 0xa49, 0x319, 0x5c9].indexOf(this.state);
@@ -114,20 +114,20 @@ class Scramble {
 		for (let page = 0; page < 0x100; page++) {
 			this.cpu2.iomap[page].read = (addr) => {
 				let data = 0xff;
-				if ((addr & 0x20) !== 0)
+				if (addr & 0x20)
 					data &= sound[1].read(this.psg[1].addr);
-				if ((addr & 0x80) !== 0)
+				if (addr & 0x80)
 					data &= sound[0].read(this.psg[0].addr);
 				return data;
 			};
 			this.cpu2.iomap[page].write = (addr, data) => {
-				if ((addr & 0x10) !== 0)
+				if (addr & 0x10)
 					this.psg[1].addr = data;
-				else if ((addr & 0x20) !== 0)
+				else if (addr & 0x20)
 					sound[1].write(this.psg[1].addr, data, this.count);
-				if ((addr & 0x40) !== 0)
+				if (addr & 0x40)
 					this.psg[0].addr = data;
-				else if ((addr & 0x80) !== 0)
+				else if (addr & 0x80)
 					sound[0].write(this.psg[0].addr, data, this.count);
 			};
 		}
@@ -142,8 +142,8 @@ class Scramble {
 	}
 
 	execute() {
-		sound[0].mute(!this.fSoundEnable);
-		sound[1].mute(!this.fSoundEnable);
+//		sound[0].mute(!this.fSoundEnable);
+//		sound[1].mute(!this.fSoundEnable);
 		if (this.fInterruptEnable)
 			this.cpu.non_maskable_interrupt();
 		this.cpu.execute(0x2000);
@@ -189,7 +189,7 @@ class Scramble {
 			this.fReset = false;
 			this.cpu.reset();
 			this.fInterruptEnable = false;
-			this.fSoundEnable = false;
+//			this.fSoundEnable = false;
 			this.fStarEnable = false;
 			this.fBackgroundEnable = false;
 			this.command.splice(0);
@@ -302,8 +302,7 @@ class Scramble {
 	makeBitmap(data) {
 		// bg描画
 		let p = 256 * 32;
-		let k = 0xbe2;
-		for (let i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
+		for (let k = 0xbe2, i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0xc00 + i * 2];
 			for (let j = 0; j < 32; k -= 0x20, j++) {
 				this.xfer8x8(data, p + dwScroll, k, i);
@@ -339,8 +338,7 @@ class Scramble {
 
 		// bg描画
 		p = 256 * 16;
-		k = 0xbe0;
-		for (let i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
+		for (let k = 0xbe0, i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0xc00 + i * 2];
 			for (let j = 0; j < 32; k -= 0x20, j++) {
 				this.xfer8x8(data, p + dwScroll, k, i);
@@ -356,9 +354,9 @@ class Scramble {
 				if (!px)
 					break;
 				const x = this.stars[i].x, y = this.stars[i].y;
-				if ((x & 1) !== 0 && (y & 8) === 0 && (data[p + (x | y << 8)] & 3) === 0)
+				if (x & 1 && ~y & 8 && !(data[p + (x | y << 8)] & 3))
 					data[p + (x | y << 8)] = 0x40 | px;
-				else if ((x & 1) === 0 && (y & 8) !== 0 && (data[p + (x | y << 8)] & 3) === 0)
+				else if (~x & 1 && y & 8 && !(data[p + (x | y << 8)] & 3))
 					data[p + (x | y << 8)] = 0x40 | px;
 			}
 		}
@@ -368,7 +366,7 @@ class Scramble {
 		if (this.fBackgroundEnable)
 			for (let i = 0; i < 256; p += 256 - 224, i++)
 				for (let j = 0; j < 224; p++, j++)
-					data[p] = (data[p] & 3) !== 0 ? this.rgb[data[p]] : 0xff560000;
+					data[p] = data[p] & 3 ? this.rgb[data[p]] : 0xff560000;
 		else
 			for (let i = 0; i < 256; p += 256 - 224, i++)
 				for (let j = 0; j < 224; p++, j++)

@@ -108,23 +108,21 @@ class FantasyZone {
 			this.cpu2.iomap[i].read = (addr) => {
 				switch (addr >> 6 & 3) {
 				case 0:
-					return (addr & 1) !== 0 ? this.fm.status : 0xff;
+					return addr & 1 ? this.fm.status : 0xff;
 				case 3:
 					return this.command.length ? this.command.shift() : 0xff;
 				}
 				return 0xff;
 			};
 			this.cpu2.iomap[i].write = (addr, data) => {
-				if ((addr >> 6 & 3) !== 0)
+				if (addr >> 6 & 3)
 					return;
-				if ((addr & 1) === 0)
+				if (~addr & 1)
 					return void(this.fm.addr = data);
 				if (this.fm.addr === 0x14) { // CSM/F RESET/IRQEN/LOAD
 					this.fm.status &= ~(data >> 4 & 3);
-					if (data & ~this.fm.reg[0x14] & 1)
-						this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
-					if (data & ~this.fm.reg[0x14] & 2)
-						this.fm.timerb = this.fm.reg[0x12];
+					data & ~this.fm.reg[0x14] & 1 && (this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
+					data & ~this.fm.reg[0x14] & 2 && (this.fm.timerb = this.fm.reg[0x12]);
 				}
 				return sound.write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
 			};
@@ -339,19 +337,7 @@ class FantasyZone {
 			const pitch = this.ram[k + 4] << 9 | this.ram[k + 5] << 1;
 			const idx = this.ram[k + 8] << 4 & 0x3f0 | 0x400, bank = this.ram[k + 9] << 12 & 0x30000;
 			for (let addr = this.ram[k + 6] << 9 | this.ram[k + 7] << 1, x = x0; x > x1; --x)
-				if (((addr += pitch) & 0x10000) === 0)
-					for (let a = addr & 0xfffe, y = y0, px = 0; px !== 0xf && y < y0 + 512; a = a + 2 & 0xfffe, y += 4) {
-						let px0 = OBJ[a | bank], px1 = OBJ[1 | a | bank];
-						if ((px = px0 >> 4) && px !== 15)
-							data[x - 17 & 0xff | y << 8 & 0x1ff00] = idx | px;
-						if ((px = px0 & 15) && px !== 15)
-							data[x - 17 & 0xff | y + 1 << 8 & 0x1ff00] = idx | px;
-						if ((px = px1 >> 4) && px !== 15)
-							data[x - 17 & 0xff | y + 2 << 8 & 0x1ff00] = idx | px;
-						if ((px = px1 & 15) && px !== 15)
-							data[x - 17 & 0xff | y + 3 << 8 & 0x1ff00] = idx | px;
-					}
-				else
+				if ((addr += pitch) & 0x10000)
 					for (let a = addr & 0xfffe, y = y0, px = 0; px !== 0xf && y < y0 + 512; a = a - 2 & 0xfffe, y += 4) {
 						let px0 = OBJ[a | bank], px1 = OBJ[1 | a | bank];
 						if ((px = px1 & 15) && px !== 15)
@@ -361,6 +347,18 @@ class FantasyZone {
 						if ((px = px0 & 15) && px !== 15)
 							data[x - 17 & 0xff | y + 2 << 8 & 0x1ff00] = idx | px;
 						if ((px = px0 >> 4) && px !== 15)
+							data[x - 17 & 0xff | y + 3 << 8 & 0x1ff00] = idx | px;
+					}
+				else
+					for (let a = addr & 0xfffe, y = y0, px = 0; px !== 0xf && y < y0 + 512; a = a + 2 & 0xfffe, y += 4) {
+						let px0 = OBJ[a | bank], px1 = OBJ[1 | a | bank];
+						if ((px = px0 >> 4) && px !== 15)
+							data[x - 17 & 0xff | y << 8 & 0x1ff00] = idx | px;
+						if ((px = px0 & 15) && px !== 15)
+							data[x - 17 & 0xff | y + 1 << 8 & 0x1ff00] = idx | px;
+						if ((px = px1 >> 4) && px !== 15)
+							data[x - 17 & 0xff | y + 2 << 8 & 0x1ff00] = idx | px;
+						if ((px = px1 & 15) && px !== 15)
 							data[x - 17 & 0xff | y + 3 << 8 & 0x1ff00] = idx | px;
 					}
 		}
@@ -401,7 +399,7 @@ class FantasyZone {
 			break;
 		}
 
-		if (mask === 0) {
+		if (!mask) {
 			data[p + 0x000] = idx | this.bg[q | 0x00];
 			data[p + 0x001] = idx | this.bg[q | 0x01];
 			data[p + 0x002] = idx | this.bg[q | 0x02];

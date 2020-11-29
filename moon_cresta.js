@@ -72,10 +72,10 @@ class MoonCresta {
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 7) {
 					case 3: // BOMB
-						(data & 1) !== 0 ? (this.se[0].start = true) : (this.se[0].stop = true);
+						data & 1 ? (this.se[0].start = true) : (this.se[0].stop = true);
 						break;
 					case 5: // SHOT
-						(data & 1) !== 0 && !this.mmo[0x15] && (this.se[1].start = this.se[1].stop = true);
+						data & 1 && !this.mmo[0x15] && (this.se[1].start = this.se[1].stop = true);
 						break;
 					}
 					this.mmo[addr & 7 | 0x10] = data & 1;
@@ -222,7 +222,7 @@ class MoonCresta {
 		for (let i = 0; i < PRG.length; i++) {
 			PRG[i] ^= PRG[i] << 5 & 0x40;
 			PRG[i] ^= PRG[i] >> 3 & 4;
-			if ((i & 1) === 0)
+			if (~i & 1)
 				PRG[i] = PRG[i] & 0xbb | PRG[i] << 4 & 0x40 | PRG[i] >> 4 & 4;
 		}
 		MoonCresta.decoded = true;
@@ -258,8 +258,7 @@ class MoonCresta {
 	makeBitmap(data) {
 		// bg描画
 		let p = 256 * 32;
-		let k = 0x7e2;
-		for (let i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
+		for (let k = 0x7e2, i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0x800 + i * 2];
 			for (let j = 0; j < 32; k -= 0x20, j++) {
 				this.xfer8x8(data, p + dwScroll, k, i);
@@ -295,8 +294,7 @@ class MoonCresta {
 
 		// bg描画
 		p = 256 * 16;
-		k = 0x7e0;
-		for (let i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
+		for (let k = 0x7e0, i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0x800 + i * 2];
 			for (let j = 0; j < 32; k -= 0x20, j++) {
 				this.xfer8x8(data, p + dwScroll, k, i);
@@ -312,9 +310,9 @@ class MoonCresta {
 				if (!px)
 					break;
 				const x = this.stars[i].x, y = this.stars[i].y;
-				if ((x & 1) !== 0 && (y & 8) === 0 && (data[p + (x | y << 8)] & 3) === 0)
+				if (x & 1 && ~y & 8 && !(data[p + (x | y << 8)] & 3))
 					data[p + (x | y << 8)] = 0x40 | px;
-				else if ((x & 1) === 0 && (y & 8) !== 0 && (data[p + (x | y << 8)] & 3) === 0)
+				else if (~x & 1 && y & 8 && !(data[p + (x | y << 8)] & 3))
 					data[p + (x | y << 8)] = 0x40 | px;
 			}
 		}

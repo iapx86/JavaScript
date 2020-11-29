@@ -57,8 +57,7 @@ export default class K007232 {
 	}
 
 	write(addr, data, timer = 0) {
-		addr &= 0xf;
-		this.tmpwheel[timer].push({addr, data});
+		addr &= 0xf, this.tmpwheel[timer].push({addr, data});
 	}
 
 	set_bank(bank0, bank1, timer = 0) {
@@ -80,8 +79,7 @@ export default class K007232 {
 		const reg = this.reg;
 		data.forEach((e, i) => {
 			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
-				if (this.wheel.length)
-					this.wheel.shift().forEach(e => this.regwrite(e));
+				this.wheel.length && this.wheel.shift().forEach(e => this.regwrite(e));
 			this.channel.forEach(ch => ch.play && (data[i] += this.snd[ch.bank | ch.addr >> 12] * ch.vol));
 			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate)
 				this.channel.forEach((ch, j) => {

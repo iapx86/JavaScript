@@ -47,7 +47,7 @@ class SoundTest {
 		this.cpu.memorymap[0x91].base = this.ram.base[0x21];
 		this.cpu.memorymap[0x91].write = null;
 		this.cpu.memorymap[0xa0].write = (addr, data) => {
-			if ((addr & 0xff) === 0)
+			if (!(addr & 0xff))
 				this.fInterruptEnable = (data & 1) !== 0;
 			this.ram[0x2200 | addr & 0xff] = data;
 		};

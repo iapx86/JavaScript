@@ -78,31 +78,31 @@ export default class MC6809 extends Cpu {
 			case 0x21: // LBRN
 				return this.lbcc(false);
 			case 0x22: // LBHI
-				return this.lbcc(((this.ccr >> 2 | this.ccr) & 1) === 0);
+				return this.lbcc(!((this.ccr >> 2 | this.ccr) & 1));
 			case 0x23: // LBLS
 				return this.lbcc(((this.ccr >> 2 | this.ccr) & 1) !== 0);
 			case 0x24: // LBHS(LBCC)
-				return this.lbcc((this.ccr & 1) === 0);
+				return this.lbcc(!(this.ccr & 1));
 			case 0x25: // LBLO(LBCS)
 				return this.lbcc((this.ccr & 1) !== 0);
 			case 0x26: // LBNE
-				return this.lbcc((this.ccr & 4) === 0);
+				return this.lbcc(!(this.ccr & 4));
 			case 0x27: // LBEQ
 				return this.lbcc((this.ccr & 4) !== 0);
 			case 0x28: // LBVC
-				return this.lbcc((this.ccr & 2) === 0);
+				return this.lbcc(!(this.ccr & 2));
 			case 0x29: // LBVS
 				return this.lbcc((this.ccr & 2) !== 0);
 			case 0x2a: // LBPL
-				return this.lbcc((this.ccr & 8) === 0);
+				return this.lbcc(!(this.ccr & 8));
 			case 0x2b: // LBMI
 				return this.lbcc((this.ccr & 8) !== 0);
 			case 0x2c: // LBGE
-				return this.lbcc(((this.ccr >> 2 ^ this.ccr) & 2) === 0);
+				return this.lbcc(!((this.ccr >> 2 ^ this.ccr) & 2));
 			case 0x2d: // LBLT
 				return this.lbcc(((this.ccr >> 2 ^ this.ccr) & 2) !== 0);
 			case 0x2e: // LBGT
-				return this.lbcc(((this.ccr >> 2 ^ this.ccr | this.ccr >> 1) & 2) === 0);
+				return this.lbcc(!((this.ccr >> 2 ^ this.ccr | this.ccr >> 1) & 2));
 			case 0x2f: // LBLE
 				return this.lbcc(((this.ccr >> 2 ^ this.ccr | this.ccr >> 1) & 2) !== 0);
 			case 0x3f: // SWI2
@@ -389,31 +389,31 @@ export default class MC6809 extends Cpu {
 		case 0x21: // BRN
 			return this.bcc(false);
 		case 0x22: // BHI
-			return this.bcc(((this.ccr >> 2 | this.ccr) & 1) === 0);
+			return this.bcc(!((this.ccr >> 2 | this.ccr) & 1));
 		case 0x23: // BLS
 			return this.bcc(((this.ccr >> 2 | this.ccr) & 1) !== 0);
 		case 0x24: // BHS(BCC)
-			return this.bcc((this.ccr & 1) === 0);
+			return this.bcc(!(this.ccr & 1));
 		case 0x25: // BLO(BCS)
 			return this.bcc((this.ccr & 1) !== 0);
 		case 0x26: // BNE
-			return this.bcc((this.ccr & 4) === 0);
+			return this.bcc(!(this.ccr & 4));
 		case 0x27: // BEQ
 			return this.bcc((this.ccr & 4) !== 0);
 		case 0x28: // BVC
-			return this.bcc((this.ccr & 2) === 0);
+			return this.bcc(!(this.ccr & 2));
 		case 0x29: // BVS
 			return this.bcc((this.ccr & 2) !== 0);
 		case 0x2a: // BPL
-			return this.bcc((this.ccr & 8) === 0);
+			return this.bcc(!(this.ccr & 8));
 		case 0x2b: // BMI
 			return this.bcc((this.ccr & 8) !== 0);
 		case 0x2c: // BGE
-			return this.bcc(((this.ccr >> 2 ^ this.ccr) & 2) === 0);
+			return this.bcc(!((this.ccr >> 2 ^ this.ccr) & 2));
 		case 0x2d: // BLT
 			return this.bcc(((this.ccr >> 2 ^ this.ccr) & 2) !== 0);
 		case 0x2e: // BGT
-			return this.bcc(((this.ccr >> 2 ^ this.ccr | this.ccr >> 1) & 2) === 0);
+			return this.bcc(!((this.ccr >> 2 ^ this.ccr | this.ccr >> 1) & 2));
 		case 0x2f: // BLE
 			return this.bcc(((this.ccr >> 2 ^ this.ccr | this.ccr >> 1) & 2) !== 0);
 		case 0x30: // LEAX
@@ -447,7 +447,7 @@ export default class MC6809 extends Cpu {
 		case 0x3a: // ABX
 			return void(this.x = this.x + this.b & 0xffff);
 		case 0x3b: // RTI
-			if (((this.ccr = this.puls()) & 0x80) !== 0)
+			if ((this.ccr = this.puls()) & 0x80)
 				this.a = this.puls(), this.b = this.puls(), this.dp = this.puls(), this.x = this.puls16(), this.y = this.puls16(), this.u = this.puls16();
 			return void(this.pc = this.puls16());
 		case 0x3c: // CWAI

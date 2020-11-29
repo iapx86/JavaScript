@@ -47,35 +47,35 @@ export default class MC6805 extends Cpu {
 		case 0x00: // BRSET0
 			return this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.fetch()) & 1) & 1) !== 0);
 		case 0x01: // BRCLR0
-			return this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.fetch()) & 1) & 1) === 0);
+			return this.bcc(!((this.ccr = this.ccr & ~1 | this.read(this.fetch()) & 1) & 1));
 		case 0x02: // BRSET1
 			return this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 1 & 1) & 1) !== 0);
 		case 0x03: // BRCLR1
-			return this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 1 & 1) & 1) === 0);
+			return this.bcc(!((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 1 & 1) & 1));
 		case 0x04: // BRSET2
 			return this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 2 & 1) & 1) !== 0);
 		case 0x05: // BRCLR2
-			return this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 2 & 1) & 1) === 0);
+			return this.bcc(!((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 2 & 1) & 1));
 		case 0x06: // BRSET3
 			return this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 3 & 1) & 1) !== 0);
 		case 0x07: // BRCLR3
-			return this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 3 & 1) & 1) === 0);
+			return this.bcc(!((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 3 & 1) & 1));
 		case 0x08: // BRSET4
 			return this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 4 & 1) & 1) !== 0);
 		case 0x09: // BRCLR4
-			return this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 4 & 1) & 1) === 0);
+			return this.bcc(!((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 4 & 1) & 1));
 		case 0x0a: // BRSET5
 			return this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 5 & 1) & 1) !== 0);
 		case 0x0b: // BRCLR5
-			return this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 5 & 1) & 1) === 0);
+			return this.bcc(!((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 5 & 1) & 1));
 		case 0x0c: // BRSET6
 			return this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 6 & 1) & 1) !== 0);
 		case 0x0d: // BRCLR6
-			return this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 6 & 1) & 1) === 0);
+			return this.bcc(!((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 6 & 1) & 1));
 		case 0x0e: // BRSET7
 			return this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 7 & 1) & 1) !== 0);
 		case 0x0f: // BRCLR7
-			return this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 7 & 1) & 1) === 0);
+			return this.bcc(!((this.ccr = this.ccr & ~1 | this.read(this.fetch()) >> 7 & 1) & 1));
 		case 0x10: // BSET0
 			return ea = this.fetch(), this.write8(this.read(ea) | 1, ea);
 		case 0x11: // BCLR0
@@ -113,27 +113,27 @@ export default class MC6805 extends Cpu {
 		case 0x21: // BRN
 			return this.bcc(false);
 		case 0x22: // BHI
-			return this.bcc(((this.ccr >> 1 | this.ccr) & 1) === 0);
+			return this.bcc(!((this.ccr >> 1 | this.ccr) & 1));
 		case 0x23: // BLS
 			return this.bcc(((this.ccr >> 1 | this.ccr) & 1) !== 0);
 		case 0x24: // BCC
-			return this.bcc((this.ccr & 1) === 0);
+			return this.bcc(!(this.ccr & 1));
 		case 0x25: // BLO(BCS)
 			return this.bcc((this.ccr & 1) !== 0);
 		case 0x26: // BNE
-			return this.bcc((this.ccr & 2) === 0);
+			return this.bcc(!(this.ccr & 2));
 		case 0x27: // BEQ
 			return this.bcc((this.ccr & 2) !== 0);
 		case 0x28: // BHCC
-			return this.bcc((this.ccr & 0x10) === 0);
+			return this.bcc(!(this.ccr & 0x10));
 		case 0x29: // BHCS
 			return this.bcc((this.ccr & 0x10) !== 0);
 		case 0x2a: // BPL
-			return this.bcc((this.ccr & 4) === 0);
+			return this.bcc(!(this.ccr & 4));
 		case 0x2b: // BMI
 			return this.bcc((this.ccr & 4) !== 0);
 		case 0x2c: // BMC
-			return this.bcc((this.ccr & 8) === 0);
+			return this.bcc(!(this.ccr & 8));
 		case 0x2d: // BMS
 			return this.bcc((this.ccr & 8) !== 0);
 		case 0x2e: // BIL

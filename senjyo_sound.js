@@ -58,12 +58,10 @@ export default class SenjyoSound {
 		const ch = this.channel;
 		data.forEach((e, i) => {
 			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
-				if (this.wheel.length)
-					this.wheel.shift().forEach(e => this.regwrite(e));
+				this.wheel.length && this.wheel.shift().forEach(e => this.regwrite(e));
 			data[i] = this.snd[ch.phase] * ch.vol;
 			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate)
-				if (--ch.count <= 0)
-					ch.count = ch.freq, ch.phase = ch.phase + 1 & 15;
+				--ch.count <= 0 && (ch.count = ch.freq, ch.phase = ch.phase + 1 & 15);
 		});
 	}
 

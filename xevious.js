@@ -33,7 +33,7 @@ class Xevious {
 
 	fInterruptEnable = false;
 	fNmiEnable = false;
-	fSoundEnable = false;
+//	fSoundEnable = false;
 	ram = new Uint8Array(0x4000).addBase();
 	mmi = new Uint8Array(0x100).fill(0xff);
 	count = 0;
@@ -59,10 +59,10 @@ class Xevious {
 	constructor() {
 		// CPU周りの初期化
 		const range = (page, start, end = start, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
-		const interrupt = mcu => {
-			mcu.cause = mcu.cause & ~4 | !mcu.interrupt() << 2;
-			for (let op = mcu.execute(); op !== 0x3c && (op !== 0x25 || mcu.cause & 4); op = mcu.execute())
-				op === 0x25 && (mcu.cause &= ~4);
+		const interrupt = (_mcu) => {
+			_mcu.cause = _mcu.cause & ~4 | !_mcu.interrupt() << 2;
+			for (let op = _mcu.execute(); op !== 0x3c && (op !== 0x25 || _mcu.cause & 4); op = _mcu.execute())
+				op === 0x25 && (_mcu.cause &= ~4);
 		};
 
 		for (let page = 0; page < 0x100; page++)
@@ -75,9 +75,9 @@ class Xevious {
 					case 0x20:
 						return void(this.fInterruptEnable = (data & 1) !== 0);
 					case 0x22:
-						return (data & 1) !== 0 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
-					case 0x23:
-						return void(this.fSoundEnable = (data & 1) !== 0);
+						return data & 1 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
+//					case 0x23:
+//						return void(this.fSoundEnable = (data & 1) !== 0);
 					}
 				};
 			} else if (range(page, 0x70)) {
@@ -166,7 +166,7 @@ class Xevious {
 			else if (range(page, 0x40, 0xff))
 				this.cpu[2].memorymap[page] = this.cpu[0].memorymap[page];
 		this.cpu[2].memorymap[0x68] = {base: this.mmi, read: null, write: (addr, data) => {
-			(addr & 0xe0) === 0 && sound[0].write(addr, data, this.count);
+			!(addr & 0xe0) && sound[0].write(addr, data, this.count);
 		}, fetch: null};
 
 		this.mcu[0].rom.set(IO);
@@ -185,7 +185,7 @@ class Xevious {
 	}
 
 	execute() {
-		sound[0].mute(!this.fSoundEnable);
+//		sound[0].mute(!this.fSoundEnable);
 		if (this.fInterruptEnable)
 			this.cpu[0].interrupt();
 		this.count = 0;
@@ -278,7 +278,7 @@ class Xevious {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.fSoundEnable = false;
+//			this.fSoundEnable = false;
 			sound[1].reset();
 			this.fInterruptEnable = false;
 			this.fNmiEnable = false;
@@ -447,8 +447,7 @@ class Xevious {
 	makeBitmap(data) {
 		// bg4描画
 		let p = 256 * (16 - (this.dwScroll + 4 & 7)) + 232;
-		let k = 0x80 + ((this.dwScroll + 4 >> 3) + 2 & 0x3f);
-		for (let i = 0; i < 28; k = k + 27 & 0x3f | k + 0x40 & 0x7c0, p -= 256 * 8 * 37 + 8, i++)
+		for (let k = 0x80 + ((this.dwScroll + 4 >> 3) + 2 & 0x3f), i = 0; i < 28; k = k + 27 & 0x3f | k + 0x40 & 0x7c0, p -= 256 * 8 * 37 + 8, i++)
 			for (let j = 0; j < 37; k = k + 1 & 0x3f | k & 0x7c0, p += 256 * 8, j++)
 				this.xfer8x8x2(data, p, k);
 
@@ -603,8 +602,7 @@ class Xevious {
 
 		// bg2描画
 		p = 256 * 8 * 2 + 234;
-		k = 0x2084;
-		for (let i = 0; i < 29; k += 28, p -= 256 * 8 * 36 + 8, i++)
+		for (let k = 0x2084, i = 0; i < 29; k += 28, p -= 256 * 8 * 36 + 8, i++)
 			for (let j = 0; j < 36; k++, p += 256 * 8, j++)
 				this.xfer8x8x1(data, p, k);
 

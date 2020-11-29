@@ -69,7 +69,7 @@ class TimeTunnel {
 			this.cpu.memorymap[0x80 + i].write = null;
 		}
 		for (let i = 0; i < 8; i++)
-			this.cpu.memorymap[0x88 + i].read = (addr) => { return (addr & 1) === 0 ? 0 : 0xff; };
+			this.cpu.memorymap[0x88 + i].read = (addr) => { return addr & 1 ? 0xff : 0; };
 		for (let i = 0; i < 0x42; i++) {
 			this.cpu.memorymap[0x90 + i].base = this.ram.base[8 + i];
 			this.cpu.memorymap[0x90 + i].write = null;
@@ -134,12 +134,12 @@ class TimeTunnel {
 			case 0xc:
 				return this.cpu2_flag2 = data & 1, void(this.cpu2_nmi2 = (data & 1) !== 0);
 			case 0xe:
-				const bank = (data >> 2 & 0x20) + 0x60;
-				if (bank === this.bank)
+				const _bank = (data >> 2 & 0x20) + 0x60;
+				if (_bank === this.bank)
 					return;
 				for (let i = 0; i < 0x20; i++)
-					this.cpu.memorymap[0x60 + i].base = PRG1.base[bank + i];
-				return void(this.bank = bank);
+					this.cpu.memorymap[0x60 + i].base = PRG1.base[_bank + i];
+				return void(this.bank = _bank);
 			}
 		};
 		this.cpu.memorymap[0xd6].write = (addr, data) => { this.mode = data; };
@@ -181,7 +181,7 @@ class TimeTunnel {
 				case 5:
 				case 7:
 					if ((this.psg[3].addr & 0xf) === 0xf)
-						this.fNmiEnable = (data & 1) === 0;
+						this.fNmiEnable = !(data & 1);
 					return sound[3].write(this.psg[3].addr, data, this.count);
 				}
 			};
@@ -234,11 +234,9 @@ class TimeTunnel {
 	execute() {
 		this.cpu.interrupt();
 		for (this.count = 0; this.count < 3; this.count++) {
-			if (this.timer === 0)
-				this.cpu2_irq = true;
+			!this.timer && (this.cpu2_irq = true);
 			Cpu.multiple_execute([this.cpu, this.cpu2], 0x800);
-			if (++this.timer >= 5)
-				this.timer = 0;
+			++this.timer >= 5 && (this.timer = 0);
 		}
 		return this;
 	}
@@ -457,30 +455,30 @@ class TimeTunnel {
 		// bg描画
 		if (this.mode & 0x10) {
 			const color = this.colorbank[0];
-			const scroll = -(this.scroll[0] & 0xf8) + (this.scroll[0] + 3 & 7) + 8;
+			const _scroll = -(this.scroll[0] & 0xf8) + (this.scroll[0] + 3 & 7) + 8;
 			for (let k = 0x3c00; k < 0x4000; k++) {
 				const x = (~k >> 2 & 0xf8) + this.scroll[1] + this.ram[0x4800 | k & 0x1f] & 0xff;
-				const y = ((k << 3 & 0xf8) + scroll & 0xff) + 16;
+				const y = ((k << 3 & 0xf8) + _scroll & 0xff) + 16;
 				if (x > 8 && x < 240)
 					this.xfer8x8(this.layer[1], color, x | y << 8, k);
 			}
 		}
 		if (this.mode & 0x20) {
 			const color = this.colorbank[0] >> 4;
-			const scroll = -(this.scroll[2] & 0xf8) + (this.scroll[2] + 1 & 7) + 10;
+			const _scroll = -(this.scroll[2] & 0xf8) + (this.scroll[2] + 1 & 7) + 10;
 			for (let k = 0x4000; k < 0x4400; k++) {
 				const x = (~k >> 2 & 0xf8) + this.scroll[3] + this.ram[0x4820 | k & 0x1f] & 0xff;
-				const y = ((k << 3 & 0xf8) + scroll & 0xff) + 16;
+				const y = ((k << 3 & 0xf8) + _scroll & 0xff) + 16;
 				if (x > 8 && x < 240)
 					this.xfer8x8(this.layer[2], color, x | y << 8, k);
 			}
 		}
 		if (this.mode & 0x40) {
 			const color = this.colorbank[1];
-			const scroll = -(this.scroll[4] & 0xf8) + (this.scroll[4] - 1 & 7) + 12;
+			const _scroll = -(this.scroll[4] & 0xf8) + (this.scroll[4] - 1 & 7) + 12;
 			for (let k = 0x4400; k < 0x4800; k++) {
 				const x = (~k >> 2 & 0xf8) + this.scroll[5] + this.ram[0x4840 | k & 0x1f] & 0xff;
-				const y = ((k << 3 & 0xf8) + scroll & 0xff) + 16;
+				const y = ((k << 3 & 0xf8) + _scroll & 0xff) + 16;
 				if (x > 8 && x < 240)
 					this.xfer8x8(this.layer[3], color, x | y << 8, k);
 			}
@@ -493,55 +491,55 @@ class TimeTunnel {
 			for (let k = 0x4900 | this.mode << 5 & 0x80, i = 0; i < 31; k += 4, i++) {
 				if (i >= 16 && i < 24)
 					continue;
-				const collision = this.drawObj(k);
-				if (collision & 8)
+				const _collision = this.drawObj(k);
+				if (_collision & 8)
 					this.collision[i >= 16 ? 2 : i >> 3] |= 1 << (i & 7);
-				this.collision[3] |= collision & 7;
+				this.collision[3] |= _collision & 7;
 			}
 		}
 
 		// layer合成
 		for (let i = 0; i < 4; i++) {
 			const index = this.pri[this.priority & 0x1f][i];
-			const layer = this.layer[index];
-			if ((this.mode & [0x80, 0x10, 0x20, 0x40][index]) === 0)
+			const _layer = this.layer[index];
+			if (~this.mode & [0x80, 0x10, 0x20, 0x40][index])
 				continue;
 			p = 256 * 16 + 16;
 			for (let j = 0; j < 256; p += 256 - 224, j++)
 				for (let k = 0; k < 7; p += 32, k++) {
 					let px;
-					if (((px = layer[p]) & 7) !== 0) data[p] = px;
-					if (((px = layer[p + 0x01]) & 7) !== 0) data[p + 0x01] = px;
-					if (((px = layer[p + 0x02]) & 7) !== 0) data[p + 0x02] = px;
-					if (((px = layer[p + 0x03]) & 7) !== 0) data[p + 0x03] = px;
-					if (((px = layer[p + 0x04]) & 7) !== 0) data[p + 0x04] = px;
-					if (((px = layer[p + 0x05]) & 7) !== 0) data[p + 0x05] = px;
-					if (((px = layer[p + 0x06]) & 7) !== 0) data[p + 0x06] = px;
-					if (((px = layer[p + 0x07]) & 7) !== 0) data[p + 0x07] = px;
-					if (((px = layer[p + 0x08]) & 7) !== 0) data[p + 0x08] = px;
-					if (((px = layer[p + 0x09]) & 7) !== 0) data[p + 0x09] = px;
-					if (((px = layer[p + 0x0a]) & 7) !== 0) data[p + 0x0a] = px;
-					if (((px = layer[p + 0x0b]) & 7) !== 0) data[p + 0x0b] = px;
-					if (((px = layer[p + 0x0c]) & 7) !== 0) data[p + 0x0c] = px;
-					if (((px = layer[p + 0x0d]) & 7) !== 0) data[p + 0x0d] = px;
-					if (((px = layer[p + 0x0e]) & 7) !== 0) data[p + 0x0e] = px;
-					if (((px = layer[p + 0x0f]) & 7) !== 0) data[p + 0x0f] = px;
-					if (((px = layer[p + 0x10]) & 7) !== 0) data[p + 0x10] = px;
-					if (((px = layer[p + 0x11]) & 7) !== 0) data[p + 0x11] = px;
-					if (((px = layer[p + 0x12]) & 7) !== 0) data[p + 0x12] = px;
-					if (((px = layer[p + 0x13]) & 7) !== 0) data[p + 0x13] = px;
-					if (((px = layer[p + 0x14]) & 7) !== 0) data[p + 0x14] = px;
-					if (((px = layer[p + 0x15]) & 7) !== 0) data[p + 0x15] = px;
-					if (((px = layer[p + 0x16]) & 7) !== 0) data[p + 0x16] = px;
-					if (((px = layer[p + 0x17]) & 7) !== 0) data[p + 0x17] = px;
-					if (((px = layer[p + 0x18]) & 7) !== 0) data[p + 0x18] = px;
-					if (((px = layer[p + 0x19]) & 7) !== 0) data[p + 0x19] = px;
-					if (((px = layer[p + 0x1a]) & 7) !== 0) data[p + 0x1a] = px;
-					if (((px = layer[p + 0x1b]) & 7) !== 0) data[p + 0x1b] = px;
-					if (((px = layer[p + 0x1c]) & 7) !== 0) data[p + 0x1c] = px;
-					if (((px = layer[p + 0x1d]) & 7) !== 0) data[p + 0x1d] = px;
-					if (((px = layer[p + 0x1e]) & 7) !== 0) data[p + 0x1e] = px;
-					if (((px = layer[p + 0x1f]) & 7) !== 0) data[p + 0x1f] = px;
+					if ((px = _layer[p]) & 7) data[p] = px;
+					if ((px = _layer[p + 0x01]) & 7) data[p + 0x01] = px;
+					if ((px = _layer[p + 0x02]) & 7) data[p + 0x02] = px;
+					if ((px = _layer[p + 0x03]) & 7) data[p + 0x03] = px;
+					if ((px = _layer[p + 0x04]) & 7) data[p + 0x04] = px;
+					if ((px = _layer[p + 0x05]) & 7) data[p + 0x05] = px;
+					if ((px = _layer[p + 0x06]) & 7) data[p + 0x06] = px;
+					if ((px = _layer[p + 0x07]) & 7) data[p + 0x07] = px;
+					if ((px = _layer[p + 0x08]) & 7) data[p + 0x08] = px;
+					if ((px = _layer[p + 0x09]) & 7) data[p + 0x09] = px;
+					if ((px = _layer[p + 0x0a]) & 7) data[p + 0x0a] = px;
+					if ((px = _layer[p + 0x0b]) & 7) data[p + 0x0b] = px;
+					if ((px = _layer[p + 0x0c]) & 7) data[p + 0x0c] = px;
+					if ((px = _layer[p + 0x0d]) & 7) data[p + 0x0d] = px;
+					if ((px = _layer[p + 0x0e]) & 7) data[p + 0x0e] = px;
+					if ((px = _layer[p + 0x0f]) & 7) data[p + 0x0f] = px;
+					if ((px = _layer[p + 0x10]) & 7) data[p + 0x10] = px;
+					if ((px = _layer[p + 0x11]) & 7) data[p + 0x11] = px;
+					if ((px = _layer[p + 0x12]) & 7) data[p + 0x12] = px;
+					if ((px = _layer[p + 0x13]) & 7) data[p + 0x13] = px;
+					if ((px = _layer[p + 0x14]) & 7) data[p + 0x14] = px;
+					if ((px = _layer[p + 0x15]) & 7) data[p + 0x15] = px;
+					if ((px = _layer[p + 0x16]) & 7) data[p + 0x16] = px;
+					if ((px = _layer[p + 0x17]) & 7) data[p + 0x17] = px;
+					if ((px = _layer[p + 0x18]) & 7) data[p + 0x18] = px;
+					if ((px = _layer[p + 0x19]) & 7) data[p + 0x19] = px;
+					if ((px = _layer[p + 0x1a]) & 7) data[p + 0x1a] = px;
+					if ((px = _layer[p + 0x1b]) & 7) data[p + 0x1b] = px;
+					if ((px = _layer[p + 0x1c]) & 7) data[p + 0x1c] = px;
+					if ((px = _layer[p + 0x1d]) & 7) data[p + 0x1d] = px;
+					if ((px = _layer[p + 0x1e]) & 7) data[p + 0x1e] = px;
+					if ((px = _layer[p + 0x1f]) & 7) data[p + 0x1f] = px;
 				}
 		}
 
@@ -654,102 +652,78 @@ class TimeTunnel {
 
 	xfer16x16(dst, src) {
 		const idx = src >> 4 & 0x38;
-		let px, collision = 0;
+		let px, _collision = 0;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240)
-			return collision;
+			return _collision;
 		src = src << 8 & 0x7f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, dst -= (dst >= 0x11000) * 0x10000, --i)
 			for (let j = 16; j !== 0; dst++, --j) {
 				if (!(px = this.obj[src++]) || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
 					continue;
-				if (this.layer[0][dst] === 0)
-					this.layer[0][dst] = idx | px;
-				else
-					collision |= 8;
-				if (this.mode & 0x10 && (this.layer[1][dst] & 7) !== 0)
-					collision |= 1;
-				if (this.mode & 0x20 && (this.layer[2][dst] & 7) !== 0)
-					collision |= 2;
-				if (this.mode & 0x40 && (this.layer[3][dst] & 7) !== 0)
-					collision |= 4;
+				this.layer[0][dst] ? (_collision |= 8) : (this.layer[0][dst] = idx | px);
+				this.mode & 0x10 && this.layer[1][dst] & 7 && (_collision |= 1);
+				this.mode & 0x20 && this.layer[2][dst] & 7 && (_collision |= 2);
+				this.mode & 0x40 && this.layer[3][dst] & 7 && (_collision |= 4);
 			}
-		return collision;
+		return _collision;
 	}
 
 	xfer16x16V(dst, src) {
 		const idx = src >> 4 & 0x38;
-		let px, collision = 0;
+		let px, _collision = 0;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240)
-			return collision;
+			return _collision;
 		src = (src << 8 & 0x7f00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, dst -= (dst >= 0x11000) * 0x10000, --i)
 			for (let j = 16; j !== 0; dst++, --j) {
 				if (!(px = this.obj[src++]) || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
 					continue;
-				if (this.layer[0][dst] === 0)
-					this.layer[0][dst] = idx | px;
-				else
-					collision |= 8;
-				if (this.mode & 0x10 && (this.layer[1][dst] & 7) !== 0)
-					collision |= 1;
-				if (this.mode & 0x20 && (this.layer[2][dst] & 7) !== 0)
-					collision |= 2;
-				if (this.mode & 0x40 && (this.layer[3][dst] & 7) !== 0)
-					collision |= 4;
+				this.layer[0][dst] ? (_collision |= 8) : (this.layer[0][dst] = idx | px);
+				this.mode & 0x10 && this.layer[1][dst] & 7 && (_collision |= 1);
+				this.mode & 0x20 && this.layer[2][dst] & 7 && (_collision |= 2);
+				this.mode & 0x40 && this.layer[3][dst] & 7 && (_collision |= 4);
 			}
-		return collision;
+		return _collision;
 	}
 
 	xfer16x16H(dst, src) {
 		const idx = src >> 4 & 0x38;
-		let px, collision = 0;
+		let px, _collision = 0;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240)
-			return collision;
+			return _collision;
 		src = (src << 8 & 0x7f00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, dst -= (dst >= 0x11000) * 0x10000, --i)
 			for (let j = 16; j !== 0; dst++, --j) {
 				if (!(px = this.obj[--src]) || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
 					continue;
-				if (this.layer[0][dst] === 0)
-					this.layer[0][dst] = idx | px;
-				else
-					collision |= 8;
-				if (this.mode & 0x10 && (this.layer[1][dst] & 7) !== 0)
-					collision |= 1;
-				if (this.mode & 0x20 && (this.layer[2][dst] & 7) !== 0)
-					collision |= 2;
-				if (this.mode & 0x40 && (this.layer[3][dst] & 7) !== 0)
-					collision |= 4;
+				this.layer[0][dst] ? (_collision |= 8) : (this.layer[0][dst] = idx | px);
+				this.mode & 0x10 && this.layer[1][dst] & 7 && (_collision |= 1);
+				this.mode & 0x20 && this.layer[2][dst] & 7 && (_collision |= 2);
+				this.mode & 0x40 && this.layer[3][dst] & 7 && (_collision |= 4);
 			}
-		return collision;
+		return _collision;
 	}
 
 	xfer16x16HV(dst, src) {
 		const idx = src >> 4 & 0x38;
-		let px, collision = 0;
+		let px, _collision = 0;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240)
-			return collision;
+			return _collision;
 		src = (src << 8 & 0x7f00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, dst -= (dst >= 0x11000) * 0x10000, --i)
 			for (let j = 16; j !== 0; dst++, --j) {
 				if (!(px = this.obj[--src]) || (dst & 0xff) < 16 || (dst & 0xff) >= 240)
 					continue;
-				if (this.layer[0][dst] === 0)
-					this.layer[0][dst] = idx | px;
-				else
-					collision |= 8;
-				if (this.mode & 0x10 && (this.layer[1][dst] & 7) !== 0)
-					collision |= 1;
-				if (this.mode & 0x20 && (this.layer[2][dst] & 7) !== 0)
-					collision |= 2;
-				if (this.mode & 0x40 && (this.layer[3][dst] & 7) !== 0)
-					collision |= 4;
+				this.layer[0][dst] ? (_collision |= 8) : (this.layer[0][dst] = idx | px);
+				this.mode & 0x10 && this.layer[1][dst] & 7 && (_collision |= 1);
+				this.mode & 0x20 && this.layer[2][dst] & 7 && (_collision |= 2);
+				this.mode & 0x40 && this.layer[3][dst] & 7 && (_collision |= 4);
 			}
-		return collision;
+		return _collision;
 	}
 }
 

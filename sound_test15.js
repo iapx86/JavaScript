@@ -50,7 +50,7 @@ class SoundTest {
 			case 2:
 				return sound[1].write(addr, data, this.count);
 			case 3:
-				if ((addr & 1) === 0)
+				if (~addr & 1)
 					return void(this.fm.addr = data);
 				switch (this.fm.addr) {
 				case 8: // KON

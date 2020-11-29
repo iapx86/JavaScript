@@ -46,10 +46,7 @@ export default class SegaPCM {
 	}
 
 	write(addr, data, timer = 0) {
-		this.ram[addr &= 0x7ff] = data;
-		if (addr >= 0x100)
-			return;
-		this.tmpwheel[timer].push({addr, data});
+		this.ram[addr &= 0x7ff] = data, addr < 0x100 && this.tmpwheel[timer].push({addr, data});
 	}
 
 	update() {
@@ -67,8 +64,7 @@ export default class SegaPCM {
 		const reg = this.reg;
 		data.forEach((e, i) => {
 			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
-				if (this.wheel.length)
-					this.wheel.shift().forEach(({addr, data}) => reg[addr] = data);
+				this.wheel.length && this.wheel.shift().forEach(({addr, data}) => reg[addr] = data);
 			for (let j = 0; j < 0x80; j += 8)
 				if (~reg[0x86 | j] & 1) {
 					const vol = ((reg[2 | j] & 0x7f) + (reg[3 | j] & 0x7f)) / 0xfe;

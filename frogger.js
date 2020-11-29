@@ -29,7 +29,7 @@ class Frogger {
 	nLife = 3;
 
 	fInterruptEnable = false;
-	fSoundEnable = false;
+//	fSoundEnable = false;
 
 	ram = new Uint8Array(0xd00).addBase();
 	ppi0 = Uint8Array.of(0xff, 0xfc, 0xf1, 0);
@@ -71,19 +71,19 @@ class Frogger {
 			else if (range(page, 0xc0, 0xff)) {
 				this.cpu.memorymap[page].read = (addr) => {
 					let data = 0xff;
-					if ((addr & 0x1000) !== 0)
+					if (addr & 0x1000)
 						data &= this.ppi1[addr >> 1 & 3];
-					if ((addr & 0x2000) !== 0)
+					if (addr & 0x2000)
 						data &= this.ppi0[addr >> 1 & 3];
 					return data;
 				};
 				this.cpu.memorymap[page].write = (addr, data) => {
-					if ((addr & 0x1000) !== 0)
+					if (addr & 0x1000)
 						switch (addr >> 1 & 3) {
 						case 0:
 							return this.command.push(data);
-						case 1:
-							return void(this.fSoundEnable = (data & 0x10) === 0);
+//						case 1:
+//							return void(this.fSoundEnable = (data & 0x10) === 0);
 						}
 				};
 			}
@@ -96,11 +96,11 @@ class Frogger {
 				this.cpu2.memorymap[page].write = null;
 			}
 		for (let page = 0; page < 0x100; page++) {
-			this.cpu2.iomap[page].read = (addr) => { return (addr & 0x40) !== 0 ? sound.read(this.psg.addr) : 0xff; };
+			this.cpu2.iomap[page].read = (addr) => { return addr & 0x40 ? sound.read(this.psg.addr) : 0xff; };
 			this.cpu2.iomap[page].write = (addr, data) => {
-				if ((addr & 0x40) !== 0)
+				if (addr & 0x40)
 					sound.write(this.psg.addr, data, this.count);
-				else if ((addr & 0x80) !== 0)
+				else if (addr & 0x80)
 					this.psg.addr = data;
 			};
 		}
@@ -114,7 +114,7 @@ class Frogger {
 	}
 
 	execute() {
-		sound.mute(!this.fSoundEnable);
+//		sound.mute(!this.fSoundEnable);
 		if (this.fInterruptEnable)
 			this.cpu.non_maskable_interrupt();
 		this.cpu.execute(0x2000);
@@ -160,7 +160,7 @@ class Frogger {
 			this.fReset = false;
 			this.cpu.reset();
 			this.fInterruptEnable = false;
-			this.fSoundEnable = false;
+//			this.fSoundEnable = false;
 			this.command.splice(0);
 			this.cpu2.reset();
 			this.timer = 0;
@@ -256,8 +256,7 @@ class Frogger {
 	makeBitmap(data) {
 		// bg描画
 		let p = 256 * 32;
-		let k = 0xbe2;
-		for (let i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
+		for (let k = 0xbe2, i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0xc00 + i * 2] >> 4 | this.ram[0xc00 + i * 2] << 4 & 0xf0;
 			for (let j = 0; j < 32; k -= 0x20, j++) {
 				this.xfer8x8(data, p + dwScroll, k, i);
@@ -287,8 +286,7 @@ class Frogger {
 
 		// bg描画
 		p = 256 * 16;
-		k = 0xbe0;
-		for (let i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
+		for (let k = 0xbe0, i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0xc00 + i * 2] >> 4 | this.ram[0xc00 + i * 2] << 4 & 0xf0;
 			for (let j = 0; j < 32; k -= 0x20, j++) {
 				this.xfer8x8(data, p + dwScroll, k, i);
@@ -300,7 +298,7 @@ class Frogger {
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 128; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = (data[p] & 3) !== 0 ? this.rgb[data[p]] : this.rgb[2];
+				data[p] = data[p] & 3 ? this.rgb[data[p]] : this.rgb[2];
 		for (let i = 0; i < 128; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
 				data[p] = this.rgb[data[p]];

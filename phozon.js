@@ -32,7 +32,7 @@ class Phozon {
 	fInterruptEnable0 = false;
 	fInterruptEnable1 = false;
 	fInterruptEnable2 = false;
-	fSoundEnable = false;
+//	fSoundEnable = false;
 	ram = new Uint8Array(0x2800).addBase();
 	port = new Uint8Array(0x40);
 	in = new Uint8Array(10);
@@ -76,10 +76,10 @@ class Phozon {
 				return void(this.fInterruptEnable0 = false);
 			case 0x05: // INTERRUPT START
 				return void(this.fInterruptEnable0 = true);
-			case 0x06: // SND STOP
-				return void(this.fSoundEnable = false);
-			case 0x07: // SND START
-				return void(this.fSoundEnable = true);
+//			case 0x06: // SND STOP
+//				return void(this.fSoundEnable = false);
+//			case 0x07: // SND START
+//				return void(this.fSoundEnable = true);
 			case 0x08: // PORT TEST START
 				return void(this.fPortTest = true);
 			case 0x09: // PORT TEST END
@@ -126,7 +126,7 @@ class Phozon {
 	}
 
 	execute() {
-		sound.mute(!this.fSoundEnable);
+//		sound.mute(!this.fSoundEnable);
 		if (this.fInterruptEnable0)
 			this.cpu.interrupt();
 		if (this.fInterruptEnable1)
@@ -223,7 +223,7 @@ class Phozon {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.fSoundEnable = false;
+//			this.fSoundEnable = false;
 			this.cpu.reset();
 			this.cpu2.disable();
 			this.cpu3.disable();
@@ -352,9 +352,7 @@ class Phozon {
 			const x = this.ram[k + 0x800] + 8 & 0xff;
 			const y = (this.ram[k + 0x801] | this.ram[k + 0x1001] << 8) - 54 & 0x1ff;
 			const src = this.ram[k] | this.ram[k + 1] << 8;
-			if ((this.ram[k + 0x1000] & 0x34) === 0)
-				this.xfer16x16(data, x | y << 8, src);
-			else
+			if (this.ram[k + 0x1000] & 0x34)
 				switch (this.ram[k + 0x1000] & 0x30) {
 				// 8x8
 				case 0x10:
@@ -384,6 +382,8 @@ class Phozon {
 					}
 					break;
 				}
+			else
+				this.xfer16x16(data, x | y << 8, src);
 		}
 
 		// bg描画
