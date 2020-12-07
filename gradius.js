@@ -398,64 +398,64 @@ class Gradius {
 				for (let x = x0, i = 0; i < 8; src += 8, --x, i++) {
 					const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 					const y = (k << 2) - scroll + 16 & 0x1ff;
-					if (y > 8 && y < 272) {
-						data[y << 8 | x] = color | this.chr[src | 0];
-						data[y + 1 << 8 | x] = color | this.chr[src | 1];
-						data[y + 2 << 8 | x] = color | this.chr[src | 2];
-						data[y + 3 << 8 | x] = color | this.chr[src | 3];
-						data[y + 4 << 8 | x] = color | this.chr[src | 4];
-						data[y + 5 << 8 | x] = color | this.chr[src | 5];
-						data[y + 6 << 8 | x] = color | this.chr[src | 6];
-						data[y + 7 << 8 | x] = color | this.chr[src | 7];
-					}
+					if (y < 9 || y > 271)
+						continue;
+					data[y << 8 | x] = color | this.chr[src | 0];
+					data[y + 1 << 8 | x] = color | this.chr[src | 1];
+					data[y + 2 << 8 | x] = color | this.chr[src | 2];
+					data[y + 3 << 8 | x] = color | this.chr[src | 3];
+					data[y + 4 << 8 | x] = color | this.chr[src | 4];
+					data[y + 5 << 8 | x] = color | this.chr[src | 5];
+					data[y + 6 << 8 | x] = color | this.chr[src | 6];
+					data[y + 7 << 8 | x] = color | this.chr[src | 7];
 				}
 				return;
 			case 1: // V反転
 				for (let x = x0, i = 0; i < 8; src += 8, --x, i++){
 					const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 					const y = (k << 2) - scroll + 16 & 0x1ff;
-					if (y > 8 && y < 272) {
-						data[y + 7 << 8 | x] = color | this.chr[src | 0];
-						data[y + 6 << 8 | x] = color | this.chr[src | 1];
-						data[y + 5 << 8 | x] = color | this.chr[src | 2];
-						data[y + 4 << 8 | x] = color | this.chr[src | 3];
-						data[y + 3 << 8 | x] = color | this.chr[src | 4];
-						data[y + 2 << 8 | x] = color | this.chr[src | 5];
-						data[y + 1 << 8 | x] = color | this.chr[src | 6];
-						data[y << 8 | x] = color | this.chr[src | 7];
-					}
+					if (y < 9 || y > 271)
+						continue;
+					data[y + 7 << 8 | x] = color | this.chr[src | 0];
+					data[y + 6 << 8 | x] = color | this.chr[src | 1];
+					data[y + 5 << 8 | x] = color | this.chr[src | 2];
+					data[y + 4 << 8 | x] = color | this.chr[src | 3];
+					data[y + 3 << 8 | x] = color | this.chr[src | 4];
+					data[y + 2 << 8 | x] = color | this.chr[src | 5];
+					data[y + 1 << 8 | x] = color | this.chr[src | 6];
+					data[y << 8 | x] = color | this.chr[src | 7];
 				}
 				return;
 			case 2: // H反転
 				for (let x = x0 - 7, i = 0; i < 8; src += 8, x++, i++) {
 					const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 					const y = (k << 2) - scroll + 16 & 0x1ff;
-					if (y > 8 && y < 272) {
-						data[y << 8 | x] = color | this.chr[src | 0];
-						data[y + 1 << 8 | x] = color | this.chr[src | 1];
-						data[y + 2 << 8 | x] = color | this.chr[src | 2];
-						data[y + 3 << 8 | x] = color | this.chr[src | 3];
-						data[y + 4 << 8 | x] = color | this.chr[src | 4];
-						data[y + 5 << 8 | x] = color | this.chr[src | 5];
-						data[y + 6 << 8 | x] = color | this.chr[src | 6];
-						data[y + 7 << 8 | x] = color | this.chr[src | 7];
-					}
+					if (y < 9 || y > 271)
+						continue;
+					data[y << 8 | x] = color | this.chr[src | 0];
+					data[y + 1 << 8 | x] = color | this.chr[src | 1];
+					data[y + 2 << 8 | x] = color | this.chr[src | 2];
+					data[y + 3 << 8 | x] = color | this.chr[src | 3];
+					data[y + 4 << 8 | x] = color | this.chr[src | 4];
+					data[y + 5 << 8 | x] = color | this.chr[src | 5];
+					data[y + 6 << 8 | x] = color | this.chr[src | 6];
+					data[y + 7 << 8 | x] = color | this.chr[src | 7];
 				}
 				return;
 			case 3: // HV反転
 				for (let x = x0 - 7, i = 0; i < 8; src += 8, x++, i++) {
 					const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 					const y = (k << 2) - scroll + 16 & 0x1ff;
-					if (y > 8 && y < 272) {
-						data[y + 7 << 8 | x] = color | this.chr[src | 0];
-						data[y + 6 << 8 | x] = color | this.chr[src | 1];
-						data[y + 5 << 8 | x] = color | this.chr[src | 2];
-						data[y + 4 << 8 | x] = color | this.chr[src | 3];
-						data[y + 3 << 8 | x] = color | this.chr[src | 4];
-						data[y + 2 << 8 | x] = color | this.chr[src | 5];
-						data[y + 1 << 8 | x] = color | this.chr[src | 6];
-						data[y << 8 | x] = color | this.chr[src | 7];
-					}
+					if (y < 9 || y > 271)
+						continue;
+					data[y + 7 << 8 | x] = color | this.chr[src | 0];
+					data[y + 6 << 8 | x] = color | this.chr[src | 1];
+					data[y + 5 << 8 | x] = color | this.chr[src | 2];
+					data[y + 4 << 8 | x] = color | this.chr[src | 3];
+					data[y + 3 << 8 | x] = color | this.chr[src | 4];
+					data[y + 2 << 8 | x] = color | this.chr[src | 5];
+					data[y + 1 << 8 | x] = color | this.chr[src | 6];
+					data[y << 8 | x] = color | this.chr[src | 7];
 				}
 				return;
 			}
@@ -464,64 +464,64 @@ class Gradius {
 			for (let x = x0, i = 0; i < 8; src += 8, --x, i++) {
 				const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 				const y = (k << 2) - scroll + 16 & 0x1ff;
-				if (y > 8 && y < 272) {
-					if ((px = this.chr[src | 0])) data[y << 8 | x] = color | px;
-					if ((px = this.chr[src | 1])) data[y + 1 << 8 | x] = color | px;
-					if ((px = this.chr[src | 2])) data[y + 2 << 8 | x] = color | px;
-					if ((px = this.chr[src | 3])) data[y + 3 << 8 | x] = color | px;
-					if ((px = this.chr[src | 4])) data[y + 4 << 8 | x] = color | px;
-					if ((px = this.chr[src | 5])) data[y + 5 << 8 | x] = color | px;
-					if ((px = this.chr[src | 6])) data[y + 6 << 8 | x] = color | px;
-					if ((px = this.chr[src | 7])) data[y + 7 << 8 | x] = color | px;
-				}
+				if (y < 9 || y > 271)
+					continue;
+				(px = this.chr[src | 0]) && (data[y << 8 | x] = color | px);
+				(px = this.chr[src | 1]) && (data[y + 1 << 8 | x] = color | px);
+				(px = this.chr[src | 2]) && (data[y + 2 << 8 | x] = color | px);
+				(px = this.chr[src | 3]) && (data[y + 3 << 8 | x] = color | px);
+				(px = this.chr[src | 4]) && (data[y + 4 << 8 | x] = color | px);
+				(px = this.chr[src | 5]) && (data[y + 5 << 8 | x] = color | px);
+				(px = this.chr[src | 6]) && (data[y + 6 << 8 | x] = color | px);
+				(px = this.chr[src | 7]) && (data[y + 7 << 8 | x] = color | px);
 			}
 			break;
 		case 1: // V反転
 			for (let x = x0, i = 0; i < 8; src += 8, --x, i++){
 				const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 				const y = (k << 2) - scroll + 16 & 0x1ff;
-				if (y > 8 && y < 272) {
-					if ((px = this.chr[src | 0])) data[y + 7 << 8 | x] = color | px;
-					if ((px = this.chr[src | 1])) data[y + 6 << 8 | x] = color | px;
-					if ((px = this.chr[src | 2])) data[y + 5 << 8 | x] = color | px;
-					if ((px = this.chr[src | 3])) data[y + 4 << 8 | x] = color | px;
-					if ((px = this.chr[src | 4])) data[y + 3 << 8 | x] = color | px;
-					if ((px = this.chr[src | 5])) data[y + 2 << 8 | x] = color | px;
-					if ((px = this.chr[src | 6])) data[y + 1 << 8 | x] = color | px;
-					if ((px = this.chr[src | 7])) data[y << 8 | x] = color | px;
-				}
+				if (y < 9 || y > 271)
+					continue;
+				(px = this.chr[src | 0]) && (data[y + 7 << 8 | x] = color | px);
+				(px = this.chr[src | 1]) && (data[y + 6 << 8 | x] = color | px);
+				(px = this.chr[src | 2]) && (data[y + 5 << 8 | x] = color | px);
+				(px = this.chr[src | 3]) && (data[y + 4 << 8 | x] = color | px);
+				(px = this.chr[src | 4]) && (data[y + 3 << 8 | x] = color | px);
+				(px = this.chr[src | 5]) && (data[y + 2 << 8 | x] = color | px);
+				(px = this.chr[src | 6]) && (data[y + 1 << 8 | x] = color | px);
+				(px = this.chr[src | 7]) && (data[y << 8 | x] = color | px);
 			}
 			break;
 		case 2: // H反転
 			for (let x = x0 - 7, i = 0; i < 8; src += 8, x++, i++) {
 				const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 				const y = (k << 2) - scroll + 16 & 0x1ff;
-				if (y > 8 && y < 272) {
-					if ((px = this.chr[src | 0])) data[y << 8 | x] = color | px;
-					if ((px = this.chr[src | 1])) data[y + 1 << 8 | x] = color | px;
-					if ((px = this.chr[src | 2])) data[y + 2 << 8 | x] = color | px;
-					if ((px = this.chr[src | 3])) data[y + 3 << 8 | x] = color | px;
-					if ((px = this.chr[src | 4])) data[y + 4 << 8 | x] = color | px;
-					if ((px = this.chr[src | 5])) data[y + 5 << 8 | x] = color | px;
-					if ((px = this.chr[src | 6])) data[y + 6 << 8 | x] = color | px;
-					if ((px = this.chr[src | 7])) data[y + 7 << 8 | x] = color | px;
-				}
+				if (y < 9 || y > 271)
+					continue;
+				(px = this.chr[src | 0]) && (data[y << 8 | x] = color | px);
+				(px = this.chr[src | 1]) && (data[y + 1 << 8 | x] = color | px);
+				(px = this.chr[src | 2]) && (data[y + 2 << 8 | x] = color | px);
+				(px = this.chr[src | 3]) && (data[y + 3 << 8 | x] = color | px);
+				(px = this.chr[src | 4]) && (data[y + 4 << 8 | x] = color | px);
+				(px = this.chr[src | 5]) && (data[y + 5 << 8 | x] = color | px);
+				(px = this.chr[src | 6]) && (data[y + 6 << 8 | x] = color | px);
+				(px = this.chr[src | 7]) && (data[y + 7 << 8 | x] = color | px);
 			}
 			break;
 		case 3: // HV反転
 			for (let x = x0 - 7, i = 0; i < 8; src += 8, x++, i++) {
 				const offset = k >> 2 & 0x400 | ~x << 1 & 0x1fe, scroll = this.ram[0x20001 | offset] | this.ram[0x20201 | offset] << 8;
 				const y = (k << 2) - scroll + 16 & 0x1ff;
-				if (y > 8 && y < 272) {
-					if ((px = this.chr[src | 0])) data[y + 7 << 8 | x] = color | px;
-					if ((px = this.chr[src | 1])) data[y + 6 << 8 | x] = color | px;
-					if ((px = this.chr[src | 2])) data[y + 5 << 8 | x] = color | px;
-					if ((px = this.chr[src | 3])) data[y + 4 << 8 | x] = color | px;
-					if ((px = this.chr[src | 4])) data[y + 3 << 8 | x] = color | px;
-					if ((px = this.chr[src | 5])) data[y + 2 << 8 | x] = color | px;
-					if ((px = this.chr[src | 6])) data[y + 1 << 8 | x] = color | px;
-					if ((px = this.chr[src | 7])) data[y << 8 | x] = color | px;
-				}
+				if (y < 9 || y > 271)
+					continue;
+				(px = this.chr[src | 0]) && (data[y + 7 << 8 | x] = color | px);
+				(px = this.chr[src | 1]) && (data[y + 6 << 8 | x] = color | px);
+				(px = this.chr[src | 2]) && (data[y + 5 << 8 | x] = color | px);
+				(px = this.chr[src | 3]) && (data[y + 4 << 8 | x] = color | px);
+				(px = this.chr[src | 4]) && (data[y + 3 << 8 | x] = color | px);
+				(px = this.chr[src | 5]) && (data[y + 2 << 8 | x] = color | px);
+				(px = this.chr[src | 6]) && (data[y + 1 << 8 | x] = color | px);
+				(px = this.chr[src | 7]) && (data[y << 8 | x] = color | px);
 			}
 			break;
 		}

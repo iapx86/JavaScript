@@ -57,10 +57,8 @@ class SoundTest {
 					break;
 				case 0x14: // CSM/F RESET/IRQEN/LOAD
 					this.fm.status &= ~(data >> 4 & 3);
-					if (data & ~this.fm.reg[0x14] & 1)
-						this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3;
-					if (data & ~this.fm.reg[0x14] & 2)
-						this.fm.timerb = this.fm.reg[0x12];
+					data & ~this.fm.reg[0x14] & 1 && (this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
+					data & ~this.fm.reg[0x14] & 2 && (this.fm.timerb = this.fm.reg[0x12]);
 					break;
 				}
 				return sound.write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
