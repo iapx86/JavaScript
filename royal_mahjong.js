@@ -88,8 +88,7 @@ class RoyalMahjong {
 	}
 
 	execute() {
-		this.cpu.interrupt();
-		this.cpu.execute(0x2000);
+		this.cpu.interrupt(), this.cpu.execute(0x2000);
 		return this;
 	}
 

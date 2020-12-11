@@ -124,31 +124,11 @@ class SoundTest {
 		return this;
 	}
 
-	coin() {
-		return this;
-	}
-
-	start1P() {
-		return this;
-	}
-
-	start2P() {
-		return this;
-	}
-
-	up() {
-		return this;
-	}
-
 	right(fDown = false) {
 		if (fDown)
 			return this;
 		if (++this.nSound >= 0x100)
 			this.nSound = 1;
-		return this;
-	}
-
-	down() {
 		return this;
 	}
 

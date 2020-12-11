@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import SoundEffect from  './sound_effect.js';
+import SoundEffect from './sound_effect.js';
 import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -111,9 +111,7 @@ class JumpBug {
 	}
 
 	execute() {
-		if (this.fInterruptEnable)
-			this.cpu.non_maskable_interrupt();
-		this.cpu.execute(0x2000);
+		this.fInterruptEnable && this.cpu.non_maskable_interrupt(), this.cpu.execute(0x2000);
 		this.moveStars();
 		return this;
 	}

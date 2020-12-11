@@ -170,12 +170,8 @@ class HoppingMappy {
 	}
 
 	execute() {
-		this.cpu_irq = this.cpu2_irq = true;
-		this.mcu.interrupt();
-		Cpu.multiple_execute([this.cpu, this.cpu2, this.mcu], 0x1000);
-		if (this.ram3[8] & 8)
-			this.mcu.interrupt('ocf');
-		Cpu.multiple_execute([this.cpu, this.cpu2, this.mcu], 0x1000);
+		this.cpu_irq = this.cpu2_irq = true, this.mcu.interrupt(), Cpu.multiple_execute([this.cpu, this.cpu2, this.mcu], 0x1000);
+		this.ram3[8] & 8 && this.mcu.interrupt('ocf'), Cpu.multiple_execute([this.cpu, this.cpu2, this.mcu], 0x1000);
 		return this;
 	}
 

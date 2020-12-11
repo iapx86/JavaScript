@@ -109,9 +109,7 @@ class MoonCresta {
 
 	execute() {
 		sound[0].mute(!this.fSoundEnable);
-		if (this.fInterruptEnable)
-			this.cpu.non_maskable_interrupt();
-		this.cpu.execute(0x2000);
+		this.fInterruptEnable && this.cpu.non_maskable_interrupt(), this.cpu.execute(0x2000);
 		this.moveStars();
 		return this;
 	}

@@ -82,10 +82,7 @@ class LunarRescue {
 	}
 
 	execute() {
-		this.cpu_irq = true;
-		this.cpu.execute(0x0800);
-		this.cpu_irq2 = true;
-		this.cpu.execute(0x0800);
+		this.cpu_irq = true, this.cpu.execute(0x0800), this.cpu_irq2 = true, this.cpu.execute(0x0800);
 		return this;
 	}
 

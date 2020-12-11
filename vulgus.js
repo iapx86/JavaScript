@@ -117,10 +117,8 @@ class Vulgus {
 
 	execute() {
 		for (let i = 0; i < 16; i++) {
-			if (!i)
-				this.cpu.interrupt(0xd7); // RST 10H
-			if (~i & 1)
-				this.timer = i >> 1, this.cpu2.interrupt();
+			!i && this.cpu.interrupt(0xd7); // RST 10H
+			~i & 1 && (this.timer = i >> 1, this.cpu2.interrupt());
 			Cpu.multiple_execute([this.cpu, this.cpu2], 600);
 		}
 		return this;

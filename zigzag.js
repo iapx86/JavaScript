@@ -107,9 +107,7 @@ class ZigZag {
 	}
 
 	execute() {
-		if (this.fInterruptEnable)
-			this.cpu.non_maskable_interrupt();
-		this.cpu.execute(0x1600);
+		this.fInterruptEnable && this.cpu.non_maskable_interrupt(), this.cpu.execute(0x1600);
 		this.moveStars();
 		return this;
 	}

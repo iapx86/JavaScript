@@ -111,14 +111,10 @@ class DragonBuster {
 	}
 
 	execute() {
-		if (this.fInterruptEnable0)
-			this.cpu.interrupt();
-		if (this.fInterruptEnable1)
-			this.mcu.interrupt();
+		this.fInterruptEnable0 && this.cpu.interrupt(), this.fInterruptEnable1 && this.mcu.interrupt();
 		for (let i = 0; i < 800; i++)
 			this.cpu.execute(5), this.mcu.execute(6);
-		if (this.ram2[8] & 8)
-			this.mcu.interrupt('ocf');
+		this.ram2[8] & 8 && this.mcu.interrupt('ocf');
 		for (let i = 0; i < 800; i++)
 			this.cpu.execute(5), this.mcu.execute(6);
 		return this;

@@ -74,11 +74,8 @@ class SoundTest {
 	}
 
 	execute() {
-		for (this.count = 0; this.count < 2; this.count++) {
-			if (this.fInterruptEnable)
-				this.cpu.interrupt();
-			this.cpu.execute(0x1000);
-		}
+		for (this.count = 0; this.count < 2; this.count++)
+			this.fInterruptEnable && this.cpu.interrupt(), this.cpu.execute(0x1000);
 		return this;
 	}
 
@@ -100,30 +97,10 @@ class SoundTest {
 		return this;
 	}
 
-	coin() {
-		return this;
-	}
-
-	start1P() {
-		return this;
-	}
-
-	start2P() {
-		return this;
-	}
-
-	up() {
-		return this;
-	}
-
 	right(fDown = false) {
 		if (fDown)
 			return this;
 		this.nSound = this.nSound + 1 & 0xf;
-		return this;
-	}
-
-	down() {
 		return this;
 	}
 

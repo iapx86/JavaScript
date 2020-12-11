@@ -4,7 +4,7 @@
  *
  */
 
-import SoundEffect from  './sound_effect.js';
+import SoundEffect from './sound_effect.js';
 import {init, read} from './main.js';
 import MCS6502 from './mcs6502.js';
 let game, sound;
@@ -98,11 +98,8 @@ class TankBattalion {
 	}
 
 	execute() {
-		this.cpu.interrupt();
-		this.cpu.execute(0x0900);
-		if (this.wport[0x0f])
-			this.cpu.non_maskable_interrupt();
-		this.cpu.execute(0x0900);
+		this.cpu.interrupt(), this.cpu.execute(0x0900);
+		this.wport[0x0f] && this.cpu.non_maskable_interrupt(), this.cpu.execute(0x0900);
 		return this;
 	}
 

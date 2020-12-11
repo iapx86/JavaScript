@@ -106,10 +106,7 @@ class DigDugII {
 
 	execute() {
 //		sound.mute(!this.fSoundEnable);
-		if (this.fInterruptEnable0)
-			this.cpu.interrupt();
-		if (this.fInterruptEnable1)
-			this.cpu2.interrupt();
+		this.fInterruptEnable0 && this.cpu.interrupt(), this.fInterruptEnable1 && this.cpu2.interrupt();
 		Cpu.multiple_execute([this.cpu, this.cpu2], 0x2000);
 		if (this.fInterruptEnable0)
 			Cpu.multiple_execute([this.cpu, this.cpu2], 0x2000);

@@ -46,12 +46,8 @@ class SoundTest {
 	}
 
 	execute() {
-		if (this.fInterruptEnable1)
-			this.mcu.interrupt();
-		this.mcu.execute(0x1000);
-		if (this.ram2[8] & 8)
-			this.mcu.interrupt('ocf');
-		this.mcu.execute(0x1000);
+		this.fInterruptEnable1 && this.mcu.interrupt(), this.mcu.execute(0x1000);
+		this.ram2[8] & 8 && this.mcu.interrupt('ocf'), this.mcu.execute(0x1000);
 		return this;
 	}
 
@@ -72,30 +68,10 @@ class SoundTest {
 		return this;
 	}
 
-	coin() {
-		return this;
-	}
-
-	start1P() {
-		return this;
-	}
-
-	start2P() {
-		return this;
-	}
-
-	up() {
-		return this;
-	}
-
 	right(fDown = false) {
 		if (fDown)
 			return this;
 		this.nSound = this.nSound + 1 & 0x3f;
-		return this;
-	}
-
-	down() {
 		return this;
 	}
 

@@ -89,9 +89,7 @@ class JrPacMan {
 
 	execute() {
 		sound.mute(!this.fSoundEnable);
-		if (this.fInterruptEnable)
-			this.cpu.interrupt(this.vector);
-		this.cpu.execute(0x2000);
+		this.fInterruptEnable && this.cpu.interrupt(this.vector), this.cpu.execute(0x2000);
 		return this;
 	}
 
@@ -437,7 +435,7 @@ class JrPacMan {
 	}
 
 	xfer16x16V(data, dst, src) {
-		const idx = src >> 6 & 0x7c  | this.ram[0x1070] << 7, h = 288 - (dst >> 8);
+		const idx = src >> 6 & 0x7c | this.ram[0x1070] << 7, h = 288 - (dst >> 8);
 		let px;
 
 		if ((dst & 0xff) === 0 || (dst & 0xff) >= 240)

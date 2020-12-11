@@ -132,9 +132,7 @@ class CrushRoller {
 
 	execute() {
 		sound.mute(!this.fSoundEnable);
-		if (this.fInterruptEnable)
-			this.cpu.interrupt(this.vector);
-		this.cpu.execute(0x2000);
+		this.fInterruptEnable && this.cpu.interrupt(this.vector), this.cpu.execute(0x2000);
 		return this;
 	}
 

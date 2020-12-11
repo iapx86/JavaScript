@@ -82,7 +82,7 @@ class StarForce {
 		this.cpu2.memorymap[0xa0].write = (addr, data) => { sound[2].write(data, this.count); };
 		this.cpu2.memorymap[0xd0].write = (addr, data) => { sound[3].write(1, data & 15, this.count); };
 		for (let i = 0; i < 0x100; i++) {
-			this.cpu2.iomap[i].read = (addr) => { return addr & 0xff ? 0xff :  this.cpu2_command; };
+			this.cpu2.iomap[i].read = (addr) => { return addr & 0xff ? 0xff : this.cpu2_command; };
 			this.cpu2.iomap[i].write = (addr, data) => {
 				switch (addr & 0xff) {
 				case 1:

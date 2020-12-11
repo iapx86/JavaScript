@@ -289,34 +289,22 @@ class BlastOff {
 		this.cpu_irq = this.cpu2_irq = this.cpu3_irq = this.mcu_irq = true;
 		for (this.count = 0; this.count < 29; this.count++) {
 			Cpu.multiple_execute([this.cpu, this.cpu2, this.cpu3], 146);
-			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400) {
-				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
-			}
-			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100) {
-				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
-			}
+			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400)
+				this.fm.status |= this.fm.reg[0x14] >> 2 & 1, this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
+			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100)
+				this.fm.status |= this.fm.reg[0x14] >> 2 & 2, this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
 		}
-		for (this.count = 0; this.count < 50; this.count++) {
-			this.ram4[8] |= this.ram4[8] << 3 & 0x40;
-			this.mcu.execute(84);
-		}
+		for (this.count = 0; this.count < 50; this.count++)
+			this.ram4[8] |= this.ram4[8] << 3 & 0x40, this.mcu.execute(84);
 		for (this.count = 29; this.count < 58; this.count++) { // 3579580 / 60 / 1024
 			Cpu.multiple_execute([this.cpu, this.cpu2, this.cpu3], 146);
-			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400) {
-				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
-			}
-			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100) {
-				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
-			}
+			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400)
+				this.fm.status |= this.fm.reg[0x14] >> 2 & 1, this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
+			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100)
+				this.fm.status |= this.fm.reg[0x14] >> 2 & 2, this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
 		}
-		for (this.count = 50; this.count < 100; this.count++) {
-			this.ram4[8] |= this.ram4[8] << 3 & 0x40;
-			this.mcu.execute(84);
-		}
+		for (this.count = 50; this.count < 100; this.count++)
+			this.ram4[8] |= this.ram4[8] << 3 & 0x40, this.mcu.execute(84);
 		return this;
 	}
 

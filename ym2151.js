@@ -1173,7 +1173,7 @@ class OPM {
 	}
 
 	Mix(t, e, i, s) {
-		let  h = 0, a = i + s;
+		let h = 0, a = i + s;
 		for (let o = 0; 8 > o; o++)
 			h = h << 2 | this.ch[o].Prepare();
 		2 & this.reg01 && (h &= 21845);

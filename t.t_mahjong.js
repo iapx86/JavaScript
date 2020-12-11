@@ -69,8 +69,7 @@ class TTMahjong {
 	}
 
 	execute() {
-		this.cpu[0].interrupt();
-		Cpu.multiple_execute(this.cpu, 0x1c00);
+		this.cpu[0].interrupt(), Cpu.multiple_execute(this.cpu, 0x1c00);
 		return this;
 	}
 

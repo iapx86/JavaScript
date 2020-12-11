@@ -187,21 +187,11 @@ class SuperXevious {
 
 	execute() {
 //		sound[0].mute(!this.fSoundEnable);
-		if (this.fInterruptEnable)
-			this.cpu[0].interrupt();
-		this.count = 0;
-		this.cpu[2].non_maskable_interrupt();			// SOUND INTERRUPT
-		for (let i = 128; i !== 0; --i) {
-			if (this.fNmiEnable)
-				this.cpu[0].non_maskable_interrupt();	// DMA INTERRUPT
-			Cpu.multiple_execute(this.cpu, 32);
-		}
-		this.count = 1;
-		this.cpu[2].non_maskable_interrupt();			// SOUND INTERRUPT
-		for (let i = 128; i !== 0; --i) {
-			if (this.fNmiEnable)
-				this.cpu[0].non_maskable_interrupt();	// DMA INTERRUPT
-			Cpu.multiple_execute(this.cpu, 32);
+		this.fInterruptEnable && this.cpu[0].interrupt();
+		for (this.count = 0; this.count < 2; this.count++) {
+			this.cpu[2].non_maskable_interrupt();
+			for (let i = 128; i !== 0; --i)
+				this.fNmiEnable && this.cpu[0].non_maskable_interrupt(), Cpu.multiple_execute(this.cpu, 32);
 		}
 		if (this.mcu[1].mask & 4)
 			for (this.mcu[1].execute(); this.mcu[1].pc !== 0x4c; this.mcu[1].execute()) {}

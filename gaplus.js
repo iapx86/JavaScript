@@ -123,12 +123,7 @@ class Gaplus {
 	}
 
 	execute() {
-		if (this.fInterruptEnable0)
-			this.cpu.interrupt();
-		if (this.fInterruptEnable1)
-			this.cpu2.interrupt();
-		if (this.fInterruptEnable2)
-			this.cpu3.interrupt();
+		this.fInterruptEnable0 && this.cpu.interrupt(), this.fInterruptEnable1 && this.cpu2.interrupt(), this.fInterruptEnable2 && this.cpu3.interrupt();
 		Cpu.multiple_execute([this.cpu, this.cpu2, this.cpu3], 0x2000);
 		this.moveStars();
 		return this;

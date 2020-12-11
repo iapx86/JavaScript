@@ -142,8 +142,7 @@ class ChacknPop {
 	}
 
 	execute() {
-		this.cpu.interrupt();
-		Cpu.multiple_execute([this.cpu, this.mcu], 0x2000);
+		this.cpu.interrupt(), Cpu.multiple_execute([this.cpu, this.mcu], 0x2000);
 		return this;
 	}
 

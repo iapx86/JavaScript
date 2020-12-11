@@ -112,17 +112,14 @@ class TimePilot {
 			this.vpos = i + 144 & 0xff;
 			if (!this.vpos)
 				this.ram.copyWithin(0x1200, 0x1000, 0x1200);
-			if (this.vpos === 240 && this.fInterruptEnable)
-				this.cpu.non_maskable_interrupt();
-			this.cpu.execute(32);
+			this.vpos === 240 && this.fInterruptEnable && this.cpu.non_maskable_interrupt(), this.cpu.execute(32);
 		}
 		for (this.count = 0; this.count < 58; this.count++) { // 14318181 / 8 / 60 / 512
 			if (this.command.length && this.cpu2.interrupt())
 				sound[0].write(0x0e, this.command.shift());
 			sound[0].write(0x0f, [0x00, 0x10, 0x20, 0x30, 0x40, 0x90, 0xa0, 0xb0, 0xa0, 0xd0][this.timer]);
 			this.cpu2.execute(73);
-			if (++this.timer >= 10)
-				this.timer = 0;
+			++this.timer >= 10 && (this.timer = 0);
 		}
 		return this;
 	}

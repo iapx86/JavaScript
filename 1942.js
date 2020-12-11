@@ -131,9 +131,7 @@ class _1942 {
 
 	execute() {
 		for (let i = 0; i < 16; i++) {
-			!i && (this.cpu_irq = true);
-			i === 1 && (this.cpu_irq2 = true);
-			!(i & 3) && (this.timer = i >> 2, this.cpu2.interrupt());
+			!i && (this.cpu_irq = true), i === 1 && (this.cpu_irq2 = true), !(i & 3) && (this.timer = i >> 2, this.cpu2.interrupt());
 			Cpu.multiple_execute([this.cpu, this.cpu2], 800);
 		}
 		return this;

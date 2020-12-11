@@ -34,8 +34,7 @@ class SoundTest {
 	}
 
 	execute() {
-		this.cpu2.interrupt();
-		this.cpu2.execute(0x2000);
+		this.cpu2.interrupt(), this.cpu2.execute(0x2000);
 		return this;
 	}
 
@@ -56,30 +55,10 @@ class SoundTest {
 		return this;
 	}
 
-	coin() {
-		return this;
-	}
-
-	start1P() {
-		return this;
-	}
-
-	start2P() {
-		return this;
-	}
-
-	up() {
-		return this;
-	}
-
 	right(fDown = false) {
 		if (fDown)
 			return this;
 		this.nSound = this.nSound + 1 & 0x1f;
-		return this;
-	}
-
-	down() {
 		return this;
 	}
 
@@ -118,7 +97,7 @@ class SoundTest {
 
 		for (let i = 0; i < 8; i++) {
 			const freq = reg[4 + i * 8] | reg[5 + i * 8] << 8 | reg[6 + i * 8] << 16 & 0xf0000;
-			const vol =  reg[3 + i * 8] & 0x0f;
+			const vol = reg[3 + i * 8] & 0x0f;
 			const pitch = Math.floor(Math.log2(freq * 48000 / (1 << 21) / 440) * 12 + 45.5);
 			if (!vol || pitch < 0 || pitch >= 12 * 8)
 				continue;

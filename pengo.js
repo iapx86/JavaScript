@@ -75,9 +75,7 @@ class Pengo {
 
 	execute() {
 		sound.mute(!this.fSoundEnable);
-		if (this.fInterruptEnable)
-			this.cpu.interrupt();
-		this.cpu.execute(0x1600);
+		this.fInterruptEnable && this.cpu.interrupt(), this.cpu.execute(0x1600);
 		return this;
 	}
 

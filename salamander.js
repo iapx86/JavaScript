@@ -8,7 +8,7 @@ import YM2151 from './ym2151.js';
 import K007232 from './k007232.js';
 import VLM5030 from './vlm5030.js';
 import {init, read} from './main.js';
-import MC68000 from  './mc68000.js';
+import MC68000 from './mc68000.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -141,20 +141,13 @@ class Salamander {
 	}
 
 	execute() {
-		if (this.fInterruptEnable)
-			this.cpu.interrupt(1);
-		this.cpu.execute(0x4000);
+		this.fInterruptEnable && this.cpu.interrupt(1), this.cpu.execute(0x4000);
 		for (this.count = 0; this.count < 58; this.count++) { // 14318180 / 4 / 60 / 1024
-			this.command.length && this.cpu2.interrupt();
-			this.cpu2.execute(146);
-			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400) {
-				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
-			}
-			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100) {
-				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
-			}
+			this.command.length && this.cpu2.interrupt(), this.cpu2.execute(146);
+			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400)
+				this.fm.status |= this.fm.reg[0x14] >> 2 & 1, this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
+			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100)
+				this.fm.status |= this.fm.reg[0x14] >> 2 & 2, this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
 		}
 		return this;
 	}

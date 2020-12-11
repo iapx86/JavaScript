@@ -127,16 +127,13 @@ class StrategyX {
 	execute() {
 //		sound[0].mute(!this.fSoundEnable);
 //		sound[1].mute(!this.fSoundEnable);
-		if (this.fInterruptEnable)
-			this.cpu.non_maskable_interrupt();
-		this.cpu.execute(0x2000);
+		this.fInterruptEnable && this.cpu.non_maskable_interrupt(), this.cpu.execute(0x2000);
 		for (this.count = 0; this.count < 116; this.count++) { // 14318181 / 60 / 2048
 			if (this.command.length && this.cpu2.interrupt())
 				sound[0].write(0x0e, this.command.shift());
 			sound[0].write(0x0f, [0x0e, 0x1e, 0x0e, 0x1e, 0x2e, 0x3e, 0x2e, 0x3e, 0x4e, 0x5e, 0x8e, 0x9e, 0x8e, 0x9e, 0xae, 0xbe, 0xae, 0xbe, 0xce, 0xde][this.timer]);
 			this.cpu2.execute(36);
-			if (++this.timer >= 20)
-				this.timer = 0;
+			++this.timer >= 20 && (this.timer = 0);
 		}
 		return this;
 	}

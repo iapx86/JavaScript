@@ -89,8 +89,7 @@ class WarpAndWarp {
 	}
 
 	execute() {
-		this.cpu.interrupt();
-		this.cpu.execute(0x1000);
+		this.cpu.interrupt(), this.cpu.execute(0x1000);
 		return this;
 	}
 

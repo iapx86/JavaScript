@@ -86,9 +86,7 @@ class PacMan {
 
 	execute() {
 		sound.mute(!this.fSoundEnable);
-		if (this.fInterruptEnable)
-			this.cpu.interrupt(this.vector);
-		this.cpu.execute(0x2000);
+		this.fInterruptEnable && this.cpu.interrupt(this.vector), this.cpu.execute(0x2000);
 		if (this.cpu.fActive && !this.cpu.fSuspend && this.cpu.iff === 3)
 			this.cpu.execute(0x1400);
 		return this;

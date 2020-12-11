@@ -87,9 +87,7 @@ class CrazyBalloon {
 	}
 
 	execute() {
-		if (this.fInterruptEnable)
-			this.cpu.interrupt();
-		this.cpu.execute(0x1800);
+		this.fInterruptEnable && this.cpu.interrupt(), this.cpu.execute(0x1800);
 		return this;
 	}
 

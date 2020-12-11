@@ -117,8 +117,7 @@ class NewRallyX {
 
 	execute() {
 //		sound[0].mute(!this.fSoundEnable);
-		this.cpu_irq = this.fInterruptEnable;
-		this.cpu.execute(0x2400);
+		this.cpu_irq = this.fInterruptEnable, this.cpu.execute(0x2400);
 		return this;
 	}
 

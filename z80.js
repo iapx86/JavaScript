@@ -188,7 +188,7 @@ export default class Z80 extends Cpu {
 		case 0x2e: // LD L,n
 			return void(this.l = this.fetch());
 		case 0x2f: // CPL
-			return this.f =  this.f | 0x12, void(this.a = ~this.a & 0xff);
+			return this.f = this.f | 0x12, void(this.a = ~this.a & 0xff);
 		case 0x30: // JR NC,e
 			return this.jr(!(this.f & 1));
 		case 0x31: // LD SP,nn

@@ -168,29 +168,11 @@ class DigDug {
 	}
 
 	execute() {
-		if (this.fInterruptEnable0)
-			this.cpu[0].interrupt();
-		if (this.fInterruptEnable1)
-			this.cpu[1].interrupt();
-		this.count = 0;
-		if (this.fInterruptEnable2) {
-			this.fInterruptEnable2 = false;
-			this.cpu[2].non_maskable_interrupt();		// SOUND INTERRUPT
-		}
-		for (let i = 128; i !== 0; --i) {
-			if (this.fNmiEnable)
-				this.cpu[0].non_maskable_interrupt();	// DMA INTERRUPT
-			Cpu.multiple_execute(this.cpu, 32);
-		}
-		this.count = 1;
-		if (this.fInterruptEnable2) {
-			this.fInterruptEnable2 = false;
-			this.cpu[2].non_maskable_interrupt();		// SOUND INTERRUPT
-		}
-		for (let i = 128; i !== 0; --i) {
-			if (this.fNmiEnable)
-				this.cpu[0].non_maskable_interrupt();	// DMA INTERRUPT
-			Cpu.multiple_execute(this.cpu, 32);
+		this.fInterruptEnable0 && this.cpu[0].interrupt(), this.fInterruptEnable1 && this.cpu[1].interrupt();
+		for (this.count = 0; this.count < 2; this.count++) {
+			this.fInterruptEnable2 && (this.fInterruptEnable2 = false, this.cpu[2].non_maskable_interrupt());
+			for (let i = 128; i !== 0; --i)
+				this.fNmiEnable && this.cpu[0].non_maskable_interrupt(), Cpu.multiple_execute(this.cpu, 32);
 		}
 		return this;
 	}

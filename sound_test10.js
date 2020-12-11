@@ -67,18 +67,13 @@ class SoundTest {
 	}
 
 	execute() {
-		if (this.command.length)
-			this.cpu2.interrupt(0xdf);
+		this.command.length && this.cpu2.interrupt(0xdf);
 		for (this.count = 0; this.count < 58; this.count++) { // 3579545 / 60 / 1024
 			this.cpu2.execute(146);
-			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400) {
-				this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 1;
-			}
-			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100) {
-				this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 2;
-			}
+			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400)
+				this.fm.status |= this.fm.reg[0x14] >> 2 & 1, this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
+			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100)
+				this.fm.status |= this.fm.reg[0x14] >> 2 & 2, this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
 		}
 		return this;
 	}
@@ -104,31 +99,11 @@ class SoundTest {
 		return this;
 	}
 
-	coin() {
-		return this;
-	}
-
-	start1P() {
-		return this;
-	}
-
-	start2P() {
-		return this;
-	}
-
-	up() {
-		return this;
-	}
-
 	right(fDown = false) {
 		if (fDown)
 			return this;
 		if (++this.nSound >= 0x100)
 			this.nSound = 1;
-		return this;
-	}
-
-	down() {
 		return this;
 	}
 

@@ -3231,7 +3231,7 @@ export default class I80186 extends Cpu {
 
 	daa() {
 		let r = this.ax & 0xff;
-		if (this.flags & 0x10  && (r & 0xf) < 4 || (r & 0xf) > 9) {
+		if (this.flags & 0x10 && (r & 0xf) < 4 || (r & 0xf) > 9) {
 			if ((r += 6) >= 0x100)
 				this.flags |= 1;
 			this.flags |= 0x10;

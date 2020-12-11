@@ -185,33 +185,14 @@ class Bosconian {
 
 	execute() {
 		sound[0].mute(!this.fSoundEnable);
-		if (this.fInterruptEnable0)
-			this.cpu[0].interrupt();
-		if (this.fInterruptEnable1)
-			this.cpu[1].interrupt();
-		this.count = 0;
-		this.cpu[2].non_maskable_interrupt();			// SOUND INTERRUPT
-		for (let i = 0; i < 64; i++) {
-			if (this.fNmiEnable0)
-				this.cpu[0].non_maskable_interrupt();	// DMA INTERRUPT
-			if (this.fNmiEnable1)
-				this.cpu[1].non_maskable_interrupt();	// DMA INTERRUPT
-			Cpu.multiple_execute(this.cpu, 32);
-			if (this.fNmiEnable1)
-				this.cpu[1].non_maskable_interrupt();	// DMA INTERRUPT
-			Cpu.multiple_execute(this.cpu, 32);
-		}
-		this.count = 1;
-		this.cpu[2].non_maskable_interrupt();			// SOUND INTERRUPT
-		for (let i = 0; i < 64; i++) {
-			if (this.fNmiEnable0)
-				this.cpu[0].non_maskable_interrupt();	// DMA INTERRUPT
-			if (this.fNmiEnable1)
-				this.cpu[1].non_maskable_interrupt();	// DMA INTERRUPT
-			Cpu.multiple_execute(this.cpu, 32);
-			if (this.fNmiEnable1)
-				this.cpu[1].non_maskable_interrupt();	// DMA INTERRUPT
-			Cpu.multiple_execute(this.cpu, 32);
+		this.fInterruptEnable0 && this.cpu[0].interrupt(), this.fInterruptEnable1 && this.cpu[1].interrupt();
+		for (this.count = 0; this.count < 2; this.count++) {
+			this.cpu[2].non_maskable_interrupt();
+			for (let i = 0; i < 64; i++) {
+				this.fNmiEnable0 && this.cpu[0].non_maskable_interrupt();
+				this.fNmiEnable1 && this.cpu[1].non_maskable_interrupt(), Cpu.multiple_execute(this.cpu, 32);
+				this.fNmiEnable1 && this.cpu[1].non_maskable_interrupt(), Cpu.multiple_execute(this.cpu, 32);
+			}
 		}
 		if (this.mcu[1].mask & 4)
 			for (this.mcu[1].execute(); this.mcu[1].pc !== 0x4c; this.mcu[1].execute()) {}

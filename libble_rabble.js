@@ -7,7 +7,7 @@
 import MappySound from './mappy_sound.js';
 import Cpu, {init, read} from './main.js';
 import MC6809 from './mc6809.js';
-import MC68000 from  './mc68000.js';
+import MC68000 from './mc68000.js';
 let game, sound;
 
 class LibbleRabble {
@@ -112,15 +112,9 @@ class LibbleRabble {
 	}
 
 	execute() {
-		if (this.fInterruptEnable)
-			this.cpu.interrupt();
-		this.cpu2.interrupt();
-		if (this.fInterruptEnable2)
-			this.cpu3.interrupt(6);
-		for (let i = 0; i < 0x100; i++) {
-			Cpu.multiple_execute([this.cpu, this.cpu2], 32);
-			this.cpu3.execute(48);
-		}
+		this.fInterruptEnable && this.cpu.interrupt(), this.cpu2.interrupt(), this.fInterruptEnable2 && this.cpu3.interrupt(6);
+		for (let i = 0; i < 0x100; i++)
+			Cpu.multiple_execute([this.cpu, this.cpu2], 32), this.cpu3.execute(48);
 		return this;
 	}
 

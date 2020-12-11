@@ -8,7 +8,7 @@ import AY_3_8910 from './ay-3-8910.js';
 import K005289 from './k005289.js';
 import VLM5030 from './vlm5030.js';
 import {init, read} from './main.js';
-import MC68000 from  './mc68000.js';
+import MC68000 from './mc68000.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -180,10 +180,8 @@ class Gradius {
 
 	execute() {
 		for (let vpos = 0; vpos < 256; vpos++) {
-			if (!vpos && this.fInterrupt2Enable)
-				this.cpu.interrupt(2);
-			if (vpos === 120 && this.fInterrupt4Enable)
-				this.cpu.interrupt(4);
+			!vpos && this.fInterrupt2Enable && this.cpu.interrupt(2);
+			vpos === 120 && this.fInterrupt4Enable && this.cpu.interrupt(4);
 			this.cpu.execute(64);
 		}
 		for (this.count = 0; this.count < 58; this.count++) { // 14318180 / 4 / 60 / 1024
