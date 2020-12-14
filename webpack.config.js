@@ -40,6 +40,7 @@ const list = [
 	{name: 'moon_cresta', title: 'Moon Cresta', width: 224, height: 256},
 	{name: 'motos', title: 'Motos', width: 224, height: 288},
 	{name: 'new_rally-x', title: 'New Rally-X', width: 285, height: 224},
+	{name: 'ninja_princess', title: 'Ninja Princess', width: 256, height: 224},
 	{name: 'pac-land', title: 'Pac-Land', width: 288, height: 224},
 	{name: 'pac-man', title: 'Pac-Man', width: 224, height: 288},
 	{name: 'pac-mania', title: 'Pac-Mania', width: 224, height: 288},
