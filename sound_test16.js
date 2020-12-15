@@ -32,8 +32,8 @@ class SoundTest {
 		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
 
 		for (let page = 0; page < 0x100; page++)
-			if (range(page, 0, 0x7f))
-				this.cpu2.memorymap[page].base = PRG2.base[page & 0x7f];
+			if (range(page, 0, 0x1f))
+				this.cpu2.memorymap[page].base = PRG2.base[page & 0x1f];
 			else if (range(page, 0x80, 0x87, 0x18)) {
 				this.cpu2.memorymap[page].base = this.ram2.base[page & 7];
 				this.cpu2.memorymap[page].write = null;
