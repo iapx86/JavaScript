@@ -193,10 +193,7 @@ class TankBattalion {
 
 	convertRGB() {
 		for (let i = 0; i < 0x10; i++)
-			this.rgb[i] = (i & 3) * 255 / 3	// Red
-				| (i >> 2 & 1) * 255 << 8	// Green
-				| (i >> 3 & 1) * 255 << 16	// Blue
-				| 0xff000000;				// Alpha
+			this.rgb[i] = 0xff000000 | (i >> 3 & 1) * 255 << 16 | (i >> 2 & 1) * 255 << 8 | (i & 3) * 255 / 3;
 	}
 
 	convertBG() {

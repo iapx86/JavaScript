@@ -263,10 +263,7 @@ class Baraduke {
 
 	convertRGB() {
 		for (let i = 0; i < 0x800; i++)
-			this.rgb[i] = (RED[i] & 0xf) * 255 / 15	// Red
-				| (GREEN[i] & 0xf) * 255 / 15 << 8	// Green
-				| (GREEN[i] >> 4) * 255 / 15 << 16	// Blue
-				| 0xff000000;						// Alpha
+			this.rgb[i] = 0xff000000 | (GREEN[i] >> 4) * 255 / 15 << 16 | (GREEN[i] & 15) * 255 / 15 << 8 | RED[i] * 255 / 15;
 	}
 
 	convertFG() {

@@ -235,11 +235,10 @@ class TimePilot {
 	}
 
 	convertRGB() {
-		for (let i = 0; i < 0x20; i++)
-			this.rgb[i] = ((RGB_H[i] << 8 | RGB_L[i]) >> 1 & 31) * 255 / 31	// Red
-				| ((RGB_H[i] << 8 | RGB_L[i]) >> 6 & 31) * 255 / 31 << 8	// Green
-				| ((RGB_H[i] << 8 | RGB_L[i]) >> 11) * 255 / 31 << 16		// Blue
-				| 0xff000000;
+		for (let i = 0; i < 0x20; i++) {
+			const e = RGB_H[i] << 8 | RGB_L[i];
+			this.rgb[i] = 0xff000000 | (e >> 11) * 255 / 31 << 16 | (e >> 6 & 31) * 255 / 31 << 8 | (e >> 1 & 31) * 255 / 31;
+		}
 	}
 
 	convertBG() {

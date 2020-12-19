@@ -242,16 +242,10 @@ class Scramble {
 
 	convertRGB() {
 		for (let i = 0; i < 0x20; i++)
-			this.rgb[i] = (RGB[i] & 7) * 255 / 7	// Red
-				| (RGB[i] >> 3 & 7) * 255 / 7 << 8	// Green
-				| (RGB[i] >> 6) * 255 / 3 << 16		// Blue
-				| 0xff000000;						// Alpha
+			this.rgb[i] = 0xff000000 | (RGB[i] >> 6) * 255 / 3 << 16 | (RGB[i] >> 3 & 7) * 255 / 7 << 8 | (RGB[i] & 7) * 255 / 7;
 		const starColors = [0xd0, 0x70, 0x40, 0x00];
 		for (let i = 0; i < 0x40; i++)
-			this.rgb[0x40 | i] = starColors[i & 3]	// Red
-				| starColors[i >> 2 & 3] << 8		// Green
-				| starColors[i >> 4 & 3] << 16		// Blue
-				| 0xff000000;						// Alpha
+			this.rgb[0x40 | i] = 0xff000000 | starColors[i >> 4 & 3] << 16 | starColors[i >> 2 & 3] << 8 | starColors[i & 3];
 	}
 
 	convertBG() {

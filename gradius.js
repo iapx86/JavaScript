@@ -84,10 +84,7 @@ class Gradius {
 			this.cpu.memorymap[0x5a0 + i].write16 = (addr, data) => {
 				const offset = addr & 0xffe;
 				this.ram[0x28000 | offset] = data >> 8, this.ram[0x28001 | offset] = data;
-				this.rgb[offset >> 1] = this.intensity[data & 0x1f]	// Red
-					| this.intensity[data >> 5 & 0x1f] << 8			// Green
-					| this.intensity[data >> 10 & 0x1f] << 16		// Blue
-					| 0xff000000;									// Alpha
+				this.rgb[offset >> 1] = 0xff000000 | this.intensity[data >> 10 & 31] << 16 | this.intensity[data >> 5 & 31] << 8 | this.intensity[data & 31];
 			};
 		}
 		this.cpu.memorymap[0x5c0].write = (addr, data) => { addr === 0x5c001 && this.command.push(data); };

@@ -243,11 +243,10 @@ class ChacknPop {
 	}
 
 	convertRGB() {
-		for (let i = 0; i < 0x400; i++)
-			this.rgb[i] = ((RGB_H[i] << 4 & 0xf0 | RGB_L[i] & 0x0f) & 7) * 255 / 7		// Red
-				| ((RGB_H[i] << 4 & 0xf0 | RGB_L[i] & 0x0f) >> 3 & 7) * 255 / 7 << 8	// Green
-				| ((RGB_H[i] << 4 & 0xf0 | RGB_L[i] & 0x0f) >> 6) * 255 / 3 << 16		// Blue
-				| 0xff000000;															// Alpha
+		for (let i = 0; i < 0x400; i++) {
+			const e = RGB_H[i] << 4 | RGB_L[i];
+			this.rgb[i] = 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7;
+		}
 	}
 
 	convertBG() {

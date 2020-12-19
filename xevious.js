@@ -187,7 +187,7 @@ class Xevious {
 	execute() {
 //		sound[0].mute(!this.fSoundEnable);
 		this.fInterruptEnable && this.cpu[0].interrupt();
-		for (this.count = 0; this.count < 2; this.count) {
+		for (this.count = 0; this.count < 2; this.count++) {
 			this.cpu[2].non_maskable_interrupt();
 			for (let i = 128; i !== 0; --i)
 				this.fNmiEnable && this.cpu[0].non_maskable_interrupt(), Cpu.multiple_execute(this.cpu, 32);
@@ -335,10 +335,7 @@ class Xevious {
 
 	convertRGB() {
 		for (let i = 0; i < 0x100; i++)
-			this.rgb[i] = (RED[i] & 0xf) * 255 / 15	// Red
-				| (GREEN[i] & 0xf) * 255 / 15 << 8	// Green
-				| (BLUE[i] & 0xf) * 255 / 15 << 16	// Blue
-				| 0xff000000;						// Alpha
+			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16| GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15;
 	}
 
 	convertBG() {

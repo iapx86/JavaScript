@@ -338,15 +338,9 @@ class Bosconian {
 
 	convertRGB() {
 		for (let i = 0; i < 0x20; i++)
-			this.rgb[i] = (RGB[i] & 7) * 255 / 7	// Red
-				| (RGB[i] >> 3 & 7) * 255 / 7 << 8	// Green
-				| (RGB[i] >> 6) * 255 / 3 << 16		// Blue
-				| 0xff000000;						// Alpha
+			this.rgb[i] = 0xff000000 | (RGB[i] >> 6) * 255 / 3 << 16 | (RGB[i] >> 3 & 7) * 255 / 7 << 8 | (RGB[i] & 7) * 255 / 7;
 		for (let i = 0; i < 0x40; i++)
-			this.rgb[0x40 | i] = (i << 1 & 6) * 255 / 7	// Red
-				| (i >> 1 & 6) * 255 / 7 << 8			// Green
-				| (i >> 4) * 255 / 3 << 16				// Blue
-				| 0xff000000;							// Alpha
+			this.rgb[0x40 | i] = 0xff000000 | (i >> 4) * 255 / 3 << 16 | (i >> 1 & 6) * 255 / 7 << 8 | (i << 1 & 6) * 255 / 7;
 	}
 
 	convertBG() {

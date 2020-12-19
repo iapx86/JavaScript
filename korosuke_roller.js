@@ -19,7 +19,6 @@ class KorosukeRoller {
 	rotate = false;
 
 	fReset = false;
-	fTest = false;
 	fDIPSwitchChanged = true;
 	fCoin = 0;
 	fStart1P = 0;
@@ -38,7 +37,7 @@ class KorosukeRoller {
 	bg = new Uint8Array(0x4000);
 	obj = new Uint8Array(0x4000);
 	color = Uint8Array.from(COLOR, e => e & 0xf);
-	rgb = new Uint32Array(0x20);
+	rgb;
 
 	cpu = new Z80();
 
@@ -214,11 +213,7 @@ class KorosukeRoller {
 	}
 
 	convertRGB() {
-		for (let i = 0; i < 0x20; i++)
-			this.rgb[i] = (RGB[i] & 7) * 255 / 7	// Red
-				| (RGB[i] >> 3 & 7) * 255 / 7 << 8	// Green
-				| (RGB[i] >> 6) * 255 / 3 << 16		// Blue
-				| 0xff000000;						// Alpha
+		this.rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 	}
 
 	convertBG() {
@@ -264,25 +259,20 @@ class KorosukeRoller {
 	makeBitmap(data) {
 		// bg描画
 		let p = 256 * 8 * 4 + 232;
-		let k = 0x40;
-		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
+		for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
 				this.xfer8x8(data, p, k);
 		p = 256 * 8 * 36 + 232;
-		k = 2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k);
 		p = 256 * 8 * 37 + 232;
-		k = 0x22;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x22, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k);
 		p = 256 * 8 * 2 + 232;
-		k = 0x3c2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x3c2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k);
 		p = 256 * 8 * 3 + 232;
-		k = 0x3e2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x3e2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k);
 
 		// obj描画

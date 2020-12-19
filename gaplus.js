@@ -292,15 +292,9 @@ class Gaplus {
 
 	convertRGB() {
 		for (let i = 0; i < 0x100; i++)
-			this.rgb[i] = (RED[i] & 0xf) * 255 / 15	// Red
-				| (GREEN[i] & 0xf) * 255 / 15 << 8	// Green
-				| (BLUE[i] & 0xf) * 255 / 15 << 16	// Blue
-				| 0xff000000;						// Alpha
+			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15;
 		for (let i = 0; i < 0x40; i++)
-			this.rgb[0x100 | i] = (i << 1 & 6) * 255 / 7	// Red
-				| (i >> 1 & 6) * 255 / 7 << 8				// Green
-				| (i >> 4) * 255 / 3 << 16					// Blue
-				| 0xff000000;								// Alpha
+			this.rgb[0x100 | i] = 0xff000000 | (i >> 4) * 255 / 3 << 16 | (i >> 1 & 6) * 255 / 7 << 8 | (i << 1 & 6) * 255 / 7;
 	}
 
 	convertBG() {
@@ -843,25 +837,20 @@ class Gaplus {
 
 	drawBG(data, pri) {
 		let p = 256 * 8 * 4 + 232;
-		let k = 0x40;
-		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
+		for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
 				this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 36 + 232;
-		k = 2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 37 + 232;
-		k = 0x22;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x22, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 2 + 232;
-		k = 0x3c2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x3c2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 3 + 232;
-		k = 0x3e2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x3e2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 	}
 

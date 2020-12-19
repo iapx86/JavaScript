@@ -43,7 +43,7 @@ class NewRallyX {
 	bg = new Uint8Array(0x4000);
 	obj = new Uint8Array(0x4000);
 	color = Uint8Array.from(COLOR, e => e & 0xf);
-	rgb = new Uint32Array(0x20);
+	rgb;
 
 	se = [{buf: BANG, loop: false, start: false, stop: false}];
 
@@ -216,11 +216,7 @@ class NewRallyX {
 	}
 
 	convertRGB() {
-		for (let i = 0; i < 0x20; i++)
-			this.rgb[i] = (RGB[i] & 7) * 255 / 7	// Red
-				| (RGB[i] >> 3 & 7) * 255 / 7 << 8	// Green
-				| (RGB[i] >> 6) * 255 / 3 << 16		// Blue
-				| 0xff000000;						// Alpha
+		this.rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 	}
 
 	convertBG() {

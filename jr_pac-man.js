@@ -194,11 +194,10 @@ class JrPacMan {
 	}
 
 	convertRGB() {
-		for (let i = 0; i < 0x20; i++)
-			this.rgb[i] = ((RGB_H[i] << 4 | RGB_L[i]) & 7) * 255 / 7	// Red
-				| ((RGB_H[i] << 4 | RGB_L[i]) >> 3 & 7) * 255 / 7 << 8	// Green
-				| ((RGB_H[i] << 4 | RGB_L[i]) >> 6) * 255 / 3 << 16		// Blue
-				| 0xff000000;											// Alpha
+		for (let i = 0; i < 0x20; i++) {
+			const e = RGB_H[i] << 4 | RGB_L[i];
+			this.rgb[i] = 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7;
+		}
 	}
 
 	convertBG() {
@@ -316,25 +315,20 @@ class JrPacMan {
 
 	drawBG(data) {
 		let p = 256 * 8 * 4 + 232 + (this.dwScroll & 7);
-		let k = 0x40 + (this.dwScroll << 2 & 0x3e0);
-		for (let i = 0; i < 29; p -= 256 * 8 * 32 + 8, i++)
+		for (let k = 0x40 + (this.dwScroll << 2 & 0x3e0), i = 0; i < 29; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
 				this.xfer8x8(data, p, j, k);
 		p = 256 * 8 * 36 + 232;
-		k = 0x702;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x702, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k + 0x80, k);
 		p = 256 * 8 * 37 + 232;
-		k = 0x722;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x722, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k + 0x80, k);
 		p = 256 * 8 * 2 + 232;
-		k = 0x742;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x742, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k + 0x80, k);
 		p = 256 * 8 * 3 + 232;
-		k = 0x762;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x762, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k + 0x80, k);
 	}
 

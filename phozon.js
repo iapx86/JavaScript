@@ -287,10 +287,7 @@ class Phozon {
 
 	convertRGB() {
 		for (let i = 0; i < 0x40; i++)
-			this.rgb[i] = (RED[i] & 0xf) * 255 / 15	// Red
-				| (GREEN[i] & 0xf) * 255 / 15 << 8	// Green
-				| (BLUE[i] & 0xf) * 255 / 15 << 16	// Blue
-				| 0xff000000;						// Alpha
+			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15;
 	}
 
 	convertBG() {
@@ -393,25 +390,20 @@ class Phozon {
 
 	drawBG(data, pri) {
 		let p = 256 * 8 * 4 + 232;
-		let k = 0x40;
-		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
+		for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
 				this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 36 + 232;
-		k = 2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 37 + 232;
-		k = 0x22;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x22, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 2 + 232;
-		k = 0x3c2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x3c2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 3 + 232;
-		k = 0x3e2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x3e2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 	}
 

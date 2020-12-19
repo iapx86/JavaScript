@@ -261,11 +261,8 @@ class StarForce {
 
 	convertRGB() {
 		for (let j = 0; j < 0x200; j++) {
-			const e = this.ram[0x1c00 + j], i = e >> 6 & 3, r = e << 2 & 0xc, g = e & 0xc, b = e >> 2 & 0xc;
-			this.rgb[j] = (r ? r | i : 0) * 255 / 15	// Red
-				| (g ? g | i : 0) * 255 / 15 << 8		// Green
-				| (b ? b | i : 0) * 255 / 15 << 16		// Blue
-				| 0xff000000;							// Alpha
+			const e = this.ram[0x1c00 + j], i = e >> 6 & 3, r = e << 2 & 12, g = e & 12, b = e >> 2 & 12;
+			this.rgb[j] = 0xff000000 | (b ? b | i : 0) * 255 / 15 << 16 | (g ? g | i : 0) * 255 / 15 << 8 | (r ? r | i : 0) * 255 / 15;
 		}
 	}
 

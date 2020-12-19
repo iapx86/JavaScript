@@ -250,10 +250,7 @@ class NinjaPrincess {
 
 	convertRGB() {
 		for (let i = 0; i < 0x100; i++)
-			this.rgb[i] = (i & 7) * 255 / 7		// Red
-				| (i >> 3 & 7) * 255 / 7 << 8	// Green
-				| (i >> 6) * 255 / 3 << 16		// Blue
-				| 0xff000000;					// Alpha
+			this.rgb[i] = 0xff000000 | (i >> 6) * 255 / 3 << 16 | (i >> 3 & 7) * 255 / 7 << 8 | (i & 7) * 255 / 7;
 	}
 
 	convertBG() {

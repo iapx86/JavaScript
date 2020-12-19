@@ -44,7 +44,7 @@ class Grobda {
 	obj = new Uint8Array(0x10000);
 	bgcolor = Uint8Array.from(BGCOLOR, e => ~e & 0xf | 0x10);
 	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
-	rgb = Uint32Array.from(RGB, e => (e & 7) * 255 / 7 | (e >> 3 & 7) * 255 / 7 << 8 | (e >> 6) * 255 / 3 << 16 | 0xff000000);
+	rgb;
 
 	se = [{buf: GETREADY, loop: false, start: false, stop: false}];
 
@@ -104,6 +104,7 @@ class Grobda {
 		this.cpu2.set_breakpoint(0xea2c); // Get Ready
 
 		// Videoの初期化
+		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
 
@@ -257,6 +258,10 @@ class Grobda {
 
 	triggerB(fDown) {
 		this.in[8] = this.in[8] & ~(1 << 0) | fDown << 0;
+	}
+
+	convertRGB() {
+		this.rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 	}
 
 	convertBG() {
@@ -419,25 +424,20 @@ class Grobda {
 
 	drawBG(data, pri) {
 		let p = 256 * 8 * 4 + 232;
-		let k = 0x40;
-		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
+		for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
 				this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 36 + 232;
-		k = 2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 37 + 232;
-		k = 0x22;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x22, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 2 + 232;
-		k = 0x3c2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x3c2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 3 + 232;
-		k = 0x3e2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x3e2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 	}
 

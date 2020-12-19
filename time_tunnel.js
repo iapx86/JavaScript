@@ -337,11 +337,10 @@ class TimeTunnel {
 	}
 
 	convertRGB() {
-		for (let p = 0, q = 0x4a00, i = 0; i < 0x40; q += 2, i++)
-			this.rgb[p++] = (~(this.ram[q] << 8 | this.ram[q + 1]) >> 6 & 7) * 255 / 7	// Red
-				| (~(this.ram[q] << 8 | this.ram[q + 1]) >> 3 & 7) * 255 / 7 << 8		// Green
-				| (~(this.ram[q] << 8 | this.ram[q + 1]) & 7) * 255 / 7 << 16			// Blue
-				| 0xff000000;															// Alpha
+		for (let k = 0x4a00, i = 0; i < 0x40; k += 2, i++) {
+			const e = ~(this.ram[k] << 8 | this.ram[k + 1]);
+			this.rgb[i] = 0xff000000 | (e & 7) * 255 / 7 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e >> 6 & 7) * 255 / 7;
+		}
 	}
 
 	convertBG() {

@@ -191,10 +191,7 @@ class WarpAndWarp {
 
 	convertRGB() {
 		for (let i = 0; i < 0x100; i++)
-			this.rgb[i] = (i & 7) * 255 / 7		// Red
-				| (i >> 3 & 7) * 255 / 7 << 8	// Green
-				| (i >> 6) * 255 / 3 << 16		// Blue
-				| 0xff000000;					// Alpha
+			this.rgb[i] = 0xff000000 | (i >> 6) * 255 / 3 << 16 | (i >> 3 & 7) * 255 / 7 << 8 | (i & 7) * 255 / 7;
 	}
 
 	convertBG() {
@@ -207,17 +204,14 @@ class WarpAndWarp {
 	makeBitmap(data) {
 		// bg描画
 		let p = 256 * 8 * 3 + 232;
-		let k = 0x0040;
-		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
+		for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
 				this.xfer8x8(data, p, k);
 		p = 256 * 8 * 35 + 232;
-		k = 0x0002;
-		for (let i = 0; i < 28; k++, p -= 8, i++)
+		for (let k = 2, i = 0; i < 28; k++, p -= 8, i++)
 			this.xfer8x8(data, p, k);
 		p = 256 * 8 * 2 + 232;
-		k = 0x0022;
-		for (let i = 0; i < 28; k++, p -= 8, i++)
+		for (let k = 0x22, i = 0; i < 28; k++, p -= 8, i++)
 			this.xfer8x8(data, p, k);
 
 		// 弾描画

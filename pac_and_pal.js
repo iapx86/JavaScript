@@ -40,7 +40,7 @@ class PacAndPal {
 	obj = new Uint8Array(0x10000);
 	bgcolor = Uint8Array.from(BGCOLOR, e => ~e & 0xf | 0x10);
 	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
-	rgb = Uint32Array.from(RGB, e => (e & 7) * 255 / 7 | (e >> 3 & 7) * 255 / 7 << 8 | (e >> 6) * 255 / 3 << 16 | 0xff000000);
+	rgb;
 
 	cpu = new MC6809();
 	cpu2 = new MC6809();
@@ -95,6 +95,7 @@ class PacAndPal {
 			this.cpu2.memorymap[0xf0 + i].base = PRG2.base[i];
 
 		// Videoの初期化
+		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
 	}
@@ -231,6 +232,10 @@ class PacAndPal {
 
 	triggerA(fDown) {
 		this.in[3] = this.in[3] & ~(1 << 0) | fDown << 0;
+	}
+
+	convertRGB() {
+		this.rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 	}
 
 	convertBG() {
@@ -372,25 +377,20 @@ class PacAndPal {
 
 	drawBG(data, pri) {
 		let p = 256 * 8 * 4 + 232;
-		let k = 0x40;
-		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
+		for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
 				this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 36 + 232;
-		k = 2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 37 + 232;
-		k = 0x22;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x22, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 2 + 232;
-		k = 0x3c2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x3c2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 3 + 232;
-		k = 0x3e2;
-		for (let i = 0; i < 28; p -= 8, k++, i++)
+		for (let k = 0x3e2, i = 0; i < 28; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 	}
 

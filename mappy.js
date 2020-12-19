@@ -42,7 +42,7 @@ class Mappy {
 	obj = new Uint8Array(0x10000);
 	bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf | 0x10);
 	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
-	rgb = Uint32Array.from(RGB, e => (e & 7) * 255 / 7 | (e >> 3 & 7) * 255 / 7 << 8 | (e >> 6) * 255 / 3 << 16 | 0xff000000);
+	rgb;
 	dwScroll = 0xff;
 
 	cpu = new MC6809();
@@ -100,6 +100,7 @@ class Mappy {
 			this.cpu2.memorymap[0xe0 + i].base = PRG2.base[i];
 
 		// Videoの初期化
+		this.convertRGB();
 		this.convertBG();
 		this.convertOBJ();
 	}
@@ -263,6 +264,10 @@ class Mappy {
 		this.in[3] = this.in[3] & ~(1 << 0) | fDown << 0;
 	}
 
+	convertRGB() {
+		this.rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
+	}
+
 	convertBG() {
 		for (let p = 0, q = 0, i = 256; i !== 0; q += 16, --i) {
 			for (let j = 3; j >= 0; --j)
@@ -402,49 +407,36 @@ class Mappy {
 
 	drawBG(data, pri) {
 		let p = 256 * 8 * 4 + 232 + (this.dwScroll & 7);
-		let k = this.dwScroll << 2 & 0x3e0;
-		for (let i = 0; i < 29; p -= 256 * 8 * 32 + 8, i++)
+		for (let k = this.dwScroll << 2 & 0x3e0, i = 0; i < 29; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
 				this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 36 + 232;
-		k = 0x0782;
-		for (let i = 0; i < 14; p -= 8, k++, i++)
+		for (let k = 0x0782, i = 0; i < 14; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
-		k = 0x0780;
-		for (let i = 0; i < 2; p -= 8, k++, i++)
+		for (let k = 0x0780, i = 0; i < 2; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
-		k = 0x0792;
-		for (let i = 0; i < 12; p -= 8, k++, i++)
+		for (let k = 0x0792, i = 0; i < 12; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 37 + 232;
-		k = 0x07a2;
-		for (let i = 0; i < 14; p -= 8, k++, i++)
+		for (let k = 0x07a2, i = 0; i < 14; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
-		k = 0x07a0;
-		for (let i = 0; i < 2; p -= 8, k++, i++)
+		for (let k = 0x07a0, i = 0; i < 2; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
-		k = 0x07b2;
-		for (let i = 0; i < 12; p -= 8, k++, i++)
+		for (let k = 0x07b2, i = 0; i < 12; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 2 + 232;
-		k = 0x07c2;
-		for (let i = 0; i < 14; p -= 8, k++, i++)
+		for (let k = 0x07c2, i = 0; i < 14; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
-		k = 0x07c0;
-		for (let i = 0; i < 2; p -= 8, k++, i++)
+		for (let k = 0x07c0, i = 0; i < 2; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
-		k = 0x07d2;
-		for (let i = 0; i < 12; p -= 8, k++, i++)
+		for (let k = 0x07d2, i = 0; i < 12; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 		p = 256 * 8 * 3 + 232;
-		k = 0x07e2;
-		for (let i = 0; i < 14; p -= 8, k++, i++)
+		for (let k = 0x07e2, i = 0; i < 14; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
-		k = 0x07e0;
-		for (let i = 0; i < 2; p -= 8, k++, i++)
+		for (let k = 0x07e0, i = 0; i < 2; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
-		k = 0x07f2;
-		for (let i = 0; i < 12; p -= 8, k++, i++)
+		for (let k = 0x07f2, i = 0; i < 12; p -= 8, k++, i++)
 			this.xfer8x8(data, p, k, pri);
 	}
 
