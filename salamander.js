@@ -254,15 +254,11 @@ class Salamander {
 		!(this.fTurbo = fDown) && (this.in[3] &= ~(1 << 4));
 	}
 
-	convertRGB() {
+	makeBitmap(data) {
 		for (let i = 0; i < 0x800; i++) {
 			const e = this.ram[0x8000 | i << 1] << 8 | this.ram[0x8001 | i << 1];
 			this.rgb[i] = 0xff000000 | (e >> 10 & 31) * 255 / 31 << 16 | (e >> 5 & 31) * 255 / 31 << 8 | (e & 31) * 255 / 31;
 		}
-	}
-
-	makeBitmap(data) {
-		this.convertRGB();
 
 		// 画面クリア
 		let p = 256 * 16 + 16;

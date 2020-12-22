@@ -44,11 +44,11 @@ class Gaplus {
 	stars0 = [];
 	stars1 = [];
 	stars2 = [];
-	bg = new Uint8Array(0x4000);
-	obj4 = new Uint8Array(0x10000);
-	obj8 = new Uint8Array(0x10000);
-	bgcolor = Uint8Array.from(BGCOLOR, e => 0xf0 | e & 0xf);
-	objcolor = Uint8Array.from(OBJCOLOR_H, (e, i) => OBJCOLOR_H[i] << 4 & 0xf0 | OBJCOLOR_L[i] & 0xf);
+	bg = new Uint8Array(0x4000).fill(3);
+	obj4 = new Uint8Array(0x10000).fill(3);
+	obj8 = new Uint8Array(0x10000).fill(7);
+	bgcolor = Uint8Array.from(BGCOLOR, e => 0xf0 | e);
+	objcolor = Uint8Array.from(OBJCOLOR_H, (e, i) => OBJCOLOR_H[i] << 4 | OBJCOLOR_L[i]);
 	rgb = new Uint32Array(0x140);
 	dwCount = 0;
 
@@ -108,6 +108,24 @@ class Gaplus {
 			this.cpu3.memorymap[0xe0 + i].base = PRG3.base[i];
 
 		// Videoの初期化
+		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
+		const convert = (dst, src, n, x, y, z, d) => {
+			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
+				for (let j = 0; j < x.length; j++)
+					for (let k = 0; k < y.length; k++)
+						for (let l = 0; l < z.length; l++)
+							dst[p + j + k * y.length] ^= (~src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
+		};
+		convert(this.bg, BG, 128, rseq(8, 0, 8), [129, 128, 193, 192, 1, 0, 65, 64], [0, 2], 32);
+		convert(this.bg.subarray(0x2000), BG, 128, rseq(8, 0, 8), [133, 132, 197, 196, 5, 4, 69, 68], [0, 2], 32);
+		convert(this.obj4, OBJ4, 128, [...rseq(8, 256, 8), ...rseq(8, 0, 8)], [...rseq(4), ...rseq(4, 64), ...rseq(4, 128), ...rseq(4, 192)], [0, 4], 64);
+		convert(this.obj8, OBJ8, 128, [...rseq(8, 256, 8), ...rseq(8, 0, 8)], [...rseq(4), ...rseq(4, 64), ...rseq(4, 128), ...rseq(4, 192)], [0, 4, 0x20004], 64);
+		convert(this.obj8.subarray(0x8000), OBJ8.subarray(0x2000), 128, [...rseq(8, 256, 8), ...rseq(8, 0, 8)],
+			[...rseq(4), ...rseq(4, 64), ...rseq(4, 128), ...rseq(4, 192)], [0, 4, 0x10000], 64);
+		for (let i = 0; i < 0x100; i++)
+			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15;
+		for (let i = 0; i < 0x40; i++)
+			this.rgb[0x100 | i] = 0xff000000 | (i >> 4) * 255 / 3 << 16 | (i >> 1 & 6) * 255 / 7 << 8 | (i << 1 & 6) * 255 / 7;
 		for (let i = 0; i < 256; i++)
 			this.stars.push({x: 0, y: 0, color: 0, blk: 0});
 		for (let i = 0; i < 64; i++)
@@ -116,9 +134,6 @@ class Gaplus {
 			this.stars1.push({x: 0, y: 0, color: 0, blk: 0});
 		for (let i = 0; i < 64; i++)
 			this.stars2.push({x: 0, y: 0, color: 0, blk: 0});
-		this.convertRGB();
-		this.convertBG();
-		this.convertOBJ();
 		this.initializeStar();
 	}
 
@@ -288,134 +303,6 @@ class Gaplus {
 
 	triggerA(fDown) {
 		this.in[3] = this.in[3] & ~(1 << 0) | fDown << 0;
-	}
-
-	convertRGB() {
-		for (let i = 0; i < 0x100; i++)
-			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15;
-		for (let i = 0; i < 0x40; i++)
-			this.rgb[0x100 | i] = 0xff000000 | (i >> 4) * 255 / 3 << 16 | (i >> 1 & 6) * 255 / 7 << 8 | (i << 1 & 6) * 255 / 7;
-	}
-
-	convertBG() {
-		for (let p = 0, q = 0, i = 128; i !== 0; q += 32, --i) {
-			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 16] >> 1 & 1 | BG[q + j + 16] >> 2 & 2;
-			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 16] & 1 | BG[q + j + 16] >> 1 & 2;
-			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 24] >> 1 & 1 | BG[q + j + 24] >> 2 & 2;
-			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 24] & 1 | BG[q + j + 24] >> 1 & 2;
-			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j] >> 1 & 1 | BG[q + j] >> 2 & 2;
-			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j] & 1 | BG[q + j] >> 1 & 2;
-			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 8] >> 1 & 1 | BG[q + j + 8] >> 2 & 2;
-			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 8] & 1 | BG[q + j + 8] >> 1 & 2;
-		}
-		for (let p = 0x2000, q = 0, i = 128; i !== 0; q += 32, --i) {
-			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 16] >> 5 & 1 | BG[q + j + 16] >> 6 & 2;
-			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 16] >> 4 & 1 | BG[q + j + 16] >> 5 & 2;
-			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 24] >> 5 & 1 | BG[q + j + 24] >> 6 & 2;
-			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 24] >> 4 & 1 | BG[q + j + 24] >> 5 & 2;
-			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j] >> 5 & 1 | BG[q + j] >> 6 & 2;
-			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j] >> 4 & 1 | BG[q + j] >> 5 & 2;
-			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 8] >> 5 & 1 | BG[q + j + 8] >> 6 & 2;
-			for (let j = 7; j >= 0; --j)
-				this.bg[p++] = BG[q + j + 8] >> 4 & 1 | BG[q + j + 8] >> 5 & 2;
-		}
-	}
-
-	convertOBJ() {
-		this.obj4.fill(3);
-		for (let p = 0, q = 0, i = 128; i !== 0; q += 64, --i) {
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj4[p++] = OBJ4[q + k + 32] >> j & 1 | OBJ4[q + k + 32] >> (j + 3) & 2;
-				for (let k = 7; k >= 0; --k)
-					this.obj4[p++] = OBJ4[q + k] >> j & 1 | OBJ4[q + k] >> (j + 3) & 2;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj4[p++] = OBJ4[q + k + 40] >> j & 1 | OBJ4[q + k + 40] >> (j + 3) & 2;
-				for (let k = 7; k >= 0; --k)
-					this.obj4[p++] = OBJ4[q + k + 8] >> j & 1 | OBJ4[q + k + 8] >> (j + 3) & 2;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj4[p++] = OBJ4[q + k + 48] >> j & 1 | OBJ4[q + k + 48] >> (j + 3) & 2;
-				for (let k = 7; k >= 0; --k)
-					this.obj4[p++] = OBJ4[q + k + 16] >> j & 1 | OBJ4[q + k + 16] >> (j + 3) & 2;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj4[p++] = OBJ4[q + k + 56] >> j & 1 | OBJ4[q + k + 56] >> (j + 3) & 2;
-				for (let k = 7; k >= 0; --k)
-					this.obj4[p++] = OBJ4[q + k + 24] >> j & 1 | OBJ4[q + k + 24] >> (j + 3) & 2;
-			}
-		}
-		for (let p = 0, q = 0, i = 128; i !== 0; q += 64, --i) {
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 32] >> j & 1 | OBJ8[q + k + 32] >> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 32] >> (j + 2) & 4;
-				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k] >> j & 1 | OBJ8[q + k] >> (j + 3) & 2 | OBJ8[q + k + 0x4000] >> (j + 2) & 4;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 40] >> j & 1 | OBJ8[q + k + 40] >> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 40] >> (j + 2) & 4;
-				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 8] >> j & 1 | OBJ8[q + k + 8] >> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 8] >> (j + 2) & 4;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 48] >> j & 1 | OBJ8[q + k + 48] >> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 48] >> (j + 2) & 4;
-				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 16] >> j & 1 | OBJ8[q + k + 16] >> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 16] >> (j + 2) & 4;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 56] >> j & 1 | OBJ8[q + k + 56] >> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 56] >> (j + 2) & 4;
-				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 24] >> j & 1 | OBJ8[q + k + 24] >> (j + 3) & 2 | OBJ8[q + k + 0x4000 + 24] >> (j + 2) & 4;
-			}
-		}
-		for (let p = 0x8000, q = 0x2000, i = 128; i !== 0; q += 64, --i) {
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 32] >> j & 1 | OBJ8[q + k + 32] >> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 32] << 2 >> j & 4;
-				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k] >> j & 1 | OBJ8[q + k] >> (j + 3) & 2 | OBJ8[q + k + 0x2000] << 2 >> j & 4;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 40] >> j & 1 | OBJ8[q + k + 40] >> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 40] << 2 >> j & 4;
-				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 8] >> j & 1 | OBJ8[q + k + 8] >> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 8] << 2 >> j & 4;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 48] >> j & 1 | OBJ8[q + k + 48] >> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 48] << 2 >> j & 4;
-				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 16] >> j & 1 | OBJ8[q + k + 16] >> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 16] << 2 >> j & 4;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 56] >> j & 1 | OBJ8[q + k + 56] >> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 56] << 2 >> j & 4;
-				for (let k = 7; k >= 0; --k)
-					this.obj8[p++] = OBJ8[q + k + 24] >> j & 1 | OBJ8[q + k + 24] >> (j + 3) & 2 | OBJ8[q + k + 0x2000 + 24] << 2 >> j & 4;
-			}
-		}
 	}
 
 	initializeStar() {

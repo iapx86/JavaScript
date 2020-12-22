@@ -115,9 +115,17 @@ class KingAndBalloon {
 		this.cpu.memorymap[0xb8].write = (addr, data) => { this.mmo[0x30] = data; }; // SOUND FREQUENCY
 
 		// Videoの初期化
-		this.convertRGB();
-		this.convertBG();
-		this.convertOBJ();
+		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
+		const convert = (dst, src, n, x, y, z, d) => {
+			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
+				for (let j = 0; j < x.length; j++)
+					for (let k = 0; k < y.length; k++)
+						for (let l = 0; l < z.length; l++)
+							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
+		};
+		convert(this.bg, BG, 256, rseq(8, 0, 8), rseq(8), [BG.length * 4, 0], 8);
+		convert(this.obj, BG, 64, [...rseq(8, 128, 8), ...rseq(8, 0, 8)], [...rseq(8), ...rseq(8, 64)], [BG.length * 4, 0], 32);
+		this.rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 
 		// 効果音の初期化
 		KingAndBalloon.convertVOICE();
@@ -210,34 +218,6 @@ class KingAndBalloon {
 
 	triggerA(fDown) {
 		this.ioport[0] = this.ioport[0] & ~(1 << 4) | fDown << 4;
-	}
-
-	convertRGB() {
-		this.rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
-	}
-
-	convertBG() {
-		for (let p = 0, q = 0, i = 256; i !== 0; q += 8, --i)
-			for (let j = 7; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k + 0x800] >> j & 1 | BG[q + k] >> j << 1 & 2;
-	}
-
-	convertOBJ() {
-		for (let p = 0, q = 0, i = 64; i !== 0; q += 32, --i) {
-			for (let j = 7; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = BG[q + k + 0x800 + 16] >> j & 1 | BG[q + k + 16] >> j << 1 & 2;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = BG[q + k + 0x800] >> j & 1 | BG[q + k] >> j << 1 & 2;
-			}
-			for (let j = 7; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = BG[q + k + 0x800 + 24] >> j & 1 | BG[q + k + 24] >> j << 1 & 2;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = BG[q + k + 0x800 + 8] >> j & 1 | BG[q + k + 8] >> j << 1 & 2;
-			}
-		}
 	}
 
 	static convertVOICE() {

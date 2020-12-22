@@ -48,8 +48,7 @@ class Bosconian {
 	stars = [];
 	bg = new Uint8Array(0x4000);
 	obj = new Uint8Array(0x4000);
-	bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf | 0x10);
-	objcolor = Uint8Array.from(BGCOLOR, e => e & 0xf);
+	bgcolor = Uint8Array.from(BGCOLOR, e => 0x10 | e);
 	rgb = new Uint32Array(0x80);
 
 	cpu = [new Z80(), new Z80(), new Z80()];
@@ -175,11 +174,22 @@ class Bosconian {
 		this.mcu[2].rom.set(KEY);
 
 		// Videoの初期化
+		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
+		const convert = (dst, src, n, x, y, z, d) => {
+			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
+				for (let j = 0; j < x.length; j++)
+					for (let k = 0; k < y.length; k++)
+						for (let l = 0; l < z.length; l++)
+							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
+		};
+		convert(this.bg, BG, 256, rseq(8, 0, 8), [...rseq(4, 64), ...rseq(4)], [0, 4], 16);
+		convert(this.obj, OBJ, 64, [...rseq(8, 256, 8), ...rseq(8, 0, 8)], [...rseq(4, 64), ...rseq(4, 128), ...rseq(4, 192), ...rseq(4)], [0, 4], 64);
+		for (let i = 0; i < 0x20; i++)
+			this.rgb[i] = 0xff000000 | (RGB[i] >> 6) * 255 / 3 << 16 | (RGB[i] >> 3 & 7) * 255 / 7 << 8 | (RGB[i] & 7) * 255 / 7;
+		for (let i = 0; i < 0x40; i++)
+			this.rgb[0x40 | i] = 0xff000000 | (i >> 4) * 255 / 3 << 16 | (i >> 1 & 6) * 255 / 7 << 8 | (i << 1 & 6) * 255 / 7;
 		for (let i = 0; i < 1024; i++)
 			this.stars.push({x: 0, y: 0, color: 0, blk: 0});
-		this.convertRGB();
-		this.convertBG();
-		this.convertOBJ();
 		this.initializeStar();
 	}
 
@@ -334,53 +344,6 @@ class Bosconian {
 
 	triggerA(fDown) {
 		this.mcu[0].r = this.mcu[0].r & ~(1 << 8) | !fDown << 8;
-	}
-
-	convertRGB() {
-		for (let i = 0; i < 0x20; i++)
-			this.rgb[i] = 0xff000000 | (RGB[i] >> 6) * 255 / 3 << 16 | (RGB[i] >> 3 & 7) * 255 / 7 << 8 | (RGB[i] & 7) * 255 / 7;
-		for (let i = 0; i < 0x40; i++)
-			this.rgb[0x40 | i] = 0xff000000 | (i >> 4) * 255 / 3 << 16 | (i >> 1 & 6) * 255 / 7 << 8 | (i << 1 & 6) * 255 / 7;
-	}
-
-	convertBG() {
-		for (let p = 0, q = 0, i = 256; i !== 0; q += 16, --i) {
-			for (let j = 3; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k + 8] >> j & 1 | BG[q + k + 8] >> (j + 3) & 2;
-			for (let j = 3; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k] >> j & 1 | BG[q + k] >> (j + 3) & 2;
-		}
-	}
-
-	convertOBJ() {
-		for (let p = 0, q = 0, i = 64; i !== 0; q += 64, --i) {
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 40] >> j & 1 | OBJ[q + k + 40] >> (j + 3) & 2;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 8] >> j & 1 | OBJ[q + k + 8] >> (j + 3) & 2;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 48] >> j & 1 | OBJ[q + k + 48] >> (j + 3) & 2;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 16] >> j & 1 | OBJ[q + k + 16] >> (j + 3) & 2;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 56] >> j & 1 | OBJ[q + k + 56] >> (j + 3) & 2;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 24] >> j & 1 | OBJ[q + k + 24] >> (j + 3) & 2;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 32] >> j & 1 | OBJ[q + k + 32] >> (j + 3) & 2;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k] >> j & 1 | OBJ[q + k] >> (j + 3) & 2;
-			}
-		}
 	}
 
 	initializeStar() {
@@ -901,7 +864,7 @@ class Bosconian {
 		src = src << 6 & 0x3f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx | this.obj[src++]]) !== 0xf)
+				if ((px = this.BGCOLOR[idx | this.obj[src++]]) !== 0xf)
 					data[dst] = px;
 	}
 
@@ -914,7 +877,7 @@ class Bosconian {
 		src = (src << 6 & 0x3f00) + 256 - 16;
 		for (let i = 16; i !== 0; src -= 32, dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx | this.obj[src++]]) !== 0xf)
+				if ((px = this.BGCOLOR[idx | this.obj[src++]]) !== 0xf)
 					data[dst] = px;
 	}
 
@@ -927,7 +890,7 @@ class Bosconian {
 		src = (src << 6 & 0x3f00) + 16;
 		for (let i = 16; i !== 0; src += 32, dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx | this.obj[--src]]) !== 0xf)
+				if ((px = this.BGCOLOR[idx | this.obj[--src]]) !== 0xf)
 					data[dst] = px;
 	}
 
@@ -940,7 +903,7 @@ class Bosconian {
 		src = (src << 6 & 0x3f00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx | this.obj[--src]]) !== 0xf)
+				if ((px = this.BGCOLOR[idx | this.obj[--src]]) !== 0xf)
 					data[dst] = px;
 	}
 }

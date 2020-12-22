@@ -38,9 +38,8 @@ class Motos {
 	in = new Uint8Array(10);
 
 	bg = new Uint8Array(0x4000);
-	obj = new Uint8Array(0x10000);
-	bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf | 0x10);
-	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
+	obj = new Uint8Array(0x10000).fill(15);
+	bgcolor = Uint8Array.from(BGCOLOR, e => 0x10 | e);
 	rgb;
 	dwScroll = 0xff;
 
@@ -99,9 +98,18 @@ class Motos {
 			this.cpu2.memorymap[0xe0 + i].base = PRG2.base[i];
 
 		// Videoの初期化
-		this.convertRGB();
-		this.convertBG();
-		this.convertOBJ();
+		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
+		const convert = (dst, src, n, x, y, z, d) => {
+			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
+				for (let j = 0; j < x.length; j++)
+					for (let k = 0; k < y.length; k++)
+						for (let l = 0; l < z.length; l++)
+							dst[p + j + k * y.length] ^= (~src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
+		};
+		convert(this.bg, BG, 256, rseq(8, 0, 8), [...rseq(4, 64), ...rseq(4)], [0, 4], 16);
+		convert(this.obj, OBJ, 256, [...rseq(8, 256, 8), ...rseq(8, 0, 8)], [...rseq(4), ...rseq(4, 64), ...rseq(4, 128), ...rseq(4, 192)],
+			[0, 4, OBJ.length * 4, OBJ.length * 4 + 4], 64);
+		this.rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 	}
 
 	execute() {
@@ -218,50 +226,6 @@ class Motos {
 
 	triggerA(fDown) {
 		this.in[3] = this.in[3] & ~(1 << 0) | fDown << 0;
-	}
-
-	convertRGB() {
-		this.rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
-	}
-
-	convertBG() {
-		for (let p = 0, q = 0, i = 256; i !== 0; q += 16, --i) {
-			for (let j = 3; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = ~BG[q + k + 8] >> j & 1 | ~BG[q + k + 8] >> (j + 3) & 2;
-			for (let j = 3; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = ~BG[q + k] >> j & 1 | ~BG[q + k] >> (j + 3) & 2;
-		}
-	}
-
-	convertOBJ() {
-		for (let p = 0, q = 0, i = 256; i !== 0; q += 64, --i) {
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 32] >> j & 1 | OBJ[q + k + 32] >> (j + 3) & 2 | OBJ[q + k + 0x4000 + 32] >> j << 2 & 4 | OBJ[q + k + 0x4000 + 32] >> (j + 1) & 8;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k] >> j & 1 | OBJ[q + k] >> (j + 3) & 2 | OBJ[q + k + 0x4000] >> j << 2 & 4 | OBJ[q + k + 0x4000] >> (j + 1) & 8;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 40] >> j & 1 | OBJ[q + k + 40] >> (j + 3) & 2 | OBJ[q + k + 0x4000 + 40] >> j << 2 & 4 | OBJ[q + k + 0x4000 + 40] >> (j + 1) & 8;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 8] >> j & 1 | OBJ[q + k + 8] >> (j + 3) & 2 | OBJ[q + k + 0x4000 + 8] >> j << 2 & 4 | OBJ[q + k + 0x4000 + 8] >> (j + 1) & 8;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 48] >> j & 1 | OBJ[q + k + 48] >> (j + 3) & 2 | OBJ[q + k + 0x4000 + 48] >> j << 2 & 4 | OBJ[q + k + 0x4000 + 48] >> (j + 1) & 8;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 16] >> j & 1 | OBJ[q + k + 16] >> (j + 3) & 2 | OBJ[q + k + 0x4000 + 16] >> j << 2 & 4 | OBJ[q + k + 0x4000 + 16] >> (j + 1) & 8;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 56] >> j & 1 | OBJ[q + k + 56] >> (j + 3) & 2 | OBJ[q + k + 0x4000 + 56] >> j << 2 & 4 | OBJ[q + k + 0x4000 + 56] >> (j + 1) & 8;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 24] >> j & 1 | OBJ[q + k + 24] >> (j + 3) & 2 | OBJ[q + k + 0x4000 + 24] >> j << 2 & 4 | OBJ[q + k + 0x4000 + 24] >> (j + 1) & 8;
-			}
-		}
 	}
 
 	makeBitmap(data) {
@@ -476,7 +440,7 @@ class Motos {
 		src = src << 8 & 0xff00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx | this.obj[src++]]) !== 0xf)
+				if ((px = OBJCOLOR[idx | this.obj[src++]]) !== 0xf)
 					data[dst] = px;
 	}
 
@@ -489,7 +453,7 @@ class Motos {
 		src = (src << 8 & 0xff00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx | this.obj[src++]]) !== 0xf)
+				if ((px = OBJCOLOR[idx | this.obj[src++]]) !== 0xf)
 					data[dst] = px;
 	}
 
@@ -502,7 +466,7 @@ class Motos {
 		src = (src << 8 & 0xff00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx | this.obj[--src]]) !== 0xf)
+				if ((px = OBJCOLOR[idx | this.obj[--src]]) !== 0xf)
 					data[dst] = px;
 	}
 
@@ -515,7 +479,7 @@ class Motos {
 		src = (src << 8 & 0xff00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx | this.obj[--src]]) !== 0xf)
+				if ((px = OBJCOLOR[idx | this.obj[--src]]) !== 0xf)
 					data[dst] = px;
 	}
 }

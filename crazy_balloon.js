@@ -82,8 +82,16 @@ class CrazyBalloon {
 		this.io[3] = 0x3f;
 
 		// Videoの初期化
-		this.convertBG();
-		this.convertOBJ();
+		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
+		const convert = (dst, src, n, x, y, z, d) => {
+			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
+				for (let j = 0; j < x.length; j++)
+					for (let k = 0; k < y.length; k++)
+						for (let l = 0; l < z.length; l++)
+							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
+		};
+		convert(this.bg, BG, 256, seq(8, 0, 8), rseq(8), [0], 8);
+		convert(this.obj, OBJ, 16, seq(32, 0, 8), [...rseq(8, 768), ...rseq(8, 512), ...rseq(8, 256), ...rseq(8)], [0], 128);
 	}
 
 	execute() {
@@ -169,30 +177,6 @@ class CrazyBalloon {
 
 	left(fDown) {
 		this.io[1] = this.io[1] & ~(1 << 2) | fDown << 3 | !fDown << 2;
-	}
-
-	convertBG() {
-		for (let p = 0, q = 0, i = 0; i < 256; q += 8, i++)
-			for (let j = 7; j >= 0; --j)
-				for (let k = 0; k < 8; k++)
-					this.bg[p++] = BG[q + k] >> j & 1;
-	}
-
-	convertOBJ() {
-		for (let p = 0, q = 0, i = 0; i < 16; q += 128, i++) {
-			for (let j = 7; j >= 0; --j)
-				for (let k = 0; k < 32; k++)
-					this.obj[p++] = OBJ[q + k + 96] >> j & 1;
-			for (let j = 7; j >= 0; --j)
-				for (let k = 0; k < 32; k++)
-					this.obj[p++] = OBJ[q + k + 64] >> j & 1;
-			for (let j = 7; j >= 0; --j)
-				for (let k = 0; k < 32; k++)
-					this.obj[p++] = OBJ[q + k + 32] >> j & 1;
-			for (let j = 7; j >= 0; --j)
-				for (let k = 0; k < 32; k++)
-					this.obj[p++] = OBJ[q + k] >> j & 1;
-		}
 	}
 
 	makeBitmap(data) {

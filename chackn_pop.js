@@ -136,9 +136,20 @@ class ChacknPop {
 		this.mcu.check_interrupt = () => { return this.mcu.irq && this.mcu.interrupt(); };
 
 		// Videoの初期化
-		this.convertRGB();
-		this.convertBG();
-		this.convertOBJ();
+		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
+		const convert = (dst, src, n, x, y, z, d) => {
+			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
+				for (let j = 0; j < x.length; j++)
+					for (let k = 0; k < y.length; k++)
+						for (let l = 0; l < z.length; l++)
+							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
+		};
+		convert(this.bg, BG, 1024, rseq(8, 0, 8), rseq(8), [BG.length * 4, 0], 8);
+		convert(this.obj, OBJ, 256, [...rseq(8, 128, 8), ...rseq(8, 0, 8)], [...rseq(8), ...rseq(8, 64)], [OBJ.length * 4, 0], 32);
+		for (let i = 0; i < 0x400; i++) {
+			const e = RGB_H[i] << 4 | RGB_L[i];
+			this.rgb[i] = 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7;
+		}
 	}
 
 	execute() {
@@ -240,37 +251,6 @@ class ChacknPop {
 
 	triggerB(fDown) {
 		this.in[1] = this.in[1] & ~(1 << 5) | !fDown << 5;
-	}
-
-	convertRGB() {
-		for (let i = 0; i < 0x400; i++) {
-			const e = RGB_H[i] << 4 | RGB_L[i];
-			this.rgb[i] = 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7;
-		}
-	}
-
-	convertBG() {
-		for (let p = 0, q = 0, i = 1024; i !== 0; q += 8, --i)
-			for (let j = 7; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k + 0x2000] >> j & 1 | BG[q + k] >> j << 1 & 2;
-	}
-
-	convertOBJ() {
-		for (let p = 0, q = 0, i = 256; i !== 0; q += 32, --i) {
-			for (let j = 7; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x2000 + 16] >> j & 1 | OBJ[q + k + 16] >> j << 1 & 2;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x2000] >> j & 1 | OBJ[q + k] >> j << 1 & 2;
-			}
-			for (let j = 7; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x2000 + 24] >> j & 1 | OBJ[q + k + 24] >> j << 1 & 2;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x2000 + 8] >> j & 1 | OBJ[q + k + 8] >> j << 1 & 2;
-			}
-		}
 	}
 
 	makeBitmap(data) {

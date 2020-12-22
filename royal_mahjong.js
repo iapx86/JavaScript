@@ -84,7 +84,7 @@ class RoyalMahjong {
 		}
 
 		// Videoの初期化
-		this.convertRGB();
+		this.rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 	}
 
 	execute() {
@@ -197,10 +197,6 @@ class RoyalMahjong {
 
 	start2P() {
 		this.fStart2P = 2;
-	}
-
-	convertRGB() {
-		this.rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 	}
 
 	makeBitmap(data) {

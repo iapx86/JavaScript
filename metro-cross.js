@@ -37,9 +37,9 @@ class MetroCross {
 	cpu_irq = false;
 	mcu_irq = false;
 
-	fg = new Uint8Array(0x8000);
-	bg = new Uint8Array(0x20000);
-	obj = new Uint8Array(0x20000);
+	fg = new Uint8Array(0x8000).fill(3);
+	bg = new Uint8Array(0x20000).fill(7);
+	obj = new Uint8Array(0x20000).fill(15);
 	rgb = new Uint32Array(0x800);
 	vScroll = [0, 0];
 	hScroll = [0, 0];
@@ -113,10 +113,22 @@ class MetroCross {
 		this.mcu.check_interrupt = () => { return this.mcu_irq && this.mcu.interrupt() ? (this.mcu_irq = false, true) : (this.ram2[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf'); };
 
 		// Videoの初期化
-		this.convertRGB();
-		this.convertFG();
-		this.convertBG();
-		this.convertOBJ();
+		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
+		const convert = (dst, src, n, x, y, z, d) => {
+			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
+				for (let j = 0; j < x.length; j++)
+					for (let k = 0; k < y.length; k++)
+						for (let l = 0; l < z.length; l++)
+							dst[p + j + k * y.length] ^= (~src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
+		};
+		convert(this.fg, FG, 512, rseq(8, 0, 8), [...rseq(4, 64), ...rseq(4)], [0, 4], 16);
+		convert(this.bg, BG, 512, rseq(8, 0, 16), [...rseq(4), ...rseq(4, 8)], [0, 4, 0x40004], 16);
+		convert(this.bg.subarray(0x8000), BG.subarray(0x2000), 512, rseq(8, 0, 16), [...rseq(4), ...rseq(4, 8)], [0, 4, 0x30000], 16);
+		convert(this.bg.subarray(0x10000), BG.subarray(0x4000), 512, rseq(8, 0, 16), [...rseq(4), ...rseq(4, 8)], [0, 4, 0x30004], 16);
+		convert(this.bg.subarray(0x18000), BG.subarray(0x6000), 512, rseq(8, 0, 16), [...rseq(4), ...rseq(4, 8)], [0, 4, 0x20000], 16);
+		convert(this.obj, OBJ, 256, rseq(16, 0, 64), [4, 0, 12, 8, 20, 16, 28, 24, 36, 32, 44, 40, 52, 48, 60, 56], seq(4), 128);
+		for (let i = 0; i < 0x800; i++)
+			this.rgb[i] = 0xff000000 | (GREEN[i] >> 4) * 255 / 15 << 16 | (GREEN[i] & 15) * 255 / 15 << 8 | RED[i] * 255 / 15;
 	}
 
 	execute() {
@@ -218,87 +230,6 @@ class MetroCross {
 
 	triggerA(fDown) {
 		this.in[6] = this.in[6] & ~(1 << 4) | !fDown << 4;
-	}
-
-	convertRGB() {
-		for (let i = 0; i < 0x800; i++)
-			this.rgb[i] = 0xff000000 | (GREEN[i] >> 4) * 255 / 15 << 16 | (GREEN[i] & 15) * 255 / 15 << 8 | RED[i] * 255 / 15;
-	}
-
-	convertFG() {
-		for (let p = 0, q = 0, i = 512; i !== 0; q += 16, --i) {
-			for (let j = 3; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.fg[p++] = FG[q + k + 8] >> j & 1 | FG[q + k + 8] >> (j + 3) & 2;
-			for (let j = 3; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.fg[p++] = FG[q + k] >> j & 1 | FG[q + k] >> (j + 3) & 2;
-		}
-	}
-
-	convertBG() {
-		for (let p = 0, q = 0, i = 512; i !== 0; q += 16, --i) {
-			for (let j = 3; j >= 0; --j)
-				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k] >> j & 1 | BG[q + k] >> (j + 3) & 2 | BG[q + k + 0x8000] >> (j + 2) & 4;
-			for (let j = 3; j >= 0; --j)
-				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k + 1] >> j & 1 | BG[q + k + 1] >> (j + 3) & 2 | BG[q + k + 0x8000 + 1] >> (j + 2) & 4;
-		}
-		for (let p = 0x8000, q = 0x2000, i = 512; i !== 0; q += 16, --i) {
-			for (let j = 3; j >= 0; --j)
-				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k] >> j & 1 | BG[q + k] >> (j + 3) & 2 | BG[q + k + 0x6000] >> j << 2 & 4;
-			for (let j = 3; j >= 0; --j)
-				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k + 1] >> j & 1 | BG[q + k + 1] >> (j + 3) & 2 | BG[q + k + 0x6000 + 1] >> j << 2 & 4;
-		}
-		for (let p = 0x10000, q = 0x4000, i = 512; i !== 0; q += 16, --i) {
-			for (let j = 3; j >= 0; --j)
-				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k] >> j & 1 | BG[q + k] >> (j + 3) & 2 | BG[q + k + 0x6000] >> (j + 2) & 4;
-			for (let j = 3; j >= 0; --j)
-				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k + 1] >> j & 1 | BG[q + k + 1] >> (j + 3) & 2 | BG[q + k + 0x6000 + 1] >> (j + 2) & 4;
-		}
-		for (let p = 0x18000, q = 0x6000, i = 512; i !== 0; q += 16, --i) {
-			for (let j = 3; j >= 0; --j)
-				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k] >> j & 1 | BG[q + k] >> (j + 3) & 2 | BG[q + k + 0x4000] >> j << 2 & 4;
-			for (let j = 3; j >= 0; --j)
-				for (let k = 14; k >= 0; k -= 2)
-					this.bg[p++] = BG[q + k + 1] >> j & 1 | BG[q + k + 1] >> (j + 3) & 2 | BG[q + k + 0x4000 + 1] >> j << 2 & 4;
-		}
-	}
-
-	convertOBJ() {
-		for (let p = 0, q = 0, i = 256; i !== 0; q += 128, --i) {
-			for (let j = 4; j >= 0; j -= 4)
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + k] >> j & 0xf;
-			for (let j = 4; j >= 0; j -= 4)
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + k + 1] >> j & 0xf;
-			for (let j = 4; j >= 0; j -= 4)
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + k + 2] >> j & 0xf;
-			for (let j = 4; j >= 0; j -= 4)
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + k + 3] >> j & 0xf;
-			for (let j = 4; j >= 0; j -= 4)
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + k + 4] >> j & 0xf;
-			for (let j = 4; j >= 0; j -= 4)
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + k + 5] >> j & 0xf;
-			for (let j = 4; j >= 0; j -= 4)
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + k + 6] >> j & 0xf;
-			for (let j = 4; j >= 0; j -= 4)
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + k + 7] >> j & 0xf;
-		}
-		this.obj.fill(0xf, 0x10000);
 	}
 
 	makeBitmap(data) {

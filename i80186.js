@@ -58,10 +58,10 @@ export default class I80186 extends Cpu {
 		this.ip = 0;
 	}
 
-	exception(vector) {
+	exception(intvec) {
 		this.push(this.flags, this.cs, this.ip);
 		this.flags = this.flags & ~0x300;
-		[this.ip, this.cs] = [this.read16(0, vector << 2), this.read16(0, vector << 2 | 2)];
+		[this.ip, this.cs] = [this.read16(0, intvec << 2), this.read16(0, intvec << 2 | 2)];
 	}
 
 	non_maskable_interrupt() {
@@ -71,10 +71,10 @@ export default class I80186 extends Cpu {
 		return true;
 	}
 
-	interrupt(vector) {
+	interrupt(intvec) {
 		if (!super.interrupt() || this.intmask || ~this.flags & 0x200)
 			return false;
-		this.exception(vector);
+		this.exception(intvec);
 		return true;
 	}
 

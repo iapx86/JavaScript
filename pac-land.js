@@ -105,10 +105,21 @@ class PacLand {
 			this.mcu.memorymap[0xf0 + i].base = PRG2I.base[i];
 
 		// Videoの初期化
-		this.convertRGB();
-		this.convertFG();
-		this.convertBG();
-		this.convertOBJ();
+		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
+		const convert = (dst, src, n, x, y, z, d) => {
+			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
+				for (let j = 0; j < x.length; j++)
+					for (let k = 0; k < y.length; k++)
+						for (let l = 0; l < z.length; l++)
+							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
+		};
+		convert(this.fg, FG, 512, rseq(8, 0, 8), [...rseq(4, 64), ...rseq(4)], [0, 4], 16);
+		convert(this.bg, BG, 512, rseq(8, 0, 8), [...rseq(4, 64), ...rseq(4)], [0, 4], 16);
+		convert(this.obj, OBJ, 512, [...rseq(8, 256, 8), ...rseq(8, 0, 8)], [...rseq(4), ...rseq(4, 64), ...rseq(4, 128), ...rseq(4, 192)],
+			[OBJ.length * 4, OBJ.length * 4 + 4, 0, 4], 64);
+		for (let i = 0; i < 0x400; i++)
+			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | (RED[i] >> 4) * 255 / 15 << 8 | (RED[i] & 15) * 255 / 15;
+		this.opaque[0].fill(0).fill(1, 0, 0x80), this.opaque[1].fill(0).fill(1, 0, 0x7f).fill(1, 0x80, 0xff), this.opaque[2].fill(0).fill(1, 0xf0, 0xff);
 	}
 
 	execute() {
@@ -234,66 +245,6 @@ class PacLand {
 
 	triggerA(fDown) {
 		this.in[4] = this.in[4] & ~(1 << 3) | !fDown << 3;
-	}
-
-	convertRGB() {
-		for (let i = 0; i < 0x400; i++)
-			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | (RED[i] >> 4) * 255 / 15 << 8 | (RED[i] & 15) * 255 / 15;
-	}
-
-	convertFG() {
-		for (let p = 0, q = 0, i = 512; i !== 0; q += 16, --i) {
-			for (let j = 3; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.fg[p++] = FG[q + k + 8] >> j & 1 | FG[q + k + 8] >> (j + 3) & 2;
-			for (let j = 3; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.fg[p++] = FG[q + k] >> j & 1 | FG[q + k] >> (j + 3) & 2;
-		}
-	}
-
-	convertBG() {
-		for (let p = 0, q = 0, i = 512; i !== 0; q += 16, --i) {
-			for (let j = 3; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k + 8] >> j & 1 | BG[q + k + 8] >> (j + 3) & 2;
-			for (let j = 3; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k] >> j & 1 | BG[q + k] >> (j + 3) & 2;
-		}
-	}
-
-	convertOBJ() {
-		this.opaque[0].fill(0).fill(1, 0, 0x80);
-		this.opaque[1].fill(0).fill(1, 0, 0x7f).fill(1, 0x80, 0xff);
-		this.opaque[2].fill(0).fill(1, 0xf0, 0xff);
-
-		for (let p = 0, q = 0, i = 512; i !== 0; q += 64, --i) {
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x8000 + 32] >> j & 1 | OBJ[q + k + 0x8000 + 32] >> (j + 3) & 2 | OBJ[q + k + 32] >> j << 2 & 4 | OBJ[q + k + 32] >> (j + 1) & 8;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x8000] >> j & 1 | OBJ[q + k + 0x8000] >> (j + 3) & 2 | OBJ[q + k] >> j << 2 & 4 | OBJ[q + k] >> (j + 1) & 8;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x8000 + 40] >> j & 1 | OBJ[q + k + 0x8000 + 40] >> (j + 3) & 2 | OBJ[q + k + 40] >> j << 2 & 4 | OBJ[q + k + 40] >> (j + 1) & 8;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x8000 + 8] >> j & 1 | OBJ[q + k + 0x8000 + 8] >> (j + 3) & 2 | OBJ[q + k + 8] >> j << 2 & 4 | OBJ[q + k + 8] >> (j + 1) & 8;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x8000 + 48] >> j & 1 | OBJ[q + k + 0x8000 + 48] >> (j + 3) & 2 | OBJ[q + k + 48] >> j << 2 & 4 | OBJ[q + k + 48] >> (j + 1) & 8;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x8000 + 16] >> j & 1 | OBJ[q + k + 0x8000 + 16] >> (j + 3) & 2 | OBJ[q + k + 16] >> j << 2 & 4 | OBJ[q + k + 16] >> (j + 1) & 8;
-			}
-			for (let j = 3; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x8000 + 56] >> j & 1 | OBJ[q + k + 0x8000 + 56] >> (j + 3) & 2 | OBJ[q + k + 56] >> j << 2 & 4 | OBJ[q + k + 56] >> (j + 1) & 8;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 0x8000 + 24] >> j & 1 | OBJ[q + k + 0x8000 + 24] >> (j + 3) & 2 | OBJ[q + k + 24] >> j << 2 & 4 | OBJ[q + k + 24] >> (j + 1) & 8;
-			}
-		}
 	}
 
 	makeBitmap(data) {

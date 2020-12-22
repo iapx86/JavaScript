@@ -109,9 +109,23 @@ class StarForce {
 		};
 
 		// Videoの初期化
-		this.convertFG();
-		this.convertBG();
-		this.convertOBJ();
+		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
+		const convert = (dst, src, n, x, y, z, d) => {
+			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
+				for (let j = 0; j < x.length; j++)
+					for (let k = 0; k < y.length; k++)
+						for (let l = 0; l < z.length; l++)
+							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
+		};
+		convert(this.fg, FG, 512, rseq(8, 0, 8), rseq(8), [Math.floor(FG.length / 3) * 16, Math.floor(FG.length / 3) * 8, 0], 8);
+		convert(this.bg1, BG1, 256, [...rseq(8, 128, 8), ...rseq(8, 0, 8)], [...rseq(8), ...rseq(8, 64)],
+			[Math.floor(BG1.length / 3) * 16, Math.floor(BG1.length / 3) * 8, 0], 32);
+		convert(this.bg2, BG2, 256, [...rseq(8, 128, 8), ...rseq(8, 0, 8)], [...rseq(8), ...rseq(8, 64)],
+			[Math.floor(BG2.length / 3) * 16, Math.floor(BG2.length / 3) * 8, 0], 32);
+		convert(this.bg3, BG3, 128, [...rseq(8, 128, 8), ...rseq(8, 0, 8)], [...rseq(8), ...rseq(8, 64)],
+			[Math.floor(BG3.length / 3) * 16, Math.floor(BG3.length / 3) * 8, 0], 32);
+		convert(this.obj, OBJ, 512, [...rseq(8, 128, 8), ...rseq(8, 0, 8)], [...rseq(8), ...rseq(8, 64)],
+			[Math.floor(OBJ.length / 3) * 16, Math.floor(OBJ.length / 3) * 8, 0], 32);
 	}
 
 	execute() {
@@ -259,84 +273,11 @@ class StarForce {
 		!(this.fTurbo = fDown) && (this.in[0] &= ~(1 << 4));
 	}
 
-	convertRGB() {
+	makeBitmap(data) {
 		for (let j = 0; j < 0x200; j++) {
 			const e = this.ram[0x1c00 + j], i = e >> 6 & 3, r = e << 2 & 12, g = e & 12, b = e >> 2 & 12;
 			this.rgb[j] = 0xff000000 | (b ? b | i : 0) * 255 / 15 << 16 | (g ? g | i : 0) * 255 / 15 << 8 | (r ? r | i : 0) * 255 / 15;
 		}
-	}
-
-	convertFG() {
-		for (let p = 0, q = 0, i = 0; i < 512; q += 8, i++)
-			for (let j = 7; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.fg[p++] = FG[q + k] >> j << 2 & 4 | FG[q + k + 0x1000] >> j << 1 & 2 | FG[q + k + 0x2000] >> j & 1;
-	}
-
-	convertBG() {
-		for (let p = 0, q = 0, i = 0; i < 256; q += 32, i++) {
-			for (let j = 7; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.bg1[p++] = BG1[q + k + 16] >> j << 2 & 4 | BG1[q + k + 0x2000 + 16] >> j << 1 & 2 | BG1[q + k + 0x4000 + 16] >> j & 1;
-				for (let k = 7; k >= 0; --k)
-					this.bg1[p++] = BG1[q + k] >> j << 2 & 4 | BG1[q + k + 0x2000] >> j << 1 & 2 | BG1[q + k + 0x4000] >> j & 1;
-			}
-			for (let j = 7; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.bg1[p++] = BG1[q + k + 24] >> j << 2 & 4 | BG1[q + k + 0x2000 + 24] >> j << 1 & 2 | BG1[q + k + 0x4000 + 24] >> j & 1;
-				for (let k = 7; k >= 0; --k)
-					this.bg1[p++] = BG1[q + k + 8] >> j << 2 & 4 | BG1[q + k + 0x2000 + 8] >> j << 1 & 2 | BG1[q + k + 0x4000 + 8] >> j & 1;
-			}
-		}
-		for (let p = 0, q = 0, i = 0; i < 256; q += 32, i++) {
-			for (let j = 7; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.bg2[p++] = BG2[q + k + 16] >> j << 2 & 4 | BG2[q + k + 0x2000 + 16] >> j << 1 & 2 | BG2[q + k + 0x4000 + 16] >> j & 1;
-				for (let k = 7; k >= 0; --k)
-					this.bg2[p++] = BG2[q + k] >> j << 2 & 4 | BG2[q + k + 0x2000] >> j << 1 & 2 | BG2[q + k + 0x4000] >> j & 1;
-			}
-			for (let j = 7; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.bg2[p++] = BG2[q + k + 24] >> j << 2 & 4 | BG2[q + k + 0x2000 + 24] >> j << 1 & 2 | BG2[q + k + 0x4000 + 24] >> j & 1;
-				for (let k = 7; k >= 0; --k)
-					this.bg2[p++] = BG2[q + k + 8] >> j << 2 & 4 | BG2[q + k + 0x2000 + 8] >> j << 1 & 2 | BG2[q + k + 0x4000 + 8] >> j & 1;
-			}
-		}
-		for (let p = 0, q = 0, i = 0; i < 128; q += 32, i++) {
-			for (let j = 7; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.bg3[p++] = BG3[q + k + 16] >> j << 2 & 4 | BG3[q + k + 0x1000 + 16] >> j << 1 & 2 | BG3[q + k + 0x2000 + 16] >> j & 1;
-				for (let k = 7; k >= 0; --k)
-					this.bg3[p++] = BG3[q + k] >> j << 2 & 4 | BG3[q + k + 0x1000] >> j << 1 & 2 | BG3[q + k + 0x2000] >> j & 1;
-			}
-			for (let j = 7; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.bg3[p++] = BG3[q + k + 24] >> j << 2 & 4 | BG3[q + k + 0x1000 + 24] >> j << 1 & 2 | BG3[q + k + 0x2000 + 24] >> j & 1;
-				for (let k = 7; k >= 0; --k)
-					this.bg3[p++] = BG3[q + k + 8] >> j << 2 & 4 | BG3[q + k + 0x1000 + 8] >> j << 1 & 2 | BG3[q + k + 0x2000 + 8] >> j & 1;
-			}
-		}
-	}
-
-	convertOBJ() {
-		for (let p = 0, q = 0, i = 0; i < 512; q += 32, i++) {
-			for (let j = 7; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 16] >> j << 2 & 4 | OBJ[q + k + 0x4000 + 16] >> j << 1 & 2 | OBJ[q + k + 0x8000 + 16] >> j & 1;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k] >> j << 2 & 4 | OBJ[q + k + 0x4000] >> j << 1 & 2 | OBJ[q + k + 0x8000] >> j & 1;
-			}
-			for (let j = 7; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 24] >> j << 2 & 4 | OBJ[q + k + 0x4000 + 24] >> j << 1 & 2 | OBJ[q + k + 0x8000 + 24] >> j & 1;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k + 8] >> j << 2 & 4 | OBJ[q + k + 0x4000 + 8] >> j << 1 & 2 | OBJ[q + k + 0x8000 + 8] >> j & 1;
-			}
-		}
-	}
-
-	makeBitmap(data) {
-		this.convertRGB();
 
 		// 画面クリア
 		let p = 256 * 16 + 16;

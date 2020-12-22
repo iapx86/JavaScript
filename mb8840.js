@@ -42,25 +42,25 @@ export default class MB8840 {
 	}
 
 	interrupt(_cause = 'external') {
-		let vector = 0;
+		let intvec = 0;
 		switch (_cause) {
 		default:
 		case 'external':
 			if (~this.mask & 4)
 				return false;
-			this.mask &= ~4, vector = 2;
+			this.mask &= ~4, intvec = 2;
 			break;
 		case 'timer':
 			if (~this.mask & 2)
 				return false;
-			this.mask &= ~2, vector = 4;
+			this.mask &= ~2, intvec = 4;
 			break;
 		case 'serial':
 			if (~this.mask & 1)
 				return false;
-			this.mask &= ~1, vector = 6;
+			this.mask &= ~1, intvec = 6;
 		}
-		return this.push(this.pc | this.zf << 13 | this.cf << 14 | this.st << 15), this.pc = vector, this.st = true, this.cycles = this.cycles - 3 | 0, true;
+		return this.push(this.pc | this.zf << 13 | this.cf << 14 | this.st << 15), this.pc = intvec, this.st = true, this.cycles = this.cycles - 3 | 0, true;
 	}
 
 	execute() {

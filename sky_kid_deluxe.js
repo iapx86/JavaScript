@@ -40,9 +40,9 @@ class SkyKidDeluxe {
 	cpu_irq = false;
 	cpu2_irq = false;
 
-	bg1 = new Uint8Array(0x20000);
-	bg2 = new Uint8Array(0x20000);
-	obj = new Uint8Array(0x20000);
+	bg1 = new Uint8Array(0x20000).fill(3);
+	bg2 = new Uint8Array(0x20000).fill(3);
+	obj = new Uint8Array(0x20000).fill(15);
 	rgb = new Uint32Array(0x200);
 	isspace1 = new Uint8Array(0x800);
 	isspace2 = new Uint8Array(0x800);
@@ -165,9 +165,27 @@ class SkyKidDeluxe {
 			this.mcu.memorymap[0xf0 + i].base = PRG3I.base[i];
 
 		// Videoの初期化
-		this.convertRGB();
-		this.convertBG();
-		this.convertOBJ();
+		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
+		const convert = (dst, src, n, x, y, z, d) => {
+			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
+				for (let j = 0; j < x.length; j++)
+					for (let k = 0; k < y.length; k++)
+						for (let l = 0; l < z.length; l++)
+							z[l] >= 0 && (dst[p + j + k * y.length] ^= (~src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l);
+		};
+		convert(this.bg1, BG1, 2048, rseq(8, 0, 16), [...rseq(4), ...rseq(4, 8)], [0, 4], 16);
+		convert(this.bg1, BG1, 2048, rseq(8, 0, 8), rseq(8), [-1, -1, Math.floor(BG1.length / 3) * 16], 8);
+		convert(this.bg2, BG2, 2048, rseq(8, 0, 16), [...rseq(4), ...rseq(4, 8)], [0, 4], 16);
+		convert(this.bg2, BG2, 2048, rseq(8, 0, 8), rseq(8), [-1, -1, Math.floor(BG2.length / 3) * 16], 8);
+		convert(this.obj, OBJ, 128, [...rseq(16, 2048, 64), ...rseq(16, 0, 64)],
+			[4, 0, 12, 8, 20, 16, 28, 24, 36, 32, 44, 40, 52, 48, 60, 56, 1028, 1024, 1036, 1032, 1044, 1040, 1052, 1048, 1060, 1056, 1068, 1064, 1076, 1072, 1084, 1080],
+			seq(4), 512);
+		for (let i = 0; i < 0x200; i++)
+			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | (RED[i] >> 4) * 255 / 15 << 8 | (RED[i] & 15) * 255 / 15;
+		for (let p = 0, q = 0, i = 2048; i !== 0; q += 64, --i)
+			this.isspace1[p++] = Number(this.bg1.subarray(q, q + 64).every(e => e === 7));
+		for (let p = 0, q = 0, i = 2048; i !== 0; q += 64, --i)
+			this.isspace2[p++] = Number(this.bg2.subarray(q, q + 64).every(e => e === 7));
 	}
 
 	execute() {
@@ -285,59 +303,6 @@ class SkyKidDeluxe {
 
 	triggerB(fDown) {
 		this.in[0] = this.in[0] & ~(1 << 1) | !fDown << 1;
-	}
-
-	convertRGB() {
-		for (let i = 0; i < 0x200; i++)
-			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | (RED[i] >> 4) * 255 / 15 << 8 | (RED[i] & 15) * 255 / 15;
-	}
-
-	convertBG() {
-		for (let p = 0, q = 0, i = 2048; i !== 0; q += 8, --i) {
-			for (let j = 3; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.bg1[p++] = BG1[(q + k) * 2] >> j & 1 | BG1[(q + k) * 2] >> j + 3 & 2 | ~BG1[q + k + 0x8000] >> j + 2 & 4;
-			for (let j = 3; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.bg1[p++] = BG1[(q + k) * 2 + 1] >> j & 1 | BG1[(q + k) * 2 + 1] >> j + 3 & 2 | ~BG1[q + k + 0x8000] >> j << 2 & 4;
-		}
-		for (let p = 0, q = 0, i = 2048; i !== 0; q += 8, --i) {
-			for (let j = 3; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.bg2[p++] = BG2[(q + k) * 2] >> j & 1 | BG2[(q + k) * 2] >> j + 3 & 2 | ~BG2[q + k + 0x8000] >> j + 2 & 4;
-			for (let j = 3; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.bg2[p++] = BG2[(q + k) * 2 + 1] >> j & 1 | BG2[(q + k) * 2 + 1] >> j + 3 & 2 | ~BG2[q + k + 0x8000] >> j << 2 & 4;
-		}
-		for (let p = 0, q = 0, i = 2048; i !== 0; q += 64, --i)
-			this.isspace1[p++] = Number(this.bg1.subarray(q, q + 64).every(e => e === 7));
-		for (let p = 0, q = 0, i = 2048; i !== 0; q += 64, --i)
-			this.isspace2[p++] = Number(this.bg2.subarray(q, q + 64).every(e => e === 7));
-	}
-
-	convertOBJ() {
-		for (let p = 0, q = 0, i = 128; i !== 0; q += 512, --i) {
-			for (let j = 0; j < 8; j++) {
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + j + k + 256] >> 4;
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + j + k] >> 4;
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + j + k + 256] & 0xf;
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + j + k] & 0xf;
-			}
-			for (let j = 0; j < 8; j++) {
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + j + k + 384] >> 4;
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + j + k + 128] >> 4;
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + j + k + 384] & 0xf;
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + j + k + 128] & 0xf;
-			}
-		}
 	}
 
 	makeBitmap(data) {

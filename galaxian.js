@@ -98,11 +98,23 @@ class Galaxian {
 		this.cpu.set_breakpoint(0x1cc1);
 
 		// Videoの初期化
+		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
+		const convert = (dst, src, n, x, y, z, d) => {
+			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
+				for (let j = 0; j < x.length; j++)
+					for (let k = 0; k < y.length; k++)
+						for (let l = 0; l < z.length; l++)
+							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
+		};
+		convert(this.bg, BG, 256, rseq(8, 0, 8), rseq(8), [BG.length * 4, 0], 8);
+		convert(this.obj, BG, 64, [...rseq(8, 128, 8), ...rseq(8, 0, 8)], [...rseq(8), ...rseq(8, 64)], [BG.length * 4, 0], 32);
+		for (let i = 0; i < 0x20; i++)
+			this.rgb[i] = 0xff000000 | (RGB[i] >> 6) * 255 / 3 << 16 | (RGB[i] >> 3 & 7) * 255 / 7 << 8 | (RGB[i] & 7) * 255 / 7;
+		const starColors = [0xd0, 0x70, 0x40, 0x00];
+		for (let i = 0; i < 0x40; i++)
+			this.rgb[0x40 | i] = 0xff000000 | starColors[i >> 4 & 3] << 16 | starColors[i >> 2 & 3] << 8 | starColors[i & 3];
 		for (let i = 0; i < 1024; i++)
 			this.stars.push({x: 0, y: 0, color: 0});
-		this.convertRGB();
-		this.convertBG();
-		this.convertOBJ();
 		this.initializeStar();
 
 		// 効果音の初期化
@@ -207,38 +219,6 @@ class Galaxian {
 
 	triggerA(fDown) {
 		this.ioport[0] = this.ioport[0] & ~(1 << 4) | fDown << 4;
-	}
-
-	convertRGB() {
-		for (let i = 0; i < 0x20; i++)
-			this.rgb[i] = 0xff000000 | (RGB[i] >> 6) * 255 / 3 << 16 | (RGB[i] >> 3 & 7) * 255 / 7 << 8 | (RGB[i] & 7) * 255 / 7;
-		const starColors = [0xd0, 0x70, 0x40, 0x00];
-		for (let i = 0; i < 0x40; i++)
-			this.rgb[0x40 | i] = 0xff000000 | starColors[i >> 4 & 3] << 16 | starColors[i >> 2 & 3] << 8 | starColors[i & 3];
-	}
-
-	convertBG() {
-		for (let p = 0, q = 0, i = 256; i !== 0; q += 8, --i)
-			for (let j = 7; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k + 0x800] >> j & 1 | BG[q + k] >> j << 1 & 2;
-	}
-
-	convertOBJ() {
-		for (let p = 0, q = 0, i = 64; i !== 0; q += 32, --i) {
-			for (let j = 7; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = BG[q + k + 0x800 + 16] >> j & 1 | BG[q + k + 16] >> j << 1 & 2;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = BG[q + k + 0x800] >> j & 1 | BG[q + k] >> j << 1 & 2;
-			}
-			for (let j = 7; j >= 0; --j) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = BG[q + k + 0x800 + 24] >> j & 1 | BG[q + k + 24] >> j << 1 & 2;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = BG[q + k + 0x800 + 8] >> j & 1 | BG[q + k + 8] >> j << 1 & 2;
-			}
-		}
 	}
 
 	initializeStar() {

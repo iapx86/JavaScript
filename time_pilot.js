@@ -41,8 +41,7 @@ class TimePilot {
 
 	bg = new Uint8Array(0x8000);
 	obj = new Uint8Array(0x10000);
-	bgcolor = Uint8Array.from(BGCOLOR, e => e & 0xf | 0x10);
-	objcolor = Uint8Array.from(OBJCOLOR, e => e & 0xf);
+	bgcolor = Uint8Array.from(BGCOLOR, e => 0x10 | e);
 	rgb = new Uint32Array(0x20);
 	vpos = 0;
 
@@ -100,9 +99,20 @@ class TimePilot {
 				this.cpu2.memorymap[page].write = (addr, data) => { this.psg[1].addr = data; };
 
 		// Videoの初期化
-		this.convertRGB();
-		this.convertBG();
-		this.convertOBJ();
+		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
+		const convert = (dst, src, n, x, y, z, d) => {
+			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
+				for (let j = 0; j < x.length; j++)
+					for (let k = 0; k < y.length; k++)
+						for (let l = 0; l < z.length; l++)
+							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
+		};
+		convert(this.bg, BG, 512, rseq(8, 0, 8), [...rseq(4), ...rseq(4, 64)], [4, 0], 16);
+		convert(this.obj, OBJ, 256, [...rseq(8, 256, 8), ...rseq(8, 0, 8)], [...seq(4, 192), ...seq(4, 128), ...seq(4, 64), ...seq(4)], [4, 0], 64);
+		for (let i = 0; i < 0x20; i++) {
+			const e = RGB_H[i] << 8 | RGB_L[i];
+			this.rgb[i] = 0xff000000 | (e >> 11) * 255 / 31 << 16 | (e >> 6 & 31) * 255 / 31 << 8 | (e >> 1 & 31) * 255 / 31;
+		}
 	}
 
 	execute() {
@@ -232,53 +242,6 @@ class TimePilot {
 
 	triggerA(fDown) {
 		this.in[1] = this.in[1] & ~(1 << 4) | !fDown << 4;
-	}
-
-	convertRGB() {
-		for (let i = 0; i < 0x20; i++) {
-			const e = RGB_H[i] << 8 | RGB_L[i];
-			this.rgb[i] = 0xff000000 | (e >> 11) * 255 / 31 << 16 | (e >> 6 & 31) * 255 / 31 << 8 | (e >> 1 & 31) * 255 / 31;
-		}
-	}
-
-	convertBG() {
-		for (let p = 0, q = 0, i = 512; i !== 0; q += 16, --i) {
-			for (let j = 3; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k] >> (j + 4) & 1 | BG[q + k] >> j << 1 & 2;
-			for (let j = 3; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = BG[q + k + 8] >> (j + 4) & 1 | BG[q + k + 8] >> j << 1 & 2;
-		}
-	}
-
-	convertOBJ() {
-		for (let p = 0, q = 0, i = 256; i !== 0; q += 64, --i) {
-			for (let j = 0; j < 4; j++) {
-				for (let k = 63; k >= 56; --k)
-					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2;
-				for (let k = 31; k >= 24; --k)
-					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2;
-			}
-			for (let j = 0; j < 4; j++) {
-				for (let k = 55; k >= 48; --k)
-					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2;
-				for (let k = 23; k >= 16; --k)
-					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2;
-			}
-			for (let j = 0; j < 4; j++) {
-				for (let k = 47; k >= 40; --k)
-					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2;
-				for (let k = 15; k >= 8; --k)
-					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2;
-			}
-			for (let j = 0; j < 4; j++) {
-				for (let k = 39; k >= 32; --k)
-					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = OBJ[q + k] >> (j + 4) & 1 | OBJ[q + k] >> j << 1 & 2;
-			}
-		}
 	}
 
 	makeBitmap(data) {
@@ -621,7 +584,7 @@ class TimePilot {
 		src = src << 8 & 0xff00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx | this.obj[src++]]))
+				if ((px = OBJCOLOR[idx | this.obj[src++]]))
 					data[dst] = px;
 	}
 
@@ -634,7 +597,7 @@ class TimePilot {
 		src = (src << 8 & 0xff00) + 256 - 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src -= 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx | this.obj[src++]]))
+				if ((px = OBJCOLOR[idx | this.obj[src++]]))
 					data[dst] = px;
 	}
 
@@ -647,7 +610,7 @@ class TimePilot {
 		src = (src << 8 & 0xff00) + 16;
 		for (let i = 16; i !== 0; dst += 256 - 16, src += 32, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx | this.obj[--src]]))
+				if ((px = OBJCOLOR[idx | this.obj[--src]]))
 					data[dst] = px;
 	}
 
@@ -660,7 +623,7 @@ class TimePilot {
 		src = (src << 8 & 0xff00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.objcolor[idx | this.obj[--src]]))
+				if ((px = OBJCOLOR[idx | this.obj[--src]]))
 					data[dst] = px;
 	}
 }

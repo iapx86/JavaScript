@@ -27,11 +27,11 @@ export default class MC6805 extends Cpu {
 		this.irq = false;
 	}
 
-	interrupt(vector) {
+	interrupt(intvec) {
 		if (!super.interrupt() || this.ccr & 8)
 			return false;
 		this.psh16(this.pc), this.psh(this.x, this.a, this.ccr), this.ccr |= 8;
-		switch (vector) {
+		switch (intvec) {
 		case 'timer':
 			return this.pc = this.read16(0x7f8) & 0x7ff, true;
 		default:

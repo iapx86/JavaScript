@@ -90,8 +90,18 @@ class TankBattalion {
 		this.rport[0x1d] = 0x7f;
 
 		// Videoの初期化
-		this.convertRGB();
-		this.convertBG();
+		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
+		const convert = (dst, src, n, x, y, z, d) => {
+			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
+				for (let j = 0; j < x.length; j++)
+					for (let k = 0; k < y.length; k++)
+						for (let l = 0; l < z.length; l++)
+							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
+		};
+		convert(this.bg, BG, 256, rseq(8, 0, 8), rseq(8), [0, 0, 0, 0], 8);
+		this.bg = this.bg.map((e, i) => e & RGB[i >> 6 | 1]);
+		for (let i = 0; i < 0x10; i++)
+			this.rgb[i] = 0xff000000 | (i >> 3 & 1) * 255 << 16 | (i >> 2 & 1) * 255 << 8 | (i & 3) * 255 / 3;
 
 		// 効果音の初期化
 		this.se[2].loop = this.se[3].loop = true;
@@ -189,18 +199,6 @@ class TankBattalion {
 
 	triggerA(fDown) {
 		this.rport[4] = this.rport[4] & ~(1 << 7) | !fDown << 7;
-	}
-
-	convertRGB() {
-		for (let i = 0; i < 0x10; i++)
-			this.rgb[i] = 0xff000000 | (i >> 3 & 1) * 255 << 16 | (i >> 2 & 1) * 255 << 8 | (i & 3) * 255 / 3;
-	}
-
-	convertBG() {
-		for (let p = 0, q = 0, i = 0; i < 0x100; q += 8, i++)
-			for (let j = 7; j >= 0; --j)
-				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = (BG[q + k] >> j & 1) * RGB[i | 1] & 0xf;
 	}
 
 	makeBitmap(data) {

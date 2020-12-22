@@ -336,57 +336,6 @@ class TimeTunnel {
 				this.pri[i][j] = PRI[i << 4 & 0xf0 | mask] >> 2 & 3;
 	}
 
-	convertRGB() {
-		for (let k = 0x4a00, i = 0; i < 0x40; k += 2, i++) {
-			const e = ~(this.ram[k] << 8 | this.ram[k + 1]);
-			this.rgb[i] = 0xff000000 | (e & 7) * 255 / 7 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e >> 6 & 7) * 255 / 7;
-		}
-	}
-
-	convertBG() {
-		for (let p = 0, q = 0x800, i = 0; i < 256; q += 8, i++) {
-			for (let j = 0; j < 8; j++)
-				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = this.ram[q + k] >> j & 1 | this.ram[q + k + 0x800] >> j << 1 & 2 | this.ram[q + k + 0x1000] >> j << 2 & 4;
-		}
-		for (let p = 0x4000, q = 0x2000, i = 0; i < 256; q += 8, i++) {
-			for (let j = 0; j < 8; j++)
-				for (let k = 7; k >= 0; --k)
-					this.bg[p++] = this.ram[q + k] >> j & 1 | this.ram[q + k + 0x800] >> j << 1 & 2 | this.ram[q + k + 0x1000] >> j << 2 & 4;
-		}
-	}
-
-	convertOBJ() {
-		for (let p = 0, q = 0x800, i = 0; i < 64; q += 32, i++) {
-			for (let j = 0; j < 8; j++) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = this.ram[q + k + 16] >> j & 1 | this.ram[q + k + 0x800 + 16] >> j << 1 & 2 | this.ram[q + k + 0x1000 + 16] >> j << 2 & 4;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = this.ram[q + k] >> j & 1 | this.ram[q + k + 0x800] >> j << 1 & 2 | this.ram[q + k + 0x1000] >> j << 2 & 4;
-			}
-			for (let j = 0; j < 8; j++) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = this.ram[q + k + 24] >> j & 1 | this.ram[q + k + 0x800 + 24] >> j << 1 & 2 | this.ram[q + k + 0x1000 + 24] >> j << 2 & 4;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = this.ram[q + k + 8] >> j & 1 | this.ram[q + k + 0x800 + 8] >> j << 1 & 2 | this.ram[q + k + 0x1000 + 8] >> j << 2 & 4;
-			}
-		}
-		for (let p = 0x4000, q = 0x2000, i = 0; i < 64; q += 32, i++) {
-			for (let j = 0; j < 8; j++) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = this.ram[q + k + 16] >> j & 1 | this.ram[q + k + 0x800 + 16] >> j << 1 & 2 | this.ram[q + k + 0x1000 + 16] >> j << 2 & 4;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = this.ram[q + k] >> j & 1 | this.ram[q + k + 0x800] >> j << 1 & 2 | this.ram[q + k + 0x1000] >> j << 2 & 4;
-			}
-			for (let j = 0; j < 8; j++) {
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = this.ram[q + k + 24] >> j & 1 | this.ram[q + k + 0x800 + 24] >> j << 1 & 2 | this.ram[q + k + 0x1000 + 24] >> j << 2 & 4;
-				for (let k = 7; k >= 0; --k)
-					this.obj[p++] = this.ram[q + k + 8] >> j & 1 | this.ram[q + k + 0x800 + 8] >> j << 1 & 2 | this.ram[q + k + 0x1000 + 8] >> j << 2 & 4;
-			}
-		}
-	}
-
 	static convertPCM(rate) {
 		const clock = 3000000;
 
@@ -442,9 +391,24 @@ class TimeTunnel {
 	}
 
 	makeBitmap(data) {
-		this.convertRGB();
-		this.convertBG();
-		this.convertOBJ();
+		// 画像データ変換
+		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
+		const convert = (dst, src, n, x, y, z, d) => {
+			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
+				for (let j = 0; j < x.length; j++)
+					for (let k = 0; k < y.length; k++)
+						for (let l = 0; l < z.length; l++)
+							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
+		};
+		this.bg.fill(0), this.obj.fill(0);
+		convert(this.bg, this.ram.subarray(0x800), 256, rseq(8, 0, 8), seq(8), [0, 0x4000, 0x8000], 8);
+		convert(this.bg.subarray(0x4000), this.ram.subarray(0x2000), 256, rseq(8, 0, 8), seq(8), [0, 0x4000, 0x8000], 8);
+		convert(this.obj, this.ram.subarray(0x800), 64, [...rseq(8, 128, 8), ...rseq(8, 0, 8)], [...seq(8), ...seq(8, 64)], [0, 0x4000, 0x8000], 32);
+		convert(this.obj.subarray(0x4000), this.ram.subarray(0x2000), 64, [...rseq(8, 128, 8), ...rseq(8, 0, 8)], [...seq(8), ...seq(8, 64)], [0, 0x4000, 0x8000], 32);
+		for (let k = 0x4a00, i = 0; i < 0x40; k += 2, i++) {
+			const e = ~(this.ram[k] << 8 | this.ram[k + 1]);
+			this.rgb[i] = 0xff000000 | (e & 7) * 255 / 7 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e >> 6 & 7) * 255 / 7;
+		}
 
 		// 画面クリア
 		let p = 256 * 16 + 16;

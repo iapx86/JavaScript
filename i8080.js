@@ -31,11 +31,11 @@ export default class I8080 extends Cpu {
 		this.pc = 0;
 	}
 
-	interrupt(vector = 0xff) {
+	interrupt(intvec = 0xff) {
 		if (!super.interrupt() || this.iff !== 3)
 			return false;
 		this.iff = 0;
-		switch (vector) {
+		switch (intvec) {
 		case 0xc7: // RST 00h
 			return this.rst(0x00), true;
 		case 0xcf: // RST 08h

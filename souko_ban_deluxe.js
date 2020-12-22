@@ -230,8 +230,20 @@ class SoukoBanDeluxe {
 		this.mcu.check_interrupt = () => { return this.mcu_irq && this.mcu.interrupt() || (this.ram4[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf'); };
 
 		// Videoの初期化
-		this.convertCHR();
-		this.convertOBJ();
+		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
+		const convert = (dst, src, n, x, y, z, d) => {
+			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
+				for (let j = 0; j < x.length; j++)
+					for (let k = 0; k < y.length; k++)
+						for (let l = 0; l < z.length; l++)
+							dst[p + j + k * y.length] ^= (~src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
+		};
+		this.chr.set(CHR);
+		convert(this.obj, OBJ, 128, [...rseq(16, 2048, 64), ...rseq(16, 0, 64)],
+			[4, 0, 12, 8, 20, 16, 28, 24, 36, 32, 44, 40, 52, 48, 60, 56, 1028, 1024, 1036, 1032, 1044, 1040, 1052, 1048, 1060, 1056, 1068, 1064, 1076, 1072, 1084, 1080],
+			seq(4), 512);
+		for (let p = 0, q = 0, i = 8192; i !== 0; q += 8, --i)
+			this.isspace[p++] = Number(CHR8.subarray(q, q + 8).every(e => !e));
 	}
 
 	bankswitch(reg, bank) {
@@ -384,37 +396,6 @@ class SoukoBanDeluxe {
 
 	triggerB(fDown) {
 		this.in[0] = this.in[0] & ~(1 << 5) | !fDown << 5;
-	}
-
-	convertCHR() {
-		for (let p = 0, q = 0, i = 8192; i !== 0; q += 8, --i)
-			this.isspace[p++] = Number(CHR8.subarray(q, q + 8).every(e => !e));
-		this.chr.set(CHR);
-	}
-
-	convertOBJ() {
-		for (let p = 0, q = 0, i = 128; i !== 0; q += 512, --i) {
-			for (let j = 0; j < 8; j++) {
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + j + k + 256] >> 4;
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + j + k] >> 4;
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + j + k + 256] & 0xf;
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + j + k] & 0xf;
-			}
-			for (let j = 0; j < 8; j++) {
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + j + k + 384] >> 4;
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + j + k + 128] >> 4;
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + j + k + 384] & 0xf;
-				for (let k = 120; k >= 0; k -= 8)
-					this.obj[p++] = OBJ[q + j + k + 128] & 0xf;
-			}
-		}
 	}
 
 	makeBitmap(data) {
