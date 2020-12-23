@@ -5,7 +5,7 @@
  */
 
 import C30 from './c30.js';
-import {init, read} from './main.js';
+import {init, seq, rseq, convertGFX, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -104,22 +104,14 @@ class DragonBuster {
 			this.mcu.memorymap[0xf0 + i].base = PRG2I.base[i];
 
 		// Videoの初期化
-		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
-		const convert = (dst, src, n, x, y, z, d) => {
-			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
-				for (let j = 0; j < x.length; j++)
-					for (let k = 0; k < y.length; k++)
-						for (let l = 0; l < z.length; l++)
-							dst[p + j + k * y.length] ^= (~src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
-		};
-		convert(this.fg, FG, 512, rseq(8, 0, 8), [...rseq(4, 64), ...rseq(4)], [0, 4], 16);
-		convert(this.bg, BG, 512, rseq(8, 0, 16), [...rseq(4), ...rseq(4, 8)], [0, 4], 16);
-		convert(this.obj, OBJ, 128, [...rseq(8, 256, 8), ...rseq(8, 0, 8)],
-			[...rseq(4), ...rseq(4, 64), ...rseq(4, 128), ...rseq(4, 192)], [0, 4, 0x20000], 64);
-		convert(this.obj.subarray(0x8000), OBJ.subarray(0x2000), 128, [...rseq(8, 256, 8), ...rseq(8, 0, 8)],
-			[...rseq(4), ...rseq(4, 64), ...rseq(4, 128), ...rseq(4, 192)], [0, 4, 0x10004], 64);
-		convert(this.obj.subarray(0x10000), OBJ.subarray(0x6000), 128, [...rseq(8, 256, 8), ...rseq(8, 0, 8)],
-			[...rseq(4), ...rseq(4, 64), ...rseq(4, 128), ...rseq(4, 192)], [0, 4], 64);
+		convertGFX(this.fg, FG, 512, rseq(8, 0, 8), seq(4, 64).concat(seq(4)), [0, 4], 16);
+		convertGFX(this.bg, BG, 512, rseq(8, 0, 16), seq(4).concat(seq(4, 8)), [0, 4], 16);
+		convertGFX(this.obj, OBJ, 128, rseq(8, 256, 8).concat(rseq(8, 0, 8)),
+			seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0x20004, 0, 4], 64);
+		convertGFX(this.obj.subarray(0x8000), OBJ.subarray(0x2000), 128, rseq(8, 256, 8).concat(rseq(8, 0, 8)),
+			seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0x10000, 0, 4], 64);
+		convertGFX(this.obj.subarray(0x10000), OBJ.subarray(0x6000), 128, rseq(8, 256, 8).concat(rseq(8, 0, 8)),
+			seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0, 4], 64);
 		for (let i = 0; i < 0x100; i++)
 			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8| RED[i] * 255 / 15;
 	}

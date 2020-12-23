@@ -7,7 +7,7 @@
 import PacManSound from './pac-man_sound.js';
 import Namco54XX from './namco_54xx.js';
 import Namco52XX from './namco_52xx.js';
-import Cpu, {init, read} from './main.js';
+import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
 import Z80 from './z80.js';
 import MB8840 from './mb8840.js';
 let game, sound;
@@ -46,8 +46,8 @@ class Bosconian {
 	dmactrl1 = 0;
 
 	stars = [];
-	bg = new Uint8Array(0x4000);
-	obj = new Uint8Array(0x4000);
+	bg = new Uint8Array(0x4000).fill(3);
+	obj = new Uint8Array(0x4000).fill(3);
 	bgcolor = Uint8Array.from(BGCOLOR, e => 0x10 | e);
 	rgb = new Uint32Array(0x80);
 
@@ -174,16 +174,8 @@ class Bosconian {
 		this.mcu[2].rom.set(KEY);
 
 		// Videoの初期化
-		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
-		const convert = (dst, src, n, x, y, z, d) => {
-			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
-				for (let j = 0; j < x.length; j++)
-					for (let k = 0; k < y.length; k++)
-						for (let l = 0; l < z.length; l++)
-							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
-		};
-		convert(this.bg, BG, 256, rseq(8, 0, 8), [...rseq(4, 64), ...rseq(4)], [0, 4], 16);
-		convert(this.obj, OBJ, 64, [...rseq(8, 256, 8), ...rseq(8, 0, 8)], [...rseq(4, 64), ...rseq(4, 128), ...rseq(4, 192), ...rseq(4)], [0, 4], 64);
+		convertGFX(this.bg, BG, 256, rseq(8, 0, 8), seq(4, 64).concat(seq(4)), [0, 4], 16);
+		convertGFX(this.obj, OBJ, 64, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4, 64).concat(seq(4, 128), seq(4, 192), seq(4)), [0, 4], 64);
 		for (let i = 0; i < 0x20; i++)
 			this.rgb[i] = 0xff000000 | (RGB[i] >> 6) * 255 / 3 << 16 | (RGB[i] >> 3 & 7) * 255 / 7 << 8 | (RGB[i] & 7) * 255 / 7;
 		for (let i = 0; i < 0x40; i++)
@@ -864,7 +856,7 @@ class Bosconian {
 		src = src << 6 & 0x3f00;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.BGCOLOR[idx | this.obj[src++]]) !== 0xf)
+				if ((px = BGCOLOR[idx | this.obj[src++]]) !== 0xf)
 					data[dst] = px;
 	}
 
@@ -877,7 +869,7 @@ class Bosconian {
 		src = (src << 6 & 0x3f00) + 256 - 16;
 		for (let i = 16; i !== 0; src -= 32, dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.BGCOLOR[idx | this.obj[src++]]) !== 0xf)
+				if ((px = BGCOLOR[idx | this.obj[src++]]) !== 0xf)
 					data[dst] = px;
 	}
 
@@ -890,7 +882,7 @@ class Bosconian {
 		src = (src << 6 & 0x3f00) + 16;
 		for (let i = 16; i !== 0; src += 32, dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.BGCOLOR[idx | this.obj[--src]]) !== 0xf)
+				if ((px = BGCOLOR[idx | this.obj[--src]]) !== 0xf)
 					data[dst] = px;
 	}
 
@@ -903,7 +895,7 @@ class Bosconian {
 		src = (src << 6 & 0x3f00) + 256;
 		for (let i = 16; i !== 0; dst += 256 - 16, --i)
 			for (let j = 16; j !== 0; dst++, --j)
-				if ((px = this.BGCOLOR[idx | this.obj[--src]]) !== 0xf)
+				if ((px = BGCOLOR[idx | this.obj[--src]]) !== 0xf)
 					data[dst] = px;
 	}
 }

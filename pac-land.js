@@ -5,7 +5,7 @@
  */
 
 import C30 from './c30.js';
-import {init, read} from './main.js';
+import {init, seq, rseq, convertGFX, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -38,9 +38,9 @@ class PacLand {
 	ram2 = new Uint8Array(0x900).addBase();
 	in = new Uint8Array(5).fill(0xff);
 
-	fg = new Uint8Array(0x8000);
-	bg = new Uint8Array(0x8000);
-	obj = new Uint8Array(0x20000);
+	fg = new Uint8Array(0x8000).fill(3);
+	bg = new Uint8Array(0x8000).fill(3);
+	obj = new Uint8Array(0x20000).fill(15);
 	rgb = new Uint32Array(0x400);
 	opaque = [new Uint8Array(0x100), new Uint8Array(0x100), new Uint8Array(0x100)];
 	dwScroll0 = 0;
@@ -105,18 +105,10 @@ class PacLand {
 			this.mcu.memorymap[0xf0 + i].base = PRG2I.base[i];
 
 		// Videoの初期化
-		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
-		const convert = (dst, src, n, x, y, z, d) => {
-			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
-				for (let j = 0; j < x.length; j++)
-					for (let k = 0; k < y.length; k++)
-						for (let l = 0; l < z.length; l++)
-							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
-		};
-		convert(this.fg, FG, 512, rseq(8, 0, 8), [...rseq(4, 64), ...rseq(4)], [0, 4], 16);
-		convert(this.bg, BG, 512, rseq(8, 0, 8), [...rseq(4, 64), ...rseq(4)], [0, 4], 16);
-		convert(this.obj, OBJ, 512, [...rseq(8, 256, 8), ...rseq(8, 0, 8)], [...rseq(4), ...rseq(4, 64), ...rseq(4, 128), ...rseq(4, 192)],
-			[OBJ.length * 4, OBJ.length * 4 + 4, 0, 4], 64);
+		convertGFX(this.fg, FG, 512, rseq(8, 0, 8), seq(4, 64).concat(seq(4)), [0, 4], 16);
+		convertGFX(this.bg, BG, 512, rseq(8, 0, 8), seq(4, 64).concat(seq(4)), [0, 4], 16);
+		convertGFX(this.obj, OBJ, 512, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)),
+			[0, 4, OBJ.length * 4, OBJ.length * 4 + 4], 64);
 		for (let i = 0; i < 0x400; i++)
 			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | (RED[i] >> 4) * 255 / 15 << 8 | (RED[i] & 15) * 255 / 15;
 		this.opaque[0].fill(0).fill(1, 0, 0x80), this.opaque[1].fill(0).fill(1, 0, 0x7f).fill(1, 0x80, 0xff), this.opaque[2].fill(0).fill(1, 0xf0, 0xff);

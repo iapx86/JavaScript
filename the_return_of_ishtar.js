@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
-import Cpu, {init, read} from './main.js';
+import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -176,21 +176,11 @@ class TheReturnOfIshtar {
 			this.mcu.memorymap[0xf0 + i].base = PRG3I.base[i];
 
 		// Videoの初期化
-		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
-		const convert = (dst, src, n, x, y, z, d) => {
-			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
-				for (let j = 0; j < x.length; j++)
-					for (let k = 0; k < y.length; k++)
-						for (let l = 0; l < z.length; l++)
-							z[l] >= 0 && (dst[p + j + k * y.length] ^= (~src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l);
-		};
-		convert(this.bg1, BG1, 1024, rseq(8, 0, 16), [...rseq(4), ...rseq(4, 8)], [0, 4], 16);
-		convert(this.bg1, BG1, 1024, rseq(8, 0, 8), rseq(8), [-1, -1, Math.floor(BG1.length / 3) * 16], 8);
-		convert(this.bg2, BG2, 1024, rseq(8, 0, 16), [...rseq(4), ...rseq(4, 8)], [0, 4], 16);
-		convert(this.bg2, BG2, 1024, rseq(8, 0, 8), rseq(8), [-1, -1, Math.floor(BG2.length / 3) * 16], 8);
-		convert(this.obj, OBJ, 512, [...rseq(16, 2048, 64), ...rseq(16, 0, 64)],
-			[4, 0, 12, 8, 20, 16, 28, 24, 36, 32, 44, 40, 52, 48, 60, 56, 1028, 1024, 1036, 1032, 1044, 1040, 1052, 1048, 1060, 1056, 1068, 1064, 1076, 1072, 1084, 1080],
-			seq(4), 512);
+		convertGFX(this.bg1, BG1, 1024, rseq(8, 0, 16), seq(4).concat(seq(4, 8)), [0, 4], 16);
+		convertGFX(this.bg1, BG1, 1024, rseq(8, 0, 8), seq(8), [Math.floor(BG1.length / 3) * 16, -1, -1], 8);
+		convertGFX(this.bg2, BG2, 1024, rseq(8, 0, 16), seq(4).concat(seq(4, 8)), [0, 4], 16);
+		convertGFX(this.bg2, BG2, 1024, rseq(8, 0, 8), seq(8), [Math.floor(BG2.length / 3) * 16, -1, -1], 8);
+		convertGFX(this.obj, OBJ, 512, rseq(16, 2048, 64).concat(rseq(16, 0, 64)), seq(16, 0, 4).concat(seq(16, 1024, 4)), seq(4), 512);
 		for (let i = 0; i < 0x200; i++)
 			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | (RED[i] >> 4) * 255 / 15 << 8 | (RED[i] & 15) * 255 / 15;
 		for (let p = 0, q = 0, i = 1024; i !== 0; q += 64, --i)

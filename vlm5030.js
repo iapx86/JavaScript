@@ -116,9 +116,9 @@ export default class VLM5030 {
 							continue;
 						}
 						if (this.energy0)
-							[this.pitch1, this.energy1, this.k1] = [this.npitch, this.nenergy, this.nk];
+							this.pitch1 = this.npitch, this.energy1 = this.nenergy, this.k1 = this.nk;
 						else
-							[this.pitch1, this.energy1, this.k1] = [this.pitch0, this.energy0, this.k0];
+							this.pitch1 = this.pitch0, this.energy1 = this.energy0, this.k1 = this.k0;
 					}
 					const ieffect = (~(this.icount -= [1, 2, 4, 4][this.param & 3]) & 3) + 1;
 					this.pitch = this.pitch0 > 1 ? this.pitch0 + ((this.pitch1 - this.pitch0) * ieffect >> 2) : 0;

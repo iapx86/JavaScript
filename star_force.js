@@ -6,7 +6,7 @@
 
 import SN76489 from './sn76489.js';
 import SenjyoSound from './senjyo_sound.js';
-import Cpu, {init, read} from './main.js';
+import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -41,11 +41,11 @@ class StarForce {
 	pio = {irq: false, fInterruptEnable: false};
 	ctc = {irq: false, fInterruptEnable: false, cmd: 0};
 
-	fg = new Uint8Array(0x8000);
-	bg1 = new Uint8Array(0x10000);
-	bg2 = new Uint8Array(0x10000);
-	bg3 = new Uint8Array(0x8000);
-	obj = new Uint8Array(0x20000);
+	fg = new Uint8Array(0x8000).fill(7);
+	bg1 = new Uint8Array(0x10000).fill(7);
+	bg2 = new Uint8Array(0x10000).fill(7);
+	bg3 = new Uint8Array(0x8000).fill(7);
+	obj = new Uint8Array(0x20000).fill(7);
 	rgb = new Uint32Array(0x200);
 
 	cpu = new Z80();
@@ -109,23 +109,15 @@ class StarForce {
 		};
 
 		// Videoの初期化
-		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
-		const convert = (dst, src, n, x, y, z, d) => {
-			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
-				for (let j = 0; j < x.length; j++)
-					for (let k = 0; k < y.length; k++)
-						for (let l = 0; l < z.length; l++)
-							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
-		};
-		convert(this.fg, FG, 512, rseq(8, 0, 8), rseq(8), [Math.floor(FG.length / 3) * 16, Math.floor(FG.length / 3) * 8, 0], 8);
-		convert(this.bg1, BG1, 256, [...rseq(8, 128, 8), ...rseq(8, 0, 8)], [...rseq(8), ...rseq(8, 64)],
-			[Math.floor(BG1.length / 3) * 16, Math.floor(BG1.length / 3) * 8, 0], 32);
-		convert(this.bg2, BG2, 256, [...rseq(8, 128, 8), ...rseq(8, 0, 8)], [...rseq(8), ...rseq(8, 64)],
-			[Math.floor(BG2.length / 3) * 16, Math.floor(BG2.length / 3) * 8, 0], 32);
-		convert(this.bg3, BG3, 128, [...rseq(8, 128, 8), ...rseq(8, 0, 8)], [...rseq(8), ...rseq(8, 64)],
-			[Math.floor(BG3.length / 3) * 16, Math.floor(BG3.length / 3) * 8, 0], 32);
-		convert(this.obj, OBJ, 512, [...rseq(8, 128, 8), ...rseq(8, 0, 8)], [...rseq(8), ...rseq(8, 64)],
-			[Math.floor(OBJ.length / 3) * 16, Math.floor(OBJ.length / 3) * 8, 0], 32);
+		convertGFX(this.fg, FG, 512, rseq(8, 0, 8), seq(8), [0, Math.floor(FG.length / 3) * 8, Math.floor(FG.length / 3) * 16], 8);
+		convertGFX(this.bg1, BG1, 256, rseq(8, 128, 8).concat(rseq(8, 0, 8)), seq(8).concat(seq(8, 64)),
+			[0, Math.floor(BG1.length / 3) * 8, Math.floor(BG1.length / 3) * 16], 32);
+		convertGFX(this.bg2, BG2, 256, rseq(8, 128, 8).concat(rseq(8, 0, 8)), seq(8).concat(seq(8, 64)),
+			[0, Math.floor(BG2.length / 3) * 8, Math.floor(BG2.length / 3) * 16], 32);
+		convertGFX(this.bg3, BG3, 128, rseq(8, 128, 8).concat(rseq(8, 0, 8)), seq(8).concat(seq(8, 64)),
+			[0, Math.floor(BG3.length / 3) * 8, Math.floor(BG3.length / 3) * 16], 32);
+		convertGFX(this.obj, OBJ, 512, rseq(8, 128, 8).concat(rseq(8, 0, 8)), seq(8).concat(seq(8, 64)),
+			[0, Math.floor(OBJ.length / 3) * 8, Math.floor(OBJ.length / 3) * 16], 32);
 	}
 
 	execute() {

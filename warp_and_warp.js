@@ -5,7 +5,7 @@
  */
 
 import SoundEffect from './sound_effect.js';
-import {init, read} from './main.js';
+import {init, seq, rseq, convertGFX, read} from './main.js';
 import I8080 from './i8080.js';
 let game, sound;
 
@@ -30,7 +30,7 @@ class WarpAndWarp {
 
 	ram = new Uint8Array(0xe00).fill(0xff).addBase();
 
-	bg = new Uint8Array(0x4000);
+	bg = new Uint8Array(0x4000).fill(255);
 	rgb = new Uint32Array(0x100);
 
 	se = [WAVE02, WAVE10, WAVE11, WAVE14, WAVE16].map(buf => ({buf, loop: false, start: false, stop: false}));
@@ -84,15 +84,7 @@ class WarpAndWarp {
 		};
 
 		// Videoの初期化
-		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
-		const convert = (dst, src, n, x, y, z, d) => {
-			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
-				for (let j = 0; j < x.length; j++)
-					for (let k = 0; k < y.length; k++)
-						for (let l = 0; l < z.length; l++)
-							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
-		};
-		convert(this.bg, BG, 256, rseq(8, 0, 8), rseq(8), [0, 0, 0, 0, 0, 0, 0, 0], 8);
+		convertGFX(this.bg, BG, 256, rseq(8, 0, 8), seq(8), seq(8, 0, 0), 8);
 		for (let i = 0; i < 0x100; i++)
 			this.rgb[i] = 0xff000000 | (i >> 6) * 255 / 3 << 16 | (i >> 3 & 7) * 255 / 7 << 8 | (i & 7) * 255 / 7;
 	}

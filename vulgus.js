@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import Cpu, {init, read} from './main.js';
+import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -35,9 +35,9 @@ class Vulgus {
 	command = 0;
 	timer = 0;
 
-	fg = new Uint8Array(0x8000);
-	bg = new Uint8Array(0x20000);
-	obj = new Uint8Array(0x10000);
+	fg = new Uint8Array(0x8000).fill(3);
+	bg = new Uint8Array(0x20000).fill(7);
+	obj = new Uint8Array(0x10000).fill(15);
 	fgcolor = Uint8Array.from(FGCOLOR, e => 0x20 | e);
 	objcolor = Uint8Array.from(OBJCOLOR, e => 0x10 | e);
 	rgb = new Uint32Array(0x100);
@@ -108,17 +108,9 @@ class Vulgus {
 		};
 
 		// Videoの初期化
-		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d);
-		const convert = (dst, src, n, x, y, z, d) => {
-			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
-				for (let j = 0; j < x.length; j++)
-					for (let k = 0; k < y.length; k++)
-						for (let l = 0; l < z.length; l++)
-							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
-		};
-		convert(this.fg, FG, 512, seq(8, 0, 16), [...seq(4, 8), ...seq(4)], [4, 0], 16);
-		convert(this.bg, BG, 512, seq(16, 0, 8), [...seq(8, 128), ...seq(8)], [Math.floor(BG.length / 3) * 16, Math.floor(BG.length / 3) * 8, 0], 32);
-		convert(this.obj, OBJ, 256, seq(16, 0, 16), [...seq(4, 264), ...seq(4, 256), ...seq(4, 8), ...seq(4)], [4, 0, OBJ.length * 4 + 4, OBJ.length * 4], 64);
+		convertGFX(this.fg, FG, 512, seq(8, 0, 16), rseq(4, 8).concat(rseq(4)), [4, 0], 16);
+		convertGFX(this.bg, BG, 512, seq(16, 0, 8), rseq(8, 128).concat(rseq(8)), [0, Math.floor(BG.length / 3) * 8, Math.floor(BG.length / 3) * 16], 32);
+		convertGFX(this.obj, OBJ, 256, seq(16, 0, 16), rseq(4, 264).concat(rseq(4, 256), rseq(4, 8), rseq(4)), [OBJ.length * 4 + 4, OBJ.length * 4, 4, 0], 64);
 		for (let i = 0; i < 0x100; i++)
 			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15;
 	}

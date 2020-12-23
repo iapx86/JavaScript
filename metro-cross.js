@@ -5,7 +5,7 @@
  */
 
 import C30 from './c30.js';
-import {init, read} from './main.js';
+import {init, seq, rseq, convertGFX, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -113,20 +113,12 @@ class MetroCross {
 		this.mcu.check_interrupt = () => { return this.mcu_irq && this.mcu.interrupt() ? (this.mcu_irq = false, true) : (this.ram2[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf'); };
 
 		// Videoの初期化
-		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
-		const convert = (dst, src, n, x, y, z, d) => {
-			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
-				for (let j = 0; j < x.length; j++)
-					for (let k = 0; k < y.length; k++)
-						for (let l = 0; l < z.length; l++)
-							dst[p + j + k * y.length] ^= (~src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
-		};
-		convert(this.fg, FG, 512, rseq(8, 0, 8), [...rseq(4, 64), ...rseq(4)], [0, 4], 16);
-		convert(this.bg, BG, 512, rseq(8, 0, 16), [...rseq(4), ...rseq(4, 8)], [0, 4, 0x40004], 16);
-		convert(this.bg.subarray(0x8000), BG.subarray(0x2000), 512, rseq(8, 0, 16), [...rseq(4), ...rseq(4, 8)], [0, 4, 0x30000], 16);
-		convert(this.bg.subarray(0x10000), BG.subarray(0x4000), 512, rseq(8, 0, 16), [...rseq(4), ...rseq(4, 8)], [0, 4, 0x30004], 16);
-		convert(this.bg.subarray(0x18000), BG.subarray(0x6000), 512, rseq(8, 0, 16), [...rseq(4), ...rseq(4, 8)], [0, 4, 0x20000], 16);
-		convert(this.obj, OBJ, 256, rseq(16, 0, 64), [4, 0, 12, 8, 20, 16, 28, 24, 36, 32, 44, 40, 52, 48, 60, 56], seq(4), 128);
+		convertGFX(this.fg, FG, 512, rseq(8, 0, 8), seq(4, 64).concat(seq(4)), [0, 4], 16);
+		convertGFX(this.bg, BG, 512, rseq(8, 0, 16), seq(4).concat(seq(4, 8)), [0x40000, 0, 4], 16);
+		convertGFX(this.bg.subarray(0x8000), BG.subarray(0x2000), 512, rseq(8, 0, 16), seq(4).concat(seq(4, 8)), [0x30004, 0, 4], 16);
+		convertGFX(this.bg.subarray(0x10000), BG.subarray(0x4000), 512, rseq(8, 0, 16), seq(4).concat(seq(4, 8)), [0x30000, 0, 4], 16);
+		convertGFX(this.bg.subarray(0x18000), BG.subarray(0x6000), 512, rseq(8, 0, 16), seq(4).concat(seq(4, 8)), [0x20004, 0, 4], 16);
+		convertGFX(this.obj, OBJ, 256, rseq(16, 0, 64), seq(16, 0, 4), seq(4), 128);
 		for (let i = 0; i < 0x800; i++)
 			this.rgb[i] = 0xff000000 | (GREEN[i] >> 4) * 255 / 15 << 16 | (GREEN[i] & 15) * 255 / 15 << 8 | RED[i] * 255 / 15;
 	}

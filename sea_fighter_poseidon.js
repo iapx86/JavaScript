@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import SoundEffect from './sound_effect.js';
-import Cpu, {init, read} from './main.js';
+import Cpu, {init, rseq, convertGFX, read} from './main.js';
 import Z80 from './z80.js';
 import MC6805 from './mc6805.js';
 const pcmtable = [0xa26, 0xa34, 0xa73, 0xa81, 0xa8f, 0xaa5, 0xaeb, 0xb09];
@@ -433,19 +433,11 @@ class SeaFighterPoseidon {
 
 	makeBitmap(data) {
 		// 画像データ変換
-		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
-		const convert = (dst, src, n, x, y, z, d) => {
-			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
-				for (let j = 0; j < x.length; j++)
-					for (let k = 0; k < y.length; k++)
-						for (let l = 0; l < z.length; l++)
-							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
-		};
-		this.bg.fill(0), this.obj.fill(0);
-		convert(this.bg, this.ram.subarray(0x800), 256, rseq(8, 0, 8), seq(8), [0, 0x4000, 0x8000], 8);
-		convert(this.bg.subarray(0x4000), this.ram.subarray(0x2000), 256, rseq(8, 0, 8), seq(8), [0, 0x4000, 0x8000], 8);
-		convert(this.obj, this.ram.subarray(0x800), 64, [...rseq(8, 128, 8), ...rseq(8, 0, 8)], [...seq(8), ...seq(8, 64)], [0, 0x4000, 0x8000], 32);
-		convert(this.obj.subarray(0x4000), this.ram.subarray(0x2000), 64, [...rseq(8, 128, 8), ...rseq(8, 0, 8)], [...seq(8), ...seq(8, 64)], [0, 0x4000, 0x8000], 32);
+		this.bg.fill(7), this.obj.fill(7);
+		convertGFX(this.bg, this.ram.subarray(0x800), 256, rseq(8, 0, 8), rseq(8), [0x8000, 0x4000, 0], 8);
+		convertGFX(this.bg.subarray(0x4000), this.ram.subarray(0x2000), 256, rseq(8, 0, 8), rseq(8), [0x8000, 0x4000, 0], 8);
+		convertGFX(this.obj, this.ram.subarray(0x800), 64, rseq(8, 128, 8).concat(rseq(8, 0, 8)), rseq(8).concat(rseq(8, 64)), [0x8000, 0x4000, 0], 32);
+		convertGFX(this.obj.subarray(0x4000), this.ram.subarray(0x2000), 64, rseq(8, 128, 8).concat(rseq(8, 0, 8)), rseq(8).concat(rseq(8, 64)), [0x8000, 0x4000, 0], 32);
 		for (let k = 0x4a00, i = 0; i < 0x40; k += 2, i++) {
 			const e = ~(this.ram[k] << 8 | this.ram[k + 1]);
 			this.rgb[i] = 0xff000000 | (e & 7) * 255 / 7 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e >> 6 & 7) * 255 / 7;

@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init, read} from './main.js';
+import {init, seq, rseq, convertGFX, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -41,8 +41,8 @@ class StrategyX {
 	fBackgroundGreen = false;
 	fBackgroundBlue = false;
 	fBackgroundRed = false;
-	bg = new Uint8Array(0x4000);
-	obj = new Uint8Array(0x4000);
+	bg = new Uint8Array(0x4000).fill(3);
+	obj = new Uint8Array(0x4000).fill(3);
 	rgb;
 
 	cpu = new Z80();
@@ -119,16 +119,8 @@ class StrategyX {
 		}
 
 		// Videoの初期化
-		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
-		const convert = (dst, src, n, x, y, z, d) => {
-			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
-				for (let j = 0; j < x.length; j++)
-					for (let k = 0; k < y.length; k++)
-						for (let l = 0; l < z.length; l++)
-							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
-		};
-		convert(this.bg, BG, 256, rseq(8, 0, 8), rseq(8), [BG.length * 4, 0], 8);
-		convert(this.obj, BG, 64, [...rseq(8, 128, 8), ...rseq(8, 0, 8)], [...rseq(8), ...rseq(8, 64)], [BG.length * 4, 0], 32);
+		convertGFX(this.bg, BG, 256, rseq(8, 0, 8), seq(8), [0, BG.length * 4], 8);
+		convertGFX(this.obj, BG, 64, rseq(8, 128, 8).concat(rseq(8, 0, 8)), seq(8).concat(seq(8, 64)), [0, BG.length * 4], 32);
 		this.rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 	}
 

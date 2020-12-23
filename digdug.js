@@ -5,7 +5,7 @@
  */
 
 import PacManSound from './pac-man_sound.js';
-import Cpu, {init, read} from './main.js';
+import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
 import Z80 from './z80.js';
 import MB8840 from './mb8840.js';
 let game, sound;
@@ -48,9 +48,9 @@ class DigDug {
 	fFlip = true;
 	dwBG4Color = 3;
 	dwBG4Select = 3;
-	bg2 = new Uint8Array(0x2000);
-	bg4 = new Uint8Array(0x4000);
-	obj = new Uint8Array(0x10000);
+	bg2 = new Uint8Array(0x2000).fill(1);
+	bg4 = new Uint8Array(0x4000).fill(3);
+	obj = new Uint8Array(0x10000).fill(3);
 	objcolor = Uint8Array.from(OBJCOLOR, e => 0x10 | e);
 	rgb;
 
@@ -161,17 +161,9 @@ class DigDug {
 		this.mmi[1] = 0x2e; // DIPSW B
 
 		// Videoの初期化
-		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
-		const convert = (dst, src, n, x, y, z, d) => {
-			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
-				for (let j = 0; j < x.length; j++)
-					for (let k = 0; k < y.length; k++)
-						for (let l = 0; l < z.length; l++)
-							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
-		};
-		convert(this.bg2, BG2, 128, rseq(8, 0, 8), seq(8), [0], 8);
-		convert(this.bg4, BG4, 256, rseq(8, 0, 8), [...rseq(4, 64), ...rseq(4)], [0, 4], 16);
-		convert(this.obj, OBJ, 256, [...rseq(8, 256, 8), ...rseq(8, 0, 8)], [...rseq(4), ...rseq(4, 64), ...rseq(4, 128), ...rseq(4, 192)], [0, 4], 64);
+		convertGFX(this.bg2, BG2, 128, rseq(8, 0, 8), rseq(8), [0], 8);
+		convertGFX(this.bg4, BG4, 256, rseq(8, 0, 8), seq(4, 64).concat(seq(4)), [0, 4], 16);
+		convertGFX(this.obj, OBJ, 256, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0, 4], 64);
 		this.rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 	}
 

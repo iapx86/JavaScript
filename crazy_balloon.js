@@ -4,7 +4,7 @@
  *
  */
 
-import {init, read} from './main.js';
+import {init, seq, convertGFX, read} from './main.js';
 import Z80 from './z80.js';
 let game;
 
@@ -30,8 +30,8 @@ class CrazyBalloon {
 	ram = new Uint8Array(0x0c00).addBase();
 	io = new Uint8Array(0x100);
 
-	bg = new Uint8Array(0x4000);
-	obj = new Uint8Array(0x4000);
+	bg = new Uint8Array(0x4000).fill(1);
+	obj = new Uint8Array(0x4000).fill(1);
 	rgb = Uint32Array.of(
 		0xffffffff, 0xffffff00, 0xffff00ff, 0xffff0000,
 		0xff00ffff, 0xff00ff00, 0xff0000ff, 0xff000000,
@@ -82,16 +82,8 @@ class CrazyBalloon {
 		this.io[3] = 0x3f;
 
 		// Videoの初期化
-		const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
-		const convert = (dst, src, n, x, y, z, d) => {
-			for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
-				for (let j = 0; j < x.length; j++)
-					for (let k = 0; k < y.length; k++)
-						for (let l = 0; l < z.length; l++)
-							dst[p + j + k * y.length] |= (src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7) & 1) << l;
-		};
-		convert(this.bg, BG, 256, seq(8, 0, 8), rseq(8), [0], 8);
-		convert(this.obj, OBJ, 16, seq(32, 0, 8), [...rseq(8, 768), ...rseq(8, 512), ...rseq(8, 256), ...rseq(8)], [0], 128);
+		convertGFX(this.bg, BG, 256, seq(8, 0, 8), seq(8), [0], 8);
+		convertGFX(this.obj, OBJ, 16, seq(32, 0, 8), seq(8, 768).concat(seq(8, 512), seq(8, 256), seq(8)), [0], 128);
 	}
 
 	execute() {
@@ -182,8 +174,7 @@ class CrazyBalloon {
 	makeBitmap(data) {
 		// bg描画
 		let p = 256 * 8 * 31;
-		let k = 0x0080;
-		for (let i = 0; i < 28; p += 256 * 8 * 32 + 8, i++)
+		for (let k = 0x0080, i = 0; i < 28; p += 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p -= 256 * 8, j++)
 				this.xfer8x8(data, p, k);
 
