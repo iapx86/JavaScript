@@ -95,7 +95,7 @@ class Galaga88 {
 				this.memorymap[page].write = null;
 			} else if (range(page, 0x2f80, 0x2f9f)) {
 				this.memorymap[page].read = (addr) => {
-					const key = this.key, d = key[0] << 8 | key[1], n = key[2] << 8 | key[3];
+					const d = this.key[0] << 8 | this.key[1], n = this.key[2] << 8 | this.key[3];
 					if ((addr & 0x1fff) < 5)
 						return d ? [n % d >> 8, n % d & 0xff, n / d >> 8 & 0xff, n / d & 0xff, 0x31][addr & 7] : [0, 0, 0xff, 0xff, 0x31][addr & 7];
 					return 0;

@@ -42,7 +42,7 @@ class TimePilot {
 	bg = new Uint8Array(0x8000).fill(3);
 	obj = new Uint8Array(0x10000).fill(3);
 	bgcolor = Uint8Array.from(BGCOLOR, e => 0x10 | e);
-	rgb = new Uint32Array(0x20);
+	rgb = Uint32Array.from(seq(0x20).map(i => RGB_H[i] << 8 | RGB_L[i]), e => 0xff000000 | (e >> 11) * 255 / 31 << 16 | (e >> 6 & 31) * 255 / 31 << 8 | (e >> 1 & 31) * 255 / 31);
 	vpos = 0;
 
 	cpu = new Z80();
@@ -101,10 +101,6 @@ class TimePilot {
 		// Videoの初期化
 		convertGFX(this.bg, BG, 512, rseq(8, 0, 8), seq(4).concat(seq(4, 64)), [4, 0], 16);
 		convertGFX(this.obj, OBJ, 256, rseq(8, 256, 8).concat(rseq(8, 0, 8)), rseq(4, 192).concat(rseq(4, 128), rseq(4, 64), rseq(4)), [4, 0], 64);
-		for (let i = 0; i < 0x20; i++) {
-			const e = RGB_H[i] << 8 | RGB_L[i];
-			this.rgb[i] = 0xff000000 | (e >> 11) * 255 / 31 << 16 | (e >> 6 & 31) * 255 / 31 << 8 | (e >> 1 & 31) * 255 / 31;
-		}
 	}
 
 	execute() {

@@ -41,7 +41,7 @@ class Choplifter {
 	cpu2_irq = false;
 
 	bg = new Uint8Array(0x40000).fill(7);
-	rgb = new Uint32Array(0x100);
+	rgb = Uint32Array.from(seq(0x100), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
 	layer = [];
 	mode = 0;
 	collision = new Uint8Array(0x442);
@@ -132,8 +132,6 @@ class Choplifter {
 
 		// Videoの初期化
 		convertGFX(this.bg, BG, 4096, rseq(8, 0, 8), seq(8), [0, Math.floor(BG.length / 3) * 8, Math.floor(BG.length / 3) * 16], 8);
-		for (let i = 0; i < 0x100; i++)
-			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15;
 		for (let i = 0; i < 3; i++)
 			this.layer.push(new Uint32Array(this.width * this.height));
 	}

@@ -47,9 +47,9 @@ class Xevious {
 	bg2 = new Uint8Array(0x8000).fill(1);
 	bg4 = new Uint8Array(0x8000).fill(3);
 	obj = new Uint8Array(0x20000).fill(7).fill(3, 0x10000);
-	bgcolor = Uint8Array.from(BGCOLOR_H, (e, i) => BGCOLOR_H[i] << 4 & 0x70 | BGCOLOR_L[i]);
-	objcolor = Uint8Array.from(OBJCOLOR_H, (e, i) => OBJCOLOR_H[i] << 4 | OBJCOLOR_L[i]);
-	rgb = new Uint32Array(0x100);
+	bgcolor = Uint8Array.from(seq(0x200), i => BGCOLOR_H[i] << 4 & 0x70 | BGCOLOR_L[i]);
+	objcolor = Uint8Array.from(seq(0x200), i => OBJCOLOR_H[i] << 4 | OBJCOLOR_L[i]);
+	rgb = Uint32Array.from(seq(0x100), i => 0xff000000 | BLUE[i] * 255 / 15 << 16| GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
 	dwScroll = 0xff;
 
 	cpu = [new Z80(), new Z80(), new Z80()];
@@ -192,8 +192,6 @@ class Xevious {
 			seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0x10000, 0, 4], 64);
 		convertGFX(this.obj.subarray(0x10000), OBJ.subarray(0x6000), 64, rseq(8, 256, 8).concat(rseq(8, 0, 8)),
 			seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0, 4], 64);
-		for (let i = 0; i < 0x100; i++)
-			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16| GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15;
 	}
 
 	execute() {

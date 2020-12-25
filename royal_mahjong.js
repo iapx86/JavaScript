@@ -32,7 +32,7 @@ class RoyalMahjong {
 	in = Uint8Array.of(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0x3f);
 	psg = {addr: 0};
 
-	rgb;
+	rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 	palette = 0;
 
 	cpu = new Z80();
@@ -82,9 +82,6 @@ class RoyalMahjong {
 				}
 			};
 		}
-
-		// Videoの初期化
-		this.rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 	}
 
 	execute() {

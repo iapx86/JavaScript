@@ -32,7 +32,7 @@ class TankBattalion {
 	wport = new Uint8Array(0x100);
 
 	bg = new Uint8Array(0x4000).fill(15);
-	rgb = new Uint32Array(0x10);
+	rgb = Uint32Array.from(seq(0x10), i => 0xff000000 | (i >> 3 & 1) * 255 << 16 | (i >> 2 & 1) * 255 << 8 | (i & 3) * 255 / 3);
 
 	se = [BANG, FIRE, ENG2, ENG1, BONUS, COIN].map(buf => ({buf, loop: false, start: false, stop: false}));
 
@@ -93,8 +93,6 @@ class TankBattalion {
 		convertGFX(this.bg, BG, 256, rseq(8, 0, 8), seq(8), [0, 0, 0, 0], 8);
 		for (let i = 0; i < this.bg.length; i++)
 			this.bg[i] &= RGB[i >> 6 | 1];
-		for (let i = 0; i < 0x10; i++)
-			this.rgb[i] = 0xff000000 | (i >> 3 & 1) * 255 << 16 | (i >> 2 & 1) * 255 << 8 | (i & 3) * 255 / 3;
 
 		// 効果音の初期化
 		this.se[2].loop = this.se[3].loop = true;
@@ -204,24 +202,15 @@ class TankBattalion {
 		// 弾描画
 		for (let k = 0, i = 0; i < 8; k += 2, i++) {
 			p = this.ram[k] | this.ram[k + 1] + 16 << 8;
-			if (!data[p])
-				data[p] = 0xe;
-			if (!data[p + 1])
-				data[p + 1] = 0xe;
-			if (!data[p + 2])
-				data[p + 2] = 0xe;
-			if (!data[p + 0x100])
-				data[p + 0x100] = 0xe;
-			if (!data[p + 0x101])
-				data[p + 0x101] = 0xe;
-			if (!data[p + 0x102])
-				data[p + 0x102] = 0xe;
-			if (!data[p + 0x200])
-				data[p + 0x200] = 0xe;
-			if (!data[p + 0x201])
-				data[p + 0x201] = 0xe;
-			if (!data[p + 0x202])
-				data[p + 0x202] = 0xe;
+			!data[p] && (data[p] = 0xe);
+			!data[p + 0x001] && (data[p + 0x001] = 0xe);
+			!data[p + 0x002] && (data[p + 0x002] = 0xe);
+			!data[p + 0x100] && (data[p + 0x100] = 0xe);
+			!data[p + 0x101] && (data[p + 0x101] = 0xe);
+			!data[p + 0x102] && (data[p + 0x102] = 0xe);
+			!data[p + 0x200] && (data[p + 0x200] = 0xe);
+			!data[p + 0x201] && (data[p + 0x201] = 0xe);
+			!data[p + 0x202] && (data[p + 0x202] = 0xe);
 		}
 
 		// palette変換

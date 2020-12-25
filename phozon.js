@@ -41,7 +41,7 @@ class Phozon {
 	bg = new Uint8Array(0x8000).fill(3);
 	obj = new Uint8Array(0x8000).fill(3);
 	objcolor = Uint8Array.from(OBJCOLOR, e => 0x10 | e);
-	rgb = new Uint32Array(0x40);
+	rgb = Uint32Array.from(seq(0x40), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
 
 	cpu = new MC6809();
 	cpu2 = new MC6809();
@@ -121,8 +121,6 @@ class Phozon {
 		// Videoの初期化
 		convertGFX(this.bg, BG, 512, rseq(8, 0, 8), seq(4, 64).concat(seq(4)), [0, 4], 16);
 		convertGFX(this.obj, OBJ, 128, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0, 4], 64);
-		for (let i = 0; i < 0x40; i++)
-			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15;
 	}
 
 	execute() {

@@ -54,12 +54,9 @@ export default class VLM5030 {
 			this.BSY = 0;
 			this.offset = 0;
 			this.icount = this.scount = this.pcount = 0;
-			this.pitch0 = this.energy0 = 0;
-			this.k0.fill(0);
-			this.npitch = this.nenergy = 0;
-			this.nk.fill(0);
-			this.pitch1 = this.energy1 = 0;
-			this.k1 = this.k0;
+			this.pitch0 = this.energy0 = 0, this.k0.fill(0);
+			this.npitch = this.nenergy = 0, this.nk.fill(0);
+			this.pitch1 = this.energy1 = 0, this.k1 = this.k0;
 			this.pitch = this.energy = 0;
 			this.k.fill(0);
 			this.x.fill(0);
@@ -87,9 +84,8 @@ export default class VLM5030 {
 				if (!this.scount) {
 					this.scount = [40, 30, 20, 20, 40, 60, 50, 50][this.param >> 3 & 7];
 					if (!this.icount) {
-						[this.pitch0, this.energy0, this.k0] = [this.npitch, this.nenergy, this.nk];
-						this.npitch = this.nenergy = 0;
-						this.nk = new Int16Array(10);
+						this.pitch0 = this.npitch, this.energy0 = this.nenergy, this.k0 = this.nk;
+						this.npitch = this.nenergy = 0, this.nk = new Int16Array(10);
 						const frame = this.base.subarray(this.offset);
 						if (~frame[0] & 1) {
 							this.npitch = VLM5030.table.p[frame[0] >> 1 & 0x1f] + [0, 8, -8, -8][this.param >> 6 & 3] & 0xff;

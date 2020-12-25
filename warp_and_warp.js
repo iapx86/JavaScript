@@ -31,7 +31,7 @@ class WarpAndWarp {
 	ram = new Uint8Array(0xe00).fill(0xff).addBase();
 
 	bg = new Uint8Array(0x4000).fill(255);
-	rgb = new Uint32Array(0x100);
+	rgb = Uint32Array.from(seq(0x100), i => 0xff000000 | (i >> 6) * 255 / 3 << 16 | (i >> 3 & 7) * 255 / 7 << 8 | (i & 7) * 255 / 7);
 
 	se = [WAVE02, WAVE10, WAVE11, WAVE14, WAVE16].map(buf => ({buf, loop: false, start: false, stop: false}));
 
@@ -85,8 +85,6 @@ class WarpAndWarp {
 
 		// Videoの初期化
 		convertGFX(this.bg, BG, 256, rseq(8, 0, 8), seq(8), seq(8, 0, 0), 8);
-		for (let i = 0; i < 0x100; i++)
-			this.rgb[i] = 0xff000000 | (i >> 6) * 255 / 3 << 16 | (i >> 3 & 7) * 255 / 7 << 8 | (i & 7) * 255 / 7;
 	}
 
 	execute() {

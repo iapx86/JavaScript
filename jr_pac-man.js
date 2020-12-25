@@ -39,7 +39,7 @@ class JrPacMan {
 	dwScroll = 0;
 	bg = new Uint8Array(0x8000).fill(3);
 	obj = new Uint8Array(0x8000).fill(3);
-	rgb = new Uint32Array(0x20);
+	rgb = Uint32Array.from(seq(0x20).map(i => RGB_H[i] << 4 | RGB_L[i]), e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 
 	cpu = new Z80();
 
@@ -83,10 +83,6 @@ class JrPacMan {
 		// Videoの初期化
 		convertGFX(this.bg, BG, 512, rseq(8, 0, 8), seq(4, 64).concat(seq(4)), [0, 4], 16);
 		convertGFX(this.obj, OBJ, 128, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4, 64).concat(seq(4, 128), seq(4, 192), seq(4)), [0, 4], 64);
-		for (let i = 0; i < 0x20; i++) {
-			const e = RGB_H[i] << 4 | RGB_L[i];
-			this.rgb[i] = 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7;
-		}
 	}
 
 	execute() {

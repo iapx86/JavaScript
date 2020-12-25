@@ -39,7 +39,7 @@ class ChacknPop {
 
 	bg = new Uint8Array(0x10000).fill(3);
 	obj = new Uint8Array(0x10000).fill(3);
-	rgb = new Uint32Array(0x400);
+	rgb = Uint32Array.from(seq(0x400).map(i => RGB_H[i] << 4 | RGB_L[i]), e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 	mode = 0;
 
 	cpu = new Z80();
@@ -138,10 +138,6 @@ class ChacknPop {
 		// Videoの初期化
 		convertGFX(this.bg, BG, 1024, rseq(8, 0, 8), seq(8), [0, BG.length * 4], 8);
 		convertGFX(this.obj, OBJ, 256, rseq(8, 128, 8).concat(rseq(8, 0, 8)), seq(8).concat(seq(8, 64)), [0, OBJ.length * 4], 32);
-		for (let i = 0; i < 0x400; i++) {
-			const e = RGB_H[i] << 4 | RGB_L[i];
-			this.rgb[i] = 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7;
-		}
 	}
 
 	execute() {

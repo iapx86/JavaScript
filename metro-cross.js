@@ -40,7 +40,7 @@ class MetroCross {
 	fg = new Uint8Array(0x8000).fill(3);
 	bg = new Uint8Array(0x20000).fill(7);
 	obj = new Uint8Array(0x20000).fill(15);
-	rgb = new Uint32Array(0x800);
+	rgb = Uint32Array.from(seq(0x800), i => 0xff000000 | (GREEN[i] >> 4) * 255 / 15 << 16 | (GREEN[i] & 15) * 255 / 15 << 8 | RED[i] * 255 / 15);
 	vScroll = [0, 0];
 	hScroll = [0, 0];
 
@@ -119,8 +119,6 @@ class MetroCross {
 		convertGFX(this.bg.subarray(0x10000), BG.subarray(0x4000), 512, rseq(8, 0, 16), seq(4).concat(seq(4, 8)), [0x30000, 0, 4], 16);
 		convertGFX(this.bg.subarray(0x18000), BG.subarray(0x6000), 512, rseq(8, 0, 16), seq(4).concat(seq(4, 8)), [0x20004, 0, 4], 16);
 		convertGFX(this.obj, OBJ, 256, rseq(16, 0, 64), seq(16, 0, 4), seq(4), 128);
-		for (let i = 0; i < 0x800; i++)
-			this.rgb[i] = 0xff000000 | (GREEN[i] >> 4) * 255 / 15 << 16 | (GREEN[i] & 15) * 255 / 15 << 8 | RED[i] * 255 / 15;
 	}
 
 	execute() {

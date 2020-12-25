@@ -143,11 +143,11 @@ Uint8Array.concat = function (...args) {
 export const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
 
 export function convertGFX(dst, src, n, x, y, z, d) {
-	for (let p = 0, q = 0, i = 0; i < n; p += x.length * y.length, q += d, i++)
-		for (let j = 0; j < x.length; j++)
-			for (let k = 0; k < y.length; k++)
+	for (let p = 0, q = 0, i = 0; i < n; q += d, i++)
+		for (let j = 0; j < y.length; j++)
+			for (let k = 0; k < x.length; p++, k++)
 				for (let l = 0; l < z.length; l++)
-					z[l] >= 0 && (dst[p + j + k * y.length] ^= (~src[q + (x[j] + y[k] + z[l] >> 3)] >> (x[j] + y[k] + z[l] & 7 ^ 7) & 1) << z.length - l - 1);
+					z[l] >= 0 && (dst[p] ^= (~src[q + (x[k] + y[j] + z[l] >> 3)] >> (x[k] + y[j] + z[l] & 7 ^ 7) & 1) << z.length - l - 1);
 }
 
 export function read(url) {

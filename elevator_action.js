@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import SoundEffect from './sound_effect.js';
-import Cpu, {init, rseq, convertGFX, read} from './main.js';
+import Cpu, {init, read} from './main.js';
 import Z80 from './z80.js';
 import MC6805 from './mc6805.js';
 const pcmtable = [0xd2d, 0xdca, 0xe09, 0xe6f, 0xe85];
@@ -254,7 +254,12 @@ class ElevatorAction {
 			this.pri.push(new Uint8Array(4));
 		for (let i = 0; i < 4; i++)
 			this.layer.push(new Uint8Array(this.width * this.height));
-		this.convertPRI();
+		for (let i = 0; i < 16; i++)
+			for (let mask = 0, j = 3; j >= 0; mask |= 1 << this.pri[i][j], --j)
+				this.pri[i][j] = PRI[i << 4 & 0xf0 | mask] & 3;
+		for (let i = 16; i < 32; i++)
+			for (let mask = 0, j = 3; j >= 0; mask |= 1 << this.pri[i][j], --j)
+				this.pri[i][j] = PRI[i << 4 & 0xf0 | mask] >> 2 & 3;
 
 		// 効果音の初期化
 		ElevatorAction.convertPCM(rate);
@@ -389,15 +394,6 @@ class ElevatorAction {
 		this.in[0] = this.in[0] & ~(1 << 5) | !fDown << 5;
 	}
 
-	convertPRI() {
-		for (let i = 0; i < 16; i++)
-			for (let mask = 0, j = 3; j >= 0; mask |= 1 << this.pri[i][j], --j)
-				this.pri[i][j] = PRI[i << 4 & 0xf0 | mask] & 3;
-		for (let i = 16; i < 32; i++)
-			for (let mask = 0, j = 3; j >= 0; mask |= 1 << this.pri[i][j], --j)
-				this.pri[i][j] = PRI[i << 4 & 0xf0 | mask] >> 2 & 3;
-	}
-
 	static convertPCM(rate) {
 		const clock = 3000000;
 
@@ -455,11 +451,32 @@ class ElevatorAction {
 
 	makeBitmap(data) {
 		// 画像データ変換
-		this.bg.fill(7), this.obj.fill(7);
-		convertGFX(this.bg, this.ram.subarray(0x800), 256, rseq(8, 0, 8), rseq(8), [0x8000, 0x4000, 0], 8);
-		convertGFX(this.bg.subarray(0x4000), this.ram.subarray(0x2000), 256, rseq(8, 0, 8), rseq(8), [0x8000, 0x4000, 0], 8);
-		convertGFX(this.obj, this.ram.subarray(0x800), 64, rseq(8, 128, 8).concat(rseq(8, 0, 8)), rseq(8).concat(rseq(8, 64)), [0x8000, 0x4000, 0], 32);
-		convertGFX(this.obj.subarray(0x4000), this.ram.subarray(0x2000), 64, rseq(8, 128, 8).concat(rseq(8, 0, 8)), rseq(8).concat(rseq(8, 64)), [0x8000, 0x4000, 0], 32);
+		const convertBG = (dst, src, n) => {
+			for (let p = 0, q = 0, i = 0; i < n; q += 8, i++)
+				for (let j = 0; j < 8; j++)
+					for (let k = 7; k >= 0; --k)
+						dst[p++] = src[q + k] >> j & 1 | src[q + k + 0x800] >> j << 1 & 2 | src[q + k + 0x1000] >> j << 2 & 4;
+		};
+		convertBG(this.bg, this.ram.subarray(0x800), 256);
+		convertBG(this.bg.subarray(0x4000), this.ram.subarray(0x2000), 256);
+		const convertOBJ = (dst, src, n) => {
+			for (let p = 0, q = 0, i = 0; i < n; q += 32, i++) {
+				for (let j = 0; j < 8; j++) {
+					for (let k = 7; k >= 0; --k)
+						dst[p++] = src[q + k + 16] >> j & 1 | src[q + k + 0x800 + 16] >> j << 1 & 2 | src[q + k + 0x1000 + 16] >> j << 2 & 4;
+					for (let k = 7; k >= 0; --k)
+						dst[p++] = src[q + k] >> j & 1 | src[q + k + 0x800] >> j << 1 & 2 | src[q + k + 0x1000] >> j << 2 & 4;
+				}
+				for (let j = 0; j < 8; j++) {
+					for (let k = 7; k >= 0; --k)
+						dst[p++] = src[q + k + 24] >> j & 1 | src[q + k + 0x800 + 24] >> j << 1 & 2 | src[q + k + 0x1000 + 24] >> j << 2 & 4;
+					for (let k = 7; k >= 0; --k)
+						dst[p++] = src[q + k + 8] >> j & 1 | src[q + k + 0x800 + 8] >> j << 1 & 2 | src[q + k + 0x1000 + 8] >> j << 2 & 4;
+				}
+			}
+		};
+		convertOBJ(this.obj, this.ram.subarray(0x800), 64);
+		convertOBJ(this.obj.subarray(0x4000), this.ram.subarray(0x2000), 64);
 		for (let k = 0x4a00, i = 0; i < 0x40; k += 2, i++) {
 			const e = ~(this.ram[k] << 8 | this.ram[k + 1]);
 			this.rgb[i] = 0xff000000 | (e & 7) * 255 / 7 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e >> 6 & 7) * 255 / 7;
@@ -761,13 +778,13 @@ read('elevator.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	GFX = Uint8Array.concat(...['ea_20.2732.ic1', 'ea_21.2732.ic2', 'ea_22.2732.ic3', 'ea_23.2732.ic4'].map(e => zip.decompress(e)));
 	GFX = Uint8Array.concat(GFX, ...['ea_24.2732.ic5', 'ea_25.2732.ic6', 'ea_26.2732.ic7', 'ea_27.2732.ic8'].map(e => zip.decompress(e))).addBase();
 	PRI = zip.decompress('eb16.ic22');
-	game = new ElevatorAction(48000);
+	game = new ElevatorAction(audioCtx.sampleRate);
 	sound = [
 		new AY_3_8910({clock: 1500000, resolution: 3}),
 		new AY_3_8910({clock: 1500000, resolution: 3}),
 		new AY_3_8910({clock: 1500000, resolution: 3}),
 		new AY_3_8910({clock: 1500000, resolution: 3}),
-		new SoundEffect({se: game.se, freq: 48000, gain: 0.2}),
+		new SoundEffect({se: game.se, freq: audioCtx.sampleRate, gain: 0.2}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

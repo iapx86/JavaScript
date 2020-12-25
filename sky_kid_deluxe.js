@@ -43,7 +43,7 @@ class SkyKidDeluxe {
 	bg1 = new Uint8Array(0x20000).fill(3);
 	bg2 = new Uint8Array(0x20000).fill(3);
 	obj = new Uint8Array(0x20000).fill(15);
-	rgb = new Uint32Array(0x200);
+	rgb = Uint32Array.from(seq(0x200), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | (RED[i] >> 4) * 255 / 15 << 8 | (RED[i] & 15) * 255 / 15);
 	isspace1 = new Uint8Array(0x800);
 	isspace2 = new Uint8Array(0x800);
 	vScroll = new Uint16Array(4);
@@ -165,13 +165,11 @@ class SkyKidDeluxe {
 			this.mcu.memorymap[0xf0 + i].base = PRG3I.base[i];
 
 		// Videoの初期化
-		convertGFX(this.bg1, BG1, 2048, rseq(8, 0, 16), seq(4).concat(seq(4, 8)), [0, 4], 16);
 		convertGFX(this.bg1, BG1, 2048, rseq(8, 0, 8), seq(8), [Math.floor(BG1.length / 3) * 16, -1, -1], 8);
-		convertGFX(this.bg2, BG2, 2048, rseq(8, 0, 16), seq(4).concat(seq(4, 8)), [0, 4], 16);
+		convertGFX(this.bg1, BG1, 2048, rseq(8, 0, 16), seq(4).concat(seq(4, 8)), [0, 4], 16);
 		convertGFX(this.bg2, BG2, 2048, rseq(8, 0, 8), seq(8), [Math.floor(BG2.length / 3) * 16, -1, -1], 8);
+		convertGFX(this.bg2, BG2, 2048, rseq(8, 0, 16), seq(4).concat(seq(4, 8)), [0, 4], 16);
 		convertGFX(this.obj, OBJ, 128, rseq(16, 2048, 64).concat(rseq(16, 0, 64)), seq(16, 0, 4).concat(seq(16, 1024, 4)), seq(4), 512);
-		for (let i = 0; i < 0x200; i++)
-			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | (RED[i] >> 4) * 255 / 15 << 8 | (RED[i] & 15) * 255 / 15;
 		for (let p = 0, q = 0, i = 2048; i !== 0; q += 64, --i)
 			this.isspace1[p++] = Number(this.bg1.subarray(q, q + 64).every(e => e === 7));
 		for (let p = 0, q = 0, i = 2048; i !== 0; q += 64, --i)

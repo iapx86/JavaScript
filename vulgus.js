@@ -40,7 +40,7 @@ class Vulgus {
 	obj = new Uint8Array(0x10000).fill(15);
 	fgcolor = Uint8Array.from(FGCOLOR, e => 0x20 | e);
 	objcolor = Uint8Array.from(OBJCOLOR, e => 0x10 | e);
-	rgb = new Uint32Array(0x100);
+	rgb = Uint32Array.from(seq(0x100), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
 	hScroll = 0;
 	vScroll = 0;
 	palette = 0;
@@ -111,8 +111,6 @@ class Vulgus {
 		convertGFX(this.fg, FG, 512, seq(8, 0, 16), rseq(4, 8).concat(rseq(4)), [4, 0], 16);
 		convertGFX(this.bg, BG, 512, seq(16, 0, 8), rseq(8, 128).concat(rseq(8)), [0, Math.floor(BG.length / 3) * 8, Math.floor(BG.length / 3) * 16], 32);
 		convertGFX(this.obj, OBJ, 256, seq(16, 0, 16), rseq(4, 264).concat(rseq(4, 256), rseq(4, 8), rseq(4)), [OBJ.length * 4 + 4, OBJ.length * 4, 4, 0], 64);
-		for (let i = 0; i < 0x100; i++)
-			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15;
 	}
 
 	execute() {

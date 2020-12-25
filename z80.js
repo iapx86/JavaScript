@@ -49,13 +49,13 @@ export default class Z80 extends Cpu {
 		this.pc = 0;
 	}
 
-	interrupt(vector = 0xff) {
+	interrupt(intvec = 0xff) {
 		if (!super.interrupt() || this.iff !== 3)
 			return false;
 		this.iff = 0;
 		switch (this.im) {
 		case 0:
-			switch (vector) {
+			switch (intvec) {
 			case 0xc7: // RST 00h
 				return this.rst(0x00), true;
 			case 0xcf: // RST 08h
@@ -77,7 +77,7 @@ export default class Z80 extends Cpu {
 		case 1:
 			return this.rst(0x38), true;
 		case 2:
-			return this.rst(this.read16(vector & 0xff | this.i << 8)), true;
+			return this.rst(this.read16(intvec & 0xff | this.i << 8)), true;
 		}
 		return true;
 	}

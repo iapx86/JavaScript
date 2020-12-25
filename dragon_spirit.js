@@ -96,7 +96,7 @@ class DragonSpirit {
 				this.memorymap[page].write = null;
 			} else if (range(page, 0x2f80, 0x2f9f)) {
 				this.memorymap[page].read = (addr) => {
-					const key = this.key, d = key[0], n = key[1] << 8 | key[2];
+					const d = this.key[0], n = this.key[1] << 8 | this.key[2];
 					if ((addr & 0x1fff) < 4)
 						return d ? [n % d, n / d >> 8, n / d & 0xff, 0x36][addr & 3] : [0, 0xff, 0xff, 0x36][addr & 3];
 					return 0;

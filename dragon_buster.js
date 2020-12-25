@@ -41,7 +41,7 @@ class DragonBuster {
 	fg = new Uint8Array(0x8000).fill(3);
 	bg = new Uint8Array(0x8000).fill(3);
 	obj = new Uint8Array(0x20000).fill(7).fill(3, 0x10000);
-	rgb = new Uint32Array(0x100);
+	rgb = Uint32Array.from(seq(0x100), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8| RED[i] * 255 / 15);
 	priority = 0;
 	vScroll = 0;
 	hScroll = 0;
@@ -112,8 +112,6 @@ class DragonBuster {
 			seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0x10000, 0, 4], 64);
 		convertGFX(this.obj.subarray(0x10000), OBJ.subarray(0x6000), 128, rseq(8, 256, 8).concat(rseq(8, 0, 8)),
 			seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0, 4], 64);
-		for (let i = 0; i < 0x100; i++)
-			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8| RED[i] * 255 / 15;
 	}
 
 	execute() {

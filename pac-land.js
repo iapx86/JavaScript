@@ -41,7 +41,7 @@ class PacLand {
 	fg = new Uint8Array(0x8000).fill(3);
 	bg = new Uint8Array(0x8000).fill(3);
 	obj = new Uint8Array(0x20000).fill(15);
-	rgb = new Uint32Array(0x400);
+	rgb = Uint32Array.from(seq(0x400), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | (RED[i] >> 4) * 255 / 15 << 8 | (RED[i] & 15) * 255 / 15);
 	opaque = [new Uint8Array(0x100), new Uint8Array(0x100), new Uint8Array(0x100)];
 	dwScroll0 = 0;
 	dwScroll1 = 0;
@@ -109,8 +109,6 @@ class PacLand {
 		convertGFX(this.bg, BG, 512, rseq(8, 0, 8), seq(4, 64).concat(seq(4)), [0, 4], 16);
 		convertGFX(this.obj, OBJ, 512, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)),
 			[0, 4, OBJ.length * 4, OBJ.length * 4 + 4], 64);
-		for (let i = 0; i < 0x400; i++)
-			this.rgb[i] = 0xff000000 | BLUE[i] * 255 / 15 << 16 | (RED[i] >> 4) * 255 / 15 << 8 | (RED[i] & 15) * 255 / 15;
 		this.opaque[0].fill(0).fill(1, 0, 0x80), this.opaque[1].fill(0).fill(1, 0, 0x7f).fill(1, 0x80, 0xff), this.opaque[2].fill(0).fill(1, 0xf0, 0xff);
 	}
 
