@@ -5,7 +5,7 @@
  */
 
 import SN76489 from './sn76489.js';
-import {init, seq, rseq, convertGFX, read} from './main.js';
+import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -37,7 +37,7 @@ class NinjaPrincess {
 	ppi = new Uint8Array(4);
 	in = Uint8Array.of(0xff, 0xff, 0xff, 0xff, 0xfe);
 	count = 0;
-	command = [];
+	cpu2_nmi = false;
 	cpu2_irq = false;
 
 	bg = new Uint8Array(0x20000).fill(7);
@@ -92,11 +92,11 @@ class NinjaPrincess {
 			this.cpu.iomap[page].write = (addr, data) => {
 				switch (addr & 0x1f) {
 				case 0x14:
-					return void(this.command.push(this.ppi[0] = data));
+					return this.cpu2_nmi = true, this.ppi[2] &= ~0x40, void(this.ppi[0] = data);
 				case 0x15:
 					return void(this.mode = this.ppi[1] = data);
 				case 0x16:
-					return this.fSoundEnable = !(data & 1), void(this.ppi[2] = data);
+					return this.fSoundEnable = !(data & 1), void(this.ppi[2] = this.ppi[2] & 0x40 | data & ~0x40);
 				}
 			};
 		}
@@ -112,9 +112,13 @@ class NinjaPrincess {
 			else if (range(page, 0xc0, 0xc0, 0x1f))
 				this.cpu2.memorymap[page].write = (addr, data) => { sound[1].write(data, this.count); };
 			else if (range(page, 0xe0, 0xe0, 0x1f))
-				this.cpu2.memorymap[page].read = () => { return this.command.length ? this.command.shift() : 0xff; };
+				this.cpu2.memorymap[page].read = () => { return this.ppi[2] |= 0x40, this.ppi[0]; };
 
-		this.cpu2.check_interrupt = () => { return this.cpu2_irq && this.cpu2.interrupt() ? (this.cpu2_irq = false, true) : false; };
+		this.cpu2.check_interrupt = () => {
+			if (this.cpu2_nmi)
+				return this.cpu2_nmi = false, this.cpu2.non_maskable_interrupt();
+			return this.cpu2_irq && this.cpu2.interrupt() ? (this.cpu2_irq = false, true) : false;
+		};
 
 		// Videoの初期化
 		convertGFX(this.bg, BG, 2048, rseq(8, 0, 8), seq(8), [0, Math.floor(BG.length / 3) * 8, Math.floor(BG.length / 3) * 16], 8);
@@ -124,9 +128,9 @@ class NinjaPrincess {
 
 	execute() {
 		sound[0].mute(!this.fSoundEnable), sound[1].mute(!this.fSoundEnable);
-		this.cpu.interrupt(), this.cpu.execute(0x2000);
+		this.cpu.interrupt();
 		for (this.count = 0; this.count < 4; this.count++)
-			this.command.length && this.cpu2.non_maskable_interrupt(), this.cpu2_irq = true, this.cpu2.execute(0x800);
+			this.cpu2_irq = true, Cpu.multiple_execute([this.cpu, this.cpu2], 0x800);
 		return this;
 	}
 
@@ -176,8 +180,7 @@ class NinjaPrincess {
 				this.in[4] &= ~0x40;
 				break;
 			}
-			if (!this.fTest)
-				this.fReset = true;
+			this.fReset = true;
 		}
 
 		if (this.fTest)
@@ -189,9 +192,8 @@ class NinjaPrincess {
 		if (this.fReset) {
 			this.fReset = false;
 			this.cpu.reset();
-			this.command.splice(0);
+			this.cpu2_nmi = this.cpu2_irq = false;
 			this.cpu2.reset();
-			this.cpu2_irq = false;
 		}
 		return this;
 	}
@@ -266,10 +268,10 @@ class NinjaPrincess {
 				this.xfer8x8(this.layer[1], p, k);
 
 		// bg描画
-		const hScroll = this.ram[0x2fbd], vScroll = this.ram[0x2ffc] | this.ram[0x2ffd] << 8;
+		const hScroll = this.ram[0x2fbd], vScroll = this.ram[0x2ffc] | this.ram[0x2ffd] << 8 & 0x100;
 		for (let i = 0; i < 64; i++)
 			for (let j = 0; j < 64; j++) {
-				const x = 232 - i * 8 + hScroll & 0x1ff, y = 30 + j * 8 + (vScroll >> 1) & 0x1ff;
+				const x = 232 - i * 8 + hScroll & 0x1ff, y = 286 + j * 8 + (vScroll >> 1) & 0x1ff;
 				if (x > 8 && x < 240 && y > 8 && y < 272)
 					this.xfer8x8(this.layer[2], x | y << 8, 0x2000 | i << 6 & 0x7c0 | j << 1 & 0x3e);
 			}
@@ -294,28 +296,36 @@ class NinjaPrincess {
 			const obank = /* this.ram[k + 3] << 14 & 0x20000 | this.ram[k + 3] << 10 & 0x10000 | */ this.ram[k + 3] << 8 & 0x8000;
 			for (let addr = this.ram[k + 6] | this.ram[k + 7] << 8, x = x0; x > x1; --x) {
 				addr += pitch;
-				if ((x - 17 & 0xff) < 16 || (x - 17 & 0xff) > 223)
+				if ((x - 17 & 0xff) < 16 || (x - 17 & 0xff) > 239)
 					continue;
 				if (addr & 0x8000)
-					for (let a = addr & 0x7fff, y = y0, px = 0; px !== 15 && y < y0 + 512; a = a - 1 & 0x7fff, y += 2) {
-						let px0 = OBJ[a | obank], dst;
-						if ((px = px0 & 15) && px !== 15 && (y & 0x1ff) > 15 && (y & 0x1ff) < 272) {
+					for (let a = addr & 0x7fff, y = y0; y < y0 + 512; a = a - 1 & 0x7fff, y += 2) {
+						let px0 = OBJ[a | obank], px, dst;
+						if ((px = px0 & 15) === 15)
+							break;
+						if (px && (y & 0x1ff) > 15 && (y & 0x1ff) < 272) {
 							dst = x - 17 & 0xff | y << 8 & 0x1ff00;
 							data[dst] && (this.collision[idx << 1 | data[dst] >> 4] = this.collision[0x440] = 1), data[dst] = idx | px;
 						}
-						if ((px = px0 >> 4) && px !== 15 && (y + 1 & 0x1ff) > 15 && (y + 1 & 0x1ff) < 272) {
+						if ((px = px0 >> 4) === 15)
+							break;
+						if (px && (y + 1 & 0x1ff) > 15 && (y + 1 & 0x1ff) < 272) {
 							dst = x - 17 & 0xff | y + 1 << 8 & 0x1ff00;
 							data[dst] && (this.collision[idx << 1 | data[dst] >> 4] = this.collision[0x440] = 1), data[dst] = idx | px;
 						}
 					}
 				else
-					for (let a = addr & 0x7fff, y = y0, px = 0; px !== 15 && y < y0 + 512; a = a + 1 & 0x7fff, y += 2) {
-						let px0 = OBJ[a | obank], dst;
-						if ((px = px0 >> 4) && px !== 15 && (y & 0x1ff) > 15 && (y & 0x1ff) < 272) {
+					for (let a = addr & 0x7fff, y = y0; y < y0 + 512; a = a + 1 & 0x7fff, y += 2) {
+						let px0 = OBJ[a | obank], px, dst;
+						if ((px = px0 >> 4) === 15)
+							break;
+						if (px && (y & 0x1ff) > 15 && (y & 0x1ff) < 272) {
 							dst = x - 17 & 0xff | y << 8 & 0x1ff00;
 							data[dst] && (this.collision[idx << 1 | data[dst] >> 4] = this.collision[0x440] = 1), data[dst] = idx | px;
 						}
-						if ((px = px0 & 15) && px !== 15 && (y + 1 & 0x1ff) > 15 && (y + 1 & 0x1ff) < 272) {
+						if ((px = px0 & 15) === 15)
+							break;
+						if (px && (y + 1 & 0x1ff) > 15 && (y + 1 & 0x1ff) < 272) {
 							dst = x - 17 & 0xff | y + 1 << 8 & 0x1ff00;
 							data[dst] && (this.collision[idx << 1 | data[dst] >> 4] = this.collision[0x440] = 1), data[dst] = idx | px;
 						}
@@ -325,7 +335,7 @@ class NinjaPrincess {
 	}
 
 	xfer8x8(data, p, k) {
-		const info = this.ram[k] | this.ram[k + 1] << 8, q = (info & 0x7ff) << 6, idx = info >> 2 & 0x3f8;
+		const t = this.ram[k] | this.ram[k + 1] << 8, c = t & 0x7ff, idx = t >> 2 & 0x3f8, q = c << 6;
 		data[p + 0x000] = idx | this.bg[q | 0x00];
 		data[p + 0x001] = idx | this.bg[q | 0x01];
 		data[p + 0x002] = idx | this.bg[q | 0x02];
@@ -393,6 +403,66 @@ class NinjaPrincess {
 	}
 }
 
+const keydown = e => {
+	if (e.repeat)
+		return;
+	switch (e.code) {
+	case 'ArrowLeft':
+		return void game.left(true);
+	case 'ArrowUp':
+		return void game.up(true);
+	case 'ArrowRight':
+		return void game.right(true);
+	case 'ArrowDown':
+		return void game.down(true);
+	case 'Digit0':
+		return void game.coin();
+	case 'Digit1':
+		return void game.start1P();
+	case 'Digit2':
+		return void game.start2P();
+	case 'KeyC':
+		return void game.triggerX(true);
+	case 'KeyM': // MUTE
+		if (audioCtx.state === 'suspended')
+			audioCtx.resume().catch();
+		else if (audioCtx.state === 'running')
+			audioCtx.suspend().catch();
+		return;
+	case 'KeyR':
+		return void game.reset();
+	case 'KeyT':
+		return void(game.fTest = true);
+	case 'Space':
+	case 'KeyX':
+		return void game.triggerA(true);
+	case 'KeyZ':
+		return void game.triggerB(true);
+	}
+};
+
+const keyup = e => {
+	switch (e.code) {
+	case 'ArrowLeft':
+		return void game.left(false);
+	case 'ArrowUp':
+		return void game.up(false);
+	case 'ArrowRight':
+		return void game.right(false);
+	case 'ArrowDown':
+		return void game.down(false);
+	case 'KeyC':
+		return void game.triggerX(false);
+	case 'KeyT':
+		return void(game.fTest = false);
+	case 'Space':
+	case 'KeyX':
+		return void game.triggerA(false);
+	case 'KeyZ':
+		return void game.triggerB(false);
+	}
+};
+
 /*
  *
  *	Ninja Princess
@@ -415,6 +485,6 @@ read('seganinj.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		new SN76489({clock: 4000000, resolution: 4}),
 	];
 	canvas.addEventListener('click', () => game.coin());
-	init({game, sound});
+	init({game, sound, keydown, keyup});
 });
 

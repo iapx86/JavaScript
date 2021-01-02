@@ -25,7 +25,7 @@ class StarForce {
 	fCoin = 0;
 	fStart1P = 0;
 	fStart2P = 0;
-	fTurbo = 0;
+	fTurbo = false;
 	nLife = 3;
 	fDemoSound = true;
 	nExtend = '50000, 200000, 500000';

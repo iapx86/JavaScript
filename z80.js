@@ -92,7 +92,7 @@ export default class Z80 extends Cpu {
 		let v;
 
 		this.r = this.r + 1 & 0x7f;
-		switch (this.fetch()) {
+		switch (this.fetchM1()) {
 		case 0x00: // NOP
 			return;
 		case 0x01: // LD BC,nn
@@ -614,7 +614,7 @@ export default class Z80 extends Cpu {
 	execute_cb() {
 		let v;
 
-		switch (this.fetch()) {
+		switch (this.fetchM1()) {
 		case 0x00: // RLC B
 			return void(this.b = this.rlc8(this.b));
 		case 0x01: // RLC C
@@ -1122,7 +1122,7 @@ export default class Z80 extends Cpu {
 	execute_dd() {
 		let v;
 
-		switch (this.fetch()) {
+		switch (this.fetchM1()) {
 		case 0x09: // ADD IX,BC
 			return void([this.ixl, this.ixh] = this.split(this.add16(this.ixl | this.ixh << 8, this.c | this.b << 8)));
 		case 0x19: // ADD IX,DE
@@ -1367,7 +1367,7 @@ export default class Z80 extends Cpu {
 	execute_ed() {
 		let v;
 
-		switch (this.fetch()) {
+		switch (this.fetchM1()) {
 		case 0x40: // IN B,(C)
 			return void(this.f = this.f & ~0xd6 | Z80.fLogic[this.b = this.ioread(this.b, this.c)]);
 		case 0x41: // OUT (C),B
@@ -1491,7 +1491,7 @@ export default class Z80 extends Cpu {
 	execute_fd() {
 		let v;
 
-		switch (this.fetch()) {
+		switch (this.fetchM1()) {
 		case 0x09: // ADD IY,BC
 			return void([this.iyl, this.iyh] = this.split(this.add16(this.iyl | this.iyh << 8, this.c | this.b << 8)));
 		case 0x19: // ADD IY,DE
@@ -1967,6 +1967,14 @@ export default class Z80 extends Cpu {
 
 	split(v) {
 		return [v & 0xff, v >> 8];
+	}
+
+	fetchM1() {
+//		const page = this.memorymap[this.pc >> 8];
+//		const data = !page.fetch ? page.base[this.pc & 0xff] : page.fetch(this.pc);
+		const data = this.memorymap[this.pc >> 8].base[this.pc & 0xff];
+		this.pc = this.pc + 1 & 0xffff;
+		return data;
 	}
 
 	fetch16() {

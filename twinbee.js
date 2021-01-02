@@ -27,7 +27,7 @@ class TwinBee {
 	fCoin = 0;
 	fStart1P = 0;
 	fStart2P = 0;
-	fTurbo = 0;
+	fTurbo = false;
 	nLife = 3;
 	nBonus = '30000 120000';
 	nRank = 'Normal';

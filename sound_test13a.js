@@ -6,6 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import K007232 from './k007232.js';
+import UPD7759 from './upd7759.js';
 import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -36,6 +37,7 @@ class SoundTest {
 			this.cpu3.memorymap[0x80 + i].base = this.ram.base[i];
 			this.cpu3.memorymap[0x80 + i].write = null;
 		}
+		this.cpu3.memorymap[0x90].write = (addr, data) => { addr === 0x9000 && sound[2].reset(data >> 1 & 1); };
 		this.cpu3.memorymap[0xa0].read = () => { return this.command.length ? this.command.shift() : 0xff; };
 		this.cpu3.memorymap[0xb0].read = (addr) => { return addr < 0xb00e ? sound[1].read(addr, this.count) : 0xff; };
 		this.cpu3.memorymap[0xb0].write = (addr, data) => { addr < 0xb00e && sound[1].write(addr, data, this.count); };
@@ -58,7 +60,9 @@ class SoundTest {
 				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
 			}
 		};
-		this.cpu3.memorymap[0xf0].read = () => { return 0; };
+		this.cpu3.memorymap[0xd0].write = (addr, data) => { addr === 0xd000 && sound[2].write(data); };
+		this.cpu3.memorymap[0xe0].write = (addr, data) => { addr === 0xe000 && sound[2].start(data & 1); };
+		this.cpu3.memorymap[0xf0].read = (addr) => { return addr === 0xf000 ? sound[2].busy() : 0xff; };
 
 		this.cpu3.check_interrupt = () => { return this.command.length && this.cpu3.interrupt(); };
 	}
@@ -151,11 +155,12 @@ class SoundTest {
  */
 
 const key = [];
-let PRG3, SND;
+let PRG3, SND, VOI;
 
 read('vulcan.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG3 = zip.decompress('785_g03.10a').addBase();
 	SND = zip.decompress('785_f01.5a');
+	VOI = zip.decompress('785_f02.7c');
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -166,6 +171,7 @@ read('vulcan.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	sound = [
 		new YM2151({clock: 3579545, resolution: 58, gain: 3}),
 		new K007232({SND, clock: 3579545, resolution: 58, gain: 0.2}),
+		new UPD7759({VOI}),
 	];
 	game.initial = true;
 	canvas.addEventListener('click', e => {

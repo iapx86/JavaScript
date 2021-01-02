@@ -24,7 +24,7 @@ class _1942 {
 	fCoin = 0;
 	fStart1P = 0;
 	fStart2P = 0;
-	fTurbo = 0;
+	fTurbo = false;
 	nBonus = '1st 20000 2nd 80000 every 80000';
 	nLife = 3;
 	nRank = 'Normal';

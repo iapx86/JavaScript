@@ -141,6 +141,7 @@ Uint8Array.concat = function (...args) {
  */
 
 export const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
+export const bitswap = (val, ...args) => args.map((e, i, a) => (val >> e & 1) << a.length - i - 1).reduce((a, b) => a | b);
 
 export function convertGFX(dst, src, n, x, y, z, d) {
 	for (let p = 0, q = 0, i = 0; i < n; q += d, i++)

@@ -24,7 +24,7 @@ class Vulgus {
 	fCoin = 0;
 	fStart1P = 0;
 	fStart2P = 0;
-	fTurbo = 0;
+	fTurbo = false;
 	nBonus = '20000 60000';
 	nLife = 3;
 

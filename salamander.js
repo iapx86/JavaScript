@@ -27,7 +27,7 @@ class Salamander {
 	fCoin = 0;
 	fStart1P = 0;
 	fStart2P = 0;
-	fTurbo = 0;
+	fTurbo = false;
 	nLife = 3;
 	nRank = 'Normal';
 	fDemoSound = true;
