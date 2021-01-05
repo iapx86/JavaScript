@@ -73,6 +73,7 @@ const list = [
 	{name: 'toki_no_senshi', title: 'Toki no Senshi', width: 224, height: 256},
 	{name: 'toypop', title: 'Toypop', width: 288, height: 224},
 	{name: 'twinbee', title: 'TwinBee', width: 224, height: 256},
+	{name: 'ufo_senshi_yohko_chan', title: 'Ufo Senshi Yohko Chan', width: 256, height: 224},
 	{name: 'vulgus', title: 'Vulgus', width: 224, height: 256},
 	{name: 'warp_and_warp', title: 'Warp & Warp', width: 224, height: 272},
 	{name: 'wonder_boy', title: 'Wonder Boy', width: 256, height: 224},
