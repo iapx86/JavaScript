@@ -70,6 +70,7 @@ const list = [
 	{name: 'the_tower_of_druaga', title: 'The Tower of Druaga', width: 224, height: 288},
 	{name: 'time_pilot', title: 'Time Pilot', width: 224, height: 256},
 	{name: 'time_tunnel', title: 'Time Tunnel', width: 256, height: 224},
+	{name: 'toki_no_senshi', title: 'Toki no Senshi', width: 224, height: 256},
 	{name: 'toypop', title: 'Toypop', width: 288, height: 224},
 	{name: 'twinbee', title: 'TwinBee', width: 224, height: 256},
 	{name: 'vulgus', title: 'Vulgus', width: 224, height: 256},
