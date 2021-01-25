@@ -498,31 +498,24 @@ class Cotton {
 				continue;
 			const flip = this.ram[k + 4] & 1, pitch = this.ram[k + 5] << 24 >> 23;
 			const color = this.ram[k + 9] << 4 & 0x3f0 | 0x400, obank = this.ram[k + 8] << 17 & 0x1e0000;
-			for (let addr = this.ram[k + 6] << 9 | this.ram[k + 7] << 1, x = x0; x > x1; --x) {
-				addr += pitch;
+			const hzoom = 0x20 | this.ram[k + 0xa] << 3 & 0x18 | this.ram[k + 0xb] >> 5, vzoom = this.ram[k + 0xb] & 0x1f;
+			for (let addr = this.ram[k + 6] << 9 | this.ram[k + 7] << 1, xacc = 0, x = x0; x > x1; --x) {
+				addr += pitch * ((xacc += hzoom) >> 5), xacc &= 0x1f;
 				if (flip)
-					for (let a = addr & 0x1fffe, y = y0, px = 0; px !== 15 && y < y0 + 512; a = a - 2 & 0x1fffe, y += 4) {
+					for (let a = addr & 0x1fffe, yacc = vzoom << 2 & 0x3c, y = y0, px = 0; px !== 15 && y < y0 + 512; a = a - 2 & 0x1fffe) {
 						let px0 = OBJ[a | obank], px1 = OBJ[1 | a | obank];
-						if ((px = px1 & 15) && px !== 15)
-							data[x - 16 & 0xff | y << 8 & 0x1ff00] = color | px;
-						if ((px = px1 >> 4) && px !== 15)
-							data[x - 16 & 0xff | y + 1 << 8 & 0x1ff00] = color | px;
-						if ((px = px0 & 15) && px !== 15)
-							data[x - 16 & 0xff | y + 2 << 8 & 0x1ff00] = color | px;
-						if ((px = px0 >> 4) && px !== 15)
-							data[x - 16 & 0xff | y + 3 << 8 & 0x1ff00] = color | px;
+						px = px1 & 15, (yacc += vzoom) < 0x40 ? (px && px !== 15 && (data[x - 16 & 0xff | y << 8 & 0x1ff00] = color | px), y++) : yacc -= 0x40;
+						px = px1 >> 4, (yacc += vzoom) < 0x40 ? (px && px !== 15 && (data[x - 16 & 0xff | y << 8 & 0x1ff00] = color | px), y++) : yacc -= 0x40;
+						px = px0 & 15, (yacc += vzoom) < 0x40 ? (px && px !== 15 && (data[x - 16 & 0xff | y << 8 & 0x1ff00] = color | px), y++) : yacc -= 0x40;
+						px = px0 >> 4, (yacc += vzoom) < 0x40 ? (px && px !== 15 && (data[x - 16 & 0xff | y << 8 & 0x1ff00] = color | px), y++) : yacc -= 0x40;
 					}
 				else
-					for (let a = addr & 0x1fffe, y = y0, px = 0; px !== 15 && y < y0 + 512; a = a + 2 & 0x1fffe, y += 4) {
+					for (let a = addr & 0x1fffe, yacc = vzoom << 2 & 0x3c, y = y0, px = 0; px !== 15 && y < y0 + 512; a = a + 2 & 0x1fffe) {
 						let px0 = OBJ[a | obank], px1 = OBJ[1 | a | obank];
-						if ((px = px0 >> 4) && px !== 15)
-							data[x - 16 & 0xff | y << 8 & 0x1ff00] = color | px;
-						if ((px = px0 & 15) && px !== 15)
-							data[x - 16 & 0xff | y + 1 << 8 & 0x1ff00] = color | px;
-						if ((px = px1 >> 4) && px !== 15)
-							data[x - 16 & 0xff | y + 2 << 8 & 0x1ff00] = color | px;
-						if ((px = px1 & 15) && px !== 15)
-							data[x - 16 & 0xff | y + 3 << 8 & 0x1ff00] = color | px;
+						px = px0 >> 4, (yacc += vzoom) < 0x40 ? (px && px !== 15 && (data[x - 16 & 0xff | y << 8 & 0x1ff00] = color | px), y++) : yacc -= 0x40;
+						px = px0 & 15, (yacc += vzoom) < 0x40 ? (px && px !== 15 && (data[x - 16 & 0xff | y << 8 & 0x1ff00] = color | px), y++) : yacc -= 0x40;
+						px = px1 >> 4, (yacc += vzoom) < 0x40 ? (px && px !== 15 && (data[x - 16 & 0xff | y << 8 & 0x1ff00] = color | px), y++) : yacc -= 0x40;
+						px = px1 & 15, (yacc += vzoom) < 0x40 ? (px && px !== 15 && (data[x - 16 & 0xff | y << 8 & 0x1ff00] = color | px), y++) : yacc -= 0x40;
 					}
 			}
 		}

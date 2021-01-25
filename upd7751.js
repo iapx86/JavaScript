@@ -15,21 +15,16 @@ export default class UPD7751 {
 	mcu = new MCS48();
 	bank = 0;
 
-	source;
-	gainNode;
-	scriptNode;
+	source = audioCtx.createBufferSource();
+	gainNode = audioCtx.createGain();
+	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 
 	constructor({MCU, VOI, clock = 6000000, gain = 0.5}) {
 		this.base = VOI;
 		this.rate = Math.floor(clock / 15);
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.mcu.rom.set(MCU);
-		if (!audioCtx)
-			return;
-		this.source = audioCtx.createBufferSource();
-		this.gainNode = audioCtx.createGain();
 		this.gainNode.gain.value = gain;
-		this.scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0));
 		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
 		this.source.start();

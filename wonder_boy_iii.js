@@ -421,28 +421,20 @@ class WonderBoyIII {
 			const color = this.ram[k + 8] << 4 & 0x3f0 | 0x400, obank = this.ram[k + 9] << 12 & 0x70000;
 			for (let addr = this.ram[k + 6] << 9 | this.ram[k + 7] << 1, x = x0; x > x1; --x)
 				if ((addr += pitch) & 0x10000)
-					for (let a = addr & 0xfffe, y = y0, px = 0; px !== 0xf && y < y0 + 512; a = a - 2 & 0xfffe, y += 4) {
+					for (let a = addr & 0xfffe, y = y0, px = 0; px !== 15 && y < y0 + 512; a = a - 2 & 0xfffe) {
 						let px0 = OBJ[a | obank], px1 = OBJ[1 | a | obank];
-						if ((px = px1 & 15) && px !== 15)
-							data[x - 17 & 0xff | y << 8 & 0x1ff00] = color | px;
-						if ((px = px1 >> 4) && px !== 15)
-							data[x - 17 & 0xff | y + 1 << 8 & 0x1ff00] = color | px;
-						if ((px = px0 & 15) && px !== 15)
-							data[x - 17 & 0xff | y + 2 << 8 & 0x1ff00] = color | px;
-						if ((px = px0 >> 4) && px !== 15)
-							data[x - 17 & 0xff | y + 3 << 8 & 0x1ff00] = color | px;
+						px = px1 & 15, px && px !== 15 && (data[x - 17 & 0xff | y << 8 & 0x1ff00] = color | px), y++;
+						px = px1 >> 4, px && px !== 15 && (data[x - 17 & 0xff | y << 8 & 0x1ff00] = color | px), y++;
+						px = px0 & 15, px && px !== 15 && (data[x - 17 & 0xff | y << 8 & 0x1ff00] = color | px), y++;
+						px = px0 >> 4, px && px !== 15 && (data[x - 17 & 0xff | y << 8 & 0x1ff00] = color | px), y++;
 					}
 				else
-					for (let a = addr & 0xfffe, y = y0, px = 0; px !== 0xf && y < y0 + 512; a = a + 2 & 0xfffe, y += 4) {
+					for (let a = addr & 0xfffe, y = y0, px = 0; px !== 15 && y < y0 + 512; a = a + 2 & 0xfffe) {
 						let px0 = OBJ[a | obank], px1 = OBJ[1 | a | obank];
-						if ((px = px0 >> 4) && px !== 15)
-							data[x - 17 & 0xff | y << 8 & 0x1ff00] = color | px;
-						if ((px = px0 & 15) && px !== 15)
-							data[x - 17 & 0xff | y + 1 << 8 & 0x1ff00] = color | px;
-						if ((px = px1 >> 4) && px !== 15)
-							data[x - 17 & 0xff | y + 2 << 8 & 0x1ff00] = color | px;
-						if ((px = px1 & 15) && px !== 15)
-							data[x - 17 & 0xff | y + 3 << 8 & 0x1ff00] = color | px;
+						px = px0 >> 4, px && px !== 15 && (data[x - 17 & 0xff | y << 8 & 0x1ff00] = color | px), y++;
+						px = px0 & 15, px && px !== 15 && (data[x - 17 & 0xff | y << 8 & 0x1ff00] = color | px), y++;
+						px = px1 >> 4, px && px !== 15 && (data[x - 17 & 0xff | y << 8 & 0x1ff00] = color | px), y++;
+						px = px1 & 15, px && px !== 15 && (data[x - 17 & 0xff | y << 8 & 0x1ff00] = color | px), y++;
 					}
 		}
 	}
