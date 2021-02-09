@@ -43,9 +43,9 @@ class JumpBug {
 	obj = new Uint8Array(0x10000).fill(3);
 	rgb = new Uint32Array(0x80);
 
-	se = [BOMB, SHOT].map(buf => ({buf, loop: false, start: false, stop: false}));
+	se = [BOMB, SHOT].map(buf => ({freq: 11025, buf, loop: false, start: false, stop: false}));
 
-	cpu = new Z80();
+	cpu = new Z80(Math.floor(18432000 / 6));
 
 	constructor() {
 		// CPU周りの初期化
@@ -116,8 +116,14 @@ class JumpBug {
 		this.initializeStar();
 	}
 
-	execute() {
-		this.fInterruptEnable && this.cpu.non_maskable_interrupt(), this.cpu.execute(0x2000);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.fInterruptEnable && this.cpu.non_maskable_interrupt();
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			sound[0].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		this.moveStars();
 		return this;
 	}
@@ -1568,8 +1574,8 @@ read('jumpbug.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	RGB = zip.decompress('l06_prom.bin');
 	game = new JumpBug();
 	sound = [
-		new AY_3_8910({clock: 1536000}),
-		new SoundEffect({se: game.se, freq: 11025, gain: 0.3}),
+		new AY_3_8910({clock: 18432000 / 12}),
+		new SoundEffect({se: game.se, gain: 0.3}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

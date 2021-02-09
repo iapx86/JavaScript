@@ -7,7 +7,6 @@
 import Cpu, {dummypage} from './main.js';
 
 export default class Z80 extends Cpu {
-	static fLogic = new Uint8Array(0x100);
 	b = 0;
 	c = 0;
 	d = 0;
@@ -35,8 +34,8 @@ export default class Z80 extends Cpu {
 	sp = 0;
 	iomap = [];
 
-	constructor() {
-		super();
+	constructor(clock) {
+		super(clock);
 		for (let i = 0; i < 0x100; i++)
 			this.iomap.push({base: dummypage, read: null, write: () => {}});
 	}
@@ -45,8 +44,9 @@ export default class Z80 extends Cpu {
 		super.reset();
 		this.iff = 0;
 		this.im = 0;
-		this.sp = 0;
 		this.pc = 0;
+		this.i = 0;
+		this.r = 0;
 	}
 
 	interrupt(intvec = 0xff) {
@@ -55,6 +55,7 @@ export default class Z80 extends Cpu {
 		this.iff = 0;
 		switch (this.im) {
 		case 0:
+			this.cycle -= cc_op[intvec] + cc_ex[0xff];
 			switch (intvec) {
 			case 0xc7: // RST 00h
 				return this.rst(0x00), true;
@@ -75,9 +76,9 @@ export default class Z80 extends Cpu {
 			}
 			break;
 		case 1:
-			return this.rst(0x38), true;
+			return this.cycle -= cc_op[0xff] + cc_ex[0xff], this.rst(0x38), true;
 		case 2:
-			return this.rst(this.read16(intvec & 0xff | this.i << 8)), true;
+			return this.cycle -= cc_op[0xcd] + cc_ex[0xff], this.rst(this.read16(intvec & 0xff | this.i << 8)), true;
 		}
 		return true;
 	}
@@ -85,14 +86,13 @@ export default class Z80 extends Cpu {
 	non_maskable_interrupt() {
 		if (!super.interrupt())
 			return false;
-		return this.iff &= 2, this.rst(0x66), true;
+		return this.cycle -= 11, this.iff &= 2, this.rst(0x66), true;
 	}
 
 	_execute() {
-		let v;
-
-		this.r = this.r + 1 & 0x7f;
-		switch (this.fetchM1()) {
+		let v, op = this.fetchM1();
+		this.cycle -= cc_op[op], this.r = this.r & 0x80 | this.r + 1 & 0x7f;
+		switch (op) {
 		case 0x00: // NOP
 			return;
 		case 0x01: // LD BC,nn
@@ -108,7 +108,7 @@ export default class Z80 extends Cpu {
 		case 0x06: // LD B,n
 			return void(this.b = this.fetch());
 		case 0x07: // RLCA
-			return this.f = this.f & ~0x13 | this.a >> 7, void(this.a = this.a << 1 & 0xff | this.a >> 7);
+			return this.f = this.f & ~0x13 | this.a >> 7, void(this.a = this.a << 1 & 0xfe | this.a >> 7);
 		case 0x08: // EX AF,AF'
 			return void([this.f, this.a, this.f_prime, this.a_prime] = [this.f_prime, this.a_prime, this.f, this.a]);
 		case 0x09: // ADD HL,BC
@@ -124,9 +124,9 @@ export default class Z80 extends Cpu {
 		case 0x0e: // LD C,n
 			return void(this.c = this.fetch());
 		case 0x0f: // RRCA
-			return this.f = this.f & ~0x13 | this.a & 1, void(this.a = this.a >> 1 | this.a << 7 & 0x80);
+			return this.f = this.f & ~0x13 | this.a & 1, void(this.a = this.a << 7 & 0x80 | this.a >> 1);
 		case 0x10: // DJNZ e
-			return this.jr((this.b = this.b - 1 & 0xff) !== 0);
+			return (this.b = this.b - 1 & 0xff) && (this.cycle -= cc_ex[0x10]), this.jr(this.b !== 0);
 		case 0x11: // LD DE,nn
 			return void([this.e, this.d] = this.split(this.fetch16()));
 		case 0x12: // LD (DE),A
@@ -140,7 +140,7 @@ export default class Z80 extends Cpu {
 		case 0x16: // LD D,n
 			return void(this.d = this.fetch());
 		case 0x17: // RLA
-			return v = this.f, this.f = this.f & ~0x13 | this.a >> 7, void(this.a = this.a << 1 & 0xff | v & 1);
+			return v = this.a << 1 | this.f & 1, this.f = this.f & ~0x13 | v >> 8, void(this.a = v & 0xff);
 		case 0x18: // JR e
 			return this.jr(true);
 		case 0x19: // ADD HL,DE
@@ -156,9 +156,9 @@ export default class Z80 extends Cpu {
 		case 0x1e: // LD E,n
 			return void(this.e = this.fetch());
 		case 0x1f: // RRA
-			return v = this.f, this.f = this.f & ~0x13 | this.a & 1, void(this.a = this.a >> 1 | v << 7 & 0x80);
+			return v = this.f << 8 | this.a, this.f = this.f & ~0x13 | v & 1, void(this.a = v >> 1 & 0xff);
 		case 0x20: // JR NZ,e
-			return this.jr(!(this.f & 0x40));
+			return !(this.f & 0x40) && (this.cycle -= cc_ex[0x20]), this.jr(!(this.f & 0x40));
 		case 0x21: // LD HL,nn
 			return void([this.l, this.h] = this.split(this.fetch16()));
 		case 0x22: // LD (nn),HL
@@ -174,7 +174,7 @@ export default class Z80 extends Cpu {
 		case 0x27: // DAA
 			return this.daa();
 		case 0x28: // JR Z,e
-			return this.jr((this.f & 0x40) !== 0);
+			return this.f & 0x40 && (this.cycle -= cc_ex[0x28]), this.jr((this.f & 0x40) !== 0);
 		case 0x29: // ADD HL,HL
 			return void([this.l, this.h] = this.split(this.add16(this.l | this.h << 8, this.l | this.h << 8)));
 		case 0x2a: // LD HL,(nn)
@@ -188,9 +188,9 @@ export default class Z80 extends Cpu {
 		case 0x2e: // LD L,n
 			return void(this.l = this.fetch());
 		case 0x2f: // CPL
-			return this.f = this.f | 0x12, void(this.a = ~this.a & 0xff);
+			return this.f |= 0x12, void(this.a ^= 0xff);
 		case 0x30: // JR NC,e
-			return this.jr(!(this.f & 1));
+			return !(this.f & 1) && (this.cycle -= cc_ex[0x30]), this.jr(!(this.f & 1));
 		case 0x31: // LD SP,nn
 			return void(this.sp = this.fetch16());
 		case 0x32: // LD (nn),A
@@ -206,7 +206,7 @@ export default class Z80 extends Cpu {
 		case 0x37: // SCF
 			return void(this.f = this.f & ~0x12 | 1);
 		case 0x38: // JR C,e
-			return this.jr((this.f & 1) !== 0);
+			return this.f & 1 && (this.cycle -= cc_ex[0x38]), this.jr((this.f & 1) !== 0);
 		case 0x39: // ADD HL,SP
 			return void([this.l, this.h] = this.split(this.add16(this.l | this.h << 8, this.sp)));
 		case 0x3a: // LD A,(nn)
@@ -478,7 +478,7 @@ export default class Z80 extends Cpu {
 		case 0xbf: // CP A
 			return void(this.sub8(this.a, this.a));
 		case 0xc0: // RET NZ
-			return this.ret(!(this.f & 0x40));
+			return !(this.f & 0x40) && (this.cycle -= cc_ex[0xc0]), this.ret(!(this.f & 0x40));
 		case 0xc1: // POP BC
 			return void([this.c, this.b] = this.split(this.pop16()));
 		case 0xc2: // JP NZ,nn
@@ -486,7 +486,7 @@ export default class Z80 extends Cpu {
 		case 0xc3: // JP nn
 			return this.jp(true);
 		case 0xc4: // CALL NZ,nn
-			return this.call(!(this.f & 0x40));
+			return !(this.f & 0x40) && (this.cycle -= cc_ex[0xc4]), this.call(!(this.f & 0x40));
 		case 0xc5: // PUSH BC
 			return this.push16(this.c | this.b << 8);
 		case 0xc6: // ADD A,n
@@ -494,7 +494,7 @@ export default class Z80 extends Cpu {
 		case 0xc7: // RST 00h
 			return this.rst(0x00);
 		case 0xc8: // RET Z
-			return this.ret((this.f & 0x40) !== 0);
+			return this.f & 0x40 && (this.cycle -= cc_ex[0xc8]), this.ret((this.f & 0x40) !== 0);
 		case 0xc9: // RET
 			return this.ret(true);
 		case 0xca: // JP Z,nn
@@ -502,7 +502,7 @@ export default class Z80 extends Cpu {
 		case 0xcb:
 			return this.execute_cb();
 		case 0xcc: // CALL Z,nn
-			return this.call((this.f & 0x40) !== 0);
+			return this.f & 0x40 && (this.cycle -= cc_ex[0xcc]), this.call((this.f & 0x40) !== 0);
 		case 0xcd: // CALL nn
 			return this.call(true);
 		case 0xce: // ADC A,n
@@ -510,7 +510,7 @@ export default class Z80 extends Cpu {
 		case 0xcf: // RST 08h
 			return this.rst(0x08);
 		case 0xd0: // RET NC
-			return this.ret(!(this.f & 1));
+			return !(this.f & 1) && (this.cycle -= cc_ex[0xd0]), this.ret(!(this.f & 1));
 		case 0xd1: // POP DE
 			return void([this.e, this.d] = this.split(this.pop16()));
 		case 0xd2: // JP NC,nn
@@ -518,7 +518,7 @@ export default class Z80 extends Cpu {
 		case 0xd3: // OUT n,A
 			return this.iowrite(this.a, this.fetch(), this.a);
 		case 0xd4: // CALL NC,nn
-			return this.call(!(this.f & 1));
+			return !(this.f & 1) && (this.cycle -= cc_ex[0xd4]), this.call(!(this.f & 1));
 		case 0xd5: // PUSH DE
 			return this.push16(this.e | this.d << 8);
 		case 0xd6: // SUB n
@@ -526,7 +526,7 @@ export default class Z80 extends Cpu {
 		case 0xd7: // RST 10h
 			return this.rst(0x10);
 		case 0xd8: // RET C
-			return this.ret((this.f & 1) !== 0);
+			return this.f & 1 && (this.cycle -= cc_ex[0xd8]), this.ret((this.f & 1) !== 0);
 		case 0xd9: // EXX
 			[this.c, this.b, this.c_prime, this.b_prime] = [this.c_prime, this.b_prime, this.c, this.b];
 			[this.e, this.d, this.e_prime, this.d_prime] = [this.e_prime, this.d_prime, this.e, this.d];
@@ -537,7 +537,7 @@ export default class Z80 extends Cpu {
 		case 0xdb: // IN A,n
 			return void(this.a = this.ioread(this.a, this.fetch()));
 		case 0xdc: // CALL C,nn
-			return this.call((this.f & 1) !== 0);
+			return this.f & 1 && (this.cycle -= cc_ex[0xdc]), this.call((this.f & 1) !== 0);
 		case 0xdd:
 			return this.execute_dd();
 		case 0xde: // SBC A,n
@@ -545,7 +545,7 @@ export default class Z80 extends Cpu {
 		case 0xdf: // RST 18h
 			return this.rst(0x18);
 		case 0xe0: // RET PO
-			return this.ret(!(this.f & 4));
+			return !(this.f & 4) && (this.cycle -= cc_ex[0xe0]), this.ret(!(this.f & 4));
 		case 0xe1: // POP HL
 			return void([this.l, this.h] = this.split(this.pop16()));
 		case 0xe2: // JP PO,nn
@@ -553,7 +553,7 @@ export default class Z80 extends Cpu {
 		case 0xe3: // EX (SP),HL
 			return v = this.l | this.h << 8, [this.l, this.h] = this.split(this.pop16()), this.push16(v);
 		case 0xe4: // CALL PO,nn
-			return this.call(!(this.f & 4));
+			return !(this.f & 4) && (this.cycle -= cc_ex[0xe4]), this.call(!(this.f & 4));
 		case 0xe5: // PUSH HL
 			return this.push16(this.l | this.h << 8);
 		case 0xe6: // AND n
@@ -561,7 +561,7 @@ export default class Z80 extends Cpu {
 		case 0xe7: // RST 20h
 			return this.rst(0x20);
 		case 0xe8: // RET PE
-			return this.ret((this.f & 4) !== 0);
+			return this.f & 4 && (this.cycle -= cc_ex[0xe8]), this.ret((this.f & 4) !== 0);
 		case 0xe9: // JP (HL)
 			return void(this.pc = this.l | this.h << 8);
 		case 0xea: // JP PE,nn
@@ -569,7 +569,7 @@ export default class Z80 extends Cpu {
 		case 0xeb: // EX DE,HL
 			return void([this.e, this.d, this.l, this.h] = [this.l, this.h, this.e, this.d]);
 		case 0xec: // CALL PE,nn
-			return this.call((this.f & 4) !== 0);
+			return this.f & 4 && (this.cycle -= cc_ex[0xec]), this.call((this.f & 4) !== 0);
 		case 0xed:
 			return this.execute_ed();
 		case 0xee: // XOR n
@@ -577,7 +577,7 @@ export default class Z80 extends Cpu {
 		case 0xef: // RST 28h
 			return this.rst(0x28);
 		case 0xf0: // RET P
-			return this.ret(!(this.f & 0x80));
+			return !(this.f & 0x80) && (this.cycle -= cc_ex[0xf0]), this.ret(!(this.f & 0x80));
 		case 0xf1: // POP AF
 			return void([this.f, this.a] = this.split(this.pop16()));
 		case 0xf2: // JP P,nn
@@ -585,7 +585,7 @@ export default class Z80 extends Cpu {
 		case 0xf3: // DI
 			return void(this.iff = 0);
 		case 0xf4: // CALL P,nn
-			return this.call(!(this.f & 0x80));
+			return !(this.f & 0x80) && (this.cycle -= cc_ex[0xf4]), this.call(!(this.f & 0x80));
 		case 0xf5: // PUSH AF
 			return this.push16(this.f | this.a << 8);
 		case 0xf6: // OR n
@@ -593,7 +593,7 @@ export default class Z80 extends Cpu {
 		case 0xf7: // RST 30h
 			return this.rst(0x30);
 		case 0xf8: // RET M
-			return this.ret((this.f & 0x80) !== 0);
+			return this.f & 0x80 && (this.cycle -= cc_ex[0xf8]), this.ret((this.f & 0x80) !== 0);
 		case 0xf9: // LD SP,HL
 			return void(this.sp = this.l | this.h << 8);
 		case 0xfa: // JP M,nn
@@ -601,10 +601,10 @@ export default class Z80 extends Cpu {
 		case 0xfb: // EI
 			return void(this.iff = 3);
 		case 0xfc: // CALL M,nn
-			return this.call((this.f & 0x80) !== 0);
+			return this.f & 0x80 && (this.cycle -= cc_ex[0xfc]), this.call((this.f & 0x80) !== 0);
 		case 0xfd:
 			return this.execute_fd();
-		case 0xfe: // CP A,n
+		case 0xfe: // CP n
 			return void(this.sub8(this.a, this.fetch()));
 		case 0xff: // RST 38h
 			return this.rst(0x38);
@@ -612,9 +612,9 @@ export default class Z80 extends Cpu {
 	}
 
 	execute_cb() {
-		let v;
-
-		switch (this.fetchM1()) {
+		let v, op = this.fetchM1();
+		this.cycle -= cc_cb[op];
+		switch (op) {
 		case 0x00: // RLC B
 			return void(this.b = this.rlc8(this.b));
 		case 0x01: // RLC C
@@ -856,261 +856,261 @@ export default class Z80 extends Cpu {
 		case 0x7f: // BIT 7,A
 			return this.bit8(7, this.a);
 		case 0x80: // RES 0,B
-			return void(this.b = Z80.res8(0, this.b));
+			return void(this.b = this.res8(0, this.b));
 		case 0x81: // RES 0,C
-			return void(this.c = Z80.res8(0, this.c));
+			return void(this.c = this.res8(0, this.c));
 		case 0x82: // RES 0,D
-			return void(this.d = Z80.res8(0, this.d));
+			return void(this.d = this.res8(0, this.d));
 		case 0x83: // RES 0,E
-			return void(this.e = Z80.res8(0, this.e));
+			return void(this.e = this.res8(0, this.e));
 		case 0x84: // RES 0,H
-			return void(this.h = Z80.res8(0, this.h));
+			return void(this.h = this.res8(0, this.h));
 		case 0x85: // RES 0,L
-			return void(this.l = Z80.res8(0, this.l));
+			return void(this.l = this.res8(0, this.l));
 		case 0x86: // RES 0,(HL)
-			return v = this.l | this.h << 8, this.write(v, Z80.res8(0, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.res8(0, this.read(v)));
 		case 0x87: // RES 0,A
-			return void(this.a = Z80.res8(0, this.a));
+			return void(this.a = this.res8(0, this.a));
 		case 0x88: // RES 1,B
-			return void(this.b = Z80.res8(1, this.b));
+			return void(this.b = this.res8(1, this.b));
 		case 0x89: // RES 1,C
-			return void(this.c = Z80.res8(1, this.c));
+			return void(this.c = this.res8(1, this.c));
 		case 0x8a: // RES 1,D
-			return void(this.d = Z80.res8(1, this.d));
+			return void(this.d = this.res8(1, this.d));
 		case 0x8b: // RES 1,E
-			return void(this.e = Z80.res8(1, this.e));
+			return void(this.e = this.res8(1, this.e));
 		case 0x8c: // RES 1,H
-			return void(this.h = Z80.res8(1, this.h));
+			return void(this.h = this.res8(1, this.h));
 		case 0x8d: // RES 1,L
-			return void(this.l = Z80.res8(1, this.l));
+			return void(this.l = this.res8(1, this.l));
 		case 0x8e: // RES 1,(HL)
-			return v = this.l | this.h << 8, this.write(v, Z80.res8(1, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.res8(1, this.read(v)));
 		case 0x8f: // RES 1,A
-			return void(this.a = Z80.res8(1, this.a));
+			return void(this.a = this.res8(1, this.a));
 		case 0x90: // RES 2,B
-			return void(this.b = Z80.res8(2, this.b));
+			return void(this.b = this.res8(2, this.b));
 		case 0x91: // RES 2,C
-			return void(this.c = Z80.res8(2, this.c));
+			return void(this.c = this.res8(2, this.c));
 		case 0x92: // RES 2,D
-			return void(this.d = Z80.res8(2, this.d));
+			return void(this.d = this.res8(2, this.d));
 		case 0x93: // RES 2,E
-			return void(this.e = Z80.res8(2, this.e));
+			return void(this.e = this.res8(2, this.e));
 		case 0x94: // RES 2,H
-			return void(this.h = Z80.res8(2, this.h));
+			return void(this.h = this.res8(2, this.h));
 		case 0x95: // RES 2,L
-			return void(this.l = Z80.res8(2, this.l));
+			return void(this.l = this.res8(2, this.l));
 		case 0x96: // RES 2,(HL)
-			return v = this.l | this.h << 8, this.write(v, Z80.res8(2, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.res8(2, this.read(v)));
 		case 0x97: // RES 2,A
-			return void(this.a = Z80.res8(2, this.a));
+			return void(this.a = this.res8(2, this.a));
 		case 0x98: // RES 3,B
-			return void(this.b = Z80.res8(3, this.b));
+			return void(this.b = this.res8(3, this.b));
 		case 0x99: // RES 3,C
-			return void(this.c = Z80.res8(3, this.c));
+			return void(this.c = this.res8(3, this.c));
 		case 0x9a: // RES 3,D
-			return void(this.d = Z80.res8(3, this.d));
+			return void(this.d = this.res8(3, this.d));
 		case 0x9b: // RES 3,E
-			return void(this.e = Z80.res8(3, this.e));
+			return void(this.e = this.res8(3, this.e));
 		case 0x9c: // RES 3,H
-			return void(this.h = Z80.res8(3, this.h));
+			return void(this.h = this.res8(3, this.h));
 		case 0x9d: // RES 3,L
-			return void(this.l = Z80.res8(3, this.l));
+			return void(this.l = this.res8(3, this.l));
 		case 0x9e: // RES 3,(HL)
-			return v = this.l | this.h << 8, this.write(v, Z80.res8(3, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.res8(3, this.read(v)));
 		case 0x9f: // RES 3,A
-			return void(this.a = Z80.res8(3, this.a));
+			return void(this.a = this.res8(3, this.a));
 		case 0xa0: // RES 4,B
-			return void(this.b = Z80.res8(4, this.b));
+			return void(this.b = this.res8(4, this.b));
 		case 0xa1: // RES 4,C
-			return void(this.c = Z80.res8(4, this.c));
+			return void(this.c = this.res8(4, this.c));
 		case 0xa2: // RES 4,D
-			return void(this.d = Z80.res8(4, this.d));
+			return void(this.d = this.res8(4, this.d));
 		case 0xa3: // RES 4,E
-			return void(this.e = Z80.res8(4, this.e));
+			return void(this.e = this.res8(4, this.e));
 		case 0xa4: // RES 4,H
-			return void(this.h = Z80.res8(4, this.h));
+			return void(this.h = this.res8(4, this.h));
 		case 0xa5: // RES 4,L
-			return void(this.l = Z80.res8(4, this.l));
+			return void(this.l = this.res8(4, this.l));
 		case 0xa6: // RES 4,(HL)
-			return v = this.l | this.h << 8, this.write(v, Z80.res8(4, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.res8(4, this.read(v)));
 		case 0xa7: // RES 4,A
-			return void(this.a = Z80.res8(4, this.a));
+			return void(this.a = this.res8(4, this.a));
 		case 0xa8: // RES 5,B
-			return void(this.b = Z80.res8(5, this.b));
+			return void(this.b = this.res8(5, this.b));
 		case 0xa9: // RES 5,C
-			return void(this.c = Z80.res8(5, this.c));
+			return void(this.c = this.res8(5, this.c));
 		case 0xaa: // RES 5,D
-			return void(this.d = Z80.res8(5, this.d));
+			return void(this.d = this.res8(5, this.d));
 		case 0xab: // RES 5,E
-			return void(this.e = Z80.res8(5, this.e));
+			return void(this.e = this.res8(5, this.e));
 		case 0xac: // RES 5,H
-			return void(this.h = Z80.res8(5, this.h));
+			return void(this.h = this.res8(5, this.h));
 		case 0xad: // RES 5,L
-			return void(this.l = Z80.res8(5, this.l));
+			return void(this.l = this.res8(5, this.l));
 		case 0xae: // RES 5,(HL)
-			return v = this.l | this.h << 8, this.write(v, Z80.res8(5, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.res8(5, this.read(v)));
 		case 0xaf: // RES 5,A
-			return void(this.a = Z80.res8(5, this.a));
+			return void(this.a = this.res8(5, this.a));
 		case 0xb0: // RES 6,B
-			return void(this.b = Z80.res8(6, this.b));
+			return void(this.b = this.res8(6, this.b));
 		case 0xb1: // RES 6,C
-			return void(this.c = Z80.res8(6, this.c));
+			return void(this.c = this.res8(6, this.c));
 		case 0xb2: // RES 6,D
-			return void(this.d = Z80.res8(6, this.d));
+			return void(this.d = this.res8(6, this.d));
 		case 0xb3: // RES 6,E
-			return void(this.e = Z80.res8(6, this.e));
+			return void(this.e = this.res8(6, this.e));
 		case 0xb4: // RES 6,H
-			return void(this.h = Z80.res8(6, this.h));
+			return void(this.h = this.res8(6, this.h));
 		case 0xb5: // RES 6,L
-			return void(this.l = Z80.res8(6, this.l));
+			return void(this.l = this.res8(6, this.l));
 		case 0xb6: // RES 6,(HL)
-			return v = this.l | this.h << 8, this.write(v, Z80.res8(6, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.res8(6, this.read(v)));
 		case 0xb7: // RES 6,A
-			return void(this.a = Z80.res8(6, this.a));
+			return void(this.a = this.res8(6, this.a));
 		case 0xb8: // RES 7,B
-			return void(this.b = Z80.res8(7, this.b));
+			return void(this.b = this.res8(7, this.b));
 		case 0xb9: // RES 7,C
-			return void(this.c = Z80.res8(7, this.c));
+			return void(this.c = this.res8(7, this.c));
 		case 0xba: // RES 7,D
-			return void(this.d = Z80.res8(7, this.d));
+			return void(this.d = this.res8(7, this.d));
 		case 0xbb: // RES 7,E
-			return void(this.e = Z80.res8(7, this.e));
+			return void(this.e = this.res8(7, this.e));
 		case 0xbc: // RES 7,H
-			return void(this.h = Z80.res8(7, this.h));
+			return void(this.h = this.res8(7, this.h));
 		case 0xbd: // RES 7,L
-			return void(this.l = Z80.res8(7, this.l));
+			return void(this.l = this.res8(7, this.l));
 		case 0xbe: // RES 7,(HL)
-			return v = this.l | this.h << 8, this.write(v, Z80.res8(7, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.res8(7, this.read(v)));
 		case 0xbf: // RES 7,A
-			return void(this.a = Z80.res8(7, this.a));
+			return void(this.a = this.res8(7, this.a));
 		case 0xc0: // SET 0,B
-			return void(this.b = Z80.set8(0, this.b));
+			return void(this.b = this.set8(0, this.b));
 		case 0xc1: // SET 0,C
-			return void(this.c = Z80.set8(0, this.c));
+			return void(this.c = this.set8(0, this.c));
 		case 0xc2: // SET 0,D
-			return void(this.d = Z80.set8(0, this.d));
+			return void(this.d = this.set8(0, this.d));
 		case 0xc3: // SET 0,E
-			return void(this.e = Z80.set8(0, this.e));
+			return void(this.e = this.set8(0, this.e));
 		case 0xc4: // SET 0,H
-			return void(this.h = Z80.set8(0, this.h));
+			return void(this.h = this.set8(0, this.h));
 		case 0xc5: // SET 0,L
-			return void(this.l = Z80.set8(0, this.l));
+			return void(this.l = this.set8(0, this.l));
 		case 0xc6: // SET 0,(HL)
-			return v = this.l | this.h << 8, this.write(v, Z80.set8(0, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.set8(0, this.read(v)));
 		case 0xc7: // SET 0,A
-			return void(this.a = Z80.set8(0, this.a));
+			return void(this.a = this.set8(0, this.a));
 		case 0xc8: // SET 1,B
-			return void(this.b = Z80.set8(1, this.b));
+			return void(this.b = this.set8(1, this.b));
 		case 0xc9: // SET 1,C
-			return void(this.c = Z80.set8(1, this.c));
+			return void(this.c = this.set8(1, this.c));
 		case 0xca: // SET 1,D
-			return void(this.d = Z80.set8(1, this.d));
+			return void(this.d = this.set8(1, this.d));
 		case 0xcb: // SET 1,E
-			return void(this.e = Z80.set8(1, this.e));
+			return void(this.e = this.set8(1, this.e));
 		case 0xcc: // SET 1,H
-			return void(this.h = Z80.set8(1, this.h));
+			return void(this.h = this.set8(1, this.h));
 		case 0xcd: // SET 1,L
-			return void(this.l = Z80.set8(1, this.l));
+			return void(this.l = this.set8(1, this.l));
 		case 0xce: // SET 1,(HL)
-			return v = this.l | this.h << 8, this.write(v, Z80.set8(1, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.set8(1, this.read(v)));
 		case 0xcf: // SET 1,A
-			return void(this.a = Z80.set8(1, this.a));
+			return void(this.a = this.set8(1, this.a));
 		case 0xd0: // SET 2,B
-			return void(this.b = Z80.set8(2, this.b));
+			return void(this.b = this.set8(2, this.b));
 		case 0xd1: // SET 2,C
-			return void(this.c = Z80.set8(2, this.c));
+			return void(this.c = this.set8(2, this.c));
 		case 0xd2: // SET 2,D
-			return void(this.d = Z80.set8(2, this.d));
+			return void(this.d = this.set8(2, this.d));
 		case 0xd3: // SET 2,E
-			return void(this.e = Z80.set8(2, this.e));
+			return void(this.e = this.set8(2, this.e));
 		case 0xd4: // SET 2,H
-			return void(this.h = Z80.set8(2, this.h));
+			return void(this.h = this.set8(2, this.h));
 		case 0xd5: // SET 2,L
-			return void(this.l = Z80.set8(2, this.l));
+			return void(this.l = this.set8(2, this.l));
 		case 0xd6: // SET 2,(HL)
-			return v = this.l | this.h << 8, this.write(v, Z80.set8(2, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.set8(2, this.read(v)));
 		case 0xd7: // SET 2,A
-			return void(this.a = Z80.set8(2, this.a));
+			return void(this.a = this.set8(2, this.a));
 		case 0xd8: // SET 3,B
-			return void(this.b = Z80.set8(3, this.b));
+			return void(this.b = this.set8(3, this.b));
 		case 0xd9: // SET 3,C
-			return void(this.c = Z80.set8(3, this.c));
+			return void(this.c = this.set8(3, this.c));
 		case 0xda: // SET 3,D
-			return void(this.d = Z80.set8(3, this.d));
+			return void(this.d = this.set8(3, this.d));
 		case 0xdb: // SET 3,E
-			return void(this.e = Z80.set8(3, this.e));
+			return void(this.e = this.set8(3, this.e));
 		case 0xdc: // SET 3,H
-			return void(this.h = Z80.set8(3, this.h));
+			return void(this.h = this.set8(3, this.h));
 		case 0xdd: // SET 3,L
-			return void(this.l = Z80.set8(3, this.l));
+			return void(this.l = this.set8(3, this.l));
 		case 0xde: // SET 3,(HL)
-			return v = this.l | this.h << 8, this.write(v, Z80.set8(3, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.set8(3, this.read(v)));
 		case 0xdf: // SET 3,A
-			return void(this.a = Z80.set8(3, this.a));
+			return void(this.a = this.set8(3, this.a));
 		case 0xe0: // SET 4,B
-			return void(this.b = Z80.set8(4, this.b));
+			return void(this.b = this.set8(4, this.b));
 		case 0xe1: // SET 4,C
-			return void(this.c = Z80.set8(4, this.c));
+			return void(this.c = this.set8(4, this.c));
 		case 0xe2: // SET 4,D
-			return void(this.d = Z80.set8(4, this.d));
+			return void(this.d = this.set8(4, this.d));
 		case 0xe3: // SET 4,E
-			return void(this.e = Z80.set8(4, this.e));
+			return void(this.e = this.set8(4, this.e));
 		case 0xe4: // SET 4,H
-			return void(this.h = Z80.set8(4, this.h));
+			return void(this.h = this.set8(4, this.h));
 		case 0xe5: // SET 4,L
-			return void(this.l = Z80.set8(4, this.l));
+			return void(this.l = this.set8(4, this.l));
 		case 0xe6: // SET 4,(HL)
-			return v = this.l | this.h << 8, this.write(v, Z80.set8(4, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.set8(4, this.read(v)));
 		case 0xe7: // SET 4,A
-			return void(this.a = Z80.set8(4, this.a));
+			return void(this.a = this.set8(4, this.a));
 		case 0xe8: // SET 5,B
-			return void(this.b = Z80.set8(5, this.b));
+			return void(this.b = this.set8(5, this.b));
 		case 0xe9: // SET 5,C
-			return void(this.c = Z80.set8(5, this.c));
+			return void(this.c = this.set8(5, this.c));
 		case 0xea: // SET 5,D
-			return void(this.d = Z80.set8(5, this.d));
+			return void(this.d = this.set8(5, this.d));
 		case 0xeb: // SET 5,E
-			return void(this.e = Z80.set8(5, this.e));
+			return void(this.e = this.set8(5, this.e));
 		case 0xec: // SET 5,H
-			return void(this.h = Z80.set8(5, this.h));
+			return void(this.h = this.set8(5, this.h));
 		case 0xed: // SET 5,L
-			return void(this.l = Z80.set8(5, this.l));
+			return void(this.l = this.set8(5, this.l));
 		case 0xee: // SET 5,(HL)
-			return v = this.l | this.h << 8, this.write(v, Z80.set8(5, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.set8(5, this.read(v)));
 		case 0xef: // SET 5,A
-			return void(this.a = Z80.set8(5, this.a));
+			return void(this.a = this.set8(5, this.a));
 		case 0xf0: // SET 6,B
-			return void(this.b = Z80.set8(6, this.b));
+			return void(this.b = this.set8(6, this.b));
 		case 0xf1: // SET 6,C
-			return void(this.c = Z80.set8(6, this.c));
+			return void(this.c = this.set8(6, this.c));
 		case 0xf2: // SET 6,D
-			return void(this.d = Z80.set8(6, this.d));
+			return void(this.d = this.set8(6, this.d));
 		case 0xf3: // SET 6,E
-			return void(this.e = Z80.set8(6, this.e));
+			return void(this.e = this.set8(6, this.e));
 		case 0xf4: // SET 6,H
-			return void(this.h = Z80.set8(6, this.h));
+			return void(this.h = this.set8(6, this.h));
 		case 0xf5: // SET 6,L
-			return void(this.l = Z80.set8(6, this.l));
+			return void(this.l = this.set8(6, this.l));
 		case 0xf6: // SET 6,(HL)
-			return v = this.l | this.h << 8, this.write(v, Z80.set8(6, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.set8(6, this.read(v)));
 		case 0xf7: // SET 6,A
-			return void(this.a = Z80.set8(6, this.a));
+			return void(this.a = this.set8(6, this.a));
 		case 0xf8: // SET 7,B
-			return void(this.b = Z80.set8(7, this.b));
+			return void(this.b = this.set8(7, this.b));
 		case 0xf9: // SET 7,C
-			return void(this.c = Z80.set8(7, this.c));
+			return void(this.c = this.set8(7, this.c));
 		case 0xfa: // SET 7,D
-			return void(this.d = Z80.set8(7, this.d));
+			return void(this.d = this.set8(7, this.d));
 		case 0xfb: // SET 7,E
-			return void(this.e = Z80.set8(7, this.e));
+			return void(this.e = this.set8(7, this.e));
 		case 0xfc: // SET 7,H
-			return void(this.h = Z80.set8(7, this.h));
+			return void(this.h = this.set8(7, this.h));
 		case 0xfd: // SET 7,L
-			return void(this.l = Z80.set8(7, this.l));
+			return void(this.l = this.set8(7, this.l));
 		case 0xfe: // SET 7,(HL)
-			return v = this.l | this.h << 8, this.write(v, Z80.set8(7, this.read(v)));
+			return v = this.l | this.h << 8, this.write(v, this.set8(7, this.read(v)));
 		case 0xff: // SET 7,A
-			return void(this.a = Z80.set8(7, this.a));
+			return void(this.a = this.set8(7, this.a));
 		default:
 			this.undefsize = 2;
 			if (this.undef)
@@ -1120,9 +1120,9 @@ export default class Z80 extends Cpu {
 	}
 
 	execute_dd() {
-		let v;
-
-		switch (this.fetchM1()) {
+		let v, op = this.fetchM1();
+		this.cycle -= cc_xy[op];
+		switch (op) {
 		case 0x09: // ADD IX,BC
 			return void([this.ixl, this.ixh] = this.split(this.add16(this.ixl | this.ixh << 8, this.c | this.b << 8)));
 		case 0x19: // ADD IX,DE
@@ -1156,7 +1156,7 @@ export default class Z80 extends Cpu {
 		case 0x35: // DEC (IX+d)
 			return v = this.disp(this.ixh, this.ixl), this.write(v, this.dec8(this.read(v)));
 		case 0x36: // LD (IX+d),n
-			return this.write(this.disp(this.ixh, this.ixl), this.fetch());
+			return v = this.disp(this.ixh, this.ixl), this.write(v, this.fetch());
 		case 0x39: // ADD IX,SP
 			return void([this.ixl, this.ixh] = this.split(this.add16(this.ixl | this.ixh << 8, this.sp)));
 		case 0x44: // LD B,IXH (undefined operation)
@@ -1276,8 +1276,8 @@ export default class Z80 extends Cpu {
 		case 0xbe: // CP (IX+d)
 			return void(this.sub8(this.a, this.read(this.disp(this.ixh, this.ixl))));
 		case 0xcb:
-			v = this.disp(this.ixh, this.ixl);
-			switch (this.fetch()) {
+			v = this.disp(this.ixh, this.ixl), this.cycle -= cc_xycb[op = this.fetch()];
+			switch (op) {
 			case 0x06: // RLC (IX+d)
 				return this.write(v, this.rlc8(this.read(v)));
 			case 0x0e: // RRC (IX+d)
@@ -1309,37 +1309,37 @@ export default class Z80 extends Cpu {
 			case 0x7e: // BIT 7,(IX+d)
 				return this.bit8(7, this.read(v));
 			case 0x86: // RES 0,(IX+d)
-				return this.write(v, Z80.res8(0, this.read(v)));
+				return this.write(v, this.res8(0, this.read(v)));
 			case 0x8e: // RES 1,(IX+d)
-				return this.write(v, Z80.res8(1, this.read(v)));
+				return this.write(v, this.res8(1, this.read(v)));
 			case 0x96: // RES 2,(IX+d)
-				return this.write(v, Z80.res8(2, this.read(v)));
+				return this.write(v, this.res8(2, this.read(v)));
 			case 0x9e: // RES 3,(IX+d)
-				return this.write(v, Z80.res8(3, this.read(v)));
+				return this.write(v, this.res8(3, this.read(v)));
 			case 0xa6: // RES 4,(IX+d)
-				return this.write(v, Z80.res8(4, this.read(v)));
+				return this.write(v, this.res8(4, this.read(v)));
 			case 0xae: // RES 5,(IX+d)
-				return this.write(v, Z80.res8(5, this.read(v)));
+				return this.write(v, this.res8(5, this.read(v)));
 			case 0xb6: // RES 6,(IX+d)
-				return this.write(v, Z80.res8(6, this.read(v)));
+				return this.write(v, this.res8(6, this.read(v)));
 			case 0xbe: // RES 7,(IX+d)
-				return this.write(v, Z80.res8(7, this.read(v)));
+				return this.write(v, this.res8(7, this.read(v)));
 			case 0xc6: // SET 0,(IX+d)
-				return this.write(v, Z80.set8(0, this.read(v)));
+				return this.write(v, this.set8(0, this.read(v)));
 			case 0xce: // SET 1,(IX+d)
-				return this.write(v, Z80.set8(1, this.read(v)));
+				return this.write(v, this.set8(1, this.read(v)));
 			case 0xd6: // SET 2,(IX+d)
-				return this.write(v, Z80.set8(2, this.read(v)));
+				return this.write(v, this.set8(2, this.read(v)));
 			case 0xde: // SET 3,(IX+d)
-				return this.write(v, Z80.set8(3, this.read(v)));
+				return this.write(v, this.set8(3, this.read(v)));
 			case 0xe6: // SET 4,(IX+d)
-				return this.write(v, Z80.set8(4, this.read(v)));
+				return this.write(v, this.set8(4, this.read(v)));
 			case 0xee: // SET 5,(IX+d)
-				return this.write(v, Z80.set8(5, this.read(v)));
+				return this.write(v, this.set8(5, this.read(v)));
 			case 0xf6: // SET 6,(IX+d)
-				return this.write(v, Z80.set8(6, this.read(v)));
+				return this.write(v, this.set8(6, this.read(v)));
 			case 0xfe: // SET 7,(IX+d)
-				return this.write(v, Z80.set8(7, this.read(v)));
+				return this.write(v, this.set8(7, this.read(v)));
 			default:
 				this.undefsize = 4;
 				if (this.undef)
@@ -1365,11 +1365,11 @@ export default class Z80 extends Cpu {
 	}
 
 	execute_ed() {
-		let v;
-
-		switch (this.fetchM1()) {
+		let v, op = this.fetchM1();
+		this.cycle -= cc_ed[op];
+		switch (op) {
 		case 0x40: // IN B,(C)
-			return void(this.f = this.f & ~0xd6 | Z80.fLogic[this.b = this.ioread(this.b, this.c)]);
+			return void(this.f = this.f & ~0xd6 | fLogic[this.b = this.ioread(this.b, this.c)]);
 		case 0x41: // OUT (C),B
 			return this.iowrite(this.b, this.c, this.b);
 		case 0x42: // SBC HL,BC
@@ -1379,13 +1379,13 @@ export default class Z80 extends Cpu {
 		case 0x44: // NEG
 			return void(this.a = this.neg8(this.a));
 		case 0x45: // RETN
-			return this.iff = this.iff & 2 ? 3 : 0, this.ret(true);
+			return this.iff = this.iff & 2 | this.iff >> 1, this.ret(true);
 		case 0x46: // IM 0
 			return void(this.im = 0);
 		case 0x47: // LD I,A
 			return void(this.i = this.a);
 		case 0x48: // IN C,(C)
-			return void(this.f = this.f & ~0xd6 | Z80.fLogic[this.c = this.ioread(this.b, this.c)]);
+			return void(this.f = this.f & ~0xd6 | fLogic[this.c = this.ioread(this.b, this.c)]);
 		case 0x49: // OUT (C),C
 			return this.iowrite(this.b, this.c, this.c);
 		case 0x4a: // ADC HL,BC
@@ -1395,9 +1395,9 @@ export default class Z80 extends Cpu {
 		case 0x4d: // RETI
 			return this.ret(true);
 		case 0x4f: // LD R,A
-			return void(this.r = this.a & 0x7f);
+			return void(this.r = this.a);
 		case 0x50: // IN D,(C)
-			return void(this.f = this.f & ~0xd6 | Z80.fLogic[this.d = this.ioread(this.b, this.c)]);
+			return void(this.f = this.f & ~0xd6 | fLogic[this.d = this.ioread(this.b, this.c)]);
 		case 0x51: // OUT (C),D
 			return this.iowrite(this.b, this.c, this.d);
 		case 0x52: // SBC HL,DE
@@ -1407,9 +1407,9 @@ export default class Z80 extends Cpu {
 		case 0x56: // IM 1
 			return void(this.im = 1);
 		case 0x57: // LD A,I
-			return void(this.f = this.f & ~0xd6 | Z80.fLogic[this.a = this.i] & 0xc0 | this.iff << 1 & 4);
+			return void(this.f = this.f & ~0xd6 | fLogic[this.a = this.i] & 0xc0 | this.iff << 1 & 4);
 		case 0x58: // IN E,(C)
-			return void(this.f = this.f & ~0xd6 | Z80.fLogic[this.e = this.ioread(this.b, this.c)]);
+			return void(this.f = this.f & ~0xd6 | fLogic[this.e = this.ioread(this.b, this.c)]);
 		case 0x59: // OUT (C),E
 			return this.iowrite(this.b, this.c, this.e);
 		case 0x5a: // ADC HL,DE
@@ -1419,29 +1419,29 @@ export default class Z80 extends Cpu {
 		case 0x5e: // IM 2
 			return void(this.im = 2);
 		case 0x5f: // LD A,R
-			return void(this.f = this.f & ~0xd6 | Z80.fLogic[this.a = this.r] & 0xc0 | this.iff << 1 & 4);
+			return void(this.f = this.f & ~0xd6 | fLogic[this.a = this.r] & 0xc0 | this.iff << 1 & 4);
 		case 0x60: // IN H,(C)
-			return void(this.f = this.f & ~0xd6 | Z80.fLogic[this.h = this.ioread(this.b, this.c)]);
+			return void(this.f = this.f & ~0xd6 | fLogic[this.h = this.ioread(this.b, this.c)]);
 		case 0x61: // OUT (C),H
 			return this.iowrite(this.b, this.c, this.h);
 		case 0x62: // SBC HL,HL
 			return void([this.l, this.h] = this.split(this.sbc16(this.l | this.h << 8, this.l | this.h << 8)));
 		case 0x67: // RRD
-			return v = this.read(this.l | this.h << 8) | this.a << 8, this.write(this.l | this.h << 8, v >> 4 & 0xff), void(this.f = this.f & ~0xd6 | Z80.fLogic[this.a = this.a & 0xf0 | v & 0x0f]);
+			return v = this.read(this.l | this.h << 8) | this.a << 8, this.write(this.l | this.h << 8, v >> 4 & 0xff), void(this.f = this.f & ~0xd6 | fLogic[this.a = this.a & 0xf0 | v & 0x0f]);
 		case 0x68: // IN L,(C)
-			return void(this.f = this.f & ~0xd6 | Z80.fLogic[this.l = this.ioread(this.b, this.c)]);
+			return void(this.f = this.f & ~0xd6 | fLogic[this.l = this.ioread(this.b, this.c)]);
 		case 0x69: // OUT (C),L
 			return this.iowrite(this.b, this.c, this.l);
 		case 0x6a: // ADC HL,HL
 			return void([this.l, this.h] = this.split(this.adc16(this.l | this.h << 8, this.l | this.h << 8)));
 		case 0x6f: // RLD
-			return v = this.a & 0x0f | this.read(this.l | this.h << 8) << 4, this.write(this.l | this.h << 8, v & 0xff), void(this.f = this.f & ~0xd6 | Z80.fLogic[this.a = this.a & 0xf0 | v >> 8]);
+			return v = this.a & 0x0f | this.read(this.l | this.h << 8) << 4, this.write(this.l | this.h << 8, v & 0xff), void(this.f = this.f & ~0xd6 | fLogic[this.a = this.a & 0xf0 | v >> 8]);
 		case 0x72: // SBC HL,SP
 			return void([this.l, this.h] = this.split(this.sbc16(this.l | this.h << 8, this.sp)));
 		case 0x73: // LD (nn),SP
 			return this.write16(this.fetch16(), this.sp);
 		case 0x78: // IN A,(C)
-			return void(this.f = this.f & ~0xd6 | Z80.fLogic[this.a = this.ioread(this.b, this.c)]);
+			return void(this.f = this.f & ~0xd6 | fLogic[this.a = this.ioread(this.b, this.c)]);
 		case 0x79: // OUT (C),A
 			return this.iowrite(this.b, this.c, this.a);
 		case 0x7a: // ADC HL,SP
@@ -1465,21 +1465,21 @@ export default class Z80 extends Cpu {
 		case 0xab: // OUTD
 			return this.outd();
 		case 0xb0: // LDIR
-			return this.ldi(), void(this.f & 4 && (this.pc = this.pc - 2 & 0xffff));
+			return this.ldi(), void(this.f & 4 && (this.cycle -= cc_ex[0xb0], this.pc = this.pc - 2 & 0xffff));
 		case 0xb1: // CPIR
-			return this.cpi(), void((this.f & 0x44) === 4 && (this.pc = this.pc - 2 & 0xffff));
+			return this.cpi(), void((this.f & 0x44) === 4 && (this.cycle -= cc_ex[0xb1], this.pc = this.pc - 2 & 0xffff));
 		case 0xb2: // INIR
-			return this.ini(), void(~this.f & 0x40 && (this.pc = this.pc - 2 & 0xffff));
+			return this.ini(), void(~this.f & 0x40 && (this.cycle -= cc_ex[0xb2], this.pc = this.pc - 2 & 0xffff));
 		case 0xb3: // OTIR
-			return this.outi(), void(~this.f & 0x40 && (this.pc = this.pc - 2 & 0xffff));
+			return this.outi(), void(~this.f & 0x40 && (this.cycle -= cc_ex[0xb3], this.pc = this.pc - 2 & 0xffff));
 		case 0xb8: // LDDR
-			return this.ldd(), void(this.f & 4 && (this.pc = this.pc - 2 & 0xffff));
+			return this.ldd(), void(this.f & 4 && (this.cycle -= cc_ex[0xb8], this.pc = this.pc - 2 & 0xffff));
 		case 0xb9: // CPDR
-			return this.cpd(), void((this.f & 0x44) === 4 && (this.pc = this.pc - 2 & 0xffff));
+			return this.cpd(), void((this.f & 0x44) === 4 && (this.cycle -= cc_ex[0xb9], this.pc = this.pc - 2 & 0xffff));
 		case 0xba: // INDR
-			return this.ind(), void(~this.f & 0x40 && (this.pc = this.pc - 2 & 0xffff));
+			return this.ind(), void(~this.f & 0x40 && (this.cycle -= cc_ex[0xba], this.pc = this.pc - 2 & 0xffff));
 		case 0xbb: // OTDR
-			return this.outd(), void(~this.f & 0x40 && (this.pc = this.pc - 2 & 0xffff));
+			return this.outd(), void(~this.f & 0x40 && (this.cycle -= cc_ex[0xbb], this.pc = this.pc - 2 & 0xffff));
 		default:
 			this.undefsize = 2;
 			if (this.undef)
@@ -1489,9 +1489,9 @@ export default class Z80 extends Cpu {
 	}
 
 	execute_fd() {
-		let v;
-
-		switch (this.fetchM1()) {
+		let v, op = this.fetchM1();
+		this.cycle -= cc_xy[op];
+		switch (op) {
 		case 0x09: // ADD IY,BC
 			return void([this.iyl, this.iyh] = this.split(this.add16(this.iyl | this.iyh << 8, this.c | this.b << 8)));
 		case 0x19: // ADD IY,DE
@@ -1525,7 +1525,7 @@ export default class Z80 extends Cpu {
 		case 0x35: // DEC (IY+d)
 			return v = this.disp(this.iyh, this.iyl), this.write(v, this.dec8(this.read(v)));
 		case 0x36: // LD (IY+d),n
-			return this.write(this.disp(this.iyh, this.iyl), this.fetch());
+			return v = this.disp(this.iyh, this.iyl), this.write(v, this.fetch());
 		case 0x39: // ADD IY,SP
 			return void([this.iyl, this.iyh] = this.split(this.add16(this.iyl | this.iyh << 8, this.sp)));
 		case 0x44: // LD B,IYH (undefined operation)
@@ -1645,8 +1645,8 @@ export default class Z80 extends Cpu {
 		case 0xbe: // CP (IY+d)
 			return void(this.sub8(this.a, this.read(this.disp(this.iyh, this.iyl))));
 		case 0xcb:
-			v = this.disp(this.iyh, this.iyl);
-			switch (this.fetch()) {
+			v = this.disp(this.iyh, this.iyl), this.cycle -= cc_xycb[op = this.fetch()];
+			switch (op) {
 			case 0x06: // RLC (IY+d)
 				return this.write(v, this.rlc8(this.read(v)));
 			case 0x0e: // RRC (IY+d)
@@ -1678,37 +1678,37 @@ export default class Z80 extends Cpu {
 			case 0x7e: // BIT 7,(IY+d)
 				return this.bit8(7, this.read(v));
 			case 0x86: // RES 0,(IY+d)
-				return this.write(v, Z80.res8(0, this.read(v)));
+				return this.write(v, this.res8(0, this.read(v)));
 			case 0x8e: // RES 1,(IY+d)
-				return this.write(v, Z80.res8(1, this.read(v)));
+				return this.write(v, this.res8(1, this.read(v)));
 			case 0x96: // RES 2,(IY+d)
-				return this.write(v, Z80.res8(2, this.read(v)));
+				return this.write(v, this.res8(2, this.read(v)));
 			case 0x9e: // RES 3,(IY+d)
-				return this.write(v, Z80.res8(3, this.read(v)));
+				return this.write(v, this.res8(3, this.read(v)));
 			case 0xa6: // RES 4,(IY+d)
-				return this.write(v, Z80.res8(4, this.read(v)));
+				return this.write(v, this.res8(4, this.read(v)));
 			case 0xae: // RES 5,(IY+d)
-				return this.write(v, Z80.res8(5, this.read(v)));
+				return this.write(v, this.res8(5, this.read(v)));
 			case 0xb6: // RES 6,(IY+d)
-				return this.write(v, Z80.res8(6, this.read(v)));
+				return this.write(v, this.res8(6, this.read(v)));
 			case 0xbe: // RES 7,(IY+d)
-				return this.write(v, Z80.res8(7, this.read(v)));
+				return this.write(v, this.res8(7, this.read(v)));
 			case 0xc6: // SET 0,(IY+d)
-				return this.write(v, Z80.set8(0, this.read(v)));
+				return this.write(v, this.set8(0, this.read(v)));
 			case 0xce: // SET 1,(IY+d)
-				return this.write(v, Z80.set8(1, this.read(v)));
+				return this.write(v, this.set8(1, this.read(v)));
 			case 0xd6: // SET 2,(IY+d)
-				return this.write(v, Z80.set8(2, this.read(v)));
+				return this.write(v, this.set8(2, this.read(v)));
 			case 0xde: // SET 3,(IY+d)
-				return this.write(v, Z80.set8(3, this.read(v)));
+				return this.write(v, this.set8(3, this.read(v)));
 			case 0xe6: // SET 4,(IY+d)
-				return this.write(v, Z80.set8(4, this.read(v)));
+				return this.write(v, this.set8(4, this.read(v)));
 			case 0xee: // SET 5,(IY+d)
-				return this.write(v, Z80.set8(5, this.read(v)));
+				return this.write(v, this.set8(5, this.read(v)));
 			case 0xf6: // SET 6,(IY+d)
-				return this.write(v, Z80.set8(6, this.read(v)));
+				return this.write(v, this.set8(6, this.read(v)));
 			case 0xfe: // SET 7,(IY+d)
-				return this.write(v, Z80.set8(7, this.read(v)));
+				return this.write(v, this.set8(7, this.read(v)));
 			default:
 				this.undefsize = 4;
 				if (this.undef)
@@ -1807,17 +1807,17 @@ export default class Z80 extends Cpu {
 
 	and8(dst, src) {
 		const r = dst & src;
-		return this.f = this.f & ~0xd7 | Z80.fLogic[r] | 0x10, r;
+		return this.f = this.f & ~0xd7 | fLogic[r] | 0x10, r;
 	}
 
 	xor8(dst, src) {
 		const r = dst ^ src;
-		return this.f = this.f & ~0xd7 | Z80.fLogic[r], r;
+		return this.f = this.f & ~0xd7 | fLogic[r], r;
 	}
 
 	or8(dst, src) {
 		const r = dst | src;
-		return this.f = this.f & ~0xd7 | Z80.fLogic[r], r;
+		return this.f = this.f & ~0xd7 | fLogic[r], r;
 	}
 
 	inc8(dst) {
@@ -1846,53 +1846,53 @@ export default class Z80 extends Cpu {
 			if (this.f & 1 && (r & 0xf0) < 0x40 || (r & 0xf0) > 0x90)
 				r += 0x60, this.f |= 1;
 		}
-		this.a = r &= 0xff, this.f = this.f & ~0xc4 | Z80.fLogic[r];
+		this.a = r &= 0xff, this.f = this.f & ~0xc4 | fLogic[r];
 	}
 
 	rlc8(dst) {
-		const r = dst << 1 & 0xff | dst >> 7, c = dst >> 7;
-		return this.f = this.f & ~0xd7 | Z80.fLogic[r] | c, r;
+		const r = dst << 1 & 0xfe | dst >> 7;
+		return this.f = this.f & ~0xd7 | fLogic[r] | dst >> 7, r;
 	}
 
 	rrc8(dst) {
-		const r = dst >> 1 | dst << 7 & 0x80, c = dst & 1;
-		return this.f = this.f & ~0xd7 | Z80.fLogic[r] | c, r;
+		const r = dst << 7 & 0x80 | dst >> 1;
+		return this.f = this.f & ~0xd7 | fLogic[r] | dst & 1, r;
 	}
 
 	rl8(dst) {
-		const r = dst << 1 & 0xff | this.f & 1, c = dst >> 7;
-		return this.f = this.f & ~0xd7 | Z80.fLogic[r] | c, r;
+		const r = dst << 1 & 0xfe | this.f & 1;
+		return this.f = this.f & ~0xd7 | fLogic[r] | dst >> 7, r;
 	}
 
 	rr8(dst) {
-		const r = dst >> 1 | this.f << 7 & 0x80, c = dst & 1;
-		return this.f = this.f & ~0xd7 | Z80.fLogic[r] | c, r;
+		const r = this.f << 7 & 0x80 | dst >> 1;
+		return this.f = this.f & ~0xd7 | fLogic[r] | dst & 1, r;
 	}
 
 	sla8(dst) {
-		const r = dst << 1 & 0xff, c = dst >> 7;
-		return this.f = this.f & ~0xd7 | Z80.fLogic[r] | c, r;
+		const r = dst << 1 & 0xfe;
+		return this.f = this.f & ~0xd7 | fLogic[r] | dst >> 7, r;
 	}
 
 	sra8(dst) {
-		const r = dst >> 1 | dst & 0x80, c = dst & 1;
-		return this.f = this.f & ~0xd7 | Z80.fLogic[r] | c, r;
+		const r = dst & 0x80 | dst >> 1;
+		return this.f = this.f & ~0xd7 | fLogic[r] | dst & 1, r;
 	}
 
 	srl8(dst) {
-		const r = dst >> 1, c = dst & 1;
-		return this.f = this.f & ~0xd7 | Z80.fLogic[r] | c, r;
+		const r = dst >> 1;
+		return this.f = this.f & ~0xd7 | fLogic[r] | dst & 1, r;
 	}
 
 	bit8(src, dst) {
 		this.f = this.f & ~0x52 | ~dst >> src << 6 & 0x40 | 0x10;
 	}
 
-	static set8(src, dst) {
+	set8(src, dst) {
 		return dst | 1 << src;
 	}
 
-	static res8(src, dst) {
+	res8(src, dst) {
 		return dst & ~(1 << src);
 	}
 
@@ -1992,12 +1992,122 @@ export default class Z80 extends Cpu {
 	}
 }
 
+const fLogic = new Uint8Array(0x100);
+
+const cc_op = Uint8Array.of(
+	4,10, 7, 6, 4, 4, 7, 4, 4,11, 7, 6, 4, 4, 7, 4,
+	8,10, 7, 6, 4, 4, 7, 4,12,11, 7, 6, 4, 4, 7, 4,
+	7,10,16, 6, 4, 4, 7, 4, 7,11,16, 6, 4, 4, 7, 4,
+	7,10,13, 6,11,11,10, 4, 7,11,13, 6, 4, 4, 7, 4,
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+	7, 7, 7, 7, 7, 7, 4, 7, 4, 4, 4, 4, 4, 4, 7, 4,
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+	5,10,10,10,10,11, 7,11, 5,10,10, 0,10,17, 7,11,
+	5,10,10,11,10,11, 7,11, 5, 4,10,11,10, 0, 7,11,
+	5,10,10,19,10,11, 7,11, 5, 4,10, 4,10, 0, 7,11,
+	5,10,10, 4,10,11, 7,11, 5, 6,10, 4,10, 0, 7,11);
+
+const cc_cb = Uint8Array.of(
+	8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+	8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+	8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+	8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+	8, 8, 8, 8, 8, 8,12, 8, 8, 8, 8, 8, 8, 8,12, 8,
+	8, 8, 8, 8, 8, 8,12, 8, 8, 8, 8, 8, 8, 8,12, 8,
+	8, 8, 8, 8, 8, 8,12, 8, 8, 8, 8, 8, 8, 8,12, 8,
+	8, 8, 8, 8, 8, 8,12, 8, 8, 8, 8, 8, 8, 8,12, 8,
+	8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+	8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+	8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+	8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+	8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+	8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+	8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+	8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8);
+
+const cc_ed = Uint8Array.of(
+	8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+	8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+	8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+	8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+	12,12,15,20,8,14, 8, 9,12,12,15,20, 8,14, 8, 9,
+	12,12,15,20,8,14, 8, 9,12,12,15,20, 8,14, 8, 9,
+	12,12,15,20,8,14, 8,18,12,12,15,20, 8,14, 8,18,
+	12,12,15,20,8,14, 8, 8,12,12,15,20, 8,14, 8, 8,
+	8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+	8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+	16,16,16,16,8, 8, 8, 8,16,16,16,16, 8, 8, 8, 8,
+	16,16,16,16,8, 8, 8, 8,16,16,16,16, 8, 8, 8, 8,
+	8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+	8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+	8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+	8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8);
+
+const cc_xy = Uint8Array.of(
+	4+4,10+4, 7+4, 6+4, 4+4, 4+4, 7+4, 4+4, 4+4,11+4, 7+4, 6+4, 4+4, 4+4, 7+4, 4+4,
+	8+4,10+4, 7+4, 6+4, 4+4, 4+4, 7+4, 4+4,12+4,11+4, 7+4, 6+4, 4+4, 4+4, 7+4, 4+4,
+	7+4,10+4,16+4, 6+4, 4+4, 4+4, 7+4, 4+4, 7+4,11+4,16+4, 6+4, 4+4, 4+4, 7+4, 4+4,
+	7+4,10+4,13+4, 6+4,23  ,23  ,19  , 4+4, 7+4,11+4,13+4, 6+4, 4+4, 4+4, 7+4, 4+4,
+	4+4, 4+4, 4+4, 4+4, 4+4, 4+4,19  , 4+4, 4+4, 4+4, 4+4, 4+4, 4+4, 4+4,19  , 4+4,
+	4+4, 4+4, 4+4, 4+4, 4+4, 4+4,19  , 4+4, 4+4, 4+4, 4+4, 4+4, 4+4, 4+4,19  , 4+4,
+	4+4, 4+4, 4+4, 4+4, 4+4, 4+4,19  , 4+4, 4+4, 4+4, 4+4, 4+4, 4+4, 4+4,19  , 4+4,
+	19 ,19  ,19  ,19  ,19  ,19  , 4+4,19  , 4+4, 4+4, 4+4, 4+4, 4+4, 4+4,19  , 4+4,
+	4+4, 4+4, 4+4, 4+4, 4+4, 4+4,19  , 4+4, 4+4, 4+4, 4+4, 4+4, 4+4, 4+4,19  , 4+4,
+	4+4, 4+4, 4+4, 4+4, 4+4, 4+4,19  , 4+4, 4+4, 4+4, 4+4, 4+4, 4+4, 4+4,19  , 4+4,
+	4+4, 4+4, 4+4, 4+4, 4+4, 4+4,19  , 4+4, 4+4, 4+4, 4+4, 4+4, 4+4, 4+4,19  , 4+4,
+	4+4, 4+4, 4+4, 4+4, 4+4, 4+4,19  , 4+4, 4+4, 4+4, 4+4, 4+4, 4+4, 4+4,19  , 4+4,
+	5+4,10+4,10+4,10+4,10+4,11+4, 7+4,11+4, 5+4,10+4,10+4, 0  ,10+4,17+4, 7+4,11+4,
+	5+4,10+4,10+4,11+4,10+4,11+4, 7+4,11+4, 5+4, 4+4,10+4,11+4,10+4, 4  , 7+4,11+4,
+	5+4,10+4,10+4,19+4,10+4,11+4, 7+4,11+4, 5+4, 4+4,10+4, 4+4,10+4, 4  , 7+4,11+4,
+	5+4,10+4,10+4, 4+4,10+4,11+4, 7+4,11+4, 5+4, 6+4,10+4, 4+4,10+4, 4  , 7+4,11+4);
+
+const cc_xycb = Uint8Array.of(
+	23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+	23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+	23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+	23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+	20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,
+	20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,
+	20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,
+	20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,
+	23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+	23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+	23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+	23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+	23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+	23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+	23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+	23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23);
+
+const cc_ex = Uint8Array.of(
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0,
+	5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	5, 5, 5, 5, 0, 0, 0, 0, 5, 5, 5, 5, 0, 0, 0, 0,
+	6, 0, 0, 0, 7, 0, 0, 2, 6, 0, 0, 0, 7, 0, 0, 2,
+	6, 0, 0, 0, 7, 0, 0, 2, 6, 0, 0, 0, 7, 0, 0, 2,
+	6, 0, 0, 0, 7, 0, 0, 2, 6, 0, 0, 0, 7, 0, 0, 2,
+	6, 0, 0, 0, 7, 0, 0, 2, 6, 0, 0, 0, 7, 0, 0, 2);
+
 void function () {
 	for (let r = 0; r < 0x100; r++) {
 		let p = r ^ r >> 4;
 		p ^= p >> 2;
 		p ^= p >> 1;
-		Z80.fLogic[r] = r & 0x80 | !r << 6 | ~p << 2 & 4;
+		fLogic[r] = r & 0x80 | !r << 6 | ~p << 2 & 4;
 	}
 }();
 

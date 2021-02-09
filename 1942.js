@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -35,7 +35,6 @@ class _1942 {
 	psg = [{addr: 0}, {addr: 0}];
 	command = 0;
 	bank = 0x80;
-	timer = 0;
 	cpu_irq = false;
 	cpu_irq2 = false;
 
@@ -49,8 +48,12 @@ class _1942 {
 	palette = 0;
 	frame = 0;
 
-	cpu = new Z80();
-	cpu2 = new Z80();
+	cpu = new Z80(Math.floor(12000000 / 3));
+	cpu2 = new Z80(Math.floor(12000000 / 4));
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -109,7 +112,7 @@ class _1942 {
 			case 0:
 				return void(this.psg[0].addr = data);
 			case 1:
-				return sound[0].write(this.psg[0].addr, data, this.timer);
+				return sound[0].write(this.psg[0].addr, data);
 			}
 		};
 		this.cpu2.memorymap[0xc0].write = (addr, data) => {
@@ -117,7 +120,7 @@ class _1942 {
 			case 0:
 				return void(this.psg[1].addr = data);
 			case 1:
-				return sound[1].write(this.psg[1].addr, data, this.timer);
+				return sound[1].write(this.psg[1].addr, data);
 			}
 		};
 
@@ -127,10 +130,19 @@ class _1942 {
 		convertGFX(this.obj, OBJ, 512, seq(16, 0, 16), rseq(4, 264).concat(rseq(4, 256), rseq(4, 8), rseq(4)), [OBJ.length * 4 + 4, OBJ.length * 4, 4, 0], 64);
 	}
 
-	execute() {
-		for (let i = 0; i < 16; i++) {
-			!i && (this.cpu_irq = true), i === 1 && (this.cpu_irq2 = true), !(i & 3) && (this.timer = i >> 2, this.cpu2.interrupt());
-			Cpu.multiple_execute([this.cpu, this.cpu2], 800);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			this.scanline.execute(tick_rate, (cnt) => {
+				const vpos = cnt + 240 & 0xff;
+				vpos === 44 && this.cpu2.interrupt(), vpos === 109 && (this.cpu_irq2 = true, this.cpu2.interrupt());
+				vpos === 175 && this.cpu2.interrupt(), vpos === 240 && (this.cpu_irq = true, this.cpu2.interrupt());
+			});
+			sound[0].execute(tick_rate, rate_correction);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		return this;
 	}
@@ -425,8 +437,8 @@ read('1942.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip
 	OBJCOLOR = zip.decompress('sb-8.k3');
 	game = new _1942();
 	sound = [
-		new AY_3_8910({clock: 1500000, resolution: 4}),
-		new AY_3_8910({clock: 1500000, resolution: 4}),
+		new AY_3_8910({clock: 12000000 / 8}),
+		new AY_3_8910({clock: 12000000 / 8}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

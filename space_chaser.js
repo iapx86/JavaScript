@@ -18,7 +18,6 @@ class SpaceChaser {
 	rotate = false;
 
 	fReset = false;
-	fTest = false;
 	fDIPSwitchChanged = true;
 	fCoin = 0;
 	fStart1P = 0;
@@ -35,7 +34,11 @@ class SpaceChaser {
 	background_disable = false;
 	background_select = false;
 
-	cpu = new I8080();
+	cpu = new I8080(Math.floor(19968000 / 10));
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -80,7 +83,15 @@ class SpaceChaser {
 	}
 
 	execute() {
-		this.cpu_irq = true, this.cpu.execute(0x0800), this.cpu_irq2 = true, this.cpu.execute(0x0800);
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.scanline.execute(tick_rate, (cnt) => {
+				const vpos = cnt + 224 & 0xff;
+				vpos === 96 && (this.cpu_irq2 = true);
+				vpos === 224 && (this.cpu_irq = true);
+			});
+		}
 		return this;
 	}
 

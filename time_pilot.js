@@ -29,15 +29,12 @@ class TimePilot {
 	nDifficulty = 4;
 
 	fInterruptEnable = false;
-//	fSoundEnable = false;
 
 	ram = new Uint8Array(0x1400).addBase();
 	in = Uint8Array.of(0xff, 0xff, 0xff, 0xff, 0x4b);
 	ram2 = new Uint8Array(0x400).addBase();
 	psg = [{addr: 0}, {addr: 0}];
-	count = 0;
-	timer = 0;
-	command = [];
+	cpu2_irq = false;
 
 	bg = new Uint8Array(0x8000).fill(3);
 	obj = new Uint8Array(0x10000).fill(3);
@@ -45,8 +42,16 @@ class TimePilot {
 	rgb = Uint32Array.from(seq(0x20).map(i => RGB_H[i] << 8 | RGB_L[i]), e => 0xff000000 | (e >> 11) * 255 / 31 << 16 | (e >> 6 & 31) * 255 / 31 << 8 | (e >> 1 & 31) * 255 / 31);
 	vpos = 0;
 
-	cpu = new Z80();
-	cpu2 = new Z80();
+	cpu = new Z80(Math.floor(18432000 / 6));
+	cpu2 = new Z80(Math.floor(14318181 / 8));
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
+	timer = {rate: 14318181 / 4096, frac: 0, count: 0, execute(rate, rate_correction, fn) {
+		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
+			fn(this.count = (this.count + 1) % 10);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -66,7 +71,7 @@ class TimePilot {
 				this.cpu.memorymap[page].write = null;
 			} else if (range(page, 0xc0, 0xc0, 0x0c)) {
 				this.cpu.memorymap[page].read = () => { return this.vpos; };
-				this.cpu.memorymap[page].write = (addr, data) => { this.command.push(data); };
+				this.cpu.memorymap[page].write = (addr, data) => { this.cpu2_irq = true, sound[0].write(0xe, data); };
 			} else if (range(page, 0xc2, 0xc2, 0x0c))
 				this.cpu.memorymap[page].read = () => { return this.in[4]; };
 			else if (range(page, 0xc3, 0xc3, 0x0c)) {
@@ -75,8 +80,8 @@ class TimePilot {
 					switch (addr >> 1 & 0x7f) {
 					case 0:
 						return void(this.fInterruptEnable = (data & 1) !== 0);
-//					case 3:
-//						return void(this.fSoundEnable = (data & 1) === 0);
+					case 3:
+						return sound[0].control(!(data & 1)), sound[1].control(!(data & 1));
 					}
 				};
 			}
@@ -89,35 +94,36 @@ class TimePilot {
 				this.cpu2.memorymap[page].write = null;
 			} else if (range(page, 0x40, 0x40, 0x0f)) {
 				this.cpu2.memorymap[page].read = () => { return sound[0].read(this.psg[0].addr); };
-				this.cpu2.memorymap[page].write = (addr, data) => { sound[0].write(this.psg[0].addr, data, this.count); };
+				this.cpu2.memorymap[page].write = (addr, data) => { sound[0].write(this.psg[0].addr, data); };
 			} else if (range(page, 0x50, 0x50, 0x0f))
 				this.cpu2.memorymap[page].write = (addr, data) => { this.psg[0].addr = data; };
 			else if (range(page, 0x60, 0x60, 0x0f)) {
 				this.cpu2.memorymap[page].read = () => { return sound[1].read(this.psg[1].addr); };
-				this.cpu2.memorymap[page].write = (addr, data) => { sound[1].write(this.psg[1].addr, data, this.count); };
+				this.cpu2.memorymap[page].write = (addr, data) => { sound[1].write(this.psg[1].addr, data); };
 			} else if (range(page, 0x70, 0x70, 0x0f))
 				this.cpu2.memorymap[page].write = (addr, data) => { this.psg[1].addr = data; };
+
+		this.cpu2.check_interrupt = () => { return this.cpu2_irq && this.cpu2.interrupt() && (this.cpu2_irq = false, true); };
 
 		// Videoの初期化
 		convertGFX(this.bg, BG, 512, rseq(8, 0, 8), seq(4).concat(seq(4, 64)), [4, 0], 16);
 		convertGFX(this.obj, OBJ, 256, rseq(8, 256, 8).concat(rseq(8, 0, 8)), rseq(4, 192).concat(rseq(4, 128), rseq(4, 64), rseq(4)), [4, 0], 64);
 	}
 
-	execute() {
-//		sound[0].mute(!this.fSoundEnable);
-//		sound[1].mute(!this.fSoundEnable);
-		for (let i = 0; i < 256; i++) {
-			this.vpos = i + 144 & 0xff;
-			if (!this.vpos)
-				this.ram.copyWithin(0x1200, 0x1000, 0x1200);
-			this.vpos === 240 && this.fInterruptEnable && this.cpu.non_maskable_interrupt(), this.cpu.execute(32);
-		}
-		for (this.count = 0; this.count < 58; this.count++) { // 14318181 / 8 / 60 / 512
-			if (this.command.length && this.cpu2.interrupt())
-				sound[0].write(0x0e, this.command.shift());
-			sound[0].write(0x0f, [0x00, 0x10, 0x20, 0x30, 0x40, 0x90, 0xa0, 0xb0, 0xa0, 0xd0][this.timer]);
-			this.cpu2.execute(73);
-			++this.timer >= 10 && (this.timer = 0);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			this.scanline.execute(tick_rate, (cnt) => {
+				this.vpos = cnt + 240 & 0xff;
+				!this.vpos && this.ram.copyWithin(0x1200, 0x1000, 0x1200);
+				this.vpos === 240 && this.fInterruptEnable && this.cpu.non_maskable_interrupt();
+			});
+			this.timer.execute(tick_rate, rate_correction, (cnt) => sound[0].write(0xf, [0x00, 0x10, 0x20, 0x30, 0x40, 0x90, 0xa0, 0xb0, 0xa0, 0xd0][cnt]));
+			sound[0].execute(tick_rate, rate_correction);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		return this;
 	}
@@ -185,11 +191,10 @@ class TimePilot {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.cpu.reset();
 			this.fInterruptEnable = false;
-			this.command.splice(0);
+			this.cpu.reset();
+			this.cpu2_irq = false;
 			this.cpu2.reset();
-			this.timer = 0;
 		}
 		return this;
 	}
@@ -635,8 +640,8 @@ read('timeplt.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	BGCOLOR = zip.decompress('timeplt.e12');
 	game = new TimePilot();
 	sound = [
-		new AY_3_8910({clock: 14318181 / 8, resolution: 58, gain: 0.2}),
-		new AY_3_8910({clock: 14318181 / 8, resolution: 58, gain: 0.2}),
+		new AY_3_8910({clock: 14318181 / 8, gain: 0.2}),
+		new AY_3_8910({clock: 14318181 / 8, gain: 0.2}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

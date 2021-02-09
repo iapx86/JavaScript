@@ -6,65 +6,32 @@
 
 export default class K005289 {
 	snd;
-	rate;
-	sampleRate;
-	count;
-	resolution;
+	clock;
 	gain;
-	tmpwheel = [];
-	wheel = [];
-	reg = new Uint16Array(4);
-	phase = new Uint32Array(2);
+	output = 0;
+	reg = new Uint16Array(8);
+	frac = 0;
 
-	source = audioCtx.createBufferSource();
-	gainNode = audioCtx.createGain();
-	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
-
-	constructor({SND, clock, resolution = 1, gain = 0.1}) {
-		this.snd = Float32Array.from(SND, e => (e & 0xf) * 2 / 15 - 1);
-		this.rate = clock / audioCtx.sampleRate * (1 << 27);
-		this.sampleRate = Math.floor(audioCtx.sampleRate);
-		this.count = this.sampleRate - 1;
-		this.resolution = resolution;
+	constructor({SND, clock, gain = 0.1}) {
+		this.snd = SND;
+		this.clock = clock;
 		this.gain = gain;
-		for (let i = 0; i < resolution; i++)
-			this.tmpwheel.push([]);
-		this.gainNode.gain.value = gain;
-		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0).fill(0));
-		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
-		this.source.start();
 	}
 
-	mute(flag) {
-		this.gainNode.gain.value = flag ? 0 : this.gain;
+	write(addr, data) {
+		this.reg[addr] = data;
 	}
 
-	write(addr, data, timer = 0) {
-		this.tmpwheel[timer].push({addr, data});
+	execute(rate, rate_correction = 1) {
+		for (this.frac += this.clock * rate_correction; this.frac >= rate; this.frac -= rate)
+			for (let i = 0; i < 2; i++)
+				++this.reg[i + 4] >= this.reg[i + 2] && (++this.reg[i + 6], this.reg[i + 4] = 0);
 	}
 
 	update() {
-		if (this.wheel.length > this.resolution) {
-			while (this.wheel.length)
-				this.wheel.shift().forEach(({addr, data}) => this.reg[addr] = data);
-			this.count = this.sampleRate - 1;
-		}
-		this.tmpwheel.forEach(e => this.wheel.push(e));
-		for (let i = 0; i < this.resolution; i++)
-			this.tmpwheel[i] = [];
-	}
-
-	makeSound(data) {
-		const reg = this.reg;
-		data.forEach((e, i) => {
-			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
-				this.wheel.length && this.wheel.shift().forEach(({addr, data}) => reg[addr] = data);
-			for (let j = 0; j < 2; j++)
-				if (reg[j + 2]) {
-					data[i] += this.snd[j << 8 | reg[j] & 0xe0 | this.phase[j] >>> 27] * (reg[j] & 0xf) / 15;
-					this.phase[j] = this.phase[j] + Math.floor(this.rate / reg[j + 2]) | 0;
-				}
-		});
+		this.output = 0;
+		for (let i = 0; i < 2; i++)
+			this.output += (this.snd[i << 8 | this.reg[i] & 0xe0 | this.reg[i + 6] & 0x1f] * 2 / 15 - 1) * (this.reg[i] & 15) / 15 * this.gain;
 	}
 }
 

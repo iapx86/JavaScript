@@ -30,7 +30,6 @@ class MoonCresta {
 	nBonus = 30000;
 
 	fInterruptEnable = false;
-	fSoundEnable = false;
 
 	ram = new Uint8Array(0x900).addBase();
 	mmo = new Uint8Array(0x100);
@@ -44,9 +43,9 @@ class MoonCresta {
 	obj = new Uint8Array(0x8000).fill(3);
 	rgb = new Uint32Array(0x80);
 
-	se = [BOMB, SHOT].map(buf => ({buf, loop: false, start: false, stop: false}));
+	se = [BOMB, SHOT].map(buf => ({freq: 11025, buf, loop: false, start: false, stop: false}));
 
-	cpu = new Z80();
+	cpu = new Z80(Math.floor(18432000 / 6));
 
 	constructor() {
 		// CPU周りの初期化
@@ -77,6 +76,9 @@ class MoonCresta {
 					case 5: // SHOT
 						data & 1 && !this.mmo[0x15] && (this.se[1].start = this.se[1].stop = true);
 						break;
+					case 7: // SOUND VOICE/FREQUENCY
+						sound[0].set_reg17(data);
+						break;
 					}
 					this.mmo[addr & 7 | 0x10] = data & 1;
 				};
@@ -88,13 +90,13 @@ class MoonCresta {
 						this.fInterruptEnable = (data & 1) !== 0;
 						break;
 					case 4:
-						!this.fSoundEnable && (this.mmo[0x30] = 0xff), this.fStarEnable = this.fSoundEnable = (data & 1) !== 0;
+						this.fStarEnable = (data & 1) !== 0, sound[0].control(data & 1);
 						break;
 					}
 					this.mmo[addr & 7 | 0x20] = data & 1;
 				};
 			} else if (range(page, 0xb8, 0xb8, 0x07))
-				this.cpu.memorymap[page].write = (addr, data) => { this.mmo[0x30] = data; };
+				this.cpu.memorymap[page].write = (addr, data) => { sound[0].set_reg30(data), this.mmo[0x30] = data; };
 
 		MoonCresta.decodeROM();
 
@@ -111,9 +113,13 @@ class MoonCresta {
 		this.initializeStar();
 	}
 
-	execute() {
-		sound[0].mute(!this.fSoundEnable);
-		this.fInterruptEnable && this.cpu.non_maskable_interrupt(), this.cpu.execute(0x2000);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.fInterruptEnable && this.cpu.non_maskable_interrupt();
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			audio.execute(tick_rate, rate_correction);
+		}
 		this.moveStars();
 		return this;
 	}
@@ -141,7 +147,6 @@ class MoonCresta {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.fSoundEnable = false;
 			this.se.forEach(se => se.stop = true);
 			this.cpu.reset();
 			this.fInterruptEnable = false;
@@ -1561,7 +1566,7 @@ read('mooncrst.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	game = new MoonCresta();
 	sound = [
 		new GalaxianSound({SND}),
-		new SoundEffect({se: game.se, freq: 11025, gain: 0.5}),
+		new SoundEffect({se: game.se, gain: 0.5}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

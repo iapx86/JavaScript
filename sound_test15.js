@@ -23,10 +23,8 @@ class SoundTest {
 	nSound = 0x80;
 
 	ram = new Uint8Array(0x800).addBase();
-	fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8), status: 0, timera: 0, timerb: 0};
-	count = 0;
 	command = [];
-	cpu3 = new Z80();
+	cpu3 = new Z80(3579545);
 
 	constructor() {
 		// CPU周りの初期化
@@ -37,32 +35,20 @@ class SoundTest {
 			case 1:
 				return this.command.length ? this.command.shift() : 0xff;
 			case 2:
-				return sound[1].read(addr, this.count);
+				return sound[1].read(addr);
 			case 3:
-				return this.fm.status;
+				return sound[0].status;
 			}
 			return 0;
 		};
 		this.cpu3.memorymap[0xf0].write = (addr, data) => {
 			switch (addr >> 4 & 0xf) {
 			case 0:
-				return sound[1].set_bank(data & 3, data >> 2 & 3, this.count);
+				return sound[1].set_bank(data & 3, data >> 2 & 3);
 			case 2:
-				return sound[1].write(addr, data, this.count);
+				return sound[1].write(addr, data);
 			case 3:
-				if (~addr & 1)
-					return void(this.fm.addr = data);
-				switch (this.fm.addr) {
-				case 8: // KON
-					this.fm.kon[data & 7] = Number((data & 0x78) !== 0);
-					break;
-				case 0x14: // CSM/F RESET/IRQEN/LOAD
-					this.fm.status &= ~(data >> 4 & 3);
-					data & ~this.fm.reg[0x14] & 1 && (this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-					data & ~this.fm.reg[0x14] & 2 && (this.fm.timerb = this.fm.reg[0x12]);
-					break;
-				}
-				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
+				return ~addr & 1 ? void(sound[0].addr = data) : sound[0].write(data);
 			}
 		};
 		for (let i = 0; i < 8; i++) {
@@ -73,13 +59,13 @@ class SoundTest {
 		this.cpu3.check_interrupt = () => { return this.command.length && this.cpu3.interrupt(); };
 	}
 
-	execute() {
-		for (this.count = 0; this.count < 58; this.count++) { // 3579545 / 60 / 1024
-			this.cpu3.execute(146);
-			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 1, this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 2, this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu3.execute(tick_rate);
+			sound[0].execute(tick_rate);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		return this;
 	}
@@ -140,8 +126,8 @@ class SoundTest {
 				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);
 
 		for (let i = 0; i < 8; i++) {
-			const kc = this.fm.reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3);
-			if (!this.fm.kon[i] || pitch < 0 || pitch >= 12 * 8)
+			const kc = sound[0].reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3);
+			if (!sound[0].kon[i] || pitch < 0 || pitch >= 12 * 8)
 				continue;
 			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
 		}
@@ -174,8 +160,8 @@ read('gradius3.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	}
 	game = new SoundTest();
 	sound = [
-		new YM2151({clock: 3579545, resolution: 58, gain: 3}),
-		new K007232({SND, clock: 3579545, resolution: 58, gain: 0.2}),
+		new YM2151({clock: 3579545, gain: 3}),
+		new K007232({SND, clock: 3579545, gain: 0.2}),
 	];
 	game.initial = true;
 	canvas.addEventListener('click', e => {

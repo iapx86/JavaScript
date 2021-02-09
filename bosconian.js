@@ -7,7 +7,7 @@
 import PacManSound from './pac-man_sound.js';
 import Namco54XX from './namco_54xx.js';
 import Namco52XX from './namco_52xx.js';
-import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, read} from './main.js';
 import Z80 from './z80.js';
 import MB8840 from './mb8840.js';
 let game, sound;
@@ -36,12 +36,11 @@ class Bosconian {
 
 	fInterruptEnable0 = false;
 	fInterruptEnable1 = false;
-	fSoundEnable = false;
-	fNmiEnable0 = false;
-	fNmiEnable1 = false;
+	fInterruptEnable2 = false;
+	fNmiEnable0 = 0;
+	fNmiEnable1 = 0;
 	ram = new Uint8Array(0x1800).fill(0xff).addBase();
 	mmi = new Uint8Array(0x200).fill(0xff).addBase();
-	count = 0;
 	dmactrl0 = 0;
 	dmactrl1 = 0;
 
@@ -51,8 +50,12 @@ class Bosconian {
 	bgcolor = Uint8Array.from(BGCOLOR, e => 0x10 | e);
 	rgb = new Uint32Array(0x80);
 
-	cpu = [new Z80(), new Z80(), new Z80()];
+	cpu = [new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6))];
 	mcu = [new MB8840(), new MB8840(), new MB8840()];
+	timer = {rate: Math.floor(18432000 / 384), frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = (this.count + 1) % this.rate);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -79,15 +82,21 @@ class Bosconian {
 			else if (range(page, 0x68)) {
 				this.cpu[0].memorymap[page].base = this.mmi;
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					switch (addr & 0xff) {
+					switch (addr & 0xf0) {
+					case 0x00:
+					case 0x10:
+						return sound[0].write(addr, data);
 					case 0x20:
-						return void(this.fInterruptEnable0 = (data & 1) !== 0);
-					case 0x21:
-						return void(this.fInterruptEnable1 = (data & 1) !== 0);
-					case 0x22:
-						return void(this.fSoundEnable = (data & 1) !== 0);
-					case 0x23:
-						return data & 1 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
+						switch (addr & 0x0f) {
+						case 0:
+							return void(this.fInterruptEnable0 = (data & 1) !== 0);
+						case 1:
+							return void(this.fInterruptEnable1 = (data & 1) !== 0);
+						case 2:
+							return void(this.fInterruptEnable2 = (data & 1) !== 0);
+						case 3:
+							return data & 1 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
+						}
 					}
 				};
 			} else if (range(page, 0x70)) {
@@ -105,7 +114,7 @@ class Bosconian {
 			} else if (range(page, 0x71)) {
 				this.cpu[0].memorymap[page].read = () => { return this.dmactrl0; };
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					this.fNmiEnable0 = (data & 0xe0) !== 0;
+					this.fNmiEnable0 = 2 << (data >> 5) & ~3;
 					switch (this.dmactrl0 = data) {
 					case 0x71:
 					case 0x91:
@@ -140,7 +149,7 @@ class Bosconian {
 			} else if (range(page, 0x91)) {
 				this.cpu[0].memorymap[page].read = () => { return this.dmactrl1; };
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					this.fNmiEnable1 = (data & 0xe0) !== 0;
+					this.fNmiEnable1 = 2 << (data >> 5) & ~3;
 					switch (this.dmactrl1 = data) {
 					case 0x91:
 						if (this.mcu[2].mask & 4)
@@ -165,7 +174,7 @@ class Bosconian {
 			else if (range(page, 0x40, 0xff))
 				this.cpu[2].memorymap[page] = this.cpu[0].memorymap[page];
 		this.cpu[2].memorymap[0x68] = {base: this.mmi, read: null, write: (addr, data) => {
-			!(addr & 0xe0) && sound[0].write(addr, data, this.count);
+			!(addr & 0xe0) && sound[0].write(addr, data);
 		}, fetch: null};
 
 		this.mcu[0].rom.set(IO);
@@ -185,16 +194,20 @@ class Bosconian {
 		this.initializeStar();
 	}
 
-	execute() {
-		sound[0].mute(!this.fSoundEnable);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
 		this.fInterruptEnable0 && this.cpu[0].interrupt(), this.fInterruptEnable1 && this.cpu[1].interrupt();
-		for (this.count = 0; this.count < 2; this.count++) {
-			this.cpu[2].non_maskable_interrupt();
-			for (let i = 0; i < 64; i++) {
-				this.fNmiEnable0 && this.cpu[0].non_maskable_interrupt();
-				this.fNmiEnable1 && this.cpu[1].non_maskable_interrupt(), Cpu.multiple_execute(this.cpu, 32);
-				this.fNmiEnable1 && this.cpu[1].non_maskable_interrupt(), Cpu.multiple_execute(this.cpu, 32);
-			}
+		for (let i = 0; i < tick_max; i++) {
+			for (let j = 0; j < 3; j++)
+				this.cpu[j].execute(tick_rate);
+			this.timer.execute(tick_rate, (cnt) => {
+				this.fNmiEnable0 && !--this.fNmiEnable0 && (this.fNmiEnable0 = 2 << (this.dmactrl0 >> 5), this.cpu[0].non_maskable_interrupt());
+				this.fNmiEnable1 && !--this.fNmiEnable1 && (this.fNmiEnable1 = 2 << (this.dmactrl1 >> 5), this.cpu[1].non_maskable_interrupt());
+				!(cnt % Math.floor(this.timer.rate / 120)) && this.fInterruptEnable2 && this.cpu[2].non_maskable_interrupt();
+			});
+			sound[0].execute(tick_rate, rate_correction);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		if (this.mcu[1].mask & 4)
 			for (this.mcu[1].execute(); this.mcu[1].pc !== 0x4c; this.mcu[1].execute()) {}
@@ -284,11 +297,10 @@ class Bosconian {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.fSoundEnable = false;
 			sound[1].reset();
 			sound[2].reset();
-			this.fInterruptEnable0 = this.fInterruptEnable1 = false;
-			this.fNmiEnable0 = this.fNmiEnable1 = false;
+			this.fInterruptEnable0 = this.fInterruptEnable1 = this.fInterruptEnable2 = false;
+			this.fNmiEnable0 = this.fNmiEnable1 = 0;
 			this.cpu[0].reset();
 			this.cpu[1].disable();
 			this.cpu[2].disable();
@@ -927,8 +939,8 @@ read('bosco.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zi
 	game = new Bosconian();
 	sound = [
 		new PacManSound({SND, resolution: 2}),
-		new Namco54XX({PRG, clock: 1536000}),
-		new Namco52XX({VOI, clock: 1536000}),
+		new Namco54XX({PRG, clock: 18432000 / 12}),
+		new Namco52XX({VOI, clock: 18432000 / 12}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

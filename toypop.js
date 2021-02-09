@@ -5,7 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
-import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC68000 from './mc68000.js';
 let game, sound;
@@ -45,9 +45,9 @@ class Toypop {
 	rgb = Uint32Array.from(seq(0x100), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
 	palette = 0;
 
-	cpu = new MC6809();
-	cpu2 = new MC6809();
-	cpu3 = new MC68000();
+	cpu = new MC6809(Math.floor(6144000 / 4));
+	cpu2 = new MC6809(Math.floor(6144000 / 4));
+	cpu3 = new MC68000(6144000);
 
 	constructor() {
 		// CPU周りの初期化
@@ -108,10 +108,16 @@ class Toypop {
 		convertGFX(this.obj, OBJ, 256, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0, 4], 64);
 	}
 
-	execute() {
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
 		this.fInterruptEnable && this.cpu.interrupt(), this.cpu2.interrupt(), this.fInterruptEnable2 && this.cpu3.interrupt(6);
-		for (let i = 0; i < 0x100; i++)
-			Cpu.multiple_execute([this.cpu, this.cpu2], 32), this.cpu3.execute(48);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			this.cpu3.execute(tick_rate);
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 

@@ -16,8 +16,8 @@ export default class MC6809 extends Cpu {
 	u = 0;
 	s = 0;
 
-	constructor() {
-		super();
+	constructor(clock) {
+		super(clock);
 	}
 
 	reset() {
@@ -30,25 +30,25 @@ export default class MC6809 extends Cpu {
 	fast_interrupt() {
 		if (!super.interrupt() || this.ccr & 0x40)
 			return false;
-		return this.pshs16(this.pc), this.pshs(this.ccr &= ~0x80), this.ccr |= 0x50, this.pc = this.read16(0xfff6), true;
+		return this.cycle -= 10, this.pshs16(this.pc), this.pshs(this.ccr &= ~0x80), this.ccr |= 0x50, this.pc = this.read16(0xfff6), true;
 	}
 
 	interrupt() {
 		if (!super.interrupt() || this.ccr & 0x10)
 			return false;
-		return this.pshs16(this.pc, this.u, this.y, this.x), this.pshs(this.dp, this.b, this.a, this.ccr |= 0x80), this.ccr |= 0x10, this.pc = this.read16(0xfff8), true;
+		return this.cycle -= cc[0x3f], this.pshs16(this.pc, this.u, this.y, this.x), this.pshs(this.dp, this.b, this.a, this.ccr |= 0x80), this.ccr |= 0x10, this.pc = this.read16(0xfff8), true;
 	}
 
 	non_maskable_interrupt() {
 		if (!super.interrupt())
 			return false;
-		return this.pshs16(this.pc, this.u, this.y, this.x), this.pshs(this.dp, this.b, this.a, this.ccr |= 0x80), this.ccr |= 0x50, this.pc = this.read16(0xfffc), true;
+		return this.cycle -= cc[0x3f], this.pshs16(this.pc, this.u, this.y, this.x), this.pshs(this.dp, this.b, this.a, this.ccr |= 0x80), this.ccr |= 0x50, this.pc = this.read16(0xfffc), true;
 	}
 
 	_execute() {
-		let v, ea;
-
-		switch (this.fetch()) {
+		let v, ea, op = this.fetch();
+		this.cycle -= cc[op];
+		switch (op) {
 		case 0x00: // NEG <n
 			return ea = this.dp << 8 | this.fetch(), this.write8(this.neg8(this.read(ea)), ea);
 		case 0x03: // COM <n
@@ -74,7 +74,8 @@ export default class MC6809 extends Cpu {
 		case 0x0f: // CLR <n
 			return this.write8(this.clr8(), this.dp << 8 | this.fetch());
 		case 0x10:
-			switch (this.fetch()) {
+			this.cycle -= cc[op = this.fetch()];
+			switch (op) {
 			case 0x21: // LBRN
 				return this.lbcc(false);
 			case 0x22: // LBHI
@@ -158,7 +159,8 @@ export default class MC6809 extends Cpu {
 				return;
 			}
 		case 0x11:
-			switch (this.fetch()) {
+			this.cycle -= cc[op = this.fetch()];
+			switch (op) {
 			case 0x3f: // SWI3
 				return this.pshs16(this.pc, this.u, this.y, this.x), this.pshs(this.dp, this.b, this.a, this.ccr |= 0x80), void(this.pc = this.read16(0xfff2));
 			case 0x83: // CMPU #nn
@@ -425,30 +427,32 @@ export default class MC6809 extends Cpu {
 		case 0x33: // LEAU
 			return void(this.u = this.index());
 		case 0x34: // PSHS
-			(v = this.fetch()) & 0x80 && this.pshs16(this.pc), v & 0x40 && this.pshs16(this.u);
-			v & 0x20 && this.pshs16(this.y), v & 0x10 && this.pshs16(this.x);
-			v & 8 && this.pshs(this.dp), v & 4 && this.pshs(this.b);
-			v & 2 && this.pshs(this.a), v & 1 && this.pshs(this.ccr);
-			return;
+			(v = this.fetch()) & 0x80 && (this.cycle -= 2, this.pshs16(this.pc)), v & 0x40 && (this.cycle -= 2, this.pshs16(this.u));
+			v & 0x20 && (this.cycle -= 2, this.pshs16(this.y)), v & 0x10 && (this.cycle -= 2, this.pshs16(this.x));
+			v & 8 && (this.cycle -= 1, this.pshs(this.dp)), v & 4 && (this.cycle -= 1, this.pshs(this.b));
+			return v & 2 && (this.cycle -= 1, this.pshs(this.a)), void(v & 1 && (this.cycle -= 1, this.pshs(this.ccr)));
 		case 0x35: // PULS
-			(v = this.fetch()) & 1 && (this.ccr = this.puls()), v & 2 && (this.a = this.puls()), v & 4 && (this.b = this.puls());
-			v & 8 && (this.dp = this.puls()), v & 0x10 && (this.x = this.puls16()), v & 0x20 && (this.y = this.puls16());
-			return v & 0x40 && (this.u = this.puls16()), void(v & 0x80 && (this.pc = this.puls16()));
+			(v = this.fetch()) & 1 && (this.cycle -= 1, this.ccr = this.puls()), v & 2 && (this.cycle -= 1, this.a = this.puls());
+			v & 4 && (this.cycle -= 1, this.b = this.puls()), v & 8 && (this.cycle -= 1, this.dp = this.puls());
+			v & 0x10 && (this.cycle -= 2, this.x = this.puls16()), v & 0x20 && (this.cycle -= 2, this.y = this.puls16());
+			return v & 0x40 && (this.cycle -= 2, this.u = this.puls16()), void(v & 0x80 && (this.cycle -= 2, this.pc = this.puls16()));
 		case 0x36: // PSHU
-			(v = this.fetch()) & 0x80 && this.pshu16(this.pc), v & 0x40 && this.pshu16(this.s), v & 0x20 && this.pshu16(this.y);
-			v & 0x10 && this.pshu16(this.x), v & 8 && this.pshu(this.dp), v & 4 && this.pshu(this.b);
-			return v & 2 && this.pshu(this.a), void(v & 1 && this.pshu(this.ccr));
+			(v = this.fetch()) & 0x80 && (this.cycle -= 2, this.pshu16(this.pc)), v & 0x40 && (this.cycle -= 2, this.pshu16(this.s));
+			v & 0x20 && (this.cycle -= 2, this.pshu16(this.y)), v & 0x10 && (this.cycle -= 2, this.pshu16(this.x));
+			v & 8 && (this.cycle -= 1, this.pshu(this.dp)), v & 4 && (this.cycle -= 1, this.pshu(this.b));
+			return v & 2 && (this.cycle -= 1, this.pshu(this.a)), void(v & 1 && (this.cycle -= 1, this.pshu(this.ccr)));
 		case 0x37: // PULU
-			(v = this.fetch()) & 1 && (this.ccr = this.pulu()), v & 2 && (this.a = this.pulu()), v & 4 && (this.b = this.pulu());
-			v & 8 && (this.dp = this.pulu()), v & 0x10 && (this.x = this.pulu16()), v & 0x20 && (this.y = this.pulu16());
-			return v & 0x40 && (this.s = this.pulu16()), void(v & 0x80 && (this.pc = this.pulu16()));
+			(v = this.fetch()) & 1 && (this.cycle -= 1, this.ccr = this.pulu()), v & 2 && (this.cycle -= 1, this.a = this.pulu());
+			v & 4 && (this.cycle -= 1, this.b = this.pulu()), v & 8 && (this.cycle -= 1, this.dp = this.pulu());
+			v & 0x10 && (this.cycle -= 2, this.x = this.pulu16()), v & 0x20 && (this.cycle -= 2, this.y = this.pulu16());
+			return v & 0x40 && (this.cycle -= 2, this.s = this.pulu16()), void(v & 0x80 && (this.cycle -= 2, this.pc = this.pulu16()));
 		case 0x39: // RTS
 			return void(this.pc = this.puls16());
 		case 0x3a: // ABX
 			return void(this.x = this.x + this.b & 0xffff);
 		case 0x3b: // RTI
 			if ((this.ccr = this.puls()) & 0x80)
-				this.a = this.puls(), this.b = this.puls(), this.dp = this.puls(), this.x = this.puls16(), this.y = this.puls16(), this.u = this.puls16();
+				this.cycle -= 9, this.a = this.puls(), this.b = this.puls(), this.dp = this.puls(), this.x = this.puls16(), this.y = this.puls16(), this.u = this.puls16();
 			return void(this.pc = this.puls16());
 		case 0x3c: // CWAI
 			return this.ccr &= this.fetch(), this.suspend();
@@ -803,9 +807,9 @@ export default class MC6809 extends Cpu {
 	}
 
 	index() {
-		let v;
-
-		switch (this.fetch()) {
+		let v, pb = this.fetch();
+		this.cycle -= cc_i[pb];
+		switch (pb) {
 		case 0x00: // $0,X
 			return this.x;
 		case 0x01: // $1,X
@@ -844,7 +848,7 @@ export default class MC6809 extends Cpu {
 			return this.x - 0x0f & 0xffff;
 		case 0x12: // -$e,X
 			return this.x - 0x0e & 0xffff;
-		case 0x13: // -$D,X
+		case 0x13: // -$d,X
 			return this.x - 0x0d & 0xffff;
 		case 0x14: // -$c,X
 			return this.x - 0x0c & 0xffff;
@@ -896,7 +900,7 @@ export default class MC6809 extends Cpu {
 			return this.y + 0x0b & 0xffff;
 		case 0x2c: // $c,Y
 			return this.y + 0x0c & 0xffff;
-		case 0x2d: // $D,Y
+		case 0x2d: // $d,Y
 			return this.y + 0x0d & 0xffff;
 		case 0x2e: // $e,Y
 			return this.y + 0x0e & 0xffff;
@@ -908,7 +912,7 @@ export default class MC6809 extends Cpu {
 			return this.y - 0x0f & 0xffff;
 		case 0x32: // -$e,Y
 			return this.y - 0x0e & 0xffff;
-		case 0x33: // -$D,Y
+		case 0x33: // -$d,Y
 			return this.y - 0x0d & 0xffff;
 		case 0x34: // -$c,Y
 			return this.y - 0x0c & 0xffff;
@@ -960,7 +964,7 @@ export default class MC6809 extends Cpu {
 			return this.u + 0x0b & 0xffff;
 		case 0x4c: // $c,U
 			return this.u + 0x0c & 0xffff;
-		case 0x4d: // $D,U
+		case 0x4d: // $d,U
 			return this.u + 0x0d & 0xffff;
 		case 0x4e: // $e,U
 			return this.u + 0x0e & 0xffff;
@@ -972,7 +976,7 @@ export default class MC6809 extends Cpu {
 			return this.u - 0x0f & 0xffff;
 		case 0x52: // -$e,U
 			return this.u - 0x0e & 0xffff;
-		case 0x53: // -$D,U
+		case 0x53: // -$d,U
 			return this.u - 0x0d & 0xffff;
 		case 0x54: // -$c,U
 			return this.u - 0x0c & 0xffff;
@@ -1024,7 +1028,7 @@ export default class MC6809 extends Cpu {
 			return this.s + 0x0b & 0xffff;
 		case 0x6c: // $c,S
 			return this.s + 0x0c & 0xffff;
-		case 0x6d: // $D,S
+		case 0x6d: // $d,S
 			return this.s + 0x0d & 0xffff;
 		case 0x6e: // $e,S
 			return this.s + 0x0e & 0xffff;
@@ -1036,7 +1040,7 @@ export default class MC6809 extends Cpu {
 			return this.s - 0x0f & 0xffff;
 		case 0x72: // -$e,S
 			return this.s - 0x0e & 0xffff;
-		case 0x73: // -$D,S
+		case 0x73: // -$d,S
 			return this.s - 0x0d & 0xffff;
 		case 0x74: // -$c,S
 			return this.s - 0x0c & 0xffff;
@@ -1206,30 +1210,15 @@ export default class MC6809 extends Cpu {
 			return this.read16(this.s + this.fetch16() & 0xffff);
 		case 0xfb: // [D,S]
 			return this.read16(this.s + (this.a << 8 | this.b) & 0xffff);
-		case 0x8c: // n,PC
-		case 0xac:
-		case 0xcc:
-		case 0xec:
+		case 0x8c: case 0xac: case 0xcc: case 0xec: // n,PC
 			return v = this.fetch(), this.pc + (v << 24 >> 24) & 0xffff;
-		case 0x8d: // nn,PC
-		case 0xad:
-		case 0xcd:
-		case 0xed:
+		case 0x8d: case 0xad: case 0xcd: case 0xed: // nn,PC
 			return v = this.fetch16(), this.pc + v & 0xffff;
-		case 0x9c: // [n,PC]
-		case 0xbc:
-		case 0xdc:
-		case 0xfc:
+		case 0x9c: case 0xbc: case 0xdc: case 0xfc: // [n,PC]
 			return v = this.fetch(), this.read16(this.pc + (v << 24 >> 24) & 0xffff);
-		case 0x9d: // [nn,PC]
-		case 0xbd:
-		case 0xdd:
-		case 0xfd:
+		case 0x9d: case 0xbd: case 0xdd: case 0xfd: // [nn,PC]
 			return v = this.fetch16(), this.read16(this.pc + v & 0xffff);
-		case 0x9f: // [nn]
-		case 0xbf:
-		case 0xdf:
-		case 0xff:
+		case 0x9f: case 0xbf: case 0xdf: case 0xff: // [nn]
 			return this.read16(this.fetch16());
 		default:
 			return 0xffffffff;
@@ -1238,7 +1227,7 @@ export default class MC6809 extends Cpu {
 
 	lbcc(cond) {
 		const nn = this.fetch16();
-		if (cond) this.pc = this.pc + nn & 0xffff;
+		this.cycle -= cond ? 2 : 1, cond && (this.pc = this.pc + nn & 0xffff);
 	}
 
 	lbsr() {
@@ -1416,3 +1405,38 @@ export default class MC6809 extends Cpu {
 	}
 }
 
+const cc = Uint8Array.of(
+	 6, 0, 0, 6, 6, 0, 6, 6, 6, 6, 6, 0, 6, 6, 3, 6,
+	 1, 1, 2, 2, 0, 0, 3, 9, 0, 2, 3, 0, 3, 2, 8, 7,
+	 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+	 4, 4, 4, 4, 5, 5, 5, 5, 0, 5, 3, 6,20,11, 0,19,
+	 2, 0, 0, 2, 2, 0, 2, 2, 2, 2, 2, 0, 2, 2, 0, 2,
+	 2, 0, 0, 2, 2, 0, 2, 2, 2, 2, 2, 0, 2, 2, 0, 2,
+	 6, 0, 0, 6, 6, 0, 6, 6, 6, 6, 6, 0, 6, 6, 3, 6,
+	 7, 0, 0, 7, 7, 0, 7, 7, 7, 7, 7, 0, 7, 7, 4, 7,
+	 2, 2, 2, 4, 2, 2, 2, 0, 2, 2, 2, 2, 4, 7, 3, 0,
+	 4, 4, 4, 6, 4, 4, 4, 4, 4, 4, 4, 4, 6, 7, 5, 5,
+	 4, 4, 4, 6, 4, 4, 4, 4, 4, 4, 4, 4, 6, 7, 5, 5,
+	 5, 5, 5, 7, 5, 5, 5, 5, 5, 5, 5, 5, 7, 8, 6, 6,
+	 2, 2, 2, 4, 2, 2, 2, 0, 2, 2, 2, 2, 3, 0, 3, 0,
+	 4, 4, 4, 6, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5,
+	 4, 4, 4, 6, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5,
+	 5, 5, 5, 7, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6);
+
+const cc_i = Uint8Array.of(
+	 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 2, 3, 2, 3, 0, 1, 1, 0, 1, 4, 0, 4, 1, 5, 0, 0,
+	 0, 6, 0, 6, 3, 4, 4, 0, 4, 7, 0, 7, 4, 8, 0, 5,
+	 2, 3, 2, 3, 0, 1, 1, 0, 1, 4, 0, 4, 1, 5, 0, 0,
+	 0, 6, 0, 6, 3, 4, 4, 0, 4, 7, 0, 7, 4, 8, 0, 5,
+	 2, 3, 2, 3, 0, 1, 1, 0, 1, 4, 0, 4, 1, 5, 0, 0,
+	 0, 6, 0, 6, 3, 4, 4, 0, 4, 7, 0, 7, 4, 8, 0, 5,
+	 2, 3, 2, 3, 0, 1, 1, 0, 1, 4, 0, 4, 1, 5, 0, 0,
+	 0, 6, 0, 6, 3, 4, 4, 0, 4, 7, 0, 7, 4, 8, 0, 5);

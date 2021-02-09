@@ -5,7 +5,7 @@
  */
 
 import SN76489 from './sn76489.js';
-import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, IntTimer, read} from './main.js';
 import MC8123 from './mc8123.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -30,12 +30,10 @@ class UfoSenshiYohkoChan {
 	fContinue = true;
 	fCheat = false;
 
-	fSoundEnable = true;
 	ram = new Uint8Array(0x6000).addBase();
 	ram2 = new Uint8Array(0x800).addBase();
 	ppi = new Uint8Array(4);
 	in = Uint8Array.of(0xff, 0xff, 0xff, 0x8d, 0xff);
-	count = 0;
 	bank = 0x80;
 	cpu2_nmi = false;
 	cpu2_irq = false;
@@ -47,8 +45,9 @@ class UfoSenshiYohkoChan {
 	collision = new Uint8Array(0x442);
 	vbank = 0x20;
 
-	cpu = new MC8123(KEY);
-	cpu2 = new Z80();
+	cpu = new MC8123(KEY, 4000000);
+	cpu2 = new Z80(Math.floor(8000000 / 2));
+	timer = new IntTimer(4 * 60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -103,7 +102,7 @@ class UfoSenshiYohkoChan {
 					}
 					return void(this.mode = this.ppi[1] = data);
 				case 0x16:
-					this.fSoundEnable = (data & 1) !== 0;
+					sound[0].control(data & 1), sound[1].control(data & 1);
 					const _vbank = (data << 3 & 0x30) + 0x20;
 					if (_vbank !== this.vbank) {
 						for (let i = 0; i < 0x10; i++)
@@ -122,16 +121,16 @@ class UfoSenshiYohkoChan {
 				this.cpu2.memorymap[page].base = this.ram2.base[page & 7];
 				this.cpu2.memorymap[page].write = null;
 			} else if (range(page, 0xa0, 0xa0, 0x1f))
-				this.cpu2.memorymap[page].write = (addr, data) => { sound[0].write(data, this.count); };
+				this.cpu2.memorymap[page].write = (addr, data) => { sound[0].write(data); };
 			else if (range(page, 0xc0, 0xc0, 0x1f))
-				this.cpu2.memorymap[page].write = (addr, data) => { sound[1].write(data, this.count); };
+				this.cpu2.memorymap[page].write = (addr, data) => { sound[1].write(data); };
 			else if (range(page, 0xe0, 0xe0, 0x1f))
 				this.cpu2.memorymap[page].read = () => { return this.ppi[2] |= 0x40, this.ppi[0]; };
 
 		this.cpu2.check_interrupt = () => {
 			if (this.cpu2_nmi)
 				return this.cpu2_nmi = false, this.cpu2.non_maskable_interrupt();
-			return this.cpu2_irq && this.cpu2.interrupt() ? (this.cpu2_irq = false, true) : false;
+			return this.cpu2_irq && this.cpu2.interrupt() && (this.cpu2_irq = false, true);
 		};
 
 		// Videoの初期化
@@ -140,11 +139,17 @@ class UfoSenshiYohkoChan {
 			this.layer.push(new Uint32Array(this.width * this.height));
 	}
 
-	execute() {
-		sound[0].mute(!this.fSoundEnable), sound[1].mute(!this.fSoundEnable);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
 		this.cpu.interrupt();
-		for (this.count = 0; this.count < 4; this.count++)
-			this.cpu2_irq = true, Cpu.multiple_execute([this.cpu, this.cpu2], 0x800);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			this.timer.execute(tick_rate, () => this.cpu2_irq = true);
+			sound[0].execute(tick_rate, rate_correction);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -484,8 +489,8 @@ read('ufosensi.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	PRI = zip.decompress('pr5317.28');
 	game = new UfoSenshiYohkoChan();
 	sound = [
-		new SN76489({clock: 2000000, resolution: 4}),
-		new SN76489({clock: 4000000, resolution: 4}),
+		new SN76489({clock: 8000000 / 4}),
+		new SN76489({clock: 8000000 / 2}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound, keydown, keyup});

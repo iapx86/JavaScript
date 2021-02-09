@@ -27,16 +27,13 @@ class StrategyX {
 	nLife = 3;
 
 	fInterruptEnable = false;
-//	fSoundEnable = false;
 
 	ram = new Uint8Array(0xd00).addBase();
 	ppi0 = Uint8Array.of(0xff, 0xfc, 0xf1, 0);
 	ppi1 = Uint8Array.of(0, 0, 0xfc, 0);
 	ram2 = new Uint8Array(0x400).addBase();
 	psg = [{addr: 0}, {addr: 0}];
-	count = 0;
-	timer = 0;
-	command = [];
+	cpu2_irq = false;
 
 	fBackgroundGreen = false;
 	fBackgroundBlue = false;
@@ -45,8 +42,12 @@ class StrategyX {
 	obj = new Uint8Array(0x4000).fill(3);
 	rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 
-	cpu = new Z80();
-	cpu2 = new Z80();
+	cpu = new Z80(Math.floor(18432000 / 6));
+	cpu2 = new Z80(Math.floor(14318000 / 8));
+	timer = {rate: 14318000 / 2048, frac: 0, count: 0, execute(rate, rate_correction, fn) {
+		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
+			fn(this.count = (this.count + 1) % 20);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -71,9 +72,10 @@ class StrategyX {
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr >> 2 & 3) {
 					case 0:
-						return this.command.push(data);
-//					case 1:
-//						return void(this.fSoundEnable = (data & 0x10) === 0);
+						return this.ppi1[0] = data, sound[0].write(0xe, data);
+					case 1:
+						~data & this.ppi1[1] & 8 && (this.cpu2_irq = true), this.ppi1[1] = data;
+						return sound[0].control(!(data & 0x10)), sound[1].control(!(data & 0x10));
 					}
 				};
 			} else if (range(page, 0xb0, 0xb0))
@@ -110,29 +112,31 @@ class StrategyX {
 				if (addr & 0x10)
 					this.psg[1].addr = data;
 				else if (addr & 0x20)
-					sound[1].write(this.psg[1].addr, data, this.count);
+					sound[1].write(this.psg[1].addr, data);
 				if (addr & 0x40)
 					this.psg[0].addr = data;
 				else if (addr & 0x80)
-					sound[0].write(this.psg[0].addr, data, this.count);
+					sound[0].write(this.psg[0].addr, data);
 			};
 		}
+
+		this.cpu2.check_interrupt = () => { return this.cpu2_irq && this.cpu2.interrupt() && (this.cpu2_irq = false, true); };
 
 		// Videoの初期化
 		convertGFX(this.bg, BG, 256, rseq(8, 0, 8), seq(8), [0, BG.length * 4], 8);
 		convertGFX(this.obj, BG, 64, rseq(8, 128, 8).concat(rseq(8, 0, 8)), seq(8).concat(seq(8, 64)), [0, BG.length * 4], 32);
 	}
 
-	execute() {
-//		sound[0].mute(!this.fSoundEnable);
-//		sound[1].mute(!this.fSoundEnable);
-		this.fInterruptEnable && this.cpu.non_maskable_interrupt(), this.cpu.execute(0x2000);
-		for (this.count = 0; this.count < 116; this.count++) { // 14318181 / 60 / 2048
-			if (this.command.length && this.cpu2.interrupt())
-				sound[0].write(0x0e, this.command.shift());
-			sound[0].write(0x0f, [0x0e, 0x1e, 0x0e, 0x1e, 0x2e, 0x3e, 0x2e, 0x3e, 0x4e, 0x5e, 0x8e, 0x9e, 0x8e, 0x9e, 0xae, 0xbe, 0xae, 0xbe, 0xce, 0xde][this.timer]);
-			this.cpu2.execute(36);
-			++this.timer >= 20 && (this.timer = 0);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.fInterruptEnable && this.cpu.non_maskable_interrupt();
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			this.timer.execute(tick_rate, rate_correction, (cnt) => sound[0].write(0xf, (cnt >= 10) << 7 | [0x0e, 0x1e, 0x0e, 0x1e, 0x2e, 0x3e, 0x2e, 0x3e, 0x4e, 0x5e][cnt % 10]));
+			sound[0].execute(tick_rate, rate_correction);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		return this;
 	}
@@ -166,12 +170,10 @@ class StrategyX {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.cpu.reset();
 			this.fInterruptEnable = false;
-//			this.fSoundEnable = false;
-			this.command.splice(0);
+			this.cpu.reset();
+			this.cpu2_irq = false;
 			this.cpu2.reset();
-			this.timer = 0;
 		}
 		return this;
 	}
@@ -480,8 +482,8 @@ read('stratgyx.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	MAP = zip.decompress('strategy.10k');
 	game = new StrategyX();
 	sound = [
-		new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.2}),
-		new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.2}),
+		new AY_3_8910({clock: 14318000 / 8, gain: 0.2}),
+		new AY_3_8910({clock: 14318000 / 8, gain: 0.2}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound, keydown, keyup});

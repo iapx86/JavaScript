@@ -6,7 +6,7 @@
 
 import PacManSound from './pac-man_sound.js';
 import Namco54XX from './namco_54xx.js';
-import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, read} from './main.js';
 import Z80 from './z80.js';
 import MB8840 from './mb8840.js';
 let game, sound;
@@ -31,12 +31,12 @@ class SuperXevious {
 	nRank = 'NORMAL';
 	nBonus = 'A';
 
-	fInterruptEnable = false;
-	fNmiEnable = false;
-//	fSoundEnable = false;
+	fInterruptEnable0 = false;
+	fInterruptEnable1 = false;
+	fInterruptEnable2 = false;
+	fNmiEnable = 0;
 	ram = new Uint8Array(0x4000).addBase();
 	mmi = new Uint8Array(0x100).fill(0xff);
-	count = 0;
 	mapreg = new Uint8Array(0x100);
 	mapaddr = 0;
 	dmactrl = 0;
@@ -52,8 +52,12 @@ class SuperXevious {
 	rgb = Uint32Array.from(seq(0x100), i => 0xff000000 | BLUE[i] * 255 / 15 << 16| GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
 	dwScroll = 0xff;
 
-	cpu = [new Z80(), new Z80(), new Z80()];
+	cpu = [new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6))];
 	mcu = [new MB8840(), new MB8840()];
+	timer = {rate: Math.floor(18432000 / 384), frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = (this.count + 1) % this.rate);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -70,13 +74,21 @@ class SuperXevious {
 			else if (range(page, 0x68)) {
 				this.cpu[0].memorymap[page].base = this.mmi;
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					switch (addr & 0xff) {
+					switch (addr & 0xf0) {
+					case 0x00:
+					case 0x10:
+						return sound[0].write(addr, data);
 					case 0x20:
-						return void(this.fInterruptEnable = (data & 1) !== 0);
-					case 0x22:
-						return data & 1 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
-//					case 0x23:
-//						return void(this.fSoundEnable = (data & 1) !== 0);
+						switch (addr & 0x0f) {
+						case 0:
+							return void(this.fInterruptEnable0 = (data & 1) !== 0);
+						case 1:
+							return void(this.fInterruptEnable1 = (data & 1) !== 0);
+						case 2:
+							return void(this.fInterruptEnable2 = (data & 1) !== 0);
+						case 3:
+							return data & 1 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
+						}
 					}
 				};
 			} else if (range(page, 0x70)) {
@@ -94,7 +106,7 @@ class SuperXevious {
 			} else if (range(page, 0x71)) {
 				this.cpu[0].memorymap[page].read = () => { return this.dmactrl; };
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					this.fNmiEnable = (data & 0xe0) !== 0;
+					this.fNmiEnable = 2 << (data >> 5) & ~3;
 					switch (this.dmactrl = data) {
 					case 0x71:
 						if (this.mcu[0].mask & 4)
@@ -165,7 +177,7 @@ class SuperXevious {
 			else if (range(page, 0x40, 0xff))
 				this.cpu[2].memorymap[page] = this.cpu[0].memorymap[page];
 		this.cpu[2].memorymap[0x68] = {base: this.mmi, read: null, write: (addr, data) => {
-			!(addr & 0xe0) && sound[0].write(addr, data, this.count);
+			!(addr & 0xe0) && sound[0].write(addr, data);
 		}, fetch: null};
 
 		this.mcu[0].rom.set(IO);
@@ -195,13 +207,19 @@ class SuperXevious {
 			seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0, 4], 64);
 	}
 
-	execute() {
-//		sound[0].mute(!this.fSoundEnable);
-		this.fInterruptEnable && this.cpu[0].interrupt();
-		for (this.count = 0; this.count < 2; this.count++) {
-			this.cpu[2].non_maskable_interrupt();
-			for (let i = 128; i !== 0; --i)
-				this.fNmiEnable && this.cpu[0].non_maskable_interrupt(), Cpu.multiple_execute(this.cpu, 32);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.fInterruptEnable0 && this.cpu[0].interrupt(), this.fInterruptEnable1 && this.cpu[1].interrupt();
+		for (let i = 0; i < tick_max; i++) {
+			for (let j = 0; j < 3; j++)
+				this.cpu[j].execute(tick_rate);
+			this.timer.execute(tick_rate, (cnt) => {
+				this.fNmiEnable && !--this.fNmiEnable && (this.fNmiEnable = 2 << (this.dmactrl >> 5), this.cpu[0].non_maskable_interrupt());
+				!(cnt % Math.floor(this.timer.rate / 120)) && this.fInterruptEnable2 && this.cpu[2].non_maskable_interrupt();
+			});
+			sound[0].execute(tick_rate, rate_correction);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		if (this.mcu[1].mask & 4)
 			for (this.mcu[1].execute(); this.mcu[1].pc !== 0x4c; this.mcu[1].execute()) {}
@@ -279,10 +297,9 @@ class SuperXevious {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-//			this.fSoundEnable = false;
 			sound[1].reset();
-			this.fInterruptEnable = false;
-			this.fNmiEnable = false;
+			this.fInterruptEnable0 = this.fInterruptEnable1 = this.fInterruptEnable2 = false;
+			this.fNmiEnable = 0;
 			this.cpu[0].reset();
 			this.cpu[1].disable();
 			this.cpu[2].disable();
@@ -929,8 +946,8 @@ read('xevious.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	PRG = zip.decompress('54xx.bin');
 	game = new SuperXevious();
 	sound = [
-		new PacManSound({SND, resolution: 2}),
-		new Namco54XX({PRG, clock: 1536000}),
+		new PacManSound({SND}),
+		new Namco54XX({PRG, clock: 18432000 / 12}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

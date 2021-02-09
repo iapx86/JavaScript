@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
-import {init, read} from './main.js';
+import {init, IntTimer, read} from './main.js';
 import MC6801 from './mc6801.js';
 let game, sound;
 
@@ -24,12 +24,21 @@ class SoundTest {
 	command = [];
 
 	ram3 = new Uint8Array(0xd00).addBase();
-	fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8)};
-	mcu = new MC6801();
+	mcu_irq = false;
+	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
+	timer = new IntTimer(60);
 
 	constructor() {
 		// CPU周りの初期化
 		this.mcu.memorymap[0].base = this.ram3.base[0];
+		this.mcu.memorymap[0].read = (addr) => {
+			let data;
+			switch (addr) {
+			case 8:
+				return data = this.ram3[8], this.ram3[8] &= ~0xe0, data;
+			}
+			return this.ram3[addr];
+		};
 		this.mcu.memorymap[0].write = null;
 		for (let i = 0; i < 4; i++) {
 			this.mcu.memorymap[0x10 + i].read = (addr) => { return sound[1].read(addr); };
@@ -39,26 +48,33 @@ class SoundTest {
 			this.mcu.memorymap[0x14 + i].base = this.ram3.base[1 + i];
 			this.mcu.memorymap[0x14 + i].write = null;
 		}
-		this.mcu.memorymap[0x28].read = (addr) => { return addr === 0x2801 ? 0 : 0xff; };
+		this.mcu.memorymap[0x28].read = (addr) => { return addr === 0x2801 ? sound[0].status : 0xff; };
 		this.mcu.memorymap[0x28].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				return void(this.fm.addr = data);
+				return void(sound[0].addr = data);
 			case 1:
-				if (this.fm.addr === 8)
-					this.fm.kon[data & 7] = Number((data & 0x78) !== 0);
-				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data);
+				return sound[0].write(data);
 			}
 		};
 		for (let i = 0; i < 0x80; i++)
 			this.mcu.memorymap[0x40 + i].base = PRG3.base[i];
 		for (let i = 0; i < 0x10; i++)
 			this.mcu.memorymap[0xf0 + i].base = PRG3I.base[i];
+
+		this.mcu.check_interrupt = () => { return this.mcu_irq && this.mcu.interrupt() ? (this.mcu_irq = false, true) : (this.ram3[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf'); };
 	}
 
-	execute() {
-		this.mcu.interrupt(), this.mcu.execute(0x1000);
-		this.ram3[8] & 8 && this.mcu.interrupt('ocf'), this.mcu.execute(0x1000);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.mcu_irq = true;
+		for (let i = 0; i < tick_max; i++) {
+			this.mcu.execute(tick_rate);
+			this.timer.execute(tick_rate, () => this.ram3[8] |= this.ram3[8] << 3 & 0x40);
+			sound[0].execute(tick_rate);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -85,6 +101,7 @@ class SoundTest {
 			this.fReset = false;
 			this.nSound = 1;
 			this.command.splice(0);
+			this.mcu_irq = false;
 			this.mcu.reset();
 		}
 		return this;
@@ -131,8 +148,8 @@ class SoundTest {
 				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[0]);
 
 		for (let i = 0; i < 8; i++) {
-			const kc = this.fm.reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3);
-			if (!this.fm.kon[i] || pitch < 0 || pitch >= 12 * 8)
+			const kc = sound[0].reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3);
+			if (!sound[0].kon[i] || pitch < 0 || pitch >= 12 * 8)
 				continue;
 			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
 		}

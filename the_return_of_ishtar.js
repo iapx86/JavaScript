@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
-import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, IntTimer, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -30,12 +30,12 @@ class TheReturnOfIshtar {
 
 	ram = new Uint8Array(0x6000).addBase();
 	ram3 = new Uint8Array(0xd00).addBase();
-	fm = {addr: 0};
 	in = new Uint8Array(5).fill(0xff);
 	sw = {a: 0, b: 0};
 	bank = 0;
 	cpu_irq = false;
 	cpu2_irq = false;
+	mcu_irq = false;
 
 	bg1 = new Uint8Array(0x10000).fill(3);
 	bg2 = new Uint8Array(0x10000).fill(3);
@@ -48,9 +48,10 @@ class TheReturnOfIshtar {
 //	bgbank = 0;
 	backcolor = 0;
 
-	cpu = new MC6809();
-	cpu2 = new MC6809();
-	mcu = new MC6801();
+	cpu = new MC6809(Math.floor(49152000 / 32));
+	cpu2 = new MC6809(Math.floor(49152000 / 32));
+	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
+	timer = new IntTimer(60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -135,7 +136,16 @@ class TheReturnOfIshtar {
 		this.cpu2.check_interrupt = () => { return this.cpu2_irq && this.cpu2.interrupt(); };
 
 		this.mcu.memorymap[0].base = this.ram3.base[0];
-		this.mcu.memorymap[0].read = (addr) => { return addr === 2 ? this.in[2] : this.ram3[addr]; };
+		this.mcu.memorymap[0].read = (addr) => {
+			let data;
+			switch (addr) {
+			case 2:
+				return this.in[2];
+			case 8:
+				return data = this.ram3[8], this.ram3[8] &= ~0xe0, data;
+			}
+			return this.ram3[addr];
+		};
 		this.mcu.memorymap[0].write = null;
 		for (let i = 0; i < 4; i++) {
 			this.mcu.memorymap[0x10 + i].read = (addr) => { return sound[1].read(addr); };
@@ -150,7 +160,7 @@ class TheReturnOfIshtar {
 		this.mcu.memorymap[0x60].read = (addr) => {
 			switch (addr & 0xff) {
 			case 1:
-				return 0;
+				return sound[0].status;
 			case 0x20:
 				return this.in[0];
 			case 0x21:
@@ -165,15 +175,17 @@ class TheReturnOfIshtar {
 		this.mcu.memorymap[0x60].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				return void(this.fm.addr = data);
+				return void(sound[0].addr = data);
 			case 1:
-				return sound[0].write(this.fm.addr, data);
+				return sound[0].write(data);
 			}
 		};
 		for (let i = 0; i < 0x40; i++)
 			this.mcu.memorymap[0x80 + i].base = PRG3.base[0x40 + i];
 		for (let i = 0; i < 0x10; i++)
 			this.mcu.memorymap[0xf0 + i].base = PRG3I.base[i];
+
+		this.mcu.check_interrupt = () => { return this.mcu_irq && this.mcu.interrupt() ? (this.mcu_irq = false, true) : (this.ram3[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf'); };
 
 		// Videoの初期化
 		convertGFX(this.bg1, BG1, 1024, rseq(8, 0, 8), seq(8), [Math.floor(BG1.length / 3) * 16, -1, -1], 8);
@@ -187,9 +199,18 @@ class TheReturnOfIshtar {
 			this.isspace2[p++] = Number(this.bg2.subarray(q, q + 64).every(e => e === 7));
 	}
 
-	execute() {
-		this.cpu_irq = this.cpu2_irq = true, this.mcu.interrupt(), Cpu.multiple_execute([this.cpu, this.cpu2, this.mcu], 0x1000);
-		this.ram3[8] & 8 && this.mcu.interrupt('ocf'), Cpu.multiple_execute([this.cpu, this.cpu2, this.mcu], 0x1000);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.cpu_irq = this.cpu2_irq = this.mcu_irq = true;
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			this.mcu.execute(tick_rate);
+			this.timer.execute(tick_rate, () => this.ram3[8] |= this.ram3[8] << 3 & 0x40);
+			sound[0].execute(tick_rate);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -221,7 +242,7 @@ class TheReturnOfIshtar {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.cpu_irq = this.cpu2_irq = false;
+			this.cpu_irq = this.cpu2_irq = this.mcu_irq = false;
 			this.cpu.reset();
 			this.cpu2.reset();
 			this.mcu.reset();

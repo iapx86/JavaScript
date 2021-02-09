@@ -24,13 +24,11 @@ class SoundTest {
 	nSound = 1;
 
 	ram2 = new Uint8Array(0x800).addBase();
-	fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8), status: 0, timera: 0, timerb: 0};
 	vlm_latch = 0;
 	vlm_control = 0;
-	count = 0;
 	command = [];
 	wd = 0;
-	cpu2 = new Z80();
+	cpu2 = new Z80(3579545);
 
 	constructor() {
 		// CPU周りの初期化
@@ -41,25 +39,15 @@ class SoundTest {
 			this.cpu2.memorymap[0x80 + i].write = null;
 		}
 		this.cpu2.memorymap[0xa0].read = (addr) => { return addr === 0xa000 && this.command.length ? this.command.shift() : 0xff; };
-		this.cpu2.memorymap[0xb0].read = (addr) => { return addr < 0xb00e ? sound[1].read(addr, this.count) : 0xff; };
-		this.cpu2.memorymap[0xb0].write = (addr, data) => { addr < 0xb00e && sound[1].write(addr, data, this.count); };
-		this.cpu2.memorymap[0xc0].read = (addr) => { return addr === 0xc001 ? this.fm.status : 0xff; };
+		this.cpu2.memorymap[0xb0].read = (addr) => { return addr < 0xb00e ? sound[1].read(addr) : 0xff; };
+		this.cpu2.memorymap[0xb0].write = (addr, data) => { addr < 0xb00e && sound[1].write(addr, data); };
+		this.cpu2.memorymap[0xc0].read = (addr) => { return addr === 0xc001 ? sound[0].status : 0xff; };
 		this.cpu2.memorymap[0xc0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				return void(this.fm.addr = data);
+				return void(sound[0].addr = data);
 			case 1:
-				switch (this.fm.addr) {
-				case 8: // KON
-					this.fm.kon[data & 7] = Number((data & 0x78) !== 0);
-					break;
-				case 0x14: // CSM/F RESET/IRQEN/LOAD
-					this.fm.status &= ~(data >> 4 & 3);
-					data & ~this.fm.reg[0x14] & 1 && (this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-					data & ~this.fm.reg[0x14] & 2 && (this.fm.timerb = this.fm.reg[0x12]);
-					break;
-				}
-				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
+				return sound[0].write(data);
 			}
 		};
 		this.cpu2.memorymap[0xd0].write = (addr, data) => { addr === 0xd000 && (this.vlm_latch = data); };
@@ -73,15 +61,17 @@ class SoundTest {
 				this.vlm_control = data;
 			}
 		};
+
+		this.cpu2.check_interrupt = () => { return this.command.length && this.cpu2.interrupt(); };
 	}
 
-	execute() {
-		for (this.count = 0; this.count < 58; this.count++) { // 14318180 / 4 / 60 / 1024
-			this.command.length && this.cpu2.interrupt(), this.cpu2.execute(146);
-			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 1, this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 2, this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu2.execute(tick_rate);
+			sound[0].execute(tick_rate);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		return this;
 	}
@@ -142,8 +132,8 @@ class SoundTest {
 				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);
 
 		for (let i = 0; i < 8; i++) {
-			const kc = this.fm.reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3);
-			if (!this.fm.kon[i] || pitch < 0 || pitch >= 12 * 8)
+			const kc = sound[0].reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3);
+			if (!sound[0].kon[i] || pitch < 0 || pitch >= 12 * 8)
 				continue;
 			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
 		}
@@ -177,9 +167,9 @@ read('salamand.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	}
 	game = new SoundTest();
 	sound = [
-		new YM2151({clock: 14318180 / 4, resolution: 58, gain: 5}),
-		new K007232({SND, clock: 14318180 / 4, resolution: 58, gain: 0.2}),
-		new VLM5030({VLM, clock: 14318180 / 4, gain: 5}),
+		new YM2151({clock: 3579545, gain: 5}),
+		new K007232({SND, clock: 3579545, gain: 0.2}),
+		new VLM5030({VLM, clock: 3579545, gain: 5}),
 	];
 	game.initial = true;
 	canvas.addEventListener('click', e => {

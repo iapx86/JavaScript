@@ -5,59 +5,51 @@
  */
 
 export default class YM2151 {
-	sampleRate;
-	count;
-	resolution;
 	gain;
-	tmpwheel = [];
-	wheel = [];
+	output = 0;
+	addr = 0;
+	reg = new Uint8Array(0x100);
+	kon = new Uint8Array(8);
+	status = 0;
+	timera = {rate: 0, frac: 0, count: 0};
+	timerb = {rate: 0, frac: 0, count: 0};
 	opm = new OPM();
 
-	source = audioCtx.createBufferSource();
-	gainNode = audioCtx.createGain();
-	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
-
-	constructor({clock, resolution = 1, gain = 1}) {
-		this.sampleRate = Math.floor(audioCtx.sampleRate);
-		this.count = this.sampleRate - 1;
-		this.resolution = resolution;
+	constructor({clock, gain = 1}) {
 		this.gain = gain;
-		for (let i = 0; i < resolution; i++)
-			this.tmpwheel.push([]);
-		this.opm.Init(clock, Math.floor(audioCtx.sampleRate));
-		this.gainNode.gain.value = gain;
-		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0));
-		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
-		this.source.start();
+		this.timera.rate = clock / 64;
+		this.timerb.rate = clock / 1024;
+		this.opm.Init(clock, Math.floor(audioCtx ? audioCtx.sampleRate : 48000));
 	}
 
-	mute(flag) {
-		this.gainNode.gain.value = flag ? 0 : this.gain;
+	write(data) {
+		switch (this.addr) {
+		case 8: // KON
+			this.kon[data & 7] = Number((data & 0x78) !== 0);
+			break;
+		case 0x14: // CSM/F RESET/IRQEN/LOAD
+			this.status &= ~(data >> 4 & 3);
+			data & ~this.reg[0x14] & 1 && (this.timera.count = this.reg[0x10] << 2 | this.reg[0x11] & 3);
+			data & ~this.reg[0x14] & 2 && (this.timerb.count = this.reg[0x12]);
+			break;
+		}
+		this.reg[this.addr] = data;
+		this.opm.SetReg(this.addr, data);
 	}
 
-	write(addr, data, timer = 0) {
-		this.tmpwheel[timer].push({addr, data});
+	execute(rate, rate_correction = 1) {
+		for (this.timera.frac += this.timera.rate * rate_correction; this.timera.frac >= rate; this.timera.frac -= rate)
+			if (this.reg[0x14] & 1 && ++this.timera.count >= 0x400)
+				this.status |= this.reg[0x14] >> 2 & 1, this.timera.count = this.reg[0x10] << 2 | this.reg[0x11] & 3;
+		for (this.timerb.frac += this.timerb.rate * rate_correction; this.timerb.frac >= rate; this.timerb.frac -= rate)
+			if (this.reg[0x14] & 2 && ++this.timerb.count >= 0x100)
+				this.status |= this.reg[0x14] >> 2 & 2, this.timerb.count = this.reg[0x12];
 	}
 
 	update() {
-		if (this.wheel.length > this.resolution) {
-			while (this.wheel.length)
-				this.wheel.shift().forEach(({addr, data}) => this.opm.SetReg(addr, data));
-			this.count = this.sampleRate - 1;
-		}
-		this.tmpwheel.forEach(e => this.wheel.push(e));
-		for (let i = 0; i < this.resolution; i++)
-			this.tmpwheel[i] = [];
-	}
-
-	makeSound(data) {
-		data.forEach((e, i) => {
-			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
-				this.wheel.length && this.wheel.shift().forEach(({addr, data}) => this.opm.SetReg(addr, data));
-			const ch0 = [], ch1 = [];
-			this.opm.Mix(ch0, ch1, 0, 1);
-			data[i] = (ch0[0] + ch1[0]) / 2;
-		});
+		const ch0 = [], ch1 = [];
+		this.opm.Mix(ch0, ch1, 0, 1);
+		this.output = (ch0[0] + ch1[0]) / 2 * this.gain;
 	}
 }
 

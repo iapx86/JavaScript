@@ -5,7 +5,7 @@
  */
 
 import C30 from './c30.js';
-import {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, IntTimer, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -44,8 +44,9 @@ class MetroCross {
 	vScroll = [0, 0];
 	hScroll = [0, 0];
 
-	cpu = new MC6809();
-	mcu = new MC6801();
+	cpu = new MC6809(Math.floor(49152000 / 32));
+	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
+	timer = new IntTimer(60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -80,7 +81,7 @@ class MetroCross {
 			}
 		};
 
-		this.cpu.check_interrupt = () => { return this.cpu_irq && this.cpu.interrupt() ? (this.cpu_irq = false, true) : false; };
+		this.cpu.check_interrupt = () => { return this.cpu_irq && this.cpu.interrupt() && (this.cpu_irq = false, true); };
 
 		this.mcu.memorymap[0].read = (addr) => {
 			let data;
@@ -92,11 +93,7 @@ class MetroCross {
 			}
 			return this.ram2[addr];
 		};
-		this.mcu.memorymap[0].write = (addr, data) => {
-			if (addr === 2 && (data & 0xe0) === 0x60)
-				this.select = data & 7;
-			this.ram2[addr] = data;
-		};
+		this.mcu.memorymap[0].write = (addr, data) => { addr === 2 && (data & 0xe0) === 0x60 && (this.select = data & 7), this.ram2[addr] = data; };
 		for (let i = 0; i < 4; i++) {
 			this.mcu.memorymap[0x10 + i].read = (addr) => { return sound.read(addr); };
 			this.mcu.memorymap[0x10 + i].write = (addr, data) => { sound.write(addr, data); };
@@ -121,13 +118,16 @@ class MetroCross {
 		convertGFX(this.obj, OBJ, 256, rseq(16, 0, 64), seq(16, 0, 4), seq(4), 128);
 	}
 
-	execute() {
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
 		this.cpu_irq = this.mcu_irq = true;
-		for (let i = 0; i < 800; i++)
-			this.cpu.execute(5), this.mcu.execute(6);
-		this.ram2[8] |= this.ram2[8] << 3 & 0x40;
-		for (let i = 0; i < 800; i++)
-			this.cpu.execute(5), this.mcu.execute(6);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.mcu.execute(tick_rate);
+			this.timer.execute(tick_rate, () => this.ram2[8] |= this.ram2[8] << 3 & 0x40);
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -641,7 +641,7 @@ read('metrocrs.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	GREEN = zip.decompress('mc1-1.1n');
 	RED = zip.decompress('mc1-2.2m');
 	game = new MetroCross();
-	sound = new C30();
+	sound = new C30({clock: 49152000 / 1024});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
 });

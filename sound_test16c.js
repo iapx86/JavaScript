@@ -5,7 +5,7 @@
  */
 
 import SN76489 from './sn76489.js';
-import {init, read} from './main.js';
+import {init, IntTimer, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -22,10 +22,10 @@ class SoundTest {
 	nSound = 0;
 
 	ram2 = new Uint8Array(0x800).addBase();
-	count = 0;
 	command = [];
 	cpu2_irq = false;
-	cpu2 = new Z80();
+	cpu2 = new Z80(Math.floor(8000000 / 2));
+	timer = new IntTimer(4 * 60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -38,18 +38,25 @@ class SoundTest {
 				this.cpu2.memorymap[page].base = this.ram2.base[page & 7];
 				this.cpu2.memorymap[page].write = null;
 			} else if (range(page, 0xa0, 0xa0, 0x1f))
-				this.cpu2.memorymap[page].write = (addr, data) => { sound[0].write(data, this.count); };
+				this.cpu2.memorymap[page].write = (addr, data) => { sound[0].write(data); };
 			else if (range(page, 0xc0, 0xc0, 0x1f))
-				this.cpu2.memorymap[page].write = (addr, data) => { sound[1].write(data, this.count); };
+				this.cpu2.memorymap[page].write = (addr, data) => { sound[1].write(data); };
 			else if (range(page, 0xe0, 0xe0, 0x1f))
 				this.cpu2.memorymap[page].read = () => { return this.command.length ? this.command.shift() : 0xff; };
 
 		this.cpu2.check_interrupt = () => { return this.cpu2_irq && this.cpu2.interrupt() ? (this.cpu2_irq = false, true) : false; };
 	}
 
-	execute() {
-		for (this.count = 0; this.count < 4; this.count++)
-			this.command.length && this.cpu2.non_maskable_interrupt(), this.cpu2_irq = true, this.cpu2.execute(0x800);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.command.length && this.cpu2.non_maskable_interrupt();
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu2.execute(tick_rate);
+			this.timer.execute(tick_rate, () => this.cpu2_irq = true);
+			sound[0].execute(tick_rate, rate_correction);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -63,8 +70,8 @@ class SoundTest {
 			this.fReset = false;
 			this.nSound = 0xa9;
 			this.command.splice(0);
-			this.cpu2.reset();
 			this.cpu2_irq = false;
+			this.cpu2.reset();
 		}
 		return this;
 	}
@@ -151,8 +158,8 @@ read('ufosensi.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	}
 	game = new SoundTest();
 	sound = [
-		new SN76489({clock: 2000000, resolution: 4}),
-		new SN76489({clock: 4000000, resolution: 4}),
+		new SN76489({clock: 8000000 / 4}),
+		new SN76489({clock: 8000000 / 2}),
 	];
 	game.initial = true;
 	canvas.addEventListener('click', e => {

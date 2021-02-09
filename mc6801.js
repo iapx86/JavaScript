@@ -13,8 +13,8 @@ export default class MC6801 extends Cpu {
 	x = 0;
 	s = 0;
 
-	constructor() {
-		super();
+	constructor(clock) {
+		super(clock);
 	}
 
 	reset() {
@@ -26,7 +26,7 @@ export default class MC6801 extends Cpu {
 	interrupt(cause) {
 		if (!super.interrupt() || this.ccr & 0x10)
 			return false;
-		this.psh16(this.pc, this.x), this.psh(this.a, this.b, this.ccr), this.ccr |= 0x10;
+		this.cycle -= cc[0x3f], this.psh16(this.pc, this.x), this.psh(this.a, this.b, this.ccr), this.ccr |= 0x10;
 		switch (cause) {
 		default:
 			return this.pc = this.read16(0xfff8), true;
@@ -44,13 +44,13 @@ export default class MC6801 extends Cpu {
 	non_maskable_interrupt() {
 		if (!super.interrupt())
 			return false;
-		return this.psh16(this.pc, this.x), this.psh(this.a, this.b, this.ccr), this.ccr |= 0x10, this.pc = this.read16(0xfffc), true;
+		return this.cycle -= cc[0x3f], this.psh16(this.pc, this.x), this.psh(this.a, this.b, this.ccr), this.ccr |= 0x10, this.pc = this.read16(0xfffc), true;
 	}
 
 	_execute() {
-		let v, ea;
-
-		switch (this.fetch()) {
+		let v, ea, op = this.fetch();
+		this.cycle -= cc[op];
+		switch (op) {
 		case 0x01: // NOP
 			return;
 		case 0x04: // LSRD
@@ -696,4 +696,22 @@ export default class MC6801 extends Cpu {
 		this.write8(data >> 8, addr), this.write8(data & 0xff, addr + 1 & 0xffff);
 	}
 }
+
+const cc = Uint8Array.from([ // HD63701
+	 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 1, 1, 0, 0, 0, 0, 1, 1, 2, 2, 4, 1, 0, 0, 0, 0,
+	 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+	 1, 1, 3, 3, 1, 1, 4, 4, 4, 5, 1,10, 5, 7, 9,12,
+	 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1,
+	 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1,
+	 6, 7, 7, 6, 6, 7, 6, 6, 6, 6, 6, 5, 6, 4, 3, 5,
+	 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 6, 4, 3, 5,
+	 2, 2, 2, 3, 2, 2, 2, 0, 2, 2, 2, 2, 3, 5, 3, 0,
+	 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 3, 4, 5, 4, 4,
+	 4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5,
+	 4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 4, 4, 5, 6, 5, 5,
+	 2, 2, 2, 3, 2, 2, 2, 0, 2, 2, 2, 2, 3, 0, 3, 0,
+	 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4,
+	 4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5,
+	 4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5], e => e || 5);
 

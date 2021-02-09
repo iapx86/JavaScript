@@ -6,7 +6,7 @@
 
 import SN76489 from './sn76489.js';
 import SenjyoSound from './senjyo_sound.js';
-import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, IntTimer, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -34,8 +34,6 @@ class StarForce {
 	ram = new Uint8Array(0x3c00).addBase();
 	ram2 = new Uint8Array(0x400).addBase();
 	in = Uint8Array.of(0, 0, 0, 0, 0xc0, 0);
-	count = 0;
-	timer = 0;
 	cpu_irq = false;
 	cpu2_command = 0;
 	pio = {irq: false, fInterruptEnable: false};
@@ -48,8 +46,9 @@ class StarForce {
 	obj = new Uint8Array(0x20000).fill(7);
 	rgb = new Uint32Array(0x200);
 
-	cpu = new Z80();
-	cpu2 = new Z80();
+	cpu = new Z80(4000000);
+	cpu2 = new Z80(2000000);
+	timer = new IntTimer(2000000 / 2048 / 11);
 
 	constructor() {
 		// CPU周りの初期化
@@ -65,7 +64,7 @@ class StarForce {
 			case 2:
 				return void(this.cpu_irq = false);
 			case 4:
-				return this.cpu2_command = data, void(this.pio.irq = this.pio.fInterruptEnable);
+				return this.pio.irq = this.pio.fInterruptEnable, void(this.cpu2_command = data);
 			}
 		};
 
@@ -77,10 +76,10 @@ class StarForce {
 			this.cpu2.memorymap[0x40 + i].base = this.ram2.base[i];
 			this.cpu2.memorymap[0x40 + i].write = null;
 		}
-		this.cpu2.memorymap[0x80].write = (addr, data) => { sound[0].write(data, this.count); };
-		this.cpu2.memorymap[0x90].write = (addr, data) => { sound[1].write(data, this.count); };
-		this.cpu2.memorymap[0xa0].write = (addr, data) => { sound[2].write(data, this.count); };
-		this.cpu2.memorymap[0xd0].write = (addr, data) => { sound[3].write(1, data & 15, this.count); };
+		this.cpu2.memorymap[0x80].write = (addr, data) => { sound[0].write(data); };
+		this.cpu2.memorymap[0x90].write = (addr, data) => { sound[1].write(data); };
+		this.cpu2.memorymap[0xa0].write = (addr, data) => { sound[2].write(data); };
+		this.cpu2.memorymap[0xd0].write = (addr, data) => { sound[3].write(1, data & 15); };
 		for (let i = 0; i < 0x100; i++) {
 			this.cpu2.iomap[i].read = (addr) => { return addr & 0xff ? 0xff : this.cpu2_command; };
 			this.cpu2.iomap[i].write = (addr, data) => {
@@ -91,7 +90,7 @@ class StarForce {
 					return void(data === 0xd7 && (this.ctc.fInterruptEnable = true));
 				case 0xa:
 					if (this.ctc.cmd & 4) {
-						sound[3].write(0, (data ? data : 256) * (this.ctc.cmd & 0x20 ? 16 : 1), this.count);
+						sound[3].write(0, (data ? data : 256) * (this.ctc.cmd & 0x20 ? 16 : 1));
 						this.ctc.cmd &= ~4;
 					} else if (data & 1)
 						this.ctc.cmd = data;
@@ -120,12 +119,16 @@ class StarForce {
 			[0, Math.floor(OBJ.length / 3) * 8, Math.floor(OBJ.length / 3) * 16], 32);
 	}
 
-	execute() {
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
 		this.cpu_irq = true;
-		for (this.count = 0; this.count < 3; this.count++) {
-			!this.timer && (this.ctc.irq = this.ctc.fInterruptEnable);
-			Cpu.multiple_execute([this.cpu, this.cpu2], 0x800);
-			++this.timer >= 2 && (this.timer = 0);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			this.timer.execute(tick_rate, () => { this.ctc.irq = this.ctc.fInterruptEnable; });
+			for (let j = 0; j < 4; j++)
+				sound[j].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		return this;
 	}
@@ -209,15 +212,14 @@ class StarForce {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.cpu.reset();
 			this.cpu_irq = false;
-			this.cpu2.reset();
-			this.timer = 0;
+			this.cpu.reset();
 			this.pio.irq = false;
 			this.pio.fInterruptEnable = false;
 			this.ctc.irq = false;
 			this.ctc.fInterruptEnable = false;
 			this.ctc.cmd = 0;
+			this.cpu2.reset();
 		}
 		return this;
 	}
@@ -558,10 +560,10 @@ read('starforc.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	SND = zip.decompress('07b.bin');
 	game = new StarForce();
 	sound = [
-		new SN76489({clock: 2000000, resolution: 3}),
-		new SN76489({clock: 2000000, resolution: 3}),
-		new SN76489({clock: 2000000, resolution: 3}),
-		new SenjyoSound({SND, clock: 2000000, resolution: 3}),
+		new SN76489({clock: 2000000}),
+		new SN76489({clock: 2000000}),
+		new SN76489({clock: 2000000}),
+		new SenjyoSound({SND, clock: 2000000}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

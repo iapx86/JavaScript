@@ -5,7 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
-import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, read} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -32,7 +32,6 @@ class Phozon {
 	fInterruptEnable0 = false;
 	fInterruptEnable1 = false;
 	fInterruptEnable2 = false;
-//	fSoundEnable = false;
 	ram = new Uint8Array(0x2800).addBase();
 	port = new Uint8Array(0x40);
 	in = new Uint8Array(10);
@@ -43,9 +42,9 @@ class Phozon {
 	objcolor = Uint8Array.from(OBJCOLOR, e => 0x10 | e);
 	rgb = Uint32Array.from(seq(0x40), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
 
-	cpu = new MC6809();
-	cpu2 = new MC6809();
-	cpu3 = new MC6809();
+	cpu = new MC6809(Math.floor(18432000 / 12));
+	cpu2 = new MC6809(Math.floor(18432000 / 12));
+	cpu3 = new MC6809(Math.floor(18432000 / 12));
 
 	constructor() {
 		// CPU周りの初期化
@@ -75,10 +74,10 @@ class Phozon {
 				return void(this.fInterruptEnable0 = false);
 			case 0x05: // INTERRUPT START
 				return void(this.fInterruptEnable0 = true);
-//			case 0x06: // SND STOP
-//				return void(this.fSoundEnable = false);
-//			case 0x07: // SND START
-//				return void(this.fSoundEnable = true);
+			case 0x06: // SND STOP
+				return sound.control(false);
+			case 0x07: // SND START
+				return sound.control(true);
 			case 0x08: // PORT TEST START
 				return void(this.fPortTest = true);
 			case 0x09: // PORT TEST END
@@ -123,10 +122,16 @@ class Phozon {
 		convertGFX(this.obj, OBJ, 128, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0, 4], 64);
 	}
 
-	execute() {
-//		sound.mute(!this.fSoundEnable);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
 		this.fInterruptEnable0 && this.cpu.interrupt(), this.fInterruptEnable1 && this.cpu2.interrupt(), this.fInterruptEnable2 && this.cpu3.interrupt();
-		Cpu.multiple_execute([this.cpu, this.cpu2, this.cpu3], 0x2000);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			this.cpu3.execute(tick_rate);
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -216,7 +221,6 @@ class Phozon {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-//			this.fSoundEnable = false;
 			this.cpu.reset();
 			this.cpu2.disable();
 			this.cpu3.disable();

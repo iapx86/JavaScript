@@ -8,23 +8,18 @@ export default class Namco63701X {
 	pcm;
 	rate;
 	sampleRate;
-	cycles = 0;
+	gain;
+	output = 0;
+	frac = 0;
 	channel = [];
-
-	source = audioCtx.createBufferSource();
-	gainNode = audioCtx.createGain();
-	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
 
 	constructor({PCM, clock, gain = 0.7}) {
 		this.pcm = PCM;
 		this.rate = Math.floor(clock / 1000);
-		this.sampleRate = Math.floor(audioCtx.sampleRate);
+		this.sampleRate = Math.floor(audioCtx ? audioCtx.sampleRate : 48000);
+		this.gain = gain;
 		for (let i = 0; i < 2; i++)
 			this.channel.push({select: 0, play: false, pos: 0, vol: 0, count: 0});
-		this.gainNode.gain.value = gain;
-		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0).fill(0));
-		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
-		this.source.start();
 	}
 
 	write(addr, data) {
@@ -40,17 +35,14 @@ export default class Namco63701X {
 			ch.play = false;
 	}
 
-	update() {}
-
-	makeSound(data) {
-		data.forEach((e, i) => {
-			this.channel.forEach(ch => ch.play && !ch.count && (data[i] += (this.pcm[ch.pos] - 0x80) * ch.vol / 32767));
-			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate)
-				this.channel.forEach(ch => {
-					if (ch.play && !(ch.count && --ch.count))
-						ch.play = this.pcm[++ch.pos] !== 0xff, ch.count = this.pcm[ch.pos] ? 0 : this.pcm[++ch.pos] + 1;
-				});
-		});
+	update() {
+		for (this.frac += this.rate; this.frac >= this.sampleRate; this.frac -= this.sampleRate)
+			this.channel.forEach(ch => {
+				if (ch.play && !(ch.count && --ch.count))
+					ch.play = this.pcm[++ch.pos] !== 0xff, ch.count = this.pcm[ch.pos] ? 0 : this.pcm[++ch.pos] + 1;
+			});
+		this.output = 0;
+		this.channel.forEach(ch => ch.play && !ch.count && (this.output += (this.pcm[ch.pos] - 128) * ch.vol / 32767 * this.gain));
 	}
 }
 

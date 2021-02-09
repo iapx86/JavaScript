@@ -10,8 +10,8 @@ export default class FD1089B extends MC68000 {
 	code_key = new Uint8Array(0x1000);
 	data_key = new Uint8Array(0x1000);
 
-	constructor(key) {
-		super();
+	constructor(key, clock) {
+		super(clock);
 		this.code_key.set(key.subarray(0, 0x1000));
 		this.data_key.set(key.subarray(0x1000));
 	}

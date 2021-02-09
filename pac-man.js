@@ -28,7 +28,6 @@ class PacMan {
 	nBonus = 10000;
 
 	fInterruptEnable = false;
-	fSoundEnable = false;
 	ram = new Uint8Array(0xd00).addBase();
 	in = Uint8Array.of(0xff, 0xff, 0xc9, 0x00);
 	intvec = 0;
@@ -37,7 +36,7 @@ class PacMan {
 	obj = new Uint8Array(0x4000).fill(3);
 	rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 
-	cpu = new Z80();
+	cpu = new Z80(Math.floor(18432000 / 6));
 
 	constructor() {
 		// CPU周りの初期化
@@ -63,7 +62,7 @@ class PacMan {
 						case 0:
 							return void(this.fInterruptEnable = (data & 1) !== 0);
 						case 1:
-							return void(this.fSoundEnable = (data & 1) !== 0);
+							return sound.control(data & 1);
 						}
 						return;
 					case 4:
@@ -82,11 +81,14 @@ class PacMan {
 		convertGFX(this.obj, OBJ, 64, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4, 64).concat(seq(4, 128), seq(4, 192), seq(4)), [0, 4], 64);
 	}
 
-	execute() {
-		sound.mute(!this.fSoundEnable);
-		this.fInterruptEnable && this.cpu.interrupt(this.intvec), this.cpu.execute(0x2000);
-		if (this.cpu.fActive && !this.cpu.fSuspend && this.cpu.iff === 3)
-			this.cpu.execute(0x1400);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.fInterruptEnable && this.cpu.interrupt(this.intvec);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 

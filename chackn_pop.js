@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, read} from './main.js';
 import Z80 from './z80.js';
 import MC6805 from './mc6805.js';
 let game, sound;
@@ -42,8 +42,8 @@ class ChacknPop {
 	rgb = Uint32Array.from(seq(0x400).map(i => RGB_H[i] << 4 | RGB_L[i]), e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 	mode = 0;
 
-	cpu = new Z80();
-	mcu = new MC6805();
+	cpu = new Z80(Math.floor(18000000 / 6));
+	mcu = new MC6805(Math.floor(18000000 / 6 / 4));
 
 	constructor() {
 		// CPU周りの初期化
@@ -140,8 +140,16 @@ class ChacknPop {
 		convertGFX(this.obj, OBJ, 256, rseq(8, 128, 8).concat(rseq(8, 0, 8)), seq(8).concat(seq(8, 64)), [0, OBJ.length * 4], 32);
 	}
 
-	execute() {
-		this.cpu.interrupt(), Cpu.multiple_execute([this.cpu, this.mcu], 0x2000);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.cpu.interrupt();
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.mcu.execute(tick_rate);
+			sound[0].execute(tick_rate, rate_correction);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -510,8 +518,8 @@ read('chaknpop.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	RGB_H = zip.decompress('ao4-12.ic95');
 	game = new ChacknPop();
 	sound = [
-		new AY_3_8910({clock: 1500000}),
-		new AY_3_8910({clock: 1500000}),
+		new AY_3_8910({clock: 18000000 / 12}),
+		new AY_3_8910({clock: 18000000 / 12}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound, keydown, keyup});

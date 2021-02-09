@@ -5,8 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
-import SoundEffect from './sound_effect.js';
-import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, read} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -34,7 +33,6 @@ class Grobda {
 	fPortTest = false;
 	fInterruptEnable0 = false;
 	fInterruptEnable1 = false;
-//	fSoundEnable = false;
 	ram = new Uint8Array(0x2000).addBase();
 	port = new Uint8Array(0x40);
 	in = Uint8Array.of(0, 0, 0, 0, 0, 0, 6, 3, 0, 0);
@@ -45,10 +43,8 @@ class Grobda {
 	bgcolor = Uint8Array.from(BGCOLOR, e => 0x10 | ~e & 0xf);
 	rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 
-	se = [{buf: GETREADY, loop: false, start: false, stop: false}];
-
-	cpu = new MC6809();
-	cpu2 = new MC6809();
+	cpu = new MC6809(Math.floor(18432000 / 12));
+	cpu2 = new MC6809(Math.floor(18432000 / 12));
 
 	constructor() {
 		// CPU周りの初期化
@@ -57,8 +53,8 @@ class Grobda {
 			this.cpu.memorymap[i].write = null;
 		}
 		for (let i = 0; i < 4; i++) {
-			this.cpu.memorymap[0x40 + i].read = (addr) => { return sound[0].read(addr); };
-			this.cpu.memorymap[0x40 + i].write = (addr, data) => { sound[0].write(addr, data); };
+			this.cpu.memorymap[0x40 + i].read = (addr) => { return sound.read(addr); };
+			this.cpu.memorymap[0x40 + i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 4; i++) {
 			this.cpu.memorymap[0x48 + i].read = (addr) => { return this.port[addr & 0x3f] | 0xf0; };
@@ -75,9 +71,9 @@ class Grobda {
 			case 0x03: // INTERRUPT START
 				return void(this.fInterruptEnable0 = true);
 			case 0x06: // SND STOP
-				return /* this.fSoundEnable = false, */ void(this.se[0].stop = true);
-//			case 0x07: // SND START
-//				return void(this.fSoundEnable = true);
+				return sound.control(false);
+			case 0x07: // SND START
+				return sound.control(true);
 			case 0x08: // PORT TEST START
 				return void(this.fPortTest = true);
 			case 0x09: // PORT TEST END
@@ -92,28 +88,27 @@ class Grobda {
 			this.cpu.memorymap[0xa0 + i].base = PRG1.base[i];
 
 		for (let i = 0; i < 4; i++) {
-			this.cpu2.memorymap[i].read = (addr) => { return sound[0].read(addr); };
-			this.cpu2.memorymap[i].write = (addr, data) => { sound[0].write(addr, data); };
+			this.cpu2.memorymap[i].read = (addr) => { return sound.read(addr); };
+			this.cpu2.memorymap[i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		this.cpu2.memorymap[0x20].write = this.cpu.memorymap[0x50].write;
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[0xe0 + i].base = PRG2.base[i];
 
-		this.cpu2.breakpoint = (addr) => { addr === 0xea2c && (this.se[0].start = this.se[0].stop = true); };
-		this.cpu2.set_breakpoint(0xea2c); // Get Ready
-
 		// Videoの初期化
 		convertGFX(this.bg, BG, 256, rseq(8, 0, 8), seq(4, 64).concat(seq(4)), [0, 4], 16);
 		convertGFX(this.obj, OBJ, 256, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0, 4], 64);
-
-		// 効果音の初期化
-		Grobda.convertGETREADY();
 	}
 
-	execute() {
-//		sound[0].mute(!this.fSoundEnable);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
 		this.fInterruptEnable0 && this.cpu.interrupt(), this.fInterruptEnable1 && this.cpu2.interrupt();
-		Cpu.multiple_execute([this.cpu, this.cpu2], 0x2000);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -187,8 +182,6 @@ class Grobda {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.se[0].stop = true;
-//			this.fSoundEnable = false;
 			this.cpu.reset();
 			this.cpu2.disable();
 		}
@@ -256,28 +249,6 @@ class Grobda {
 
 	triggerB(fDown) {
 		this.in[8] = this.in[8] & ~(1 << 0) | fDown << 0;
-	}
-
-	static convertGETREADY() {
-		let i, j, k, m;
-
-		// Get Ready
-		k = 0x0a6c;
-		i = 0;
-		while (PRG2[k]) {
-			if (PRG2[k] === 7) {
-				m = ((PRG2[k++] & 0xf) - 8) * 3 << 9;
-				for (j = 0; j < 13; j++)
-					GETREADY[i++] = m;
-			} else {
-				m = ((PRG2[k] & 0xf) - 8) * 3 << 9;
-				for (j = 0; j < 4; j++)
-					GETREADY[i++] = m;
-				m = ((PRG2[k++] >> 4) - 8) * 3 << 9;
-				for (j = 0; j < 3; j++)
-					GETREADY[i++] = m;
-			}
-		}
 	}
 
 	makeBitmap(data) {
@@ -526,7 +497,6 @@ class Grobda {
  *
  */
 
-const GETREADY = new Int16Array(8837);
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
 read('grobda.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
@@ -539,10 +509,7 @@ read('grobda.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	OBJCOLOR = zip.decompress('gr1-4.3l');
 	SND = zip.decompress('gr1-3.3m');
 	game = new Grobda();
-	sound = [
-		new MappySound({SND}),
-		new SoundEffect({se: game.se, freq: 14800}),
-	];
+	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
 });

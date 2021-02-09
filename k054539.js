@@ -7,150 +7,33 @@
 export default class K054539 {
 	pcm;
 	rate;
-	sampleRate;
-	count;
-	resolution;
 	gain;
-	tmpwheel = [];
-	wheel = [];
-	ram = new Uint8Array(0x400);
+	output = 0;
 	reg = new Uint8Array(0x400);
-	cycles = 0;
+	frac = 0;
 	channel = [];
 
-	source = audioCtx.createBufferSource();
-	gainNode = audioCtx.createGain();
-	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
-
-	constructor({PCM, clock, resolution = 1, gain = 1}) {
+	constructor({PCM, clock, gain = 1}) {
 		this.pcm = PCM;
 		this.rate = Math.floor(clock / 384);
-		this.sampleRate = Math.floor(audioCtx.sampleRate);
-		this.count = this.sampleRate - 1;
-		this.resolution = resolution;
 		this.gain = gain;
-		for (let i = 0; i < resolution; i++)
-			this.tmpwheel.push([]);
 		for (let i = 0; i < 8; i++)
 			this.channel.push({play: false, output: 0, addr: 0, frac: 0});
-		this.gainNode.gain.value = gain;
-		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0).fill(0));
-		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
-		this.source.start();
 	}
 
 	read(addr) {
-		return (addr &= 0x3ff) < 0x230 ? this.ram[addr] : 0xff;
+		return (addr &= 0x3ff) < 0x230 ? this.reg[addr] : 0xff;
 	}
 
-	write(addr, data, timer = 0) {
+	write(addr, data) {
+		const reg = this.reg;
 		switch (addr &= 0x3ff) {
 		case 0x214:
-			data &= ~this.ram[0x22c];
+			data &= ~reg[0x22c];
 			for (let i = 0; i < 8; i++)
-				if (data & 1 << i && (this.ram[0x200 | i << 1] & 0xc) === 0xc)
+				if (data & 1 << i && (reg[0x200 | i << 1] & 0xc) === 0xc)
 					data &= ~(1 << i);
-			this.ram[0x22c] |= data;
-			break;
-		case 0x215:
-			this.ram[0x22c] &= ~data;
-			break;
-		}
-		this.ram[addr] = data, addr < 0x230 && this.tmpwheel[timer].push({addr, data});
-	}
-
-	update() {
-		if (this.wheel.length > this.resolution) {
-			while (this.wheel.length)
-				this.wheel.shift().forEach(e => this.regwrite(e));
-			this.count = this.sampleRate - 1;
-		}
-		this.tmpwheel.forEach(e => this.wheel.push(e));
-		for (let i = 0; i < this.resolution; i++)
-			this.tmpwheel[i] = [];
-	}
-
-	makeSound(data) {
-		const reg = this.reg;
-		data.forEach((e, i) => {
-			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
-				this.wheel.length && this.wheel.shift().forEach(e => this.regwrite(e));
-			if (~reg[0x22f] & 1)
-				return;
-			this.channel.forEach((ch, j) => ch.play && (data[i] += ch.output / 32767 * Math.pow(10, -36 / 0x40 / 20 * reg[3 | j << 5])));
-			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate)
-				this.channel.forEach((ch, j) => {
-					if (!ch.play)
-						return;
-					const rate = reg[j << 5] | reg[1 | j << 5] << 8 | reg[2 | j << 5] << 16;
-					const loop = reg[8 | j << 5] | reg[9 | j << 5] << 8 | reg[0xa | j << 5] << 16;
-					let val;
-outer:				switch (reg[0x200 | j << 1] & 0x2c) {
-					case 0:
-						for (ch.frac += rate; ch.frac >= 0x10000; ch.frac -= 0x10000)
-							if ((ch.output = this.pcm[ch.addr += 1] << 24 >> 16) === -0x8000) {
-								if (~reg[0x201 | j << 1] & 1)
-									break outer;
-								ch.output = this.pcm[ch.addr = loop] << 24 >> 16;
-							}
-						return;
-					case 4:
-						for (ch.frac += rate; ch.frac >= 0x10000; ch.frac -= 0x10000)
-							if ((ch.output = (this.pcm[ch.addr += 2] | this.pcm[ch.addr + 1] << 8) << 16 >> 16) === -0x8000) {
-								if (~reg[0x201 | j << 1] & 1)
-									break outer;
-								ch.output = (this.pcm[ch.addr = loop] | this.pcm[ch.addr + 1] << 8) << 16 >> 16;
-							}
-						return;
-					case 8:
-						for (ch.frac += rate; ch.frac >= 0x10000; ch.frac -= 0x10000) {
-							if ((val = this.pcm[(ch.addr += 1) >> 1]) === 0x88) {
-								if (~reg[0x201 | j << 1] & 1)
-									break outer;
-								val = this.pcm[(ch.addr = loop << 1) >> 1];
-							}
-							ch.output += [0, 1, 4, 9, 16, 25, 36, 49, -64, -49, -36, -25, -16, -9, -4, -1][ch.addr & 1 ? val >> 4 : val & 15] << 8;
-							ch.output = ch.output < -0x7f00 ? -0x7f00 : ch.output > 0x7f00 ? 0x7f00 : ch.output;
-						}
-						return;
-					case 0x20:
-						for (ch.frac -= rate; ch.frac < 0; ch.frac += 0x10000)
-							if ((ch.output = this.pcm[ch.addr -= 1] << 24 >> 16) === -0x8000) {
-								if (~reg[0x201 | j << 1] & 1)
-									break outer;
-								ch.output = this.pcm[ch.addr = loop] << 24 >> 16;
-							}
-						return;
-					case 0x24:
-						for (ch.frac -= rate; ch.frac < 0; ch.frac += 0x10000)
-							if ((ch.output = (this.pcm[ch.addr -= 2] | this.pcm[ch.addr + 1] << 8) << 16 >> 16) === -0x8000) {
-								if (~reg[0x201 | j << 1] & 1)
-									break outer;
-								ch.output = (this.pcm[ch.addr = loop] | this.pcm[ch.addr + 1] << 8) << 16 >> 16;
-							}
-						return;
-					case 0x28:
-						for (ch.frac -= rate; ch.frac < 0; ch.frac += 0x10000) {
-							if ((val = this.pcm[(ch.addr -= 1) >> 1]) === 0x88) {
-								if (~reg[0x201 | j << 1] & 1)
-									break outer;
-								val = this.pcm[(ch.addr = loop << 1) >> 1];
-							}
-							ch.output -= [0, 1, 4, 9, 16, 25, 36, 49, -64, -49, -36, -25, -16, -9, -4, -1][ch.addr & 1 ? val >> 4 : val & 15] << 8;
-							ch.output = ch.output < -0x7f00 ? -0x7f00 : ch.output > 0x7f00 ? 0x7f00 : ch.output;
-						}
-						return;
-					}
-					ch.play = false;
-					this.ram[0x22c] &= ~(1 << j);
-				});
-		});
-	}
-
-	regwrite({addr, data}) {
-		const reg = this.reg;
-		switch (addr) {
-		case 0x214:
+			reg[0x22c] |= data;
 			this.channel.forEach((ch, i) => {
 				if (~data & 1 << i)
 					return;
@@ -166,10 +49,91 @@ outer:				switch (reg[0x200 | j << 1] & 0x2c) {
 			});
 			break;
 		case 0x215:
+			reg[0x22c] &= ~data;
 			this.channel.forEach((ch, i) => data & 1 << i && (ch.play = false));
 			break;
 		}
 		reg[addr] = data;
+	}
+
+	execute(rate, rate_correction = 1) {
+		const reg = this.reg;
+		if (~reg[0x22f] & 1)
+			return;
+		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
+			this.channel.forEach((ch, i) => {
+				if (!ch.play)
+					return;
+				const rate = reg[i << 5] | reg[1 | i << 5] << 8 | reg[2 | i << 5] << 16;
+				const loop = reg[8 | i << 5] | reg[9 | i << 5] << 8 | reg[0xa | i << 5] << 16;
+				let val;
+outer:			switch (reg[0x200 | i << 1] & 0x2c) {
+				case 0:
+					for (ch.frac += rate; ch.frac >= 0x10000; ch.frac -= 0x10000)
+						if ((ch.output = this.pcm[ch.addr += 1] << 24 >> 16) === -0x8000) {
+							if (~reg[0x201 | i << 1] & 1)
+								break outer;
+							ch.output = this.pcm[ch.addr = loop] << 24 >> 16;
+						}
+					return;
+				case 4:
+					for (ch.frac += rate; ch.frac >= 0x10000; ch.frac -= 0x10000)
+						if ((ch.output = (this.pcm[ch.addr += 2] | this.pcm[ch.addr + 1] << 8) << 16 >> 16) === -0x8000) {
+							if (~reg[0x201 | i << 1] & 1)
+								break outer;
+							ch.output = (this.pcm[ch.addr = loop] | this.pcm[ch.addr + 1] << 8) << 16 >> 16;
+						}
+					return;
+				case 8:
+					for (ch.frac += rate; ch.frac >= 0x10000; ch.frac -= 0x10000) {
+						if ((val = this.pcm[(ch.addr += 1) >> 1]) === 0x88) {
+							if (~reg[0x201 | i << 1] & 1)
+								break outer;
+							val = this.pcm[(ch.addr = loop << 1) >> 1];
+						}
+						ch.output += [0, 1, 4, 9, 16, 25, 36, 49, -64, -49, -36, -25, -16, -9, -4, -1][ch.addr & 1 ? val >> 4 : val & 15] << 8;
+						ch.output = ch.output < -0x7f00 ? -0x7f00 : ch.output > 0x7f00 ? 0x7f00 : ch.output;
+					}
+					return;
+				case 0x20:
+					for (ch.frac -= rate; ch.frac < 0; ch.frac += 0x10000)
+						if ((ch.output = this.pcm[ch.addr -= 1] << 24 >> 16) === -0x8000) {
+							if (~reg[0x201 | i << 1] & 1)
+								break outer;
+							ch.output = this.pcm[ch.addr = loop] << 24 >> 16;
+						}
+					return;
+				case 0x24:
+					for (ch.frac -= rate; ch.frac < 0; ch.frac += 0x10000)
+						if ((ch.output = (this.pcm[ch.addr -= 2] | this.pcm[ch.addr + 1] << 8) << 16 >> 16) === -0x8000) {
+							if (~reg[0x201 | i << 1] & 1)
+								break outer;
+							ch.output = (this.pcm[ch.addr = loop] | this.pcm[ch.addr + 1] << 8) << 16 >> 16;
+						}
+					return;
+				case 0x28:
+					for (ch.frac -= rate; ch.frac < 0; ch.frac += 0x10000) {
+						if ((val = this.pcm[(ch.addr -= 1) >> 1]) === 0x88) {
+							if (~reg[0x201 | i << 1] & 1)
+								break outer;
+							val = this.pcm[(ch.addr = loop << 1) >> 1];
+						}
+						ch.output -= [0, 1, 4, 9, 16, 25, 36, 49, -64, -49, -36, -25, -16, -9, -4, -1][ch.addr & 1 ? val >> 4 : val & 15] << 8;
+						ch.output = ch.output < -0x7f00 ? -0x7f00 : ch.output > 0x7f00 ? 0x7f00 : ch.output;
+					}
+					return;
+				}
+				ch.play = false;
+				this.reg[0x22c] &= ~(1 << i);
+			});
+	}
+
+	update() {
+		const reg = this.reg;
+		this.output = 0;
+		if (~reg[0x22f] & 1)
+			return;
+		this.channel.forEach((ch, i) => ch.play && (this.output += ch.output / 32767 * Math.pow(10, -36 / 0x40 / 20 * reg[3 | i << 5]) * this.gain));
 	}
 }
 

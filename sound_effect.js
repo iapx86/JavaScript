@@ -6,35 +6,35 @@
 
 export default class SoundEffect {
 	se;
+	sampleRate;
+	gain;
+	output = 0;
 
-	constructor({se, freq = audioCtx.sampleRate, gain = 1}) {
+	constructor({se, gain = 1}) {
 		this.se = se;
-		se.forEach(se => {
-			se.audioBuffer = audioCtx.createBuffer(1, se.buf.length, audioCtx.sampleRate);
-			se.audioBuffer.getChannelData(0).forEach((e, i, buf) => buf[i] = se.buf[i] / 32767);
-			se.playbackRate = freq / audioCtx.sampleRate;
-			se.gainNode = audioCtx.createGain();
-			se.gainNode.gain.value = gain;
-			se.gainNode.connect(audioCtx.destination);
-		});
+		this.sampleRate = Math.floor(audioCtx.sampleRate);
+		this.gain = gain;
 	}
 
 	update() {
-		this.se.forEach(se => {
-			if (se.stop && se.audioBufferSource) {
-				se.audioBufferSource.stop();
-				delete se.audioBufferSource;
+		this.se.forEach(ch => {
+			if (ch.stop)
+				ch.play = false;
+			if (ch.start && !ch.play)
+				ch.play = true, ch.p = ch.frac = 0;
+			ch.start = ch.stop = false;
+			if (!ch.play)
+				return;
+			for (ch.frac += ch.freq; ch.frac >= this.sampleRate; ch.frac -= this.sampleRate) {
+				if (++ch.p < ch.buf.length)
+					continue;
+				if (!(ch.play = ch.loop))
+					break;
+				ch.p = 0;
 			}
-			if (se.start && !se.audioBufferSource) {
-				se.audioBufferSource = audioCtx.createBufferSource();
-				se.audioBufferSource.buffer = se.audioBuffer;
-				se.audioBufferSource.loop = se.loop;
-				se.audioBufferSource.playbackRate.value = se.playbackRate;
-				se.audioBufferSource.connect(se.gainNode);
-				se.audioBufferSource.start();
-			}
-			se.start = se.stop = false;
 		});
+		this.output = 0;
+		this.se.forEach(ch => { ch.play && (this.output += ch.buf[ch.p] / 32767 * this.gain); });
 	}
 }
 

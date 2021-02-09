@@ -37,19 +37,18 @@ class Salamander {
 	ram = new Uint8Array(0x20000).addBase();
 	ram2 = new Uint8Array(0x800).addBase();
 	in = Uint8Array.of(0xff, 0x42, 0xe0, 0, 0);
-	fm = {addr: 0, reg: new Uint8Array(0x100), status: 0, timera: 0, timerb: 0};
 	vlm_latch = 0;
 	vlm_control = 0;
-	count = 0;
-	command = [];
+	command = 0;
 	wd = 0;
+	cpu2_irq = false;
 
 	chr = new Uint8Array(0x20000);
 	rgb = new Uint32Array(0x800);
 	flip = 0;
 
-	cpu = new MC68000();
-	cpu2 = new Z80();
+	cpu = new MC68000(Math.floor(18432000 / 2));
+	cpu2 = new Z80(3579545);
 
 	constructor() {
 		// CPU周りの初期化
@@ -66,11 +65,13 @@ class Salamander {
 			this.cpu.memorymap[0x900 + i].write = (addr, data) => { addr & 1 && (this.ram[0x8000 | addr >> 1 & 0xfff] = data); };
 		}
 		this.cpu.memorymap[0xa00].write = (addr, data) => {
-			if (addr === 0xa0001)
+			if (addr === 0xa0000)
+				data & 8 && (this.cpu2_irq = true);
+			else if (addr === 0xa0001)
 				this.fInterruptEnable = (data & 1) !== 0, this.flip = data >> 2 & 3;
 		};
 		this.cpu.memorymap[0xc00].read = (addr) => { return addr === 0xc0003 ? this.in[0] : 0xff; };
-		this.cpu.memorymap[0xc00].write = (addr, data) => { addr === 0xc0001 && this.command.push(data); };
+		this.cpu.memorymap[0xc00].write = (addr, data) => { addr === 0xc0001 && (this.command = data); };
 		this.cpu.memorymap[0xc20].read = (addr) => {
 			switch (addr & 0xff) {
 			case 1:
@@ -110,21 +111,16 @@ class Salamander {
 			this.cpu2.memorymap[0x80 + i].base = this.ram2.base[i];
 			this.cpu2.memorymap[0x80 + i].write = null;
 		}
-		this.cpu2.memorymap[0xa0].read = (addr) => { return addr === 0xa000 && this.command.length ? this.command.shift() : 0xff; };
-		this.cpu2.memorymap[0xb0].read = (addr) => { return addr < 0xb00e ? sound[1].read(addr, this.count) : 0xff; };
-		this.cpu2.memorymap[0xb0].write = (addr, data) => { addr < 0xb00e && sound[1].write(addr, data, this.count); };
-		this.cpu2.memorymap[0xc0].read = (addr) => { return addr === 0xc001 ? this.fm.status : 0xff; };
+		this.cpu2.memorymap[0xa0].read = (addr) => { return addr === 0xa000 ? this.command : 0xff; };
+		this.cpu2.memorymap[0xb0].read = (addr) => { return addr < 0xb00e ? sound[1].read(addr) : 0xff; };
+		this.cpu2.memorymap[0xb0].write = (addr, data) => { addr < 0xb00e && sound[1].write(addr, data); };
+		this.cpu2.memorymap[0xc0].read = (addr) => { return addr === 0xc001 ? sound[0].status : 0xff; };
 		this.cpu2.memorymap[0xc0].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				return void(this.fm.addr = data);
+				return void(sound[0].addr = data);
 			case 1:
-				if (this.fm.addr === 0x14) { // CSM/F RESET/IRQEN/LOAD
-					this.fm.status &= ~(data >> 4 & 3);
-					data & ~this.fm.reg[0x14] & 1 && (this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-					data & ~this.fm.reg[0x14] & 2 && (this.fm.timerb = this.fm.reg[0x12]);
-				}
-				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
+				return sound[0].write(data);
 			}
 		};
 		this.cpu2.memorymap[0xd0].write = (addr, data) => { addr === 0xd000 && (this.vlm_latch = data); };
@@ -138,16 +134,19 @@ class Salamander {
 				this.vlm_control = data;
 			}
 		};
+
+		this.cpu2.check_interrupt = () => { return this.cpu2_irq && this.cpu2.interrupt() && (this.cpu2_irq = false, true); };
 	}
 
-	execute() {
-		this.fInterruptEnable && this.cpu.interrupt(1), this.cpu.execute(0x4000);
-		for (this.count = 0; this.count < 58; this.count++) { // 14318180 / 4 / 60 / 1024
-			this.command.length && this.cpu2.interrupt(), this.cpu2.execute(146);
-			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 1, this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 2, this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.fInterruptEnable && this.cpu.interrupt(1);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			sound[0].execute(tick_rate);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		return this;
 	}
@@ -201,7 +200,7 @@ class Salamander {
 			this.fReset = false;
 			this.fInterruptEnable = false;
 			this.cpu.reset();
-			this.command.splice(0);
+			this.cpu2_irq = false;
 			this.cpu2.reset();
 		}
 		return this;
@@ -536,9 +535,9 @@ read('salamand.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	SND = zip.decompress('587-c01.10a');
 	game = new Salamander();
 	sound = [
-		new YM2151({clock: 14318180 / 4, resolution: 58, gain: 5}),
-		new K007232({SND, clock: 14318180 / 4, resolution: 58, gain: 0.2}),
-		new VLM5030({VLM, clock: 14318180 / 4, gain: 5}),
+		new YM2151({clock: 3579545, gain: 5}),
+		new K007232({SND, clock: 3579545, gain: 0.2}),
+		new VLM5030({VLM, clock: 3579545, gain: 5}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

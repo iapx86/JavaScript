@@ -11,8 +11,8 @@ export default class MC8123 extends Z80 {
 	code_key = new Uint8Array(0x10000);
 	data_key = new Uint8Array(0x10000);
 
-	constructor(key) {
-		super();
+	constructor(key, clock) {
+		super(clock);
 		for (let i = 0; i < 0x10000; i++) {
 			const idx = bitswap(i, 15, 14, 13, 12, 11, 10, 8, 6, 4, 2, 1, 0);
 			this.code_key[i] = key[idx];

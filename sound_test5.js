@@ -28,10 +28,12 @@ class SoundTest {
 	psg = [{addr: 0}, {addr: 0}];
 	scc = {freq0: 0, freq1: 0, reg0: 0, reg1: 0};
 	vlm_latch = 0;
-	count = 0;
-	timer = 0;
 	command = [];
-	cpu2 = new Z80();
+	cpu2 = new Z80(Math.floor(14318180 / 8));
+	timer = {rate: 14318180 / 4096, frac: 0, count: 0, execute(rate, rate_correction, fn) {
+		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255)
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -63,9 +65,9 @@ class SoundTest {
 			case 0:
 				return void(this.vlm_latch = data);
 			case 3:
-				return sound[2].write(2, this.scc.freq0, this.count);
+				return sound[2].write(2, this.scc.freq0);
 			case 4:
-				return sound[2].write(3, this.scc.freq1, this.count);
+				return sound[2].write(3, this.scc.freq1);
 			case 5:
 				return void(this.psg[1].addr = data);
 			case 6:
@@ -74,17 +76,19 @@ class SoundTest {
 				return sound[3].st(this.vlm_latch);
 			}
 		};
-		this.cpu2.memorymap[0xe1].write = (addr, data) => { addr === 0xe106 && this.psg[0].addr !== 0xe && sound[0].write(this.psg[0].addr, data, this.count); };
+		this.cpu2.memorymap[0xe1].write = (addr, data) => { addr === 0xe106 && this.psg[0].addr !== 0xe && sound[0].write(this.psg[0].addr, data); };
 		this.cpu2.memorymap[0xe2].read = (addr) => { return addr === 0xe205 ? sound[1].read(this.psg[1].addr) : 0xff; };
 		this.cpu2.memorymap[0xe4].write = (addr, data) => {
 			if (addr === 0xe405) {
 				if (this.psg[1].addr === 0xe)
-					sound[2].write(0, this.scc.reg0 = data, this.count);
+					sound[2].write(0, this.scc.reg0 = data);
 				if (this.psg[1].addr === 0xf)
-					sound[2].write(1, this.scc.reg1 = data, this.count);
-				sound[1].write(this.psg[1].addr, data, this.count);
+					sound[2].write(1, this.scc.reg1 = data);
+				sound[1].write(this.psg[1].addr, data);
 			}
 		};
+
+		this.cpu2.check_interrupt = () => { return this.command.length && this.cpu2.interrupt(); };
 
 		this.cpu2.breakpoint = () => {
 			this.ram2.set(PRG1.subarray(0x30000, 0x33e00));
@@ -93,12 +97,14 @@ class SoundTest {
 		this.cpu2.set_breakpoint(0x220);
 	}
 
-	execute() {
-		for (this.count = 0; this.count < 58; this.count++) { // 14318180 / 4 / 60 / 1024
-			this.command.length && this.cpu2.interrupt();
-			sound[0].write(0x0e, this.timer & 0x2f | sound[3].BSY << 5 | 0xd0);
-			this.cpu2.execute(146);
-			this.timer = this.timer + 1 & 0xff;
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu2.execute(tick_rate);
+			this.timer.execute(tick_rate, rate_correction, (cnt) => { sound[0].write(0xe, cnt & 0x2f | sound[3].BSY << 5 | 0xd0); });
+			for (let j = 0; j < 3; j++)
+				sound[j].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		this.cpu2.non_maskable_interrupt();
 		return this;
@@ -115,7 +121,6 @@ class SoundTest {
 			this.nSound = 0x80;
 			this.command.splice(0);
 			this.cpu2.reset();
-			this.timer = 0;
 		}
 		return this;
 	}
@@ -219,9 +224,9 @@ read('twinbee.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	}
 	game = new SoundTest();
 	sound = [
-		new AY_3_8910({clock: 14318180 / 8, resolution: 58, gain: 0.3}),
-		new AY_3_8910({clock: 14318180 / 8, resolution: 58, gain: 0.3}),
-		new K005289({SND, clock: 14318180 / 4, resolution: 58, gain: 0.3}),
+		new AY_3_8910({clock: 14318180 / 8, gain: 0.3}),
+		new AY_3_8910({clock: 14318180 / 8, gain: 0.3}),
+		new K005289({SND, clock: 14318180 / 4, gain: 0.3}),
 		new VLM5030({VLM: game.vlm, clock: 14318180 / 4, gain: 5}),
 	];
 	game.initial = true;

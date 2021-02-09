@@ -5,7 +5,7 @@
  */
 
 import C30 from './c30.js';
-import {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, IntTimer, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -37,6 +37,8 @@ class PacLand {
 	ram = new Uint8Array(0x3800).addBase();
 	ram2 = new Uint8Array(0x900).addBase();
 	in = new Uint8Array(5).fill(0xff);
+	cpu_irq = false;
+	mcu_irq = false;
 
 	fg = new Uint8Array(0x8000).fill(3);
 	bg = new Uint8Array(0x8000).fill(3);
@@ -48,8 +50,9 @@ class PacLand {
 	palette = 0;
 	fFlip = false;
 
-	cpu = new MC6809();
-	mcu = new MC6801();
+	cpu = new MC6809(Math.floor(49152000 / 32));
+	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
+	timer = new IntTimer(60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -85,8 +88,19 @@ class PacLand {
 		for (let i = 0; i < 0x10; i++)
 			this.cpu.memorymap[0x90 + i].write = (addr) => { this.fFlip = !(addr & 0x800); };
 
+		this.cpu.check_interrupt = () => { return this.cpu_irq && this.cpu.interrupt() && (this.cpu_irq = false, true); };
+
 		this.mcu.memorymap[0].base = this.ram2.base[0];
-		this.mcu.memorymap[0].read = (addr) => { return addr === 2 ? this.in[4] : this.ram2[addr]; };
+		this.mcu.memorymap[0].read = (addr) => {
+			let data;
+			switch (addr) {
+			case 2:
+				return this.in[4];
+			case 8:
+				return data = this.ram2[8], this.ram2[8] &= ~0xe0, data;
+			}
+			return this.ram2[addr];
+		};
 		this.mcu.memorymap[0].write = null;
 		for (let i = 0; i < 4; i++) {
 			this.mcu.memorymap[0x10 + i].read = (addr) => { return sound.read(addr); };
@@ -104,6 +118,8 @@ class PacLand {
 		for (let i = 0; i < 0x10; i++)
 			this.mcu.memorymap[0xf0 + i].base = PRG2I.base[i];
 
+		this.mcu.check_interrupt = () => { return this.mcu_irq && this.mcu.interrupt() ? (this.mcu_irq = false, true) : (this.ram2[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf'); };
+
 		// Videoの初期化
 		convertGFX(this.fg, FG, 512, rseq(8, 0, 8), seq(4, 64).concat(seq(4)), [0, 4], 16);
 		convertGFX(this.bg, BG, 512, rseq(8, 0, 8), seq(4, 64).concat(seq(4)), [0, 4], 16);
@@ -112,13 +128,16 @@ class PacLand {
 		this.opaque[0].fill(0).fill(1, 0, 0x80), this.opaque[1].fill(0).fill(1, 0, 0x7f).fill(1, 0x80, 0xff), this.opaque[2].fill(0).fill(1, 0xf0, 0xff);
 	}
 
-	execute() {
-		this.fInterruptEnable0 && this.cpu.interrupt(), this.fInterruptEnable1 && this.mcu.interrupt();
-		for (let i = 0; i < 800; i++)
-			this.cpu.execute(5), this.mcu.execute(6);
-		this.ram2[8] & 8 && this.mcu.interrupt('ocf');
-		for (let i = 0; i < 800; i++)
-			this.cpu.execute(5), this.mcu.execute(6);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.cpu_irq = this.fInterruptEnable0, this.mcu_irq = this.fInterruptEnable1;
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.mcu.execute(tick_rate);
+			this.timer.execute(tick_rate, () => this.ram2[8] |= this.ram2[8] << 3 & 0x40);
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -200,6 +219,7 @@ class PacLand {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
+			this.cpu_irq = this.mcu_irq = false;
 			this.cpu.reset();
 			this.mcu.disable();
 		}

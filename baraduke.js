@@ -5,7 +5,7 @@
  */
 
 import C30 from './c30.js';
-import {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, IntTimer, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -36,8 +36,6 @@ class Baraduke {
 	ram2 = new Uint8Array(0x900).addBase();
 	in = new Uint8Array(8).fill(0xff);
 	select = 0;
-	timer = 0;
-	counter = 0;
 	cpu_irq = false;
 	mcu_irq = false;
 
@@ -48,8 +46,9 @@ class Baraduke {
 	vScroll = [0, 0];
 	hScroll = [0, 0];
 
-	cpu = new MC6809();
-	mcu = new MC6801();
+	cpu = new MC6809(Math.floor(49152000 / 32));
+	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
+	timer = new IntTimer(60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -59,7 +58,7 @@ class Baraduke {
 		}
 		for (let i = 0; i < 4; i++) {
 			this.cpu.memorymap[0x40 + i].read = (addr) => { return sound.read(addr); };
-			this.cpu.memorymap[0x40 + i].write = (addr, data) => { sound.write(addr, data, this.timer); };
+			this.cpu.memorymap[0x40 + i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 8; i++) {
 			this.cpu.memorymap[0x48 + i].base = this.ram.base[0x40 + i];
@@ -84,7 +83,7 @@ class Baraduke {
 			}
 		};
 
-		this.cpu.check_interrupt = () => { return this.cpu_irq && this.cpu.interrupt() ? (this.cpu_irq = false, true) : false; };
+		this.cpu.check_interrupt = () => { return this.cpu_irq && this.cpu.interrupt() && (this.cpu_irq = false, true); };
 
 		this.mcu.memorymap[0].read = (addr) => {
 			let data;
@@ -96,14 +95,10 @@ class Baraduke {
 			}
 			return this.ram2[addr];
 		};
-		this.mcu.memorymap[0].write = (addr, data) => {
-			if (addr === 2 && (data & 0xe0) === 0x60)
-				this.select = data & 7;
-			this.ram2[addr] = data;
-		};
+		this.mcu.memorymap[0].write = (addr, data) => { addr === 2 && (data & 0xe0) === 0x60 && (this.select = data & 7), this.ram2[addr] = data; };
 		for (let i = 0; i < 4; i++) {
 			this.mcu.memorymap[0x10 + i].read = (addr) => { return sound.read(addr); };
-			this.mcu.memorymap[0x10 + i].write = (addr, data) => { sound.write(addr, data, this.timer); };
+			this.mcu.memorymap[0x10 + i].write = (addr, data) => { sound.write(addr, data); };
 		}
 		for (let i = 0; i < 0x40; i++)
 			this.mcu.memorymap[0x80 + i].base = PRG2.base[i];
@@ -125,20 +120,15 @@ class Baraduke {
 		convertGFX(this.obj, OBJ, 512, rseq(16, 0, 64), seq(16, 0, 4), seq(4), 128);
 	}
 
-	execute() {
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
 		this.cpu_irq = this.mcu_irq = true;
-		for (this.timer = 0; this.timer < 200; this.timer++) {
-			sound.ram[0x105] = this.counter >> 15;
-			for (let i = 0; i < 4; i++)
-				this.cpu.execute(5), this.mcu.execute(6);
-			this.counter += sound.ram[0x103] | sound.ram[0x102] << 8 | sound.ram[0x101] << 16 & 0xf0000;
-		}
-		this.ram2[8] |= this.ram2[8] << 3 & 0x40;
-		for (this.timer = 200; this.timer < 400; this.timer++) {
-			sound.ram[0x105] = this.counter >> 15;
-			for (let i = 0; i < 4; i++)
-				this.cpu.execute(5), this.mcu.execute(6);
-			this.counter += sound.ram[0x103] | sound.ram[0x102] << 8 | sound.ram[0x101] << 16 & 0xf0000;
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.mcu.execute(tick_rate);
+			this.timer.execute(tick_rate, () => this.ram2[8] |= this.ram2[8] << 3 & 0x40);
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		return this;
 	}
@@ -217,7 +207,6 @@ class Baraduke {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.counter = 0;
 			this.cpu_irq = this.mcu_irq = false;
 			this.cpu.reset();
 			this.mcu.reset();
@@ -682,7 +671,7 @@ read('aliensec.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	GREEN = zip.decompress('bd1-1.1n');
 	RED = zip.decompress('bd1-2.2m');
 	game = new Baraduke();
-	sound = new C30({resolution: 400});
+	sound = new C30({clock: 49152000 / 1024});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
 });

@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, IntTimer, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -33,7 +33,7 @@ class Vulgus {
 	in = Uint8Array.of(0xff, 0xff, 0xff, 0xff, 0x7f);
 	psg = [{addr: 0}, {addr: 0}];
 	command = 0;
-	timer = 0;
+	cpu_irq = false;
 
 	fg = new Uint8Array(0x8000).fill(3);
 	bg = new Uint8Array(0x20000).fill(7);
@@ -46,8 +46,9 @@ class Vulgus {
 	palette = 0;
 	frame = 0;
 
-	cpu = new Z80();
-	cpu2 = new Z80();
+	cpu = new Z80(Math.floor(12000000 / 4));
+	cpu2 = new Z80(Math.floor(12000000 / 4));
+	timer = new IntTimer(8 * 60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -83,6 +84,8 @@ class Vulgus {
 			this.cpu.memorymap[0xd0 + i].write = null;
 		}
 
+		this.cpu.check_interrupt = () => { return this.cpu_irq && this.cpu.interrupt(0xd7) && (this.cpu_irq = false, true); };
+
 		for (let i = 0; i < 0x20; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
 		for (let i = 0; i < 8; i++) {
@@ -95,7 +98,7 @@ class Vulgus {
 			case 0:
 				return void(this.psg[0].addr = data);
 			case 1:
-				return sound[0].write(this.psg[0].addr, data, this.timer);
+				return sound[0].write(this.psg[0].addr, data);
 			}
 		};
 		this.cpu2.memorymap[0xc0].write = (addr, data) => {
@@ -103,7 +106,7 @@ class Vulgus {
 			case 0:
 				return void(this.psg[1].addr = data);
 			case 1:
-				return sound[1].write(this.psg[1].addr, data, this.timer);
+				return sound[1].write(this.psg[1].addr, data);
 			}
 		};
 
@@ -113,11 +116,16 @@ class Vulgus {
 		convertGFX(this.obj, OBJ, 256, seq(16, 0, 16), rseq(4, 264).concat(rseq(4, 256), rseq(4, 8), rseq(4)), [OBJ.length * 4 + 4, OBJ.length * 4, 4, 0], 64);
 	}
 
-	execute() {
-		for (let i = 0; i < 16; i++) {
-			!i && this.cpu.interrupt(0xd7); // RST 10H
-			~i & 1 && (this.timer = i >> 1, this.cpu2.interrupt());
-			Cpu.multiple_execute([this.cpu, this.cpu2], 600);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.cpu_irq = true;
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			this.timer.execute(tick_rate, () => { this.cpu2.interrupt(); });
+			sound[0].execute(tick_rate, rate_correction);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		return this;
 	}
@@ -408,8 +416,8 @@ read('vulgus.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	OBJCOLOR = zip.decompress('j2.bin');
 	game = new Vulgus();
 	sound = [
-		new AY_3_8910({clock: 1500000, resolution: 8}),
-		new AY_3_8910({clock: 1500000, resolution: 8}),
+		new AY_3_8910({clock: 12000000 / 8}),
+		new AY_3_8910({clock: 12000000 / 8}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

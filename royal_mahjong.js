@@ -35,7 +35,7 @@ class RoyalMahjong {
 	rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 	palette = 0;
 
-	cpu = new Z80();
+	cpu = new Z80(Math.floor(18432000 / 6));
 
 	constructor() {
 		// CPU周りの初期化
@@ -84,8 +84,14 @@ class RoyalMahjong {
 		}
 	}
 
-	execute() {
-		this.cpu.interrupt(), this.cpu.execute(0x2000);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.cpu.interrupt();
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -356,7 +362,7 @@ read('royalmj.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	PRG = Uint8Array.concat(...['1.p1', '2.p2', '3.p3', '4.p4', '5.p5', '6.p6'].map(e => zip.decompress(e))).addBase();
 	RGB = zip.decompress('18s030n.6k');
 	game = new RoyalMahjong();
-	sound = new AY_3_8910({clock: 1536000, gain: 0.2});
+	sound = new AY_3_8910({clock: 18432000 / 12, gain: 0.2});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound, keydown, keyup});
 });

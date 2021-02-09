@@ -5,7 +5,7 @@
  */
 
 import PolePositionSound from './pole_position_sound.js';
-import {init, read} from './main.js';
+import {init, IntTimer, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -24,7 +24,8 @@ class SoundTest {
 	fInterruptEnable = false;
 	ram = new Uint8Array(0x2300).addBase();
 	count = 0;
-	cpu = new Z80();
+	cpu = new Z80(Math.floor(24576000 / 8));
+	timer = new IntTimer(120);
 
 	constructor() {
 		// CPU周りの初期化
@@ -73,9 +74,14 @@ class SoundTest {
 		this.cpu.set_breakpoint(0x0159);
 	}
 
-	execute() {
-		for (this.count = 0; this.count < 2; this.count++)
-			this.fInterruptEnable && this.cpu.interrupt(), this.cpu.execute(0x1000);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.timer.execute(tick_rate, () => this.fInterruptEnable && this.cpu.interrupt());
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -175,7 +181,7 @@ read('polepos2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
 	game = new SoundTest();
-	sound = new PolePositionSound({SND, resolution: 2});
+	sound = new PolePositionSound({SND});
 	game.initial = true;
 	canvas.addEventListener('click', e => {
 		if (game.initial)

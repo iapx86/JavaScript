@@ -11,8 +11,8 @@ export default class SegaZ80 extends Z80 {
 	code_table = Uint8Array.from(seq(0x1100), i => i & 0xff);
 	data_table = Uint8Array.from(seq(0x1100), i => i & 0xff);
 
-	constructor(key) {
-		super();
+	constructor(key, clock) {
+		super(clock);
 		for (let i = 0; i < 0x1000; i++) {
 			this.code_table[i] = i & 0x57 | (i & 0x80 ? key[i >> 7 & ~1][bitswap(~i, 5, 3)] ^ 0xa8 : key[i >> 7 & ~1][bitswap(i, 5, 3)]);
 			this.data_table[i] = i & 0x57 | (i & 0x80 ? key[i >> 7 | 1][bitswap(~i, 5, 3)] ^ 0xa8 : key[i >> 7 | 1][bitswap(i, 5, 3)]);

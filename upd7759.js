@@ -6,163 +6,99 @@
 
 export default class UPD7759 {
 	base;
-	rate;
+	clock;
 	sampleRate;
-	count;
-	resolution;
 	gain;
-	tmpwheel = [];
-	wheel = [];
-	cycles = 0;
+	output = 0;
+	frac = 0;
 	md = true;
 	signal = 0;
-	port = [];
-	m0 = {state: 'IDLE', count: 0, valid: false};
-	m1 = {state: 'IDLE', count: 0, valid: false, cycles: 0, repeat: 0, num: 0, addr: 0, rate: 0};
+	port = 0;
+	m = {state: 'IDLE', count: 0, valid: false, cycle: 0, repeat: 0, num: 0, addr: 0, rate: 0};
 	addr = 0;
 	adpcm_state = 0;
 	adpcm_data = 0;
-	output = 0;
+	output0 = 0;
 
-	source = audioCtx.createBufferSource();
-	gainNode = audioCtx.createGain();
-	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
-
-	constructor({VOI, mode = true, clock = 640000, resolution = 1, gain = 0.5}) {
+	constructor({VOI, mode = true, clock = 640000, gain = 0.5}) {
 		this.base = VOI;
-		this.rate = Math.floor(clock);
+		this.clock = clock;
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
-		this.count = this.sampleRate - 1;
-		this.resolution = resolution;
 		this.gain = gain;
-		for (let i = 0; i < resolution; i++)
-			this.tmpwheel.push([]);
 		this.md = mode;
-		this.gainNode.gain.value = gain;
-		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0));
-		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
-		this.source.start();
 	}
 
-	reset(state, timer = 0) {
-		state & ~this.signal & 1 ? void(this.signal |= 2) : ~state & this.signal & 1 ? (!this.md && (this.m0.state = 'IDLE'), void this.tmpwheel[timer].push(256)) : void(0);
+	reset(state) {
+		~state & 1 && this.m.state !== 'IDLE' && (this.m.state = 'IDLE', this.m.cycle = this.adpcm_state = this.output0 = 0);
 		return void(this.signal = this.signal & ~1 | state & 1);
 	}
 
-	start(state, timer = 0) {
-		if (this.signal & 1 && ~state << 1 & this.signal & 2)
-			this.md ? void this.tmpwheel[timer].push(257) : this.m0.state === 'IDLE' ? (this.m0.state = 'START', void this.tmpwheel[timer].push(257)) : void(0);
+	st(state) {
+		this.signal & 1 && state << 1 & ~this.signal & 2 && this.m.state === 'IDLE' && (this.m.state = 'START', this.m.cycle -= 70);
 		return void(this.signal = this.signal & ~2 | state << 1 & 2);
 	}
 
 	busy() {
-		return (this.md ? this.m1.state : this.m0.state) === 'IDLE';
+		return this.m.state === 'IDLE';
 	}
 
-	write(data, timer = 0) {
-		this.md ? void(this.port[0] = data) : (this.tmpwheel[timer].push(data), this.advance_state0(data));
+	write(data) {
+		this.port = data;
+	}
+
+	execute(rate, rate_correction, fn) {
+		if (!this.md)
+			for (this.m.cycle += Math.floor((this.frac += this.clock * rate_correction) / rate), this.frac %= rate; this.m.cycle > 0;)
+				!this.transition() && fn();
 	}
 
 	update() {
-		if (this.wheel.length > this.resolution) {
-			while (this.wheel.length)
-				this.wheel.shift().forEach(e => this.control(e));
-			this.count = this.sampleRate - 1;
-		}
-		this.tmpwheel.forEach(e => this.wheel.push(e));
-		for (let i = 0; i < this.resolution; i++)
-			this.tmpwheel[i] = [];
+		if (this.md)
+			for (this.m.cycle += Math.floor((this.frac += this.clock) / this.sampleRate), this.frac %= this.sampleRate; this.m.cycle > 0; this.transition()) {}
+		this.output = this.output0 / 255 * this.gain;
 	}
 
-	makeSound(data) {
-		data.forEach((e, i) => {
-			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
-				this.wheel.length && this.wheel.shift().forEach(e => this.control(e));
-			data[i] = this.output / 255;
-			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate)
-				this.m1.cycles <= 0 ? this.advance_state() : void(0), --this.m1.cycles;
-		});
-	}
-
-	control(data) {
-		if (data < 256)
-			this.port.push(data);
-		else if (data === 256) // reset
-			this.m1.state = 'IDLE', this.m1.cycles = this.adpcm_state = this.output = 0;
-		else if (data === 257) // start
-			this.m1.state === 'IDLE' && (this.md ? void(0) : void this.port.splice(0), this.m1.state = 'START');
-	}
-
-	advance_state() {
-		const next = () => { return this.md ? this.base[this.addr++] : this.port.length ? this.port.shift() : -1; };
+	transition() {
+		const next = () => { return this.md ? this.base[this.addr++] : this.port; };
 		let data;
-		switch (this.m1.state) {
+		switch (this.m.state) {
 		case 'IDLE':
-			return void(this.m1.cycles = 4);
+			return this.m.cycle -= 4, true;
 		case 'START':
-			return this.m1.num = this.md ? this.port[0] : 0x10, this.addr = 0, this.m1.state = 'MAX_NUM', void(this.m1.cycles = 70 + 44 + 320);
+			return this.m.num = this.md ? this.port : 0x10, this.addr = 0, this.m.state = 'MAX_NUM', this.m.cycle -= 44, false;
 		case 'MAX_NUM':
-			return (data = next()) < 0 ? void(this.m1.cycles = 4) : (this.m1.state = data < this.m1.num ? 'IDLE' : 'DUMMY', void(this.m1.cycles = 28));
+			return data = next(), this.m.state = data < this.m.num ? 'IDLE' : 'DUMMY', this.m.cycle -= 32, this.m.state === 'IDLE';
 		case 'DUMMY':
-			return next() < 0 ? void(this.m1.cycles = 4) : (this.addr = this.m1.num * 2 + 5, this.m1.state = 'ADDR_H', void(this.m1.cycles = 32));
+			return next(), this.addr = this.m.num * 2 + 5, this.m.state = 'ADDR_H', this.m.cycle -= 32, false;
 		case 'ADDR_H':
-			return (this.m1.addr = next()) < 0 ? void(this.m1.cycles = 4) : (this.m1.state = 'ADDR_L', void(this.m1.cycles = 44));
+			return this.m.addr = next(), this.m.state = 'ADDR_L', this.m.cycle -= 44, false;
 		case 'ADDR_L':
-			return (data = next()) < 0 ? void(this.m1.cycles = 4) : (this.addr = (this.m1.addr << 8 | data) << 1, this.m1.state = 'DUMMY2', void(this.m1.cycles = 36));
+			return data = next(), this.addr = (this.m.addr << 8 | data) << 1, this.m.state = 'DUMMY2', this.m.cycle -= 36, false;
 		case 'DUMMY2':
-			return next() < 0 ? void(this.m1.cycles = 4) : (this.m1.valid = false, this.m1.repeat = 0, this.m1.state = 'HEADER', void(this.m1.cycles = 36));
+			return next(), this.m.valid = false, this.m.repeat = 0, this.m.state = 'HEADER', this.m.cycle -= 36, false;
 		case 'HEADER':
-			this.m1.repeat && (--this.m1.repeat, this.addr = this.m1.addr);
-			if ((data = next()) < 0)
-				return void(this.m1.cycles = 4);
-			data && (this.m1.valid = true);
+			this.m.repeat && (--this.m.repeat, this.addr = this.m.addr);
+			(data = next()) && (this.m.valid = true);
 			switch (data >> 6) {
 			case 0:
-				return this.adpcm_state = this.output = 0, this.m1.state = !data && this.m1.valid ? 'IDLE' : 'HEADER', void(this.m1.cycles = 1024 * ((data & 0x3f) + 1));
+				return this.adpcm_state = this.output0 = 0, this.m.state = !data && this.m.valid ? 'IDLE' : 'HEADER', this.m.cycle -= 1024 * ((data & 0x3f) + 1), this.m.state === 'IDLE';
 			case 1:
-				return this.m1.rate = 4 * ((data & 0x3f) + 1), this.m1.count = 256, this.m1.state = 'NIBBLE_H', void(this.m1.cycles = 36);
+				return this.m.rate = 4 * ((data & 0x3f) + 1), this.m.count = 256, this.m.state = 'NIBBLE_H', this.m.cycle -= 36, false;
 			case 2:
-				return this.m1.rate = 4 * ((data & 0x3f) + 1), this.m1.state = 'COUNT', void(this.m1.cycles = 36);
+				return this.m.rate = 4 * ((data & 0x3f) + 1), this.m.state = 'COUNT', this.m.cycle -= 36, false;
 			case 3:
-				return this.m1.repeat = (data & 7) + 1, this.m1.addr = this.addr, this.m1.state = 'HEADER', void(this.m1.cycles = 36);
+				return this.m.repeat = (data & 7) + 1, this.m.addr = this.addr, this.m.state = 'HEADER', this.m.cycle -= 36, false;
 			}
 			return;
 		case 'COUNT':
-			return (data = next()) < 0 ? void(this.m1.cycles = 4) : (this.m1.count = data + 1, this.m1.state = 'NIBBLE_H', void(this.m1.cycles = 36));
+			return data = next(), this.m.count = data + 1, this.m.state = 'NIBBLE_H', this.m.cycle -= 36, false;
 		case 'NIBBLE_H':
-			if ((this.adpcm_data = next()) < 0)
-				return void(this.m1.cycles = 4);
-			data = this.adpcm_data >> 4, this.output += step[this.adpcm_state][data], this.adpcm_state = Math.min(Math.max(this.adpcm_state + state_table[data], 0), 15);
-			return this.m1.state = --this.m1.count ? 'NIBBLE_L' : 'HEADER', void(this.m1.cycles = this.m1.rate);
+			this.adpcm_data = next();
+			data = this.adpcm_data >> 4, this.output0 += step[this.adpcm_state][data], this.adpcm_state = Math.min(Math.max(this.adpcm_state + state_table[data], 0), 15);
+			return this.m.state = --this.m.count ? 'NIBBLE_L' : 'HEADER', this.m.cycle -= this.m.rate, this.m.state === 'NIBBLE_L';
 		case 'NIBBLE_L':
-			data = this.adpcm_data & 15, this.output += step[this.adpcm_state][data], this.adpcm_state = Math.min(Math.max(this.adpcm_state + state_table[data], 0), 15);
-			return this.m1.state = --this.m1.count ? 'NIBBLE_H' : 'HEADER', void(this.m1.cycles = this.m1.rate);
-		}
-	}
-
-	advance_state0(data) {
-		switch (this.m0.state) {
-		case 'START':
-			return this.m0.valid = false, this.m0.count = 5, void(this.m0.state = data < 0x10 ? 'IDLE' : 'DUMMY');
-		case 'DUMMY':
-			return void(this.m0.state = --this.m0.count > 0 ? 'DUMMY' : 'HEADER');
-		case 'HEADER':
-			data && (this.m0.valid = true);
-			switch (data >> 6) {
-			case 0:
-				return void(this.m0.state = !data && this.m0.valid ? 'IDLE' : 'HEADER');
-			case 1:
-				return this.m0.count = 128, void(this.m0.state = 'NIBBLE');
-			case 2:
-				return void(this.m0.state = 'COUNT');
-			case 3:
-				return void(this.m0.state = 'HEADER');
-			}
-			break;
-		case 'COUNT':
-			return this.m0.count = data + 2 >> 1, void(this.m0.state = 'NIBBLE');
-		case 'NIBBLE':
-			return void(this.m0.state = --this.m0.count > 0 ? 'NIBBLE' : 'HEADER');
+			data = this.adpcm_data & 15, this.output0 += step[this.adpcm_state][data], this.adpcm_state = Math.min(Math.max(this.adpcm_state + state_table[data], 0), 15);
+			return this.m.state = --this.m.count ? 'NIBBLE_H' : 'HEADER', this.m.cycle -= this.m.rate, false;
 		}
 	}
 }

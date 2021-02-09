@@ -41,7 +41,7 @@ class ZigZag {
 	obj = new Uint8Array(0x4000).fill(3);
 	rgb = new Uint32Array(0x80);
 
-	cpu = new Z80();
+	cpu = new Z80(Math.floor(18432000 / 6));
 
 	constructor() {
 		// CPU周りの初期化
@@ -110,8 +110,14 @@ class ZigZag {
 		this.initializeStar();
 	}
 
-	execute() {
-		this.fInterruptEnable && this.cpu.non_maskable_interrupt(), this.cpu.execute(0x1600);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.fInterruptEnable && this.cpu.non_maskable_interrupt();
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		this.moveStars();
 		return this;
 	}
@@ -424,7 +430,7 @@ read('zigzagb.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	OBJ = Uint8Array.concat(...['zz_6.1h', 'zz_5.1k'].map(e => zip.decompress(e).subarray(0x800)));
 	RGB = zip.decompress('zzbpr_e9.bin');
 	game = new ZigZag();
-	sound = new AY_3_8910({clock: 1843200});
+	sound = new AY_3_8910({clock: 18432000 / 6});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
 });

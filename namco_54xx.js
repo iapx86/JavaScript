@@ -30,25 +30,18 @@ class BiquadFilter {
 }
 
 export default class Namco54XX {
-	rate;
-	sampleRate;
-	cycles = 0;
+	clock;
+	gain;
+	output = 0;
+	frac = 0;
 	mcu = new MB8840();
 	bq = [new BiquadFilter(), new BiquadFilter(), new BiquadFilter()];
 
-	source = audioCtx.createBufferSource();
-	gainNode = audioCtx.createGain();
-	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
-
 	constructor({PRG, clock, gain = 0.5}) {
-		this.rate = Math.floor(clock / 6);
-		this.sampleRate = Math.floor(audioCtx.sampleRate);
+		this.clock = clock / 6;
+		this.gain = gain;
 		this.mcu.rom.set(PRG);
 		[[200, 1], [200, 1], [2200, 1]].forEach((e, i) => this.bq[i].bandpass(...e));
-		this.gainNode.gain.value = gain;
-		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0));
-		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
-		this.source.start();
 	}
 
 	reset() {
@@ -61,14 +54,13 @@ export default class Namco54XX {
 			op === 0x25 && (this.mcu.cause &= ~4);
 	}
 
-	update() {}
+	execute(rate, rate_correction) {
+		for (this.mcu.cycle += Math.floor((this.frac += this.clock * rate_correction) / rate), this.frac %= rate; this.mcu.cycle > 0 && this.mcu.mask & 4;)
+			this.mcu.execute();
+	}
 
-	makeSound(data) {
-		data.forEach((e, i) => {
-			data[i] = this.bq[0].filter((this.mcu.o & 15) / 15) + this.bq[1].filter((this.mcu.o >> 4) / 15) + this.bq[2].filter((this.mcu.r >> 4 & 15) / 15);
-			this.mcu.cycles += Math.floor((this.cycles += this.rate) / this.sampleRate), this.cycles %= this.sampleRate;
-			for (; this.mcu.mask & 4 && this.mcu.cycles > 0; this.mcu.execute()) {}
-		});
+	update() {
+		this.output = (this.bq[0].filter((this.mcu.o & 15) / 15) + this.bq[1].filter((this.mcu.o >> 4) / 15) + this.bq[2].filter((this.mcu.r >> 4 & 15) / 15)) * this.gain;
 	}
 }
 

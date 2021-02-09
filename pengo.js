@@ -28,7 +28,6 @@ class Pengo {
 	nRank = 'MEDIUM';
 
 	fInterruptEnable = false;
-	fSoundEnable = false;
 	ram = new Uint8Array(0x1100).addBase();
 	in = Uint8Array.of(0xcc, 0xb0, 0xff, 0xff);
 
@@ -45,7 +44,7 @@ class Pengo {
 		[0x08, 0x28, 0x88, 0xa8], [0x08, 0x28, 0x88, 0xa8], [0xa0, 0x80, 0xa8, 0x88], [0xa0, 0x80, 0x20, 0x00],
 		[0x08, 0x00, 0x88, 0x80], [0x88, 0x80, 0x08, 0x00], [0x00, 0x08, 0x20, 0x28], [0x88, 0x80, 0x08, 0x00],
 		[0x08, 0x28, 0x88, 0xa8], [0x08, 0x28, 0x88, 0xa8], [0x08, 0x00, 0x88, 0x80], [0xa0, 0x80, 0x20, 0x00],
-	]);
+	], Math.floor(18432000 / 6));
 
 	constructor() {
 		// CPU周りの初期化
@@ -68,7 +67,7 @@ class Pengo {
 				case 0:
 					return void(this.fInterruptEnable = (data & 1) !== 0);
 				case 1:
-					return void(this.fSoundEnable = (data & 1) !== 0);
+					return sound.control(data & 1);
 				default:
 					return void(this.ram[0x1040 | addr & 7] = data & 1);
 				}
@@ -80,9 +79,14 @@ class Pengo {
 		convertGFX(this.obj, OBJ, 128, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4, 64).concat(seq(4, 128), seq(4, 192), seq(4)), [0, 4], 64);
 	}
 
-	execute() {
-		sound.mute(!this.fSoundEnable);
-		this.fInterruptEnable && this.cpu.interrupt(), this.cpu.execute(0x1600);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.fInterruptEnable && this.cpu.interrupt();
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 

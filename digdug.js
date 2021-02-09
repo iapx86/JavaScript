@@ -5,7 +5,7 @@
  */
 
 import PacManSound from './pac-man_sound.js';
-import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, read} from './main.js';
 import Z80 from './z80.js';
 import MB8840 from './mb8840.js';
 let game, sound;
@@ -35,11 +35,9 @@ class DigDug {
 	fInterruptEnable0 = false;
 	fInterruptEnable1 = false;
 	fInterruptEnable2 = false;
-	fNmiEnable = false;
+	fNmiEnable = 0;
 	ram = new Uint8Array(RAM).addBase();
 	mmi = new Uint8Array(0x100).fill(0xff);
-	mmo = new Uint8Array(0x100);
-	count = 0;
 	dmactrl = 0;
 	ioport = new Uint8Array(0x100);
 
@@ -54,8 +52,12 @@ class DigDug {
 	objcolor = Uint8Array.from(OBJCOLOR, e => 0x10 | e);
 	rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 
-	cpu = [new Z80(), new Z80(), new Z80()];
+	cpu = [new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6))];
 	mcu = new MB8840();
+	timer = {rate: Math.floor(18432000 / 384), frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = (this.count + 1) % this.rate);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -74,7 +76,7 @@ class DigDug {
 					switch (addr & 0xf0) {
 					case 0x00:
 					case 0x10:
-						return sound.write(addr, data, this.count);
+						return sound.write(addr, data);
 					case 0x20:
 						switch (addr & 0x0f) {
 						case 0:
@@ -82,7 +84,7 @@ class DigDug {
 						case 1:
 							return void(this.fInterruptEnable1 = (data & 1) !== 0);
 						case 2:
-							return this.mmo[0x22] && !data && (this.fInterruptEnable2 = true), void(this.mmo[0x22] = data);
+							return void(this.fInterruptEnable2 = !(data & 1));
 						case 3:
 							return data & 1 ? (this.cpu[1].enable(), this.cpu[2].enable()) : (this.cpu[1].disable(), this.cpu[2].disable());
 						}
@@ -99,7 +101,7 @@ class DigDug {
 			} else if (range(page, 0x71)) {
 				this.cpu[0].memorymap[page].read = () => { return this.dmactrl; };
 				this.cpu[0].memorymap[page].write = (addr, data) => {
-					this.fNmiEnable = (data & 0xe0) !== 0;
+					this.fNmiEnable = 2 << (data >> 5) & ~3;
 					switch (this.dmactrl = data) {
 					case 0x71:
 					case 0xb1:
@@ -166,12 +168,18 @@ class DigDug {
 		convertGFX(this.obj, OBJ, 256, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0, 4], 64);
 	}
 
-	execute() {
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
 		this.fInterruptEnable0 && this.cpu[0].interrupt(), this.fInterruptEnable1 && this.cpu[1].interrupt();
-		for (this.count = 0; this.count < 2; this.count++) {
-			this.fInterruptEnable2 && (this.fInterruptEnable2 = false, this.cpu[2].non_maskable_interrupt());
-			for (let i = 128; i !== 0; --i)
-				this.fNmiEnable && this.cpu[0].non_maskable_interrupt(), Cpu.multiple_execute(this.cpu, 32);
+		for (let i = 0; i < tick_max; i++) {
+			for (let j = 0; j < 3; j++)
+				this.cpu[j].execute(tick_rate);
+			this.timer.execute(tick_rate, (cnt) => {
+				this.fNmiEnable && !--this.fNmiEnable && (this.fNmiEnable = 2 << (this.dmactrl >> 5), this.cpu[0].non_maskable_interrupt());
+				!(cnt % Math.floor(this.timer.rate / 120)) && this.fInterruptEnable2 && this.cpu[2].non_maskable_interrupt();
+			});
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		return this;
 	}
@@ -256,6 +264,7 @@ class DigDug {
 		if (this.fReset) {
 			this.fReset = false;
 			this.fInterruptEnable0 = this.fInterruptEnable1 = this.fInterruptEnable2 = false;
+			this.fNmiEnable = 0;
 			this.cpu[0].reset();
 			this.cpu[1].disable();
 			this.cpu[2].disable();
@@ -1016,7 +1025,7 @@ read('digdug.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 }).then(() =>read('namco51.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	IO = zip.decompress('51xx.bin');
 	game = new DigDug();
-	sound = new PacManSound({SND, resolution: 2});
+	sound = new PacManSound({SND});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
 });

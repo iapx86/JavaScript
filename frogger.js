@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, bitswap, convertGFX, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -29,23 +29,24 @@ class Frogger {
 	nLife = 3;
 
 	fInterruptEnable = false;
-//	fSoundEnable = false;
 
 	ram = new Uint8Array(0xd00).addBase();
 	ppi0 = Uint8Array.of(0xff, 0xfc, 0xf1, 0);
 	ppi1 = new Uint8Array(4);
 	ram2 = new Uint8Array(0x400).addBase();
 	psg = {addr: 0};
-	count = 0;
-	timer = 0;
-	command = [];
+	cpu2_irq = false;
 
 	bg = new Uint8Array(0x4000).fill(3);
 	obj = new Uint8Array(0x4000).fill(3);
 	rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 
-	cpu = new Z80();
-	cpu2 = new Z80();
+	cpu = new Z80(Math.floor(18432000 / 6));
+	cpu2 = new Z80(Math.floor(14318181 / 8));
+	timer = {rate: 14318181 / 2048, frac: 0, count: 0, execute(rate, rate_correction, fn) {
+		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
+			fn(this.count = (this.count + 1) % 20);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -81,9 +82,10 @@ class Frogger {
 					if (addr & 0x1000)
 						switch (addr >> 1 & 3) {
 						case 0:
-							return this.command.push(data);
-//						case 1:
-//							return void(this.fSoundEnable = (data & 0x10) === 0);
+							return this.ppi1[0] = data, sound.write(0xe, data);
+						case 1:
+							~data & this.ppi1[1] & 8 && (this.cpu2_irq = true), this.ppi1[1] = data;
+							return sound.control(!(data & 0x10));
 						}
 				};
 			}
@@ -99,11 +101,13 @@ class Frogger {
 			this.cpu2.iomap[page].read = (addr) => { return addr & 0x40 ? sound.read(this.psg.addr) : 0xff; };
 			this.cpu2.iomap[page].write = (addr, data) => {
 				if (addr & 0x40)
-					sound.write(this.psg.addr, data, this.count);
+					sound.write(this.psg.addr, data);
 				else if (addr & 0x80)
 					this.psg.addr = data;
 			};
 		}
+
+		this.cpu2.check_interrupt = () => { return this.cpu2_irq && this.cpu2.interrupt() && (this.cpu2_irq = false, true); };
 
 		Frogger.decodeROM();
 
@@ -113,15 +117,15 @@ class Frogger {
 		convertGFX(this.obj, BG, 64, rseq(8, 128, 8).concat(rseq(8, 0, 8)), seq(8).concat(seq(8, 64)), [0, BG.length * 4], 32);
 	}
 
-	execute() {
-//		sound.mute(!this.fSoundEnable);
-		this.fInterruptEnable && this.cpu.non_maskable_interrupt(), this.cpu.execute(0x2000);
-		for (this.count = 0; this.count < 116; this.count++) { // 14318181 / 60 / 2048
-			if (this.command.length && this.cpu2.interrupt())
-				sound.write(0x0e, this.command.shift());
-			sound.write(0x0f, [0x26, 0x36, 0x26, 0x36, 0x2e, 0x3e, 0x2e, 0x3e, 0x66, 0x76, 0xa6, 0xb6, 0xa6, 0xb6, 0xae, 0xbe, 0xae, 0xbe, 0xe6, 0xf6][this.timer]);
-			this.cpu2.execute(36);
-			++this.timer >= 20 && (this.timer = 0);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.fInterruptEnable && this.cpu.non_maskable_interrupt();
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			this.timer.execute(tick_rate, rate_correction, (cnt) => sound.write(0xf, (cnt >= 10) << 7 | [0x26, 0x36, 0x26, 0x36, 0x2e, 0x3e, 0x2e, 0x3e, 0x66, 0x76][cnt % 10]));
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		return this;
 	}
@@ -155,12 +159,10 @@ class Frogger {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.cpu.reset();
 			this.fInterruptEnable = false;
-//			this.fSoundEnable = false;
-			this.command.splice(0);
+			this.cpu.reset();
+			this.cpu2_irq = false;
 			this.cpu2.reset();
-			this.timer = 0;
 		}
 		return this;
 	}
@@ -212,7 +214,7 @@ class Frogger {
 		if (Frogger.decoded)
 			return;
 		for (let i = 0; i < 0x800; i++)
-			PRG2[i] = PRG2[i] & 0xfc | PRG2[i] << 1 & 2 | PRG2[i] >> 1 & 1;
+			PRG2[i] = bitswap(PRG2[i], 7, 6, 5, 4, 3, 2, 0, 1);
 		Frogger.decoded = true;
 	}
 
@@ -403,7 +405,7 @@ read('frogger.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	BG = Uint8Array.concat(...['frogger.607', 'frogger.606'].map(e => zip.decompress(e)));
 	RGB = zip.decompress('pr-91.6l');
 	game = new Frogger();
-	sound = new AY_3_8910({clock: 14318181 / 8, resolution: 116, gain: 0.4});
+	sound = new AY_3_8910({clock: 14318181 / 8, gain: 0.4});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
 });

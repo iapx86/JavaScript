@@ -14,6 +14,22 @@ iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAC4jAAAuIwF4pT92AAAAfklE
 iQEgOlcY4HaAt1oAQAIs+zLEofRmiEMBzhAH+TYkgL9i7/2zrwozAGAA1IrTU6gECOYUDGAAA4ydA9uTsHIUS16gmlGaG+7acVkeOAkk6YlIiWQtoXRuLPfP\
 aAbAA72UT2ikWgrdAAAAAElFTkSuQmCC\
 ';
+const stream_out = `
+registerProcessor('StreamOut', class extends AudioWorkletProcessor {
+	samples = [];
+	constructor (options) {
+		super(options);
+		this.port.onmessage = ({data: {samples}}) => { samples && (this.samples = this.samples.concat(samples)); };
+		this.port.start();
+	}
+	process (inputs, outputs) {
+		const buffer = outputs[0][0].fill(0), length = buffer.length;
+		this.samples.length >= length && buffer.set(this.samples.splice(0, length));
+		this.samples.length >= sampleRate / 60 * 2 && this.samples.every(e => !e) && this.samples.splice(0);
+		return true;
+	}
+});
+`;
 const vsSource = `
 	attribute vec4 aVertexPosition;
 	attribute vec2 aTextureCoord;
@@ -32,8 +48,17 @@ const fsSource = `
 `;
 let game, sound, pixel, data;
 const cxScreen = canvas.width, cyScreen = canvas.height;
-const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-let button, state = '';
+const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl"), timestamps = [], samples = [];
+let source, worklet, scriptNode, button, state = '', toggle = 0;
+const addStreamOut = audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + stream_out) : new Promise((resolve, reject) => reject());
+const audio = {rate: audioCtx.sampleRate, frac: 0, execute(rate, rate_correction = 1) {
+	if (Array.isArray(sound))
+		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
+			audioCtx && samples.push(sound.reduce((a, e) => a + e.output, 0)), sound.forEach(e => e.update());
+	else
+		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
+			audioCtx && samples.push(sound.output), sound.update();
+}};
 
 (window.onresize = () => {
 	const zoom = Math.max(1, Math.min(Math.floor(window.innerWidth / cxScreen), Math.floor(window.innerHeight / cyScreen)));
@@ -99,6 +124,18 @@ export function init({keydown, keyup, ...args} = {}) {
 	gl.bufferData(gl.ARRAY_BUFFER, textureCoordinates, gl.STATIC_DRAW);
 	gl.vertexAttribPointer(aTextureCoordHandle, 2, gl.FLOAT, false, 0, 0);
 	gl.enableVertexAttribArray(aTextureCoordHandle);
+	source = audioCtx.createBufferSource();
+	addStreamOut.then(() => {
+		worklet = new AudioWorkletNode(audioCtx, 'StreamOut'), worklet.port.start();
+		source.connect(worklet).connect(audioCtx.destination), source.start();
+	}).catch(() => {
+		scriptNode = audioCtx.createScriptProcessor(1024, 1, 1);
+		scriptNode.onaudioprocess = ({outputBuffer}) => {
+			const buffer = outputBuffer.getChannelData(0).fill(0), length = buffer.length;
+			samples.length >= length && buffer.set(samples.splice(0, length)), samples.length >= length && samples.every(e => !e) && samples.splice(0);
+		};
+		source.connect(scriptNode).connect(audioCtx.destination), source.start();
+	});
 	button = new Image();
 	(button.update = () => {
 		button.src = audioCtx.state === 'suspended' ? volume0 : volume1;
@@ -172,15 +209,16 @@ export function init({keydown, keyup, ...args} = {}) {
 			return void('triggerB' in game && game.triggerB(false));
 		}
 	});
-	void function loop() {
-		if (sound)
-			Array.isArray(sound) ? sound.forEach(s => s.update(game)) : sound.update(game);
+	requestAnimationFrame(function loop(timestamp) {
+		for (!(toggle ^= 1) && timestamps.shift(), timestamps.push(timestamp); timestamps.length > 61; timestamps.shift()) {}
+		const rate_correction = timestamps.length > 1 ? Math.max(0.8, Math.min(1.25, (timestamp - timestamps[0]) / (timestamps.length - 1) * 0.06)) : 1;
 		updateGamepad(game);
-		game.updateStatus().updateInput().execute().makeBitmap(data);
+		game.updateStatus().updateInput().execute(audio, rate_correction).makeBitmap(data);
+		audioCtx.state !== 'running' && samples.splice(0), worklet && samples.length && (worklet.port.postMessage({samples}), samples.splice(0));
 		gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, game.yOffset, game.width, game.cyScreen, gl.RGBA, gl.UNSIGNED_BYTE, pixel.subarray(game.yOffset * game.width * 4));
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 		requestAnimationFrame(loop);
-	}();
+	});
 }
 
 /*
@@ -220,6 +258,36 @@ export function convertGFX(dst, src, n, x, y, z, d) {
 			for (let k = 0; k < x.length; p++, k++)
 				for (let l = 0; l < z.length; l++)
 					z[l] >= 0 && (dst[p] ^= (~src[q + (x[k] + y[j] + z[l] >> 3)] >> (x[k] + y[j] + z[l] & 7 ^ 7) & 1) << z.length - l - 1);
+}
+
+export class IntTimer {
+	rate = 0;
+	frac = 0;
+	fn = () => {};
+
+	constructor(rate = 0) {
+		this.rate = rate;
+	}
+
+	execute(rate, fn = this.fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn();
+	}
+}
+
+export class DoubleTimer {
+	rate = 0;
+	frac = 0;
+	fn = () => {};
+
+	constructor(rate = 0) {
+		this.rate = rate;
+	}
+
+	execute(rate, rate_correction, fn = this.fn) {
+		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
+			fn();
+	}
 }
 
 export function read(url) {
@@ -340,10 +408,14 @@ export default class Cpu {
 	breakpoint = null;
 	undef = null;
 	undefsize = 0;
+	clock = 0;
+	frac = 0;
+	cycle = 0;
 
-	constructor() {
+	constructor(clock = 0) {
 		for (let i = 0; i < 0x100; i++)
 			this.memorymap.push({base: dummypage, read: null, write: () => {}, fetch: null});
+		this.clock = clock;
 	}
 
 	set_breakpoint(addr) {
@@ -361,6 +433,8 @@ export default class Cpu {
 	reset() {
 		this.fActive = true;
 		this.fSuspend = false;
+		this.frac = 0;
+		this.cycle = 0;
 	}
 
 	enable() {
@@ -392,27 +466,26 @@ export default class Cpu {
 		return true;
 	}
 
-	static multiple_execute(cpus, count) {
-		for (let i = 0; i < count; i++)
-			cpus.forEach(cpu => {
-				if (!cpu.fActive || cpu.check_interrupt && cpu.check_interrupt(cpu.arg) || cpu.fSuspend)
-					return;
-				if (cpu.breakpoint && cpu.breakpointmap[cpu.pc >>> 5] >> (cpu.pc & 31) & 1)
-					cpu.breakpoint(cpu.pc, cpu.arg);
-				cpu._execute();
-			});
-	}
-
-	execute(count) {
-		for (let i = 0; i < count; i++) {
-			if (!this.fActive)
-				break;
-			if (this.check_interrupt && this.check_interrupt() || this.fSuspend)
+	execute(rate) {
+		if (!this.fActive)
+			return;
+		for (this.cycle += Math.floor((this.frac += this.clock) / rate), this.frac %= rate; this.cycle > 0;) {
+			if (this.check_interrupt && this.check_interrupt())
 				continue;
+			if (this.fSuspend)
+				return void(this.cycle = 0);
 			if (this.breakpoint && this.breakpointmap[this.pc >>> 5] >> (this.pc & 31) & 1)
 				this.breakpoint(this.pc);
 			this._execute();
 		}
+	}
+
+	execute1() {
+		if (!this.fActive || this.check_interrupt && this.check_interrupt() || this.fSuspend)
+			return;
+		if (this.breakpoint && this.breakpointmap[this.pc >>> 5] >> (this.pc & 31) & 1)
+			this.breakpoint(this.pc);
+		this._execute();
 	}
 
 	_execute() {

@@ -30,7 +30,6 @@ class KingAndBalloon {
 	fVoice = true;
 
 	fInterruptEnable = false;
-	fSoundEnable = false;
 	ram = new Uint8Array(0x900).addBase();
 	mmo = new Uint8Array(0x100);
 	ioport = new Uint8Array(0x100);
@@ -39,9 +38,9 @@ class KingAndBalloon {
 	obj = new Uint8Array(0x4000).fill(3);
 	rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 
-	se = [BOMB, SHOT, WAVE1111, HELP, THANKYOU, BYEBYE].map(buf => ({buf, loop: false, start: false, stop: false}));
+	se = [BOMB, SHOT, WAVE1111, HELP, THANKYOU, BYEBYE].map(buf => ({freq: 11025, buf, loop: false, start: false, stop: false}));
 
-	cpu = new Z80();
+	cpu = new Z80(Math.floor(18432000 / 6));
 
 	constructor() {
 		this.ioport[0x10] = 0x40;
@@ -71,6 +70,9 @@ class KingAndBalloon {
 				break;
 			case 5: // SHOT
 				data & 1 && !this.mmo[0x15] && (this.se[1].start = this.se[1].stop = true);
+				break;
+			case 7: // SOUND VOICE/FREQUENCY
+				sound[0].set_reg17(data);
 				break;
 			}
 			this.mmo[addr & 7 | 0x10] = data & 1;
@@ -107,12 +109,12 @@ class KingAndBalloon {
 					this.cpu.memorymap[0xa0].base = this.ioport;
 				break;
 			case 4:
-				!this.fSoundEnable && (this.mmo[0x30] = 0xff), this.fSoundEnable = (data & 1) !== 0;
+				sound[0].control(data & 1);
 				break;
 			}
 			this.mmo[addr & 7 | 0x20] = data;
 		};
-		this.cpu.memorymap[0xb8].write = (addr, data) => { this.mmo[0x30] = data; }; // SOUND FREQUENCY
+		this.cpu.memorymap[0xb8].write = (addr, data) => { sound[0].set_reg30(data), this.mmo[0x30] = data; }; // SOUND FREQUENCY
 
 		// Videoの初期化
 		convertGFX(this.bg, BG, 256, rseq(8, 0, 8), seq(8), [0, BG.length * 4], 8);
@@ -120,12 +122,17 @@ class KingAndBalloon {
 
 		// 効果音の初期化
 		KingAndBalloon.convertVOICE();
+		this.se[3].freq = this.se[4].freq = this.se[5].freq = 5000;
 		this.se[2].loop = this.se[3].loop = true;
 	}
 
-	execute() {
-		sound[0].mute(!this.fSoundEnable);
-		this.fInterruptEnable && this.cpu.non_maskable_interrupt(), this.cpu.execute(0x2000);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.fInterruptEnable && this.cpu.non_maskable_interrupt();
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -171,7 +178,6 @@ class KingAndBalloon {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.fSoundEnable = false;
 			this.se.forEach(se => se.stop = true);
 			this.cpu.reset();
 			this.fInterruptEnable = false;
@@ -212,54 +218,27 @@ class KingAndBalloon {
 	}
 
 	static convertVOICE() {
-		const voicebuf = new Int16Array(0x2000);
-		let i, j, k, d;
-
 		// Help !
-		i = 0;
-		for (j = 0x700, k = 0x100; j !== 0; --j) {
-			voicebuf[i++] = (VOICE[k] >> 4) - 8 << 10;
-			voicebuf[i++] = (VOICE[k++] & 0xf) - 8 << 10;
+		let i = 0;
+		for (let j = 0x700, k = 0x100; j !== 0; --j) {
+			HELP[i++] = (VOICE[k] >> 4) - 8 << 10;
+			HELP[i++] = (VOICE[k++] & 0xf) - 8 << 10;
 		}
-		for (j = 0x1200; j !== 0; --j)
-			voicebuf[i++] = 0;
-		// 5000Hzのオリジナルを11025Hzにコンバート
-		j = k = d = 0;
-		while (k < i) {
-			HELP[j++] = voicebuf[k];
-			d += 5000;
-			k += d / 11025 | 0;
-			d %= 11025;
-		}
+		for (let j = 0x1200; j !== 0; --j)
+			HELP[i++] = 0;
 
 		// Thank you !
 		i = 0;
-		for (j = 0x800, k = 0x800; j !== 0; --j) {
-			voicebuf[i++] = (VOICE[k] >> 4) - 8 << 10;
-			voicebuf[i++] = (VOICE[k++] & 0xf) - 8 << 10;
-		}
-		// 5000Hzのオリジナルを11025Hzにコンバート
-		j = k = d = 0;
-		while (k < i) {
-			THANKYOU[j++] = voicebuf[k];
-			d += 5000;
-			k += d / 11025 | 0;
-			d %= 11025;
+		for (let j = 0x800, k = 0x800; j !== 0; --j) {
+			THANKYOU[i++] = (VOICE[k] >> 4) - 8 << 10;
+			THANKYOU[i++] = (VOICE[k++] & 0xf) - 8 << 10;
 		}
 
 		// Bye bye !
 		i = 0;
-		for (j = 0x800, k = 0x1000; j !== 0; --j) {
-			voicebuf[i++] = (VOICE[k] >> 4) - 8 << 10;
-			voicebuf[i++] = (VOICE[k++] & 0xf) - 8 << 10;
-		}
-		// 5000Hzのオリジナルを11025Hzにコンバート
-		j = k = d = 0;
-		while (k < i) {
-			BYEBYE[j++] = voicebuf[k];
-			d += 5000;
-			k += d / 11025 | 0;
-			d %= 11025;
+		for (let j = 0x800, k = 0x1000; j !== 0; --j) {
+			BYEBYE[i++] = (VOICE[k] >> 4) - 8 << 10;
+			BYEBYE[i++] = (VOICE[k++] & 0xf) - 8 << 10;
 		}
 	}
 
@@ -1724,9 +1703,9 @@ Lfkm+t/50vr8+j37Evz9+/n7t/wd/eP8Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkA
  *
  */
 
-const HELP = new Int16Array((0x700 * 2 + 0x1200) * 11025 / 5000 | 0);
-const THANKYOU = new Int16Array(0x800 * 2 * 11025 / 5000 | 0);
-const BYEBYE = new Int16Array(0x800 * 2 * 11025 / 5000 | 0);
+const HELP = new Int16Array(0x700 * 2 + 0x1200);
+const THANKYOU = new Int16Array(0x800 * 2);
+const BYEBYE = new Int16Array(0x800 * 2);
 let BG, RGB, PRG, VOICE;
 
 read('kingball.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
@@ -1737,7 +1716,7 @@ read('kingball.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	game = new KingAndBalloon();
 	sound = [
 		new GalaxianSound({SND}),
-		new SoundEffect({se: game.se, freq: 11025, gain: 0.5}),
+		new SoundEffect({se: game.se, gain: 0.5}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

@@ -43,17 +43,24 @@ class TwinBee {
 	psg = [{addr: 0}, {addr: 0}];
 	scc = {freq0: 0, freq1: 0};
 	vlm_latch = 0;
-	count = 0;
-	timer = 0;
-	command = [];
+	command = 0;
+	cpu2_irq = false;
 
 	chr = new Uint8Array(0x20000);
 	rgb = new Uint32Array(0x800).fill(0xff000000);
 	flip = 0;
 	intensity = new Uint8Array(32);
 
-	cpu = new MC68000();
-	cpu2 = new Z80();
+	cpu = new MC68000(Math.floor(18432000 / 2));
+	cpu2 = new Z80(Math.floor(14318180 / 8));
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
+	timer = {rate: 14318180 / 4096, frac: 0, count: 0, execute(rate, rate_correction, fn) {
+		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255)
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -87,7 +94,7 @@ class TwinBee {
 				this.rgb[offset >> 1] = 0xff000000 | this.intensity[data >> 10 & 31] << 16 | this.intensity[data >> 5 & 31] << 8 | this.intensity[data & 31];
 			};
 		}
-		this.cpu.memorymap[0x5c0].write = (addr, data) => { addr === 0x5c001 && this.command.push(data); };
+		this.cpu.memorymap[0x5c0].write = (addr, data) => { addr === 0x5c001 && (this.command = data); };
 		this.cpu.memorymap[0x5c4].read = (addr) => { return addr >= 0x5c402 && addr < 0x5c408 ? this.in[addr - 0x5c402 >> 1] : 0xff; };
 		this.cpu.memorymap[0x5cc].read = (addr) => { return addr < 0x5cc06 ? this.in[addr - 0x5cc00 + 6 >> 1] : 0xff; };
 		this.cpu.memorymap[0x5d0].read = (addr) => { return addr === 0x5d001 ? 0 : 0xff; };
@@ -95,6 +102,8 @@ class TwinBee {
 			switch (addr & 0xff) {
 			case 1:
 				return void(this.fInterrupt2Enable = (data & 1) !== 0);
+			case 4:
+				return void(data & 1 && (this.cpu2_irq = true));
 			case 5:
 				return void(this.flip = this.flip & 2 | data & 1);
 			case 7:
@@ -127,7 +136,7 @@ class TwinBee {
 		this.cpu2.memorymap[0xe0].read = (addr) => {
 			switch (addr & 0xff) {
 			case 1:
-				return this.command.length ? this.command.shift() : 0xff;
+				return this.command;
 			case 0x86:
 				return sound[0].read(this.psg[0].addr);
 			}
@@ -138,9 +147,9 @@ class TwinBee {
 			case 0:
 				return void(this.vlm_latch = data);
 			case 3:
-				return sound[2].write(2, this.scc.freq0, this.count);
+				return sound[2].write(2, this.scc.freq0);
 			case 4:
-				return sound[2].write(3, this.scc.freq1, this.count);
+				return sound[2].write(3, this.scc.freq1);
 			case 5:
 				return void(this.psg[1].addr = data);
 			case 6:
@@ -149,15 +158,17 @@ class TwinBee {
 				return sound[3].st(this.vlm_latch);
 			}
 		};
-		this.cpu2.memorymap[0xe1].write = (addr, data) => { addr === 0xe106 && this.psg[0].addr !== 0xe && sound[0].write(this.psg[0].addr, data, this.count); };
+		this.cpu2.memorymap[0xe1].write = (addr, data) => { addr === 0xe106 && this.psg[0].addr !== 0xe && sound[0].write(this.psg[0].addr, data); };
 		this.cpu2.memorymap[0xe2].read = (addr) => { return addr === 0xe205 ? sound[1].read(this.psg[1].addr) : 0xff; };
 		this.cpu2.memorymap[0xe4].write = (addr, data) => {
 			if (addr === 0xe405) {
 				if ((this.psg[1].addr & 0xe) === 0xe)
-					sound[2].write(this.psg[1].addr & 1, data, this.count);
-				sound[1].write(this.psg[1].addr, data, this.count);
+					sound[2].write(this.psg[1].addr & 1, data);
+				sound[1].write(this.psg[1].addr, data);
 			}
 		};
+
+		this.cpu2.check_interrupt = () => { return this.cpu2_irq && this.cpu2.interrupt() && (this.cpu2_irq = false, true); };
 
 		// Videoの初期化
 
@@ -175,17 +186,20 @@ class TwinBee {
 		this.intensity.set(_intensity.map(e => (e - black) * white + 0.5));
 	}
 
-	execute() {
-		for (let vpos = 0; vpos < 256; vpos++) {
-			!vpos && this.fInterrupt2Enable && this.cpu.interrupt(2);
-			vpos === 120 && this.fInterrupt4Enable && this.cpu.interrupt(4);
-			this.cpu.execute(64);
-		}
-		for (this.count = 0; this.count < 58; this.count++) { // 14318180 / 4 / 60 / 1024
-			this.command.length && this.cpu2.interrupt();
-			sound[0].write(0x0e, this.timer & 0x2f | sound[3].BSY << 5 | 0xd0);
-			this.cpu2.execute(146);
-			this.timer = this.timer + 1 & 0xff;
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			this.scanline.execute(tick_rate, (cnt) => {
+				const vpos = cnt + 240 & 0xff;
+				vpos === 0 && this.fInterrupt2Enable && this.cpu.interrupt(2);
+				vpos === 120 && this.fInterrupt4Enable && this.cpu.interrupt(4);
+			});
+			this.timer.execute(tick_rate, rate_correction, (cnt) => { sound[0].write(0xe, cnt & 0x2f | sound[3].BSY << 5 | 0xd0); });
+			for (let j = 0; j < 3; j++)
+				sound[j].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		this.cpu2.non_maskable_interrupt();
 		return this;
@@ -255,9 +269,8 @@ class TwinBee {
 			this.cpu.reset();
 			this.fInterrupt2Enable = false;
 			this.fInterrupt4Enable = false;
-			this.command.splice(0);
+			this.cpu2_irq = false;
 			this.cpu2.reset();
-			this.timer = 0;
 		}
 		return this;
 	}
@@ -585,9 +598,9 @@ read('twinbee.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	SND = Uint8Array.concat(...['400-a01.fse', '400-a02.fse'].map(e => zip.decompress(e)));
 	game = new TwinBee();
 	sound = [
-		new AY_3_8910({clock: 14318180 / 8, resolution: 58, gain: 0.3}),
-		new AY_3_8910({clock: 14318180 / 8, resolution: 58, gain: 0.3}),
-		new K005289({SND, clock: 14318180 / 4, resolution: 58, gain: 0.3}),
+		new AY_3_8910({clock: 14318180 / 8, gain: 0.3}),
+		new AY_3_8910({clock: 14318180 / 8, gain: 0.3}),
+		new K005289({SND, clock: 14318180 / 4, gain: 0.3}),
 		new VLM5030({VLM: game.vlm, clock: 14318180 / 4, gain: 5}),
 	];
 	canvas.addEventListener('click', () => game.coin());

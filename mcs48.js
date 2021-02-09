@@ -30,7 +30,7 @@ export default class MCS48 {
 	mask = 0;
 	a11mask = 0;
 	rom = new Uint8Array(0x1000);
-	cycles = 0;
+	cycle = 0;
 
 	reset() {
 		this.pc = 0;
@@ -42,7 +42,7 @@ export default class MCS48 {
 		this.f0 = 0;
 		this.f1 = 0;
 		this.a11mask = 0x800;
-		this.cycles = 0;
+		this.cycle = 0;
 	}
 
 	interrupt(cause = 'external') {
@@ -60,474 +60,475 @@ export default class MCS48 {
 			this.mask &= ~2, intvec = 7;
 			break;
 		}
-		return this.push(), this.pc = intvec, this.a11mask = 0, this.cycles = this.cycles - 2 | 0, true;
+		return this.cycle -= 2, this.push(), this.pc = intvec, this.a11mask = 0, true;
 	}
 
 	execute () {
-		let v, w;
-		switch (this.fetch()) {
+		let v, w, op = this.fetch();
+		this.cycle -= cc[op];
+		switch (op) {
 		case 0x00: // NOP
-			return 0x00;
+			return op;
 		case 0x01: // IDL
-			return 0x01;
+			return op;
 		case 0x02: // OUTL BUS,A
-			return this.bus = this.a, this.cycles = this.cycles - 1 | 0, 0x02;
+			return this.bus = this.a, op;
 		case 0x03: // ADD A,#data
-			return this.add(this.fetch()), 0x03;
+			return this.add(this.fetch()), op;
 		case 0x04: // JMP address
-			return this.pc = this.dbf & this.a11mask | 0x000 | this.fetch(), 0x04;
+			return this.pc = this.dbf & this.a11mask | 0x000 | this.fetch(), op;
 		case 0x05: // EN I
-			return this.mask |= 1, 0x05;
+			return this.mask |= 1, op;
 		case 0x07: // DEC A
-			return this.a = this.a - 1 & 0xff, 0x07;
+			return this.a = this.a - 1 & 0xff, op;
 		case 0x08: // INS A,BUS
-			return this.a = this.bus, this.cycles = this.cycles - 1 | 0, 0x08;
+			return this.a = this.bus, op;
 		case 0x09: // IN A,P1
-			return this.a = this.p1, this.cycles = this.cycles - 1 | 0, 0x09;
+			return this.a = this.p1, op;
 		case 0x0a: // IN A,P2
-			return this.a = this.p2, this.cycles = this.cycles - 1 | 0, 0x0a;
+			return this.a = this.p2, op;
 		case 0x0c: // MOVD A,P4
-			return this.a = this.p4, this.cycles = this.cycles - 1 | 0, 0x0c;
+			return this.a = this.p4, op;
 		case 0x0d: // MOVD A,P5
-			return this.a = this.p5, this.cycles = this.cycles - 1 | 0, 0x0d;
+			return this.a = this.p5, op;
 		case 0x0e: // MOVD A,P6
-			return this.a = this.p6, this.cycles = this.cycles - 1 | 0, 0x0e;
+			return this.a = this.p6, op;
 		case 0x0f: // MOVD A,P7
-			return this.a = this.p7, this.cycles = this.cycles - 1 | 0, 0x0f;
+			return this.a = this.p7, op;
 		case 0x10: // INC @R0
-			return this.r[this.r[this.bs | 0]] += 1, 0x10;
+			return this.r[this.r[this.bs | 0]] += 1, op;
 		case 0x11: // INC @R1
-			return this.r[this.r[this.bs | 1]] += 1, 0x11;
+			return this.r[this.r[this.bs | 1]] += 1, op;
 		case 0x12: // JB0 address
-			return v = this.pc & 0xf00, v |= this.fetch(), this.a & 1 && (this.pc = v), 0x12;
+			return v = this.pc & 0xf00, v |= this.fetch(), this.a & 1 && (this.pc = v), op;
 		case 0x13: // ADDC A,#data
-			return this.addc(this.fetch()), 0x13;
+			return this.addc(this.fetch()), op;
 		case 0x14: // CALL address
-			return v = this.dbf & this.a11mask | 0x000 | this.fetch(), this.push(), this.pc = v, 0x14;
+			return v = this.dbf & this.a11mask | 0x000 | this.fetch(), this.push(), this.pc = v, op;
 		case 0x15: // DIS I
-			return this.mask &= ~1, 0x15;
+			return this.mask &= ~1, op;
 		case 0x16: // JTF address
-			return v = this.pc & 0xf00, v |= this.fetch(), this.tf && (this.pc = v), this.tf = 0, 0x16;
+			return v = this.pc & 0xf00, v |= this.fetch(), this.tf && (this.pc = v), this.tf = 0, op;
 		case 0x17: // INC A
-			return this.a = this.a + 1 & 0xff, 0x17;
+			return this.a = this.a + 1 & 0xff, op;
 		case 0x18: // INC R0
-			return this.r[this.bs | 0] += 1, 0x18;
+			return this.r[this.bs | 0] += 1, op;
 		case 0x19: // INC R1
-			return this.r[this.bs | 1] += 1, 0x19;
+			return this.r[this.bs | 1] += 1, op;
 		case 0x1a: // INC R2
-			return this.r[this.bs | 2] += 1, 0x1a;
+			return this.r[this.bs | 2] += 1, op;
 		case 0x1b: // INC R3
-			return this.r[this.bs | 3] += 1, 0x1b;
+			return this.r[this.bs | 3] += 1, op;
 		case 0x1c: // INC R4
-			return this.r[this.bs | 4] += 1, 0x1c;
+			return this.r[this.bs | 4] += 1, op;
 		case 0x1d: // INC R5
-			return this.r[this.bs | 5] += 1, 0x1d;
+			return this.r[this.bs | 5] += 1, op;
 		case 0x1e: // INC R6
-			return this.r[this.bs | 6] += 1, 0x1e;
+			return this.r[this.bs | 6] += 1, op;
 		case 0x1f: // INC R7
-			return this.r[this.bs | 7] += 1, 0x1f;
+			return this.r[this.bs | 7] += 1, op;
 		case 0x20: // XCH A,@R0
-			return v = this.r[this.bs | 0], w = this.r[v], this.r[v] = this.a, this.a = w, 0x20;
+			return v = this.r[this.bs | 0], w = this.r[v], this.r[v] = this.a, this.a = w, op;
 		case 0x21: // XCH A,@R1
-			return v = this.r[this.bs | 1], w = this.r[v], this.r[v] = this.a, this.a = w, 0x21;
+			return v = this.r[this.bs | 1], w = this.r[v], this.r[v] = this.a, this.a = w, op;
 		case 0x23: // MOV A,#data
-			return this.a = this.fetch(), 0x23;
+			return this.a = this.fetch(), op;
 		case 0x24: // JMP address
-			return this.pc = this.dbf & this.a11mask | 0x100 | this.fetch(), 0x24;
+			return this.pc = this.dbf & this.a11mask | 0x100 | this.fetch(), op;
 		case 0x25: // EN TCNTI
-			return this.mask |= 2, 0x25;
+			return this.mask |= 2, op;
 		case 0x26: // JNT0 address
-			return v = this.pc & 0xf00, v |= this.fetch(), !this.t0 && (this.pc = v), 0x26;
+			return v = this.pc & 0xf00, v |= this.fetch(), !this.t0 && (this.pc = v), op;
 		case 0x27: // CLR A
-			return this.a = 0, 0x27;
+			return this.a = 0, op;
 		case 0x28: // XCH A,R0
-			return v = this.bs | 0, w = this.r[v], this.r[v] = this.a, this.a = w, 0x28;
+			return v = this.bs | 0, w = this.r[v], this.r[v] = this.a, this.a = w, op;
 		case 0x29: // XCH A,R1
-			return v = this.bs | 1, w = this.r[v], this.r[v] = this.a, this.a = w, 0x29;
+			return v = this.bs | 1, w = this.r[v], this.r[v] = this.a, this.a = w, op;
 		case 0x2a: // XCH A,R2
-			return v = this.bs | 2, w = this.r[v], this.r[v] = this.a, this.a = w, 0x2a;
+			return v = this.bs | 2, w = this.r[v], this.r[v] = this.a, this.a = w, op;
 		case 0x2b: // XCH A,R3
-			return v = this.bs | 3, w = this.r[v], this.r[v] = this.a, this.a = w, 0x2b;
+			return v = this.bs | 3, w = this.r[v], this.r[v] = this.a, this.a = w, op;
 		case 0x2c: // XCH A,R4
-			return v = this.bs | 4, w = this.r[v], this.r[v] = this.a, this.a = w, 0x2c;
+			return v = this.bs | 4, w = this.r[v], this.r[v] = this.a, this.a = w, op;
 		case 0x2d: // XCH A,R5
-			return v = this.bs | 5, w = this.r[v], this.r[v] = this.a, this.a = w, 0x2d;
+			return v = this.bs | 5, w = this.r[v], this.r[v] = this.a, this.a = w, op;
 		case 0x2e: // XCH A,R6
-			return v = this.bs | 6, w = this.r[v], this.r[v] = this.a, this.a = w, 0x2e;
+			return v = this.bs | 6, w = this.r[v], this.r[v] = this.a, this.a = w, op;
 		case 0x2f: // XCH A,R7
-			return v = this.bs | 7, w = this.r[v], this.r[v] = this.a, this.a = w, 0x2f;
+			return v = this.bs | 7, w = this.r[v], this.r[v] = this.a, this.a = w, op;
 		case 0x30: // XCHD A,@R0
-			return v = this.r[this.bs | 0], w = this.r[v], this.r[v] = this.r[v] & 0xf0 | this.a & 0xf, this.a = this.a & 0xf0 | w & 0xf, 0x30;
+			return v = this.r[this.bs | 0], w = this.r[v], this.r[v] = this.r[v] & 0xf0 | this.a & 0xf, this.a = this.a & 0xf0 | w & 0xf, op;
 		case 0x31: // XCHD A,@R1
-			return v = this.r[this.bs | 1], w = this.r[v], this.r[v] = this.r[v] & 0xf0 | this.a & 0xf, this.a = this.a & 0xf0 | w & 0xf, 0x31;
+			return v = this.r[this.bs | 1], w = this.r[v], this.r[v] = this.r[v] & 0xf0 | this.a & 0xf, this.a = this.a & 0xf0 | w & 0xf, op;
 		case 0x32: // JB1 address
-			return v = this.pc & 0xf00, v |= this.fetch(), this.a & 2 && (this.pc = v), 0x32;
+			return v = this.pc & 0xf00, v |= this.fetch(), this.a & 2 && (this.pc = v), op;
 		case 0x34: // CALL address
-			return v = this.dbf & this.a11mask | 0x100 | this.fetch(), this.push(), this.pc = v, 0x34;
+			return v = this.dbf & this.a11mask | 0x100 | this.fetch(), this.push(), this.pc = v, op;
 		case 0x35: // DIS TCNTI
-			return this.mask &= ~2, 0x35;
+			return this.mask &= ~2, op;
 		case 0x36: // JT0 address
-			return v = this.pc & 0xf00, v |= this.fetch(), this.t0 && (this.pc = v), 0x36;
+			return v = this.pc & 0xf00, v |= this.fetch(), this.t0 && (this.pc = v), op;
 		case 0x37: // CPL A
-			return this.a ^= 0xff, 0x37;
+			return this.a ^= 0xff, op;
 		case 0x39: // OUTL P1,A
-			return this.p1 = this.a, this.cycles = this.cycles - 1 | 0, 0x39;
+			return this.p1 = this.a, op;
 		case 0x3a: // OUTL P2,A
-			return this.p2 = this.a, this.cycles = this.cycles - 1 | 0, 0x3a;
+			return this.p2 = this.a, op;
 		case 0x3c: // MOVD P4,A
-			return this.p4 = this.a & 0xf, this.cycles = this.cycles - 1 | 0, 0x3c;
+			return this.p4 = this.a & 0xf, op;
 		case 0x3d: // MOVD P5,A
-			return this.p5 = this.a & 0xf, this.cycles = this.cycles - 1 | 0, 0x3d;
+			return this.p5 = this.a & 0xf, op;
 		case 0x3e: // MOVD P6,A
-			return this.p6 = this.a & 0xf, this.cycles = this.cycles - 1 | 0, 0x3e;
+			return this.p6 = this.a & 0xf, op;
 		case 0x3f: // MOVD P7,A
-			return this.p7 = this.a & 0xf, this.cycles = this.cycles - 1 | 0, 0x3f;
+			return this.p7 = this.a & 0xf, op;
 		case 0x40: // ORL A,@R0
-			return this.a |= this.r[this.r[this.bs | 0]], 0x40;
+			return this.a |= this.r[this.r[this.bs | 0]], op;
 		case 0x41: // ORL A,@R1
-			return this.a |= this.r[this.r[this.bs | 1]], 0x41;
+			return this.a |= this.r[this.r[this.bs | 1]], op;
 		case 0x42: // MOV A,T
-			return this.a = this.t, 0x42;
+			return this.a = this.t, op;
 		case 0x43: // ORL A,#data
-			return this.a |= this.fetch(), 0x43;
+			return this.a |= this.fetch(), op;
 		case 0x44: // JMP address
-			return this.pc = this.dbf & this.a11mask | 0x200 | this.fetch(), 0x44;
+			return this.pc = this.dbf & this.a11mask | 0x200 | this.fetch(), op;
 		case 0x45: // STRT CNT
-			return 0x45;
+			return op;
 		case 0x46: // JNT1 address
-			return v = this.pc & 0xf00, v |= this.fetch(), !this.t1 && (this.pc = v), 0x46;
+			return v = this.pc & 0xf00, v |= this.fetch(), !this.t1 && (this.pc = v), op;
 		case 0x47: // SWAP A
-			return this.a = this.a << 4 & 0xf0 | this.a >> 4, 0x47;
+			return this.a = this.a << 4 & 0xf0 | this.a >> 4, op;
 		case 0x48: // ORL A,R0
-			return this.a |= this.r[this.bs | 0], 0x48;
+			return this.a |= this.r[this.bs | 0], op;
 		case 0x49: // ORL A,R1
-			return this.a |= this.r[this.bs | 1], 0x49;
+			return this.a |= this.r[this.bs | 1], op;
 		case 0x4a: // ORL A,R2
-			return this.a |= this.r[this.bs | 2], 0x4a;
+			return this.a |= this.r[this.bs | 2], op;
 		case 0x4b: // ORL A,R3
-			return this.a |= this.r[this.bs | 3], 0x4b;
+			return this.a |= this.r[this.bs | 3], op;
 		case 0x4c: // ORL A,R4
-			return this.a |= this.r[this.bs | 4], 0x4c;
+			return this.a |= this.r[this.bs | 4], op;
 		case 0x4d: // ORL A,R5
-			return this.a |= this.r[this.bs | 5], 0x4d;
+			return this.a |= this.r[this.bs | 5], op;
 		case 0x4e: // ORL A,R6
-			return this.a |= this.r[this.bs | 6], 0x4e;
+			return this.a |= this.r[this.bs | 6], op;
 		case 0x4f: // ORL A,R7
-			return this.a |= this.r[this.bs | 7], 0x4f;
+			return this.a |= this.r[this.bs | 7], op;
 		case 0x50: // ANL A,@R0
-			return this.a &= this.r[this.r[this.bs | 0]], 0x50;
+			return this.a &= this.r[this.r[this.bs | 0]], op;
 		case 0x51: // ANL A,@R1
-			return this.a &= this.r[this.r[this.bs | 1]], 0x51;
+			return this.a &= this.r[this.r[this.bs | 1]], op;
 		case 0x52: // JB2 address
-			return v = this.pc & 0xf00, v |= this.fetch(), this.a & 4 && (this.pc = v), 0x52;
+			return v = this.pc & 0xf00, v |= this.fetch(), this.a & 4 && (this.pc = v), op;
 		case 0x53: // ANL A,#data
-			return this.a &= this.fetch(), 0x53;
+			return this.a &= this.fetch(), op;
 		case 0x54: // CALL address
-			return v = this.dbf & this.a11mask | 0x200 | this.fetch(), this.push(), this.pc = v, 0x54;
+			return v = this.dbf & this.a11mask | 0x200 | this.fetch(), this.push(), this.pc = v, op;
 		case 0x55: // STRT T
-			return 0x55;
+			return op;
 		case 0x56: // JT1 address
-			return v = this.pc & 0xf00, v |= this.fetch(), this.t1 && (this.pc = v), 0x56;
+			return v = this.pc & 0xf00, v |= this.fetch(), this.t1 && (this.pc = v), op;
 		case 0x57: // DA A
-			return this.daa(), 0x57;
+			return this.daa(), op;
 		case 0x58: // ANL A,R0
-			return this.a &= this.r[this.bs | 0], 0x58;
+			return this.a &= this.r[this.bs | 0], op;
 		case 0x59: // ANL A,R1
-			return this.a &= this.r[this.bs | 1], 0x59;
+			return this.a &= this.r[this.bs | 1], op;
 		case 0x5a: // ANL A,R2
-			return this.a &= this.r[this.bs | 2], 0x5a;
+			return this.a &= this.r[this.bs | 2], op;
 		case 0x5b: // ANL A,R3
-			return this.a &= this.r[this.bs | 3], 0x5b;
+			return this.a &= this.r[this.bs | 3], op;
 		case 0x5c: // ANL A,R4
-			return this.a &= this.r[this.bs | 4], 0x5c;
+			return this.a &= this.r[this.bs | 4], op;
 		case 0x5d: // ANL A,R5
-			return this.a &= this.r[this.bs | 5], 0x5d;
+			return this.a &= this.r[this.bs | 5], op;
 		case 0x5e: // ANL A,R6
-			return this.a &= this.r[this.bs | 6], 0x5e;
+			return this.a &= this.r[this.bs | 6], op;
 		case 0x5f: // ANL A,R7
-			return this.a &= this.r[this.bs | 7], 0x5f;
+			return this.a &= this.r[this.bs | 7], op;
 		case 0x60: // ADD A,@R0
-			return this.add(this.r[this.r[this.bs | 0]]), 0x60;
+			return this.add(this.r[this.r[this.bs | 0]]), op;
 		case 0x61: // ADD A,@R1
-			return this.add(this.r[this.r[this.bs | 1]]), 0x61;
+			return this.add(this.r[this.r[this.bs | 1]]), op;
 		case 0x62: // MOV T,A
-			return this.t = this.a, 0x62;
+			return this.t = this.a, op;
 		case 0x64: // JMP address
-			return this.pc = this.dbf & this.a11mask | 0x300 | this.fetch(), 0x64;
+			return this.pc = this.dbf & this.a11mask | 0x300 | this.fetch(), op;
 		case 0x65: // STOP TCNT
-			return 0x65;
+			return op;
 		case 0x67: // RRC A
-			return v = this.cy << 8 | this.a, this.a = v >> 1, this.cy = v & 1, 0x67;
+			return v = this.cy << 8 | this.a, this.a = v >> 1, this.cy = v & 1, op;
 		case 0x68: // ADD A,R0
-			return this.add(this.r[this.bs | 0]), 0x68;
+			return this.add(this.r[this.bs | 0]), op;
 		case 0x69: // ADD A,R1
-			return this.add(this.r[this.bs | 1]), 0x69;
+			return this.add(this.r[this.bs | 1]), op;
 		case 0x6a: // ADD A,R2
-			return this.add(this.r[this.bs | 2]), 0x6a;
+			return this.add(this.r[this.bs | 2]), op;
 		case 0x6b: // ADD A,R3
-			return this.add(this.r[this.bs | 3]), 0x6b;
+			return this.add(this.r[this.bs | 3]), op;
 		case 0x6c: // ADD A,R4
-			return this.add(this.r[this.bs | 4]), 0x6c;
+			return this.add(this.r[this.bs | 4]), op;
 		case 0x6d: // ADD A,R5
-			return this.add(this.r[this.bs | 5]), 0x6d;
+			return this.add(this.r[this.bs | 5]), op;
 		case 0x6e: // ADD A,R6
-			return this.add(this.r[this.bs | 6]), 0x6e;
+			return this.add(this.r[this.bs | 6]), op;
 		case 0x6f: // ADD A,R7
-			return this.add(this.r[this.bs | 7]), 0x6f;
+			return this.add(this.r[this.bs | 7]), op;
 		case 0x70: // ADDC A,@R0
-			return this.addc(this.r[this.r[this.bs | 0]]), 0x70;
+			return this.addc(this.r[this.r[this.bs | 0]]), op;
 		case 0x71: // ADDC A,@R1
-			return this.addc(this.r[this.r[this.bs | 1]]), 0x71;
+			return this.addc(this.r[this.r[this.bs | 1]]), op;
 		case 0x72: // JB3 address
-			return v = this.pc & 0xf00, v |= this.fetch(), this.a & 8 && (this.pc = v), 0x72;
+			return v = this.pc & 0xf00, v |= this.fetch(), this.a & 8 && (this.pc = v), op;
 		case 0x74: // CALL address
-			return v = this.dbf & this.a11mask | 0x300 | this.fetch(), this.push(), this.pc = v, 0x74;
+			return v = this.dbf & this.a11mask | 0x300 | this.fetch(), this.push(), this.pc = v, op;
 		case 0x75: // ENT0 CLK
-			return 0x75;
+			return op;
 		case 0x76: // JF1 address
-			return v = this.pc & 0xf00, v |= this.fetch(), this.f1 && (this.pc = v), 0x76;
+			return v = this.pc & 0xf00, v |= this.fetch(), this.f1 && (this.pc = v), op;
 		case 0x77: // RR A
-			return this.a = this.a << 7 & 0x80 | this.a >> 1, 0x77;
+			return this.a = this.a << 7 & 0x80 | this.a >> 1, op;
 		case 0x78: // ADDC A,R0
-			return this.addc(this.r[this.bs | 0]), 0x78;
+			return this.addc(this.r[this.bs | 0]), op;
 		case 0x79: // ADDC A,R1
-			return this.addc(this.r[this.bs | 1]), 0x79;
+			return this.addc(this.r[this.bs | 1]), op;
 		case 0x7a: // ADDC A,R2
-			return this.addc(this.r[this.bs | 2]), 0x7a;
+			return this.addc(this.r[this.bs | 2]), op;
 		case 0x7b: // ADDC A,R3
-			return this.addc(this.r[this.bs | 3]), 0x7b;
+			return this.addc(this.r[this.bs | 3]), op;
 		case 0x7c: // ADDC A,R4
-			return this.addc(this.r[this.bs | 4]), 0x7c;
+			return this.addc(this.r[this.bs | 4]), op;
 		case 0x7d: // ADDC A,R5
-			return this.addc(this.r[this.bs | 5]), 0x7d;
+			return this.addc(this.r[this.bs | 5]), op;
 		case 0x7e: // ADDC A,R6
-			return this.addc(this.r[this.bs | 6]), 0x7e;
+			return this.addc(this.r[this.bs | 6]), op;
 		case 0x7f: // ADDC A,R7
-			return this.addc(this.r[this.bs | 7]), 0x7f;
+			return this.addc(this.r[this.bs | 7]), op;
 		case 0x80: // MOVX A,@R0
-			return this.a = this.read(this.r[this.bs | 0]), this.cycles = this.cycles - 1 | 0, 0x80;
+			return this.a = this.read(this.r[this.bs | 0]), op;
 		case 0x81: // MOVX A,@R1
-			return this.a = this.read(this.r[this.bs | 1]), this.cycles = this.cycles - 1 | 0, 0x81;
+			return this.a = this.read(this.r[this.bs | 1]), op;
 		case 0x83: // RET
-			return this.ret(false), this.cycles = this.cycles - 1 | 0, 0x83;
+			return this.ret(false),  op;
 		case 0x84: // JMP address
-			return this.pc = this.dbf & this.a11mask | 0x400 | this.fetch(), 0x84;
+			return this.pc = this.dbf & this.a11mask | 0x400 | this.fetch(), op;
 		case 0x85: // CLR F0
-			return this.f0 = 0, 0x85;
+			return this.f0 = 0, op;
 		case 0x86: // JNI address
-			return v = this.pc & 0xf00, v |= this.fetch(), this.irq && (this.pc = v), 0x86;
+			return v = this.pc & 0xf00, v |= this.fetch(), this.irq && (this.pc = v), op;
 		case 0x88: // ORL BUS,#data
-			return this.bus |= this.fetch(), 0x88;
+			return this.bus |= this.fetch(), op;
 		case 0x89: // ORL P1,#data
-			return this.p1 |= this.fetch(), 0x89;
+			return this.p1 |= this.fetch(), op;
 		case 0x8a: // ORL P2,#data
-			return this.p2 |= this.fetch(), 0x8a;
+			return this.p2 |= this.fetch(), op;
 		case 0x8c: // ORLD P4,A
-			return this.p4 |= this.a & 0xf, this.cycles = this.cycles - 1 | 0, 0x8c;
+			return this.p4 |= this.a & 0xf, op;
 		case 0x8d: // ORLD P5,A
-			return this.p5 |= this.a & 0xf, this.cycles = this.cycles - 1 | 0, 0x8d;
+			return this.p5 |= this.a & 0xf, op;
 		case 0x8e: // ORLD P6,A
-			return this.p6 |= this.a & 0xf, this.cycles = this.cycles - 1 | 0, 0x8e;
+			return this.p6 |= this.a & 0xf, op;
 		case 0x8f: // ORLD P7,A
-			return this.p7 |= this.a & 0xf, this.cycles = this.cycles - 1 | 0, 0x8f;
+			return this.p7 |= this.a & 0xf, op;
 		case 0x90: // MOVX @R0,A
-			return this.write(this.r[this.bs | 0], this.a), this.cycles = this.cycles - 1 | 0, 0x90;
+			return this.write(this.r[this.bs | 0], this.a), op;
 		case 0x91: // MOVX @R1,A
-			return this.write(this.r[this.bs | 1], this.a), this.cycles = this.cycles - 1 | 0, 0x91;
+			return this.write(this.r[this.bs | 1], this.a), op;
 		case 0x92: // JB4 address
-			return v = this.pc & 0xf00, v |= this.fetch(), this.a & 0x10 && (this.pc = v), 0x92;
+			return v = this.pc & 0xf00, v |= this.fetch(), this.a & 0x10 && (this.pc = v), op;
 		case 0x93: // RETR
-			return this.ret(true), this.a11mask = 0x800, this.cycles = this.cycles - 1 | 0, 0x93;
+			return this.ret(true), this.a11mask = 0x800, op;
 		case 0x94: // CALL address
-			return v = this.dbf & this.a11mask | 0x400 | this.fetch(), this.push(), this.pc = v, 0x94;
+			return v = this.dbf & this.a11mask | 0x400 | this.fetch(), this.push(), this.pc = v, op;
 		case 0x95: // CPL F0
-			return this.f0 ^= 1, 0x95;
+			return this.f0 ^= 1, op;
 		case 0x96: // JNZ address
-			return v = this.pc & 0xf00, v |= this.fetch(), this.a && (this.pc = v), 0x96;
+			return v = this.pc & 0xf00, v |= this.fetch(), this.a && (this.pc = v), op;
 		case 0x97: // CLR C
-			return this.cy = 0, 0x97;
+			return this.cy = 0, op;
 		case 0x98: // ANL BUS,#data
-			return this.bus &= this.fetch(), 0x98;
+			return this.bus &= this.fetch(), op;
 		case 0x99: // ANL P1,#data
-			return this.p1 &= this.fetch(), 0x99;
+			return this.p1 &= this.fetch(), op;
 		case 0x9a: // ANL P2,#data
-			return this.p2 &= this.fetch(), 0x9a;
+			return this.p2 &= this.fetch(), op;
 		case 0x9c: // ANLD P4,A
-			return this.p4 &= this.a, this.cycles = this.cycles - 1 | 0, 0x9c;
+			return this.p4 &= this.a, op;
 		case 0x9d: // ANLD P5,A
-			return this.p5 &= this.a, this.cycles = this.cycles - 1 | 0, 0x9d;
+			return this.p5 &= this.a, op;
 		case 0x9e: // ANLD P6,A
-			return this.p6 &= this.a, this.cycles = this.cycles - 1 | 0, 0x9e;
+			return this.p6 &= this.a, op;
 		case 0x9f: // ANLD P7,A
-			return this.p7 &= this.a, this.cycles = this.cycles - 1 | 0, 0x9f;
+			return this.p7 &= this.a, op;
 		case 0xa0: // MOV @R0,A
-			return this.r[this.r[this.bs | 0]] = this.a, 0xa0;
+			return this.r[this.r[this.bs | 0]] = this.a, op;
 		case 0xa1: // MOV @R1,A
-			return this.r[this.r[this.bs | 1]] = this.a, 0xa1;
+			return this.r[this.r[this.bs | 1]] = this.a, op;
 		case 0xa3: // MOVP A,@A
-			return this.a = this.rom[this.pc & 0xf00 | this.a], this.cycles = this.cycles - 1 | 0, 0xa3;
+			return this.a = this.rom[this.pc & 0xf00 | this.a], op;
 		case 0xa4: // JMP address
-			return this.pc = this.dbf & this.a11mask | 0x500 | this.fetch(), 0xa4;
+			return this.pc = this.dbf & this.a11mask | 0x500 | this.fetch(), op;
 		case 0xa5: // CLR F1
-			return this.f1 = 0, 0xa5;
+			return this.f1 = 0, op;
 		case 0xa7: // CPL C
-			return this.cy ^= 1, 0xa7;
+			return this.cy ^= 1, op;
 		case 0xa8: // MOV R0,A
-			return this.r[this.bs | 0] = this.a, 0xa8;
+			return this.r[this.bs | 0] = this.a, op;
 		case 0xa9: // MOV R1,A
-			return this.r[this.bs | 1] = this.a, 0xa9;
+			return this.r[this.bs | 1] = this.a, op;
 		case 0xaa: // MOV R2,A
-			return this.r[this.bs | 2] = this.a, 0xaa;
+			return this.r[this.bs | 2] = this.a, op;
 		case 0xab: // MOV R3,A
-			return this.r[this.bs | 3] = this.a, 0xab;
+			return this.r[this.bs | 3] = this.a, op;
 		case 0xac: // MOV R4,A
-			return this.r[this.bs | 4] = this.a, 0xac;
+			return this.r[this.bs | 4] = this.a, op;
 		case 0xad: // MOV R5,A
-			return this.r[this.bs | 5] = this.a, 0xad;
+			return this.r[this.bs | 5] = this.a, op;
 		case 0xae: // MOV R6,A
-			return this.r[this.bs | 6] = this.a, 0xae;
+			return this.r[this.bs | 6] = this.a, op;
 		case 0xaf: // MOV R7,A
-			return this.r[this.bs | 7] = this.a, 0xaf;
+			return this.r[this.bs | 7] = this.a, op;
 		case 0xb0: // MOV @R0,#data
-			return this.r[this.r[this.bs | 0]] = this.fetch(), 0xb0;
+			return this.r[this.r[this.bs | 0]] = this.fetch(), op;
 		case 0xb1: // MOV @R1,#data
-			return this.r[this.r[this.bs | 1]] = this.fetch(), 0xb1;
+			return this.r[this.r[this.bs | 1]] = this.fetch(), op;
 		case 0xb2: // JB5 address
-			return v = this.pc & 0xf00, v |= this.fetch(), this.a & 0x20 && (this.pc = v), 0xb2;
+			return v = this.pc & 0xf00, v |= this.fetch(), this.a & 0x20 && (this.pc = v), op;
 		case 0xb3: // JMPP @A
-			return this.pc = this.pc & 0xf00 | this.rom[this.pc & 0xf00 | this.a], this.cycles = this.cycles - 1 | 0, 0xb3;
+			return this.pc = this.pc & 0xf00 | this.rom[this.pc & 0xf00 | this.a], op;
 		case 0xb4: // CALL address
-			return v = this.dbf & this.a11mask | 0x500 | this.fetch(), this.push(), this.pc = v, 0xb4;
+			return v = this.dbf & this.a11mask | 0x500 | this.fetch(), this.push(), this.pc = v, op;
 		case 0xb5: // CPL F1
-			return this.f1 ^= 1, 0xb5;
+			return this.f1 ^= 1, op;
 		case 0xb6: // JF0 address
-			return v = this.pc & 0xf00, v |= this.fetch(), this.f0 && (this.pc = v), 0xb6;
+			return v = this.pc & 0xf00, v |= this.fetch(), this.f0 && (this.pc = v), op;
 		case 0xb8: // MOV R0,#data
-			return this.r[this.bs | 0] = this.fetch(), 0xb8;
+			return this.r[this.bs | 0] = this.fetch(), op;
 		case 0xb9: // MOV R1,#data
-			return this.r[this.bs | 1] = this.fetch(), 0xb9;
+			return this.r[this.bs | 1] = this.fetch(), op;
 		case 0xba: // MOV R2,#data
-			return this.r[this.bs | 2] = this.fetch(), 0xba;
+			return this.r[this.bs | 2] = this.fetch(), op;
 		case 0xbb: // MOV R3,#data
-			return this.r[this.bs | 3] = this.fetch(), 0xbb;
+			return this.r[this.bs | 3] = this.fetch(), op;
 		case 0xbc: // MOV R4,#data
-			return this.r[this.bs | 4] = this.fetch(), 0xbc;
+			return this.r[this.bs | 4] = this.fetch(), op;
 		case 0xbd: // MOV R5,#data
-			return this.r[this.bs | 5] = this.fetch(), 0xbd;
+			return this.r[this.bs | 5] = this.fetch(), op;
 		case 0xbe: // MOV R6,#data
-			return this.r[this.bs | 6] = this.fetch(), 0xbe;
+			return this.r[this.bs | 6] = this.fetch(), op;
 		case 0xbf: // MOV R7,#data
-			return this.r[this.bs | 7] = this.fetch(), 0xbf;
+			return this.r[this.bs | 7] = this.fetch(), op;
 		case 0xc4: // JMP address
-			return this.pc = this.dbf & this.a11mask | 0x600 | this.fetch(), 0xc4;
+			return this.pc = this.dbf & this.a11mask | 0x600 | this.fetch(), op;
 		case 0xc5: // SEL RB0
-			return this.bs = 0, 0xc5;
+			return this.bs = 0, op;
 		case 0xc6: // JZ address
-			return v = this.pc & 0xf00, v |= this.fetch(), !this.a && (this.pc = v), 0xc6;
+			return v = this.pc & 0xf00, v |= this.fetch(), !this.a && (this.pc = v), op;
 		case 0xc7: // MOV A,PSW
-			return this.a = this.cy << 7 | this.ac << 6 | this.f0 << 5 | (this.bs !== 0) << 4 | 8 | this.s, 0xc7;
+			return this.a = this.cy << 7 | this.ac << 6 | this.f0 << 5 | (this.bs !== 0) << 4 | 8 | this.s, op;
 		case 0xc8: // DEC R0
-			return this.r[this.bs | 0] -= 1, 0xc8;
+			return this.r[this.bs | 0] -= 1, op;
 		case 0xc9: // DEC R1
-			return this.r[this.bs | 1] -= 1, 0xc9;
+			return this.r[this.bs | 1] -= 1, op;
 		case 0xca: // DEC R2
-			return this.r[this.bs | 2] -= 1, 0xca;
+			return this.r[this.bs | 2] -= 1, op;
 		case 0xcb: // DEC R3
-			return this.r[this.bs | 3] -= 1, 0xcb;
+			return this.r[this.bs | 3] -= 1, op;
 		case 0xcc: // DEC R4
-			return this.r[this.bs | 4] -= 1, 0xcc;
+			return this.r[this.bs | 4] -= 1, op;
 		case 0xcd: // DEC R5
-			return this.r[this.bs | 5] -= 1, 0xcd;
+			return this.r[this.bs | 5] -= 1, op;
 		case 0xce: // DEC R6
-			return this.r[this.bs | 6] -= 1, 0xce;
+			return this.r[this.bs | 6] -= 1, op;
 		case 0xcf: // DEC R7
-			return this.r[this.bs | 7] -= 1, 0xcf;
+			return this.r[this.bs | 7] -= 1, op;
 		case 0xd0: // XRL A,@R0
-			return this.a ^= this.r[this.r[this.bs | 0]], 0xd0;
+			return this.a ^= this.r[this.r[this.bs | 0]], op;
 		case 0xd1: // XRL A,@R1
-			return this.a ^= this.r[this.r[this.bs | 1]], 0xd1;
+			return this.a ^= this.r[this.r[this.bs | 1]], op;
 		case 0xd2: // JB6 address
-			return v = this.pc & 0xf00, v |= this.fetch(), this.a & 0x40 && (this.pc = v), 0xd2;
+			return v = this.pc & 0xf00, v |= this.fetch(), this.a & 0x40 && (this.pc = v), op;
 		case 0xd3: // XRL A,#data
-			return this.a ^= this.fetch(), 0xd3;
+			return this.a ^= this.fetch(), op;
 		case 0xd4: // CALL address
-			return v = this.dbf & this.a11mask | 0x600 | this.fetch(), this.push(), this.pc = v, 0xd4;
+			return v = this.dbf & this.a11mask | 0x600 | this.fetch(), this.push(), this.pc = v, op;
 		case 0xd5: // SEL RB1
-			return this.bs = 24, 0xd5;
+			return this.bs = 24, op;
 		case 0xd7: // MOV PSW,A
-			return this.cy = this.a >> 7, this.ac = this.a >> 6 & 1, this.f0 = this.a >> 5 & 1, this.bs = (this.a >> 4 & 1) * 24, this.s = this.a & 7, 0xd7;
+			return this.cy = this.a >> 7, this.ac = this.a >> 6 & 1, this.f0 = this.a >> 5 & 1, this.bs = (this.a >> 4 & 1) * 24, this.s = this.a & 7, op;
 		case 0xd8: // XRL A,R0
-			return this.a ^= this.r[this.bs | 0], 0xd8;
+			return this.a ^= this.r[this.bs | 0], op;
 		case 0xd9: // XRL A,R1
-			return this.a ^= this.r[this.bs | 1], 0xd9;
+			return this.a ^= this.r[this.bs | 1], op;
 		case 0xda: // XRL A,R2
-			return this.a ^= this.r[this.bs | 2], 0xda;
+			return this.a ^= this.r[this.bs | 2], op;
 		case 0xdb: // XRL A,R3
-			return this.a ^= this.r[this.bs | 3], 0xdb;
+			return this.a ^= this.r[this.bs | 3], op;
 		case 0xdc: // XRL A,R4
-			return this.a ^= this.r[this.bs | 4], 0xdc;
+			return this.a ^= this.r[this.bs | 4], op;
 		case 0xdd: // XRL A,R5
-			return this.a ^= this.r[this.bs | 5], 0xdd;
+			return this.a ^= this.r[this.bs | 5], op;
 		case 0xde: // XRL A,R6
-			return this.a ^= this.r[this.bs | 6], 0xde;
+			return this.a ^= this.r[this.bs | 6], op;
 		case 0xdf: // XRL A,R7
-			return this.a ^= this.r[this.bs | 7], 0xdf;
+			return this.a ^= this.r[this.bs | 7], op;
 		case 0xe3: // MOVP3 A,@A
-			return this.a = this.rom[0x300 | this.a], this.cycles = this.cycles - 1 | 0, 0xe3;
+			return this.a = this.rom[0x300 | this.a], op;
 		case 0xe4: // JMP address
-			return this.pc = this.dbf & this.a11mask | 0x700 | this.fetch(), 0xe4;
+			return this.pc = this.dbf & this.a11mask | 0x700 | this.fetch(), op;
 		case 0xe5: // SEL MB0
-			return this.dbf = 0, 0xe5;
+			return this.dbf = 0, op;
 		case 0xe6: // JNC address
-			return v = this.pc & 0xf00, v |= this.fetch(), !this.cy && (this.pc = v), 0xe6;
+			return v = this.pc & 0xf00, v |= this.fetch(), !this.cy && (this.pc = v), op;
 		case 0xe7: // RL A
-			return this.a = this.a << 1 & 0xfe | this.a >> 7, 0xe7;
+			return this.a = this.a << 1 & 0xfe | this.a >> 7, op;
 		case 0xe8: // DJNZ R0,address
-			return v = this.pc & 0xf00, v |= this.fetch(), (this.r[this.bs | 0] -= 1) && (this.pc = v), 0xe8;
+			return v = this.pc & 0xf00, v |= this.fetch(), (this.r[this.bs | 0] -= 1) && (this.pc = v), op;
 		case 0xe9: // DJNZ R1,address
-			return v = this.pc & 0xf00, v |= this.fetch(), (this.r[this.bs | 1] -= 1) && (this.pc = v), 0xe9;
+			return v = this.pc & 0xf00, v |= this.fetch(), (this.r[this.bs | 1] -= 1) && (this.pc = v), op;
 		case 0xea: // DJNZ R2,address
-			return v = this.pc & 0xf00, v |= this.fetch(), (this.r[this.bs | 2] -= 1) && (this.pc = v), 0xea;
+			return v = this.pc & 0xf00, v |= this.fetch(), (this.r[this.bs | 2] -= 1) && (this.pc = v), op;
 		case 0xeb: // DJNZ R3,address
-			return v = this.pc & 0xf00, v |= this.fetch(), (this.r[this.bs | 3] -= 1) && (this.pc = v), 0xeb;
+			return v = this.pc & 0xf00, v |= this.fetch(), (this.r[this.bs | 3] -= 1) && (this.pc = v), op;
 		case 0xec: // DJNZ R4,address
-			return v = this.pc & 0xf00, v |= this.fetch(), (this.r[this.bs | 4] -= 1) && (this.pc = v), 0xec;
+			return v = this.pc & 0xf00, v |= this.fetch(), (this.r[this.bs | 4] -= 1) && (this.pc = v), op;
 		case 0xed: // DJNZ R5,address
-			return v = this.pc & 0xf00, v |= this.fetch(), (this.r[this.bs | 5] -= 1) && (this.pc = v), 0xed;
+			return v = this.pc & 0xf00, v |= this.fetch(), (this.r[this.bs | 5] -= 1) && (this.pc = v), op;
 		case 0xee: // DJNZ R6,address
-			return v = this.pc & 0xf00, v |= this.fetch(), (this.r[this.bs | 6] -= 1) && (this.pc = v), 0xee;
+			return v = this.pc & 0xf00, v |= this.fetch(), (this.r[this.bs | 6] -= 1) && (this.pc = v), op;
 		case 0xef: // DJNZ R7,address
-			return v = this.pc & 0xf00, v |= this.fetch(), (this.r[this.bs | 7] -= 1) && (this.pc = v), 0xef;
+			return v = this.pc & 0xf00, v |= this.fetch(), (this.r[this.bs | 7] -= 1) && (this.pc = v), op;
 		case 0xf0: // MOV A,@R0
-			return this.a = this.r[this.r[this.bs | 0]], 0xf0;
+			return this.a = this.r[this.r[this.bs | 0]], op;
 		case 0xf1: // MOV A,@R1
-			return this.a = this.r[this.r[this.bs | 1]], 0xf1;
+			return this.a = this.r[this.r[this.bs | 1]], op;
 		case 0xf2: // JB7 address
-			return v = this.pc & 0xf00, v |= this.fetch(), this.a & 0x80 && (this.pc = v), 0xf2;
+			return v = this.pc & 0xf00, v |= this.fetch(), this.a & 0x80 && (this.pc = v), op;
 		case 0xf4: // CALL address
-			return v = this.dbf & this.a11mask | 0x700 | this.fetch(), this.push(), this.pc = v, 0xf4;
+			return v = this.dbf & this.a11mask | 0x700 | this.fetch(), this.push(), this.pc = v, op;
 		case 0xf5: // SEL MB1
-			return this.dbf = 0x800, 0xf5;
+			return this.dbf = 0x800, op;
 		case 0xf6: // JC address
-			return v = this.pc & 0xf00, v |= this.fetch(), this.cy && (this.pc = v), 0xf6;
+			return v = this.pc & 0xf00, v |= this.fetch(), this.cy && (this.pc = v), op;
 		case 0xf7: // RLC A
-			return v = this.a << 1 | this.cy, this.a = v & 0xff, this.cy = v >> 8, 0xf7;
+			return v = this.a << 1 | this.cy, this.a = v & 0xff, this.cy = v >> 8, op;
 		case 0xf8: // MOV A,R0
-			return this.a = this.r[this.bs | 0], 0xf8;
+			return this.a = this.r[this.bs | 0], op;
 		case 0xf9: // MOV A,R1
-			return this.a = this.r[this.bs | 1], 0xf9;
+			return this.a = this.r[this.bs | 1], op;
 		case 0xfa: // MOV A,R2
-			return this.a = this.r[this.bs | 2], 0xfa;
+			return this.a = this.r[this.bs | 2], op;
 		case 0xfb: // MOV A,R3
-			return this.a = this.r[this.bs | 3], 0xfb;
+			return this.a = this.r[this.bs | 3], op;
 		case 0xfc: // MOV A,R4
-			return this.a = this.r[this.bs | 4], 0xfc;
+			return this.a = this.r[this.bs | 4], op;
 		case 0xfd: // MOV A,R5
-			return this.a = this.r[this.bs | 5], 0xfd;
+			return this.a = this.r[this.bs | 5], op;
 		case 0xfe: // MOV A,R6
-			return this.a = this.r[this.bs | 6], 0xfe;
+			return this.a = this.r[this.bs | 6], op;
 		case 0xff: // MOV A,R7
-			return this.a = this.r[this.bs | 7], 0xff;
+			return this.a = this.r[this.bs | 7], op;
 		default: // ILLEGAL
 			return -1;
 		}
@@ -564,7 +565,7 @@ export default class MCS48 {
 
 	fetch() {
 		const data = this.rom[this.pc];
-		return this.pc = this.pc + 1 & 0x7ff | this.pc & 0x800, this.cycles = this.cycles - 1 | 0, data;
+		return this.pc = this.pc + 1 & 0x7ff | this.pc & 0x800, data;
 	}
 
 	read() {
@@ -573,3 +574,22 @@ export default class MCS48 {
 
 	write() {}
 }
+
+const cc = Uint8Array.of(
+	 1, 1, 2, 2, 2, 1, 0, 1, 2, 2, 2, 0, 2, 2, 2, 2,
+	 1, 1, 2, 2, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 1, 1, 0, 2, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 1, 1, 2, 0, 2, 1, 2, 1, 0, 2, 2, 0, 2, 2, 2, 2,
+	 1, 1, 1, 2, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 1, 1, 2, 2, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 1, 1, 1, 0, 2, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 1, 1, 2, 0, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 2, 2, 0, 2, 2, 1, 2, 0, 2, 2, 2, 0, 2, 2, 2, 2,
+	 2, 2, 2, 2, 2, 1, 2, 1, 2, 2, 2, 0, 2, 2, 2, 2,
+	 1, 1, 0, 2, 2, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 2, 2, 2, 2, 2, 1, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2,
+	 0, 0, 0, 0, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 1, 1, 2, 2, 2, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	 0, 0, 0, 2, 2, 1, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2,
+	 1, 1, 2, 0, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+

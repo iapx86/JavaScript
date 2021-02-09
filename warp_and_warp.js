@@ -33,9 +33,9 @@ class WarpAndWarp {
 	bg = new Uint8Array(0x4000).fill(255);
 	rgb = Uint32Array.from(seq(0x100), i => 0xff000000 | (i >> 6) * 255 / 3 << 16 | (i >> 3 & 7) * 255 / 7 << 8 | (i & 7) * 255 / 7);
 
-	se = [WAVE02, WAVE10, WAVE11, WAVE14, WAVE16].map(buf => ({buf, loop: false, start: false, stop: false}));
+	se = [WAVE02, WAVE10, WAVE11, WAVE14, WAVE16].map(buf => ({freq: 22050, buf, loop: false, start: false, stop: false}));
 
-	cpu = new I8080();
+	cpu = new I8080(Math.floor(18432000 / 9));
 
 	constructor() {
 		// CPU周りの初期化
@@ -75,9 +75,13 @@ class WarpAndWarp {
 					break;
 				}
 				break;
+			case 0x10:
+				sound[0].set_freq(data);
+				break;
 			case 0x20:
 				if (data === 0x2d && this.ram[0xd20] !== 0x2d)
 					this.se[0].start = this.se[0].stop = true;
+				sound[0].set_voice(data);
 				break;
 			}
 			this.ram[0xd00 | addr & 0xff] = data;
@@ -87,8 +91,13 @@ class WarpAndWarp {
 		convertGFX(this.bg, BG, 256, rseq(8, 0, 8), seq(8), seq(8, 0, 0), 8);
 	}
 
-	execute() {
-		this.cpu.interrupt(), this.cpu.execute(0x1000);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.cpu.interrupt();
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -296,40 +305,31 @@ class WarpAndWarp {
 class WarpAndWarpSound {
 	rate;
 	gain;
-	channel = {voice: 0, freq: 0, phase: 0};
-
-	audioBuffer = [];
-	source = audioCtx.createBufferSource();
-	gainNode = audioCtx.createGain();
-	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
+	output = 0;
+	reg1 = 0;
+	reg2 = 0;
+	voice = 0;
+	freq = 0;
+	phase = 0;
 
 	constructor({gain = 0.1} = {}) {
 		this.rate = Math.floor(0x8000000 * (48000 / audioCtx.sampleRate));
 		this.gain = gain;
-		for (let i = 0; i < 8; i++) {
-			this.audioBuffer[i] = audioCtx.createBuffer(1, 32 * (8 - i), 44100);
-			this.audioBuffer[i].getChannelData(0).fill(1, 0, 16).fill(-1, 16);
-		}
-		this.scriptNode.onaudioprocess = ({outputBuffer}) => {
-			outputBuffer.getChannelData(0).forEach((v, i, data) => {
-				data[i] = this.audioBuffer[this.channel.voice].getChannelData(0)[this.channel.phase >>> 23];
-				this.channel.phase += this.channel.freq;
-				this.channel.phase %= this.audioBuffer[this.channel.voice].getChannelData(0).length << 23;
-			});
-		};
-		this.gainNode.gain.value = gain;
-		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
-		this.source.start();
 	}
 
-	update(game) {
-		const ram = game.ram;
-		if ((ram[0xd20] & 0x0f) !== 0x0f && ram[0xd10] & 0x3f && ram[0xd20] !== 0x2d) {
-			this.channel.voice = ram[0xd20] >> 1 & 7;
-			this.channel.freq = this.rate / (0x40 - ram[0xd10]) | 0;
-		} else
-			this.channel.freq = 0;
+	set_freq(data) {
+		this.reg1 = data, this.freq = this.rate / (0x40 - (data & 0x3f)) | 0;
 	}
+
+	set_voice(data) {
+		this.reg2 = data, this.voice = data >> 1 & 7;
+	}
+
+	update() {
+		if ((this.reg2 & 0xf) !== 0xf && this.reg1 & 0x3f && this.reg2 !== 0x2d)
+			this.phase = (this.phase + this.freq) % (8 - this.voice << 28);
+		this.output = (this.phase >> 23 < 16 ? 1 : -1) * this.gain;
+	};
 }
 
 /*
@@ -3516,7 +3516,7 @@ read('warpwarp.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	game = new WarpAndWarp();
 	sound = [
 		new WarpAndWarpSound(),
-		new SoundEffect({se: game.se, freq: 22050, gain:0.5}),
+		new SoundEffect({se: game.se, gain:0.5}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

@@ -5,7 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
-import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, read} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -32,7 +32,6 @@ class Mappy {
 	fPortTest = false;
 	fInterruptEnable0 = false;
 	fInterruptEnable1 = false;
-//	fSoundEnable = false;
 	ram = new Uint8Array(0x2800).addBase();
 	port = new Uint8Array(0x40);
 	in = new Uint8Array(10);
@@ -44,8 +43,8 @@ class Mappy {
 	rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 	dwScroll = 0xff;
 
-	cpu = new MC6809();
-	cpu2 = new MC6809();
+	cpu = new MC6809(Math.floor(18432000 / 12));
+	cpu2 = new MC6809(Math.floor(18432000 / 12));
 
 	constructor() {
 		// CPU周りの初期化
@@ -73,10 +72,10 @@ class Mappy {
 				return void(this.fInterruptEnable0 = false);
 			case 0x03: // INTERRUPT START
 				return void(this.fInterruptEnable0 = true);
-//			case 0x06: // SND STOP
-//				return void(this.fSoundEnable = false);
-//			case 0x07: // SND START
-//				return void(this.fSoundEnable = true);
+			case 0x06: // SND STOP
+				return sound.control(false);
+			case 0x07: // SND START
+				return sound.control(true);
 			case 0x08: // PORT TEST START
 				return void(this.fPortTest = true);
 			case 0x09: // PORT TEST END
@@ -104,10 +103,15 @@ class Mappy {
 			[OBJ.length * 4, OBJ.length * 4 + 4, 0, 4], 64);
 	}
 
-	execute() {
-//		sound.mute(!this.fSoundEnable);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
 		this.fInterruptEnable0 && this.cpu.interrupt(), this.fInterruptEnable1 && this.cpu2.interrupt();
-		Cpu.multiple_execute([this.cpu, this.cpu2], 0x2000);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -205,7 +209,6 @@ class Mappy {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-//			this.fSoundEnable = false;
 			this.cpu.reset();
 			this.cpu2.disable();
 		}

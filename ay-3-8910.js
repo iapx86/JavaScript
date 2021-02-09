@@ -6,86 +6,56 @@
 
 export default class AY_3_8910 {
 	rate;
-	sampleRate;
-	count;
-	resolution;
 	gain;
-	tmpwheel = [];
-	wheel = [];
-	ram = new Uint8Array(0x10);
+	output = 0;
+	mute = false;
 	reg = new Uint8Array(0x10);
-	cycles = 0;
+	frac = 0;
 	channel = [];
 	ncount = 0;
 	rng = 0xffff;
 	ecount = 0;
 	step = 0;
 
-	source = audioCtx.createBufferSource();
-	gainNode = audioCtx.createGain();
-	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
-
-	constructor({clock, resolution = 1, gain = 0.1}) {
+	constructor({clock, gain = 0.1}) {
 		this.rate = Math.floor(clock / 8);
-		this.sampleRate = Math.floor(audioCtx.sampleRate);
-		this.count = this.sampleRate - 1;
-		this.resolution = resolution;
 		this.gain = gain;
-		for (let i = 0; i < resolution; i++)
-			this.tmpwheel.push([]);
 		for (let i = 0; i < 3; i++)
 			this.channel.push({freq: 0, count: 0, output: 0});
-		this.gainNode.gain.value = gain;
-		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0).fill(0));
-		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
-		this.source.start();
 	}
 
-	mute(flag) {
-		this.gainNode.gain.value = flag ? 0 : this.gain;
+	control(flag) {
+		this.mute = !flag;
 	}
 
 	read(addr) {
-		return this.ram[addr & 0xf];
+		return this.reg[addr & 0xf];
 	}
 
-	write(addr, data, timer = 0) {
-		this.ram[addr &= 0xf] = data, addr < 0xe && this.tmpwheel[timer].push({addr, data});
+	write(addr, data) {
+		this.reg[addr &= 15] = data, addr === 13 && (this.step = 0);
+	}
+
+	execute(rate, rate_correction = 1) {
+		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate) {
+			const reg = this.reg, nfreq = reg[6] & 0x1f, efreq = reg[11] | reg[12] << 8, etype = reg[13];
+			this.channel.forEach((ch, i) => ch.freq = reg[1 + i * 2] << 8 & 0xf00 | reg[i * 2]);
+			this.channel.forEach(ch => ++ch.count >= ch.freq && (ch.output = ~ch.output, ch.count = 0));
+			++this.ncount >= nfreq << 1 && (this.rng = (this.rng >> 16 ^ this.rng >> 13 ^ 1) & 1 | this.rng << 1, this.ncount = 0);
+			++this.ecount >= efreq && (this.step += ((this.step < 16) | etype >> 3 & ~etype & 1) - (this.step >= 47) * 32, this.ecount = 0);
+		}
 	}
 
 	update() {
-		if (this.wheel.length > this.resolution) {
-			while (this.wheel.length)
-				this.wheel.shift().forEach(e => this.regwrite(e));
-			this.count = this.sampleRate - 1;
-		}
-		this.tmpwheel.forEach(e => this.wheel.push(e));
-		for (let i = 0; i < this.resolution; i++)
-			this.tmpwheel[i] = [];
-	}
-
-	makeSound(data) {
-		const reg = this.reg;
-		data.forEach((e, i) => {
-			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
-				this.wheel.length && this.wheel.shift().forEach(e => this.regwrite(e));
-			const nfreq = reg[6] & 0x1f, efreq = reg[11] | reg[12] << 8, etype = reg[13];
-			const evol = (~this.step ^ ((((etype ^ etype >> 1) & this.step >> 4 ^ ~etype >> 2) & 1) - 1)) & (~etype >> 3 & this.step >> 4 & 1) - 1 & 15;
-			this.channel.forEach((ch, j) => {
-				ch.freq = reg[j * 2] | reg[1 + j * 2] << 8 & 0xf00;
-				const vol = reg[8 + j] >> 4 & 1 ? evol : reg[8 + j] & 0xf;
-				data[i] += (((!ch.freq | reg[7] >> j | ch.output) & (reg[7] >> j + 3 | this.rng) & 1) * 2 - 1) * (vol ? Math.pow(10, (vol - 15) / 10) : 0);
-			});
-			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {
-				this.channel.forEach(ch => ++ch.count >= ch.freq && (ch.output = ~ch.output, ch.count = 0));
-				++this.ncount >= nfreq << 1 && (this.rng = (this.rng >> 16 ^ this.rng >> 13 ^ 1) & 1 | this.rng << 1, this.ncount = 0);
-				++this.ecount >= efreq && (this.step += ((this.step < 16) | etype >> 3 & ~etype & 1) - (this.step >= 47) * 32, this.ecount = 0);
-			}
+		this.output = 0;
+		if (this.mute)
+			return;
+		const reg = this.reg, etype = reg[13];
+		const evol = (~this.step ^ ((((etype ^ etype >> 1) & this.step >> 4 ^ ~etype >> 2) & 1) - 1)) & (~etype >> 3 & this.step >> 4 & 1) - 1 & 15;
+		this.channel.forEach((ch, i) => {
+			const vol = reg[8 + i] >> 4 & 1 ? evol : reg[8 + i] & 0xf;
+			this.output += (((!ch.freq | reg[7] >> i | ch.output) & (reg[7] >> i + 3 | this.rng) & 1) * 2 - 1) * (vol ? Math.pow(10, (vol - 15) / 10) : 0) * this.gain;
 		});
-	}
-
-	regwrite({addr, data}) {
-		this.reg[addr] = data, addr === 13 && (this.step = 0);
 	}
 }
 

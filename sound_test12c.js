@@ -6,8 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
-import Dac8Bit2Ch from './dac_8bit_2ch.js';
-import {dummypage, init, read} from './main.js';
+import {dummypage, init, DoubleTimer, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -28,41 +27,30 @@ class SoundTest {
 	ram2 = new Uint8Array(0x800).addBase();
 	ram3 = new Uint8Array(0x2000).addBase();
 	ram4 = new Uint8Array(0x900).addBase();
-	fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8), status: 0, timera: 0, timerb: 0};
-	count = 0;
 	bank3 = 0x40;
 	bank4 = 0x80;
 	cpu3_irq = false;
 	mcu_irq = false;
-	cpu3 = new MC6809();
-	mcu = new MC6801();
+	cpu3 = new MC6809(Math.floor(49152000 / 32));
+	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
+	timer = new DoubleTimer(49152000 / 8 / 1024);
 
 	constructor() {
 		// CPU周りの初期化
 		for (let i = 0; i < 0x40; i++)
 			this.cpu3.memorymap[i].base = SND.base[0x40 + i];
-		this.cpu3.memorymap[0x40].read = (addr) => { return addr === 0x4001 ? this.fm.status : 0xff; };
+		this.cpu3.memorymap[0x40].read = (addr) => { return addr === 0x4001 ? sound[0].status : 0xff; };
 		this.cpu3.memorymap[0x40].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				return void(this.fm.addr = data);
+				return void(sound[0].addr = data);
 			case 1:
-				switch (this.fm.addr) {
-				case 8: // KON
-					this.fm.kon[data & 7] = Number((data & 0x78) !== 0);
-					break;
-				case 0x14: // CSM/F RESET/IRQEN/LOAD
-					this.fm.status &= ~(data >> 4 & 3);
-					data & ~this.fm.reg[0x14] & 1 && (this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-					data & ~this.fm.reg[0x14] & 2 && (this.fm.timerb = this.fm.reg[0x12]);
-					break;
-				}
-				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
+				return sound[0].write(data);
 			}
 		};
 		for (let i = 0; i < 8; i++) {
 			this.cpu3.memorymap[0x50 + i].read = (addr) => { return sound[1].read(addr); };
-			this.cpu3.memorymap[0x50 + i].write = (addr, data) => { sound[1].write(addr, data, this.count); };
+			this.cpu3.memorymap[0x50 + i].write = (addr, data) => { sound[1].write(addr, data); };
 		}
 		for (let i = 0; i < 8; i++) {
 			this.cpu3.memorymap[0x70 + i].base = this.ram2.base[i];
@@ -77,7 +65,7 @@ class SoundTest {
 		this.cpu3.memorymap[0xc0].write = (addr, data) => { this.bankswitch3(data << 2 & 0x1c0); };
 		this.cpu3.memorymap[0xe0].write = () => { this.cpu3_irq = false; };
 
-		this.cpu3.check_interrupt = () => { return this.cpu3_irq && this.cpu3.interrupt() || this.fm.status & 3 && this.cpu3.fast_interrupt(); };
+		this.cpu3.check_interrupt = () => { return this.cpu3_irq && this.cpu3.interrupt() || sound[0].status & 3 && this.cpu3.fast_interrupt(); };
 
 		this.mcu.memorymap[0].base = this.ram4.base[0];
 		this.mcu.memorymap[0].read = (addr) => {
@@ -92,8 +80,8 @@ class SoundTest {
 		};
 		this.mcu.memorymap[0].write = (addr, data) => {
 			if (addr === 3) {
-				sound[2].channel[0].gain = ((data >> 1 & 2 | data & 1) + 1) / 4;
-				sound[2].channel[1].gain = ((data >> 3 & 3) + 1) / 4;
+				sound[2].v1 = ((data >> 1 & 2 | data & 1) + 1) / 4;
+				sound[2].v2 = ((data >> 3 & 3) + 1) / 4;
 			}
 			this.ram4[addr] = data;
 		};
@@ -108,8 +96,8 @@ class SoundTest {
 			this.mcu.memorymap[0xc8 + i].base = this.ram4.base[1 + i];
 			this.mcu.memorymap[0xc8 + i].write = null;
 		}
-		this.mcu.memorymap[0xd0].write = (addr, data) => { sound[2].write(0, data, this.count); };
-		this.mcu.memorymap[0xd4].write = (addr, data) => { sound[2].write(1, data, this.count); };
+		this.mcu.memorymap[0xd0].write = (addr, data) => { sound[2].d1 = (data - 0x80) / 127; };
+		this.mcu.memorymap[0xd4].write = (addr, data) => { sound[2].d2 = (data - 0x80) / 127; };
 		this.mcu.memorymap[0xd8].write = (addr, data) => {
 			const index = [0xf8, 0xf4, 0xec, 0xdc, 0xbc, 0x7c].indexOf(data & 0xfc);
 			this.bankswitch4(index < 0 ? 0 : index ? index << 9 | data << 7 & 0x180 : data << 7 & 0x180 ^ 0x100);
@@ -145,26 +133,17 @@ class SoundTest {
 		this.bank4 = bank;
 	}
 
-	execute() {
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
 		this.cpu3_irq = this.mcu_irq = true;
-		for (this.count = 0; this.count < 29; this.count++) {
-			this.cpu3.execute(146);
-			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 1, this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 2, this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu3.execute(tick_rate);
+			this.mcu.execute(tick_rate);
+			this.timer.execute(tick_rate, rate_correction, () => this.ram4[8] |= this.ram4[8] << 3 & 0x40);
+			sound[0].execute(tick_rate);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
-		for (this.count = 0; this.count < 50; this.count++)
-			this.ram4[8] |= this.ram4[8] << 3 & 0x40, this.mcu.execute(84);
-		for (this.count = 29; this.count < 58; this.count++) { // 3579580 / 60 / 1024
-			this.cpu3.execute(146);
-			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 1, this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 2, this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
-		}
-		for (this.count = 50; this.count < 100; this.count++)
-			this.ram4[8] |= this.ram4[8] << 3 & 0x40, this.mcu.execute(84);
 		return this;
 	}
 
@@ -250,8 +229,8 @@ class SoundTest {
 				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[0]);
 
 		for (let i = 0; i < 8; i++) {
-			const kc = this.fm.reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3);
-			if (!this.fm.kon[i] || pitch < 0 || pitch >= 12 * 8)
+			const kc = sound[0].reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3);
+			if (!sound[0].kon[i] || pitch < 0 || pitch >= 12 * 8)
 				continue;
 			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
 		}
@@ -305,9 +284,9 @@ read('galaga88.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	}
 	game = new SoundTest();
 	sound = [
-		new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
-		new C30({clock: 49152000 / 2048 / 2, resolution: 58}),
-		new Dac8Bit2Ch({resolution: 100, gain: 0.5}),
+		new YM2151({clock: 3579580, gain: 1.4}),
+		new C30({clock: 49152000 / 2048}),
+		{output: 0, gain: 0.5, d1: 0, d2: 0, v1: 0, v2: 0, update() { this.output = (this.d1 * this.v1 + this.d2 * this.v2) * this.gain; }}, // DAC
 	];
 	game.initial = true;
 	canvas.addEventListener('click', e => {

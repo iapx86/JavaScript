@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import Cpu, {init, read} from './main.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -37,7 +37,7 @@ class TTMahjong {
 	palette1 = 0;
 	palette2 = 0;
 
-	cpu = [new Z80(), new Z80()];
+	cpu = [new Z80(Math.floor(10000000 / 4)), new Z80(Math.floor(10000000 / 4))];
 
 	constructor() {
 		// CPU周りの初期化
@@ -68,8 +68,15 @@ class TTMahjong {
 			this.cpu[1].memorymap[0x80 + i].write = (addr, data) => { this.vram2[addr & 0x3fff] = data; };
 	}
 
-	execute() {
-		this.cpu[0].interrupt(), Cpu.multiple_execute(this.cpu, 0x1c00);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.cpu[0].interrupt();
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu[0].execute(tick_rate);
+			this.cpu[1].execute(tick_rate);
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -255,7 +262,7 @@ read('ttmahjng.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	COLOR1 = zip.decompress('ju03');
 	COLOR2 = zip.decompress('ju09');
 	game = new TTMahjong();
-	sound = new AY_3_8910({clock: 1250000, gain: 0.2});
+	sound = new AY_3_8910({clock: 10000000 / 8, gain: 0.2});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound, keydown, keyup});
 });

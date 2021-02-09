@@ -6,83 +6,55 @@
 
 export default class SN76489 {
 	rate;
-	sampleRate;
-	count;
-	resolution;
 	gain;
-	tmpwheel = [];
-	wheel = [];
+	output = 0;
+	mute = false;
 	addr = 0;
 	reg = new Uint16Array(8).fill(-1);
-	cycles = 0;
+	frac = 0;
 	channel = [];
 	ncount = 0;
 	rng = 0x4000;
 
-	source = audioCtx.createBufferSource();
-	gainNode = audioCtx.createGain();
-	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
-
-	constructor({clock, resolution = 1, gain = 0.1}) {
+	constructor({clock, gain = 0.1}) {
 		this.rate = Math.floor(clock / 16);
-		this.sampleRate = Math.floor(audioCtx.sampleRate);
-		this.count = this.sampleRate - 1;
-		this.resolution = resolution;
 		this.gain = gain;
-		for (let i = 0; i < resolution; i++)
-			this.tmpwheel.push([]);
 		for (let i = 0; i < 3; i++)
 			this.channel.push({freq: 0, count: 0, output: 0});
-		this.gainNode.gain.value = gain;
-		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0).fill(0));
-		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
-		this.source.start();
 	}
 
-	mute(flag) {
-		this.gainNode.gain.value = flag ? 0 : this.gain;
+	control(flag) {
+		this.mute = !flag;
 	}
 
-	write(data, timer = 0) {
-		this.tmpwheel[timer].push(data);
-	}
-
-	update() {
-		if (this.wheel.length > this.resolution) {
-			while (this.wheel.length)
-				this.wheel.shift().forEach(e => this.regwrite(e));
-			this.count = this.sampleRate - 1;
-		}
-		this.tmpwheel.forEach(e => this.wheel.push(e));
-		for (let i = 0; i < this.resolution; i++)
-			this.tmpwheel[i] = [];
-	}
-
-	makeSound(data) {
-		const reg = this.reg;
-		data.forEach((e, i) => {
-			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
-				this.wheel.length && this.wheel.shift().forEach(e => this.regwrite(e));
-			this.channel.forEach((ch, j) => {
-				ch.freq = reg[j * 2];
-				const vol = ~reg[j * 2 + 1] & 0xf;
-				data[i] += ((ch.output & 1) * 2 - 1) * (vol ? Math.pow(10, (vol - 15) / 10) : 0);
-			});
-			const nfreq = (reg[6] & 3) === 3 ? this.channel[2].freq << 1 : 32 << (reg[6] & 3), nvol = ~reg[7] & 0xf;
-			data[i] += ((this.rng & 1) * 2 - 1) * (nvol ? Math.pow(10, (nvol - 15) / 10) : 0);
-			for (this.cycles += this.rate; this.cycles >= this.sampleRate; this.cycles -= this.sampleRate) {
-				this.channel.forEach(ch => !(--ch.count & 0x3ff) && (ch.output = ~ch.output, ch.count = ch.freq));
-				!(--this.ncount & 0x7ff) && (this.rng = this.rng >> 1 | (this.rng << 14 ^ this.rng << 13 & reg[6] << 12) & 0x4000, this.ncount = nfreq);
-			}
-		});
-	}
-
-	regwrite(data) {
+	write(data) {
 		if (data & 0x80)
 			this.addr = data >> 4 & 7, this.reg[this.addr] = this.reg[this.addr] & 0x3f0 | data & 0xf;
 		else
 			this.reg[this.addr] = this.reg[this.addr] & 0xf | data << 4 & 0x3f0;
 		this.addr === 6 && (this.rng = 0x4000);
+	}
+
+	execute(rate, rate_correction) {
+		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate) {
+			const reg = this.reg;
+			this.channel.forEach((ch, i) => ch.freq = reg[i * 2]);
+			this.channel.forEach(ch => !(--ch.count & 0x3ff) && (ch.output = ~ch.output, ch.count = ch.freq));
+			const nfreq = (reg[6] & 3) === 3 ? this.channel[2].freq << 1 : 32 << (reg[6] & 3);
+			!(--this.ncount & 0x7ff) && (this.rng = this.rng >> 1 | (this.rng << 14 ^ this.rng << 13 & reg[6] << 12) & 0x4000, this.ncount = nfreq);
+		}
+	}
+
+	update() {
+		this.output = 0;
+		if (this.mute)
+			return;
+		const reg = this.reg, nvol = ~reg[7] & 0xf;
+		this.channel.forEach((ch, i) => {
+			const vol = ~reg[i * 2 + 1] & 0xf;
+			this.output += ((ch.output & 1) * 2 - 1) * (vol ? Math.pow(10, (vol - 15) / 10) : 0) * this.gain;
+		});
+		this.output += ((this.rng & 1) * 2 - 1) * (nvol ? Math.pow(10, (nvol - 15) / 10) : 0) * this.gain;
 	}
 }
 

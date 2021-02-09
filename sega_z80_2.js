@@ -11,8 +11,8 @@ export default class Sega2Z80 extends Z80 {
 	code_table = Uint8Array.from(seq(0x4100), i => i & 0xff);
 	data_table = Uint8Array.from(seq(0x4100), i => i & 0xff);
 
-	constructor(key1, key2) {
-		super();
+	constructor(key1, key2, clock) {
+		super(clock);
 		const t = [
 			[6, 4, 2, 0], [4, 6, 2, 0], [2, 4, 6, 0], [0, 4, 2, 6], [6, 2, 4, 0], [6, 0, 2, 4],
 			[6, 4, 0, 2], [2, 6, 4, 0], [4, 2, 6, 0], [4, 6, 0, 2], [6, 0, 4, 2], [0, 6, 4, 2],

@@ -13,8 +13,8 @@ export default class MCS6502 extends Cpu {
 	sp = 0;
 	ccr = 0; // ccr:nv1bdizc
 
-	constructor() {
-		super();
+	constructor(clock) {
+		super(clock);
 	}
 
 	reset() {
@@ -27,19 +27,19 @@ export default class MCS6502 extends Cpu {
 	interrupt() {
 		if (!super.interrupt() || this.ccr & 4)
 			return false;
-		return this.push16(this.pc), this.push(this.ccr &= ~0x10), this.ccr |= 4, this.pc = this.read16(0xfffe), true;
+		return this.cycle -= cc[0], this.push16(this.pc), this.push(this.ccr &= ~0x10), this.ccr |= 4, this.pc = this.read16(0xfffe), true;
 	}
 
 	non_maskable_interrupt() {
 		if (!super.interrupt())
 			return false;
-		return this.push16(this.pc), this.push(this.ccr &= ~0x10), this.ccr |= 4, this.pc = this.read16(0xfffa), true;
+		return this.cycle -= cc[0], this.push16(this.pc), this.push(this.ccr &= ~0x10), this.ccr |= 4, this.pc = this.read16(0xfffa), true;
 	}
 
 	_execute() {
-		let ea;
-
-		switch (this.fetch()) {
+		let ea, op = this.fetch();
+		this.cycle -= cc[op];
+		switch (op) {
 		case 0x00: // BRK
 			return this.fetch(), this.push16(this.pc), this.push(this.ccr |= 0x10), this.ccr |= 0x04, void(this.pc = this.read16(0xfffe));
 		case 0x01: // ORA (n,X)
@@ -59,7 +59,7 @@ export default class MCS6502 extends Cpu {
 		case 0x0e: // ASL nn
 			return ea = this.fetch16(), this.write(ea, this.asl8(this.read(ea)));
 		case 0x10: // BPL
-			return this.bcc(!(this.ccr & 0x80));
+			return !(this.ccr & 0x80) && (this.cycle -= 1), this.bcc(!(this.ccr & 0x80));
 		case 0x11: // ORA (n),Y
 			return void(this.a = this.mov8(this.a | this.read(this.read16z(this.fetch()) + this.iy & 0xffff)));
 		case 0x15: // ORA n,X
@@ -97,7 +97,7 @@ export default class MCS6502 extends Cpu {
 		case 0x2e: // ROL nn
 			return ea = this.fetch16(), this.write(ea, this.rol8(this.read(ea)));
 		case 0x30: // BMI
-			return this.bcc((this.ccr & 0x80) !== 0);
+			return this.ccr & 0x80 && (this.cycle -= 1), this.bcc((this.ccr & 0x80) !== 0);
 		case 0x31: // AND (n),Y
 			return void(this.a = this.mov8(this.a & this.read(this.read16z(this.fetch()) + this.iy & 0xffff)));
 		case 0x35: // AND n,X
@@ -133,7 +133,7 @@ export default class MCS6502 extends Cpu {
 		case 0x4e: // LSR nn
 			return ea = this.fetch16(), this.write(ea, this.lsr8(this.read(ea)));
 		case 0x50: // BVC
-			return this.bcc(!(this.ccr & 0x40));
+			return !(this.ccr & 0x40) && (this.cycle -= 1), this.bcc(!(this.ccr & 0x40));
 		case 0x51: // EOR (n),Y
 			return void(this.a = this.mov8(this.a ^ this.read(this.read16z(this.fetch()) + this.iy & 0xffff)));
 		case 0x55: // EOR n,X
@@ -169,7 +169,7 @@ export default class MCS6502 extends Cpu {
 		case 0x6e: // ROR nn
 			return ea = this.fetch16(), this.write(ea, this.ror8(this.read(ea)));
 		case 0x70: // BVS
-			return this.bcc((this.ccr & 0x40) !== 0);
+			return this.ccr & 0x40 && (this.cycle -= 1), this.bcc((this.ccr & 0x40) !== 0);
 		case 0x71: // ADC (n),Y
 			return void(this.a = this.adc8(this.a, this.read(this.read16z(this.fetch()) + this.iy & 0xffff)));
 		case 0x75: // ADC n,X
@@ -203,7 +203,7 @@ export default class MCS6502 extends Cpu {
 		case 0x8e: // STX nn
 			return this.write(this.fetch16(), this.ix);
 		case 0x90: // BCC
-			return this.bcc(!(this.ccr & 1));
+			return !(this.ccr & 1) && (this.cycle -= 1), this.bcc(!(this.ccr & 1));
 		case 0x91: // STA (n),Y
 			return this.write(this.read16z(this.fetch()) + this.iy & 0xffff, this.a);
 		case 0x94: // STY n,X
@@ -245,7 +245,7 @@ export default class MCS6502 extends Cpu {
 		case 0xae: // LDX nn
 			return void(this.ix = this.mov8(this.read(this.fetch16())));
 		case 0xb0: // BCS
-			return this.bcc((this.ccr & 1) !== 0);
+			return this.ccr & 1 && (this.cycle -= 1), this.bcc((this.ccr & 1) !== 0);
 		case 0xb1: // LDA (n),Y
 			return void(this.a = this.mov8(this.read(this.read16z(this.fetch()) + this.iy & 0xffff)));
 		case 0xb4: // LDY n,X
@@ -289,7 +289,7 @@ export default class MCS6502 extends Cpu {
 		case 0xce: // DEC nn
 			return ea = this.fetch16(), this.write(ea, this.mov8(this.read(ea) - 1 & 0xff));
 		case 0xd0: // BNE
-			return this.bcc(!(this.ccr & 2));
+			return !(this.ccr & 2) && (this.cycle -= 1), this.bcc(!(this.ccr & 2));
 		case 0xd1: // CMP (n),Y
 			return this.cmp8(this.a, this.read(this.read16z(this.fetch()) + this.iy & 0xffff));
 		case 0xd5: // CMP n,X
@@ -327,7 +327,7 @@ export default class MCS6502 extends Cpu {
 		case 0xee: // INC nn
 			return ea = this.fetch16(), this.write(ea, this.mov8(this.read(ea) + 1 & 0xff));
 		case 0xf0: // BEQ
-			return this.bcc((this.ccr & 2) !== 0);
+			return this.ccr & 2 && (this.cycle -= 1), this.bcc((this.ccr & 2) !== 0);
 		case 0xf1: // SBC (n),Y
 			return void(this.a = this.sbc8(this.a, this.read(this.read16z(this.fetch()) + this.iy & 0xffff)));
 		case 0xf5: // SBC n,X
@@ -445,4 +445,22 @@ export default class MCS6502 extends Cpu {
 		return data | this.read(addr + 1 & 0xff) << 8;
 	}
 }
+
+const cc = Uint8Array.of(
+	 7, 6, 0, 8, 3, 3, 5, 5, 3, 2, 2, 2, 4, 4, 6, 6,
+	 2, 5, 0, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+	 6, 6, 0, 8, 3, 3, 5, 5, 4, 2, 2, 2, 4, 4, 6, 6,
+	 2, 5, 0, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+	 6, 6, 0, 8, 3, 3, 5, 5, 3, 2, 2, 2, 3, 4, 6, 6,
+	 2, 5, 0, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+	 6, 6, 0, 8, 3, 3, 5, 5, 4, 2, 2, 2, 5, 4, 6, 6,
+	 2, 5, 0, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+	 2, 6, 2, 6, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4,
+	 2, 6, 0, 6, 4, 4, 4, 4, 2, 5, 2, 5, 5, 5, 5, 5,
+	 2, 6, 2, 6, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4,
+	 2, 5, 0, 5, 4, 4, 4, 4, 2, 4, 2, 4, 4, 4, 4, 4,
+	 2, 6, 2, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
+	 2, 5, 0, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+	 2, 6, 2, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
+	 2, 5, 0, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7);
 

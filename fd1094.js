@@ -13,8 +13,8 @@ export default class FD1094 extends MC68000 {
 	state = 0;
 	irqmode = false;
 
-	constructor(key) {
-		super();
+	constructor(key, clock) {
+		super(clock);
 		this.key.set(key);
 		this.change_state(0x100);
 	}

@@ -23,11 +23,9 @@ class SoundTest {
 	nSound = 0x80;
 
 	ram2 = new Uint8Array(0x2000).addBase();
-	fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8), status: 0, timera: 0, timerb: 0};
-	count = 0;
 	command = [];
 	bank = 0x80;
-	cpu2 = new Z80();
+	cpu2 = new Z80(Math.floor(32000000 / 4));
 
 	constructor() {
 		// CPU周りの初期化
@@ -39,25 +37,15 @@ class SoundTest {
 		}
 		for (let i = 0; i < 3; i++) {
 			this.cpu2.memorymap[0xe0 + i].read = (addr) => { return sound[1].read(addr); };
-			this.cpu2.memorymap[0xe0 + i].write = (addr, data) => { sound[1].write(addr, data, this.count); };
+			this.cpu2.memorymap[0xe0 + i].write = (addr, data) => { sound[1].write(addr, data); };
 		}
-		this.cpu2.memorymap[0xec].read = (addr) => { return addr === 0xec01 ? this.fm.status : 0xff; };
+		this.cpu2.memorymap[0xec].read = (addr) => { return addr === 0xec01 ? sound[0].status : 0xff; };
 		this.cpu2.memorymap[0xec].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				return void(this.fm.addr = data);
+				return void(sound[0].addr = data);
 			case 1:
-				switch (this.fm.addr) {
-				case 8: // KON
-					this.fm.kon[data & 7] = Number((data & 0x78) !== 0);
-					break;
-				case 0x14: // CSM/F RESET/IRQEN/LOAD
-					this.fm.status &= ~(data >> 4 & 3);
-					data & ~this.fm.reg[0x14] & 1 && (this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-					data & ~this.fm.reg[0x14] & 2 && (this.fm.timerb = this.fm.reg[0x12]);
-					break;
-				}
-				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
+				return sound[0].write(data);
 			}
 		};
 		this.cpu2.memorymap[0xf0].read = (addr) => {
@@ -70,24 +58,24 @@ class SoundTest {
 			return 0xff;
 		};
 		this.cpu2.memorymap[0xf8].write = (addr, data) => {
-			const bank = data << 6 & 0x1c0;
-			if (bank !== this.bank) {
+			const _bank = data << 6 & 0x1c0;
+			if (_bank !== this.bank) {
 				for (let i = 0; i < 0x40; i++)
-					this.cpu2.memorymap[0x80 + i].base = PRG2.base[bank + i];
-				this.bank = bank;
+					this.cpu2.memorymap[0x80 + i].base = PRG2.base[_bank + i];
+				this.bank = _bank;
 			}
 		};
 
 		this.cpu2.check_interrupt = () => { return this.command.length && this.cpu2.interrupt(); };
 	}
 
-	execute() {
-		for (this.count = 0; this.count < 65; this.count++) { // 4000000 / 60 / 1024
-			this.cpu2.execute(256);
-			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 1, this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 2, this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu2.execute(tick_rate);
+			sound[0].execute(tick_rate);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		return this;
 	}
@@ -148,8 +136,8 @@ class SoundTest {
 				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);
 
 		for (let i = 0; i < 8; i++) {
-			const kc = this.fm.reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3) + 2;
-			if (!this.fm.kon[i] || pitch < 0 || pitch >= 12 * 8)
+			const kc = sound[0].reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3) + 2;
+			if (!sound[0].kon[i] || pitch < 0 || pitch >= 12 * 8)
 				continue;
 			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
 		}
@@ -182,8 +170,8 @@ read('xexex.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zi
 	}
 	game = new SoundTest();
 	sound = [
-		new YM2151({clock: 4000000, resolution: 65, gain: 2}),
-		new K054539({PCM, clock: 18432000, resolution: 65, gain: 0.2}),
+		new YM2151({clock: 4000000, gain: 2}),
+		new K054539({PCM, clock: 18432000, gain: 0.2}),
 	];
 	game.initial = true;
 	canvas.addEventListener('click', e => {

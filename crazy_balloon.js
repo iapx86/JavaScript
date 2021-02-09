@@ -40,7 +40,7 @@ class CrazyBalloon {
 	);
 	objctrl = new Uint8Array(3);
 
-	cpu = new Z80();
+	cpu = new Z80(Math.floor(9987000 / 3));
 
 	constructor() {
 		// CPU周りの初期化
@@ -87,7 +87,10 @@ class CrazyBalloon {
 	}
 
 	execute() {
-		this.fInterruptEnable && this.cpu.interrupt(), this.cpu.execute(0x1800);
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.fInterruptEnable && this.cpu.interrupt();
+		for (let i = 0; i < tick_max; i++)
+			this.cpu.execute(tick_rate);
 		return this;
 	}
 

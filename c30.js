@@ -5,81 +5,53 @@
  */
 
 export default class C30 {
-	rate;
-	sampleRate;
-	count;
-	resolution;
+	clock;
 	gain;
-	tmpwheel = [];
-	wheel = [];
+	output = 0;
 	ram = new Uint8Array(0x400);
-	reg = new Uint8Array(0x140);
-	snd = new Float32Array(0x200);
+	snd = new Float64Array(0x200);
+	frac = 0;
 	channel = [];
 
-	source = audioCtx.createBufferSource();
-	gainNode = audioCtx.createGain();
-	scriptNode = audioCtx.createScriptProcessor(512, 1, 1);
-
-	constructor({clock = 24000, resolution = 1, gain = 0.1} = {}) {
-		this.rate = Math.floor(clock * 4096 / audioCtx.sampleRate);
-		this.sampleRate = Math.floor(audioCtx.sampleRate);
-		this.count = this.sampleRate - 1;
-		this.resolution = resolution;
+	constructor({clock = 48000, gain = 0.1} = {}) {
+		this.clock = clock;
 		this.gain = gain;
-		for (let i = 0; i < resolution; i++)
-			this.tmpwheel.push([]);
-		for (let i = 0; i < 8; i++)
-			this.channel.push({phase: 0, ncount: 0, rng: 1, output: 0});
-		this.gainNode.gain.value = gain;
-		this.scriptNode.onaudioprocess = ({outputBuffer}) => this.makeSound(outputBuffer.getChannelData(0).fill(0));
-		this.source.connect(this.scriptNode).connect(this.gainNode).connect(audioCtx.destination);
-		this.source.start();
-	}
-
-	mute(flag) {
-		this.gainNode.gain.value = flag ? 0 : this.gain;
+		for (let i = 0; i < 4; i++)
+			this.channel.push({ncount: 0, rng: 1, output: 0});
 	}
 
 	read(addr) {
 		return this.ram[addr & 0x3ff];
 	}
 
-	write(addr, data, timer = 0) {
-		this.ram[addr &= 0x3ff] = data, addr < 0x140 && this.tmpwheel[timer].push({addr, data});
+	write(addr, data) {
+		this.ram[addr &= 0x3ff] = data;
+		addr < 0x100 && (this.snd[addr * 2] = (data >> 4) * 2 / 15 - 1, this.snd[1 + addr * 2] = (data & 15) * 2 / 15 - 1);
+	}
+
+	execute(rate, rate_correction = 1) {
+		for (this.frac += this.clock * rate_correction; this.frac >= rate; this.frac -= rate) {
+			const r = this.ram;
+			for (let ch = 0x100; ch < 0x140; ch += 8)
+				if (ch >= 0x120 || ~r[0x104 | ch - 8 & 0x38] & 0x80) {
+					const ph = (r[ch | 5] << 16 | r[ch | 6] << 8 | r[ch | 7]) + (r[ch | 1] << 16 & 0xf0000 | r[ch | 2] << 8 | r[ch | 3]);
+					r[ch | 5] = ph >> 16, r[ch | 6] = ph >> 8, r[ch | 7] = ph;
+				} else {
+					const channel = this.channel[ch >> 3 & 3];
+					for (channel.ncount += r[ch | 3]; channel.ncount >= 0x100; channel.ncount -= 0x100)
+						channel.output ^= channel.rng + 1 >> 1 & 1, channel.rng = (channel.rng ^ (~channel.rng & 1) - 1 & 0x28000) >> 1;
+				}
+		}
 	}
 
 	update() {
-		if (this.wheel.length > this.resolution) {
-			while (this.wheel.length)
-				this.wheel.shift().forEach(e => this.regwrite(e));
-			this.count = this.sampleRate - 1;
-		}
-		this.tmpwheel.forEach(e => this.wheel.push(e));
-		for (let i = 0; i < this.resolution; i++)
-			this.tmpwheel[i] = [];
-	}
-
-	makeSound(data) {
-		const reg = this.reg;
-		data.forEach((e, i) => {
-			for (this.count += 60 * this.resolution; this.count >= this.sampleRate; this.count -= this.sampleRate)
-				this.wheel.length && this.wheel.shift().forEach(e => this.regwrite(e));
-			this.channel.forEach((ch, j) => {
-				if (j >= 4 || ~reg[0x100 | -4 + j * 8 & 0x3f] & 0x80) {
-					data[i] += this.snd[reg[0x101 + j * 8] << 1 & 0x1e0 | ch.phase >>> 27] * (reg[0x100 + j * 8] & 0xf) / 15;
-					ch.phase = ch.phase + (reg[0x103 + j * 8] | reg[0x102 + j * 8] << 8 | reg[0x101 + j * 8] << 16 & 0xf0000) * this.rate | 0;
-				} else {
-					data[i] += (ch.output * 2 - 1) * (reg[0x100 + j * 8] & 0xf) / 15;
-					for (ch.ncount += reg[0x103 + j * 8] * this.rate; ch.ncount >= 0x80000; ch.ncount -= 0x80000)
-						ch.output ^= ch.rng + 1 >> 1 & 1, ch.rng = (ch.rng ^ (~ch.rng & 1) - 1 & 0x28000) >> 1;
-				}
-			});
-		});
-	}
-
-	regwrite({addr, data}) {
-		this.reg[addr] = data, addr < 0x100 && (this.snd[addr * 2] = (data >> 4) * 2 / 15 - 1, this.snd[1 + addr * 2] = (data & 0xf) * 2 / 15 - 1);
+		const r = this.ram;
+		this.output = 0;
+		for (let ch = 0x100; ch < 0x140; ch += 8)
+			if (ch >= 0x120 || ~r[0x104 | ch - 8 & 0x38] & 0x80)
+				this.output += this.snd[r[ch | 1] << 1 & 0x1e0 | r[ch | 5] & 0x1f] * (r[ch | 0] & 15) / 15 * this.gain;
+			else
+				this.output += (this.channel[ch >> 3 & 3].output * 2 - 1) * (r[ch | 0] & 15) / 15 * this.gain;
 	}
 }
 

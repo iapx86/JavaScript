@@ -23,11 +23,10 @@ class SoundTest {
 	nSound = 0;
 
 	ram2 = new Uint8Array(0x800).addBase();
-	fm = {addr: 0, reg: new Uint8Array(0x100), kon: new Uint8Array(8), status: 0, timera: 0, timerb: 0};
-	count = 0;
 	command = [];
 	bank = 0;
-	cpu2 = new Z80();
+	cpu2_nmi = false;
+	cpu2 = new Z80(Math.floor(20000000 / 4));
 
 	constructor() {
 		// CPU周りの初期化
@@ -44,7 +43,7 @@ class SoundTest {
 			this.cpu2.iomap[i].read = (addr) => {
 				switch (addr >> 6 & 3) {
 				case 0:
-					return addr & 1 ? this.fm.status : 0xff;
+					return addr & 1 ? sound[0].status : 0xff;
 				case 2:
 					return sound[1].busy() << 7;
 				case 3:
@@ -55,39 +54,28 @@ class SoundTest {
 			this.cpu2.iomap[i].write = (addr, data) => {
 				switch (addr >> 6 & 3) {
 				case 0:
-					if (~addr & 1)
-						return void(this.fm.addr = data);
-					switch (this.fm.addr) {
-					case 8: // KON
-						this.fm.kon[data & 7] = Number((data & 0x78) !== 0);
-						break;
-					case 0x14: // CSM/F RESET/IRQEN/LOAD
-						this.fm.status &= ~(data >> 4 & 3);
-						data & ~this.fm.reg[0x14] & 1 && (this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-						data & ~this.fm.reg[0x14] & 2 && (this.fm.timerb = this.fm.reg[0x12]);
-						break;
-					}
-					return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
+					return ~addr & 1 ? void(sound[0].addr = data) : sound[0].write(data);
 				case 1:
-					sound[1].reset(data >> 6 & 1, this.count), sound[1].start(data >> 7, this.count);
+					sound[1].reset(data >> 6 & 1), sound[1].st(data >> 7);
 					return void(this.bank = data << 14 & 0x1c000);
 				case 2:
-					return sound[1].write(data, this.count);
+					return sound[1].write(data);
 				}
 			};
 		}
 
-		this.cpu2.check_interrupt = () => { return this.command.length && this.cpu2.interrupt(); };
+		this.cpu2.check_interrupt = () => {
+			return this.cpu2_nmi && (this.cpu2_nmi = false, this.cpu2.non_maskable_interrupt()) || this.command.length && this.cpu2.interrupt();
+		};
 	}
 
-	execute() {
-		for (this.count = 0; this.count < 65; this.count++) { // 4000000 / 60 / 1024
-			!sound[1].busy() && this.cpu2.non_maskable_interrupt(), this.cpu2.execute(64);
-			!sound[1].busy() && this.cpu2.non_maskable_interrupt(), this.cpu2.execute(64);
-			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 1, this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 2, this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu2.execute(tick_rate);
+			sound[0].execute(tick_rate);
+			sound[1].execute(tick_rate, rate_correction, () => this.cpu2_nmi = true);
+			audio.execute(tick_rate, rate_correction);
 		}
 		return this;
 	}
@@ -102,6 +90,7 @@ class SoundTest {
 			this.fReset = false;
 			this.nSound = 0x10;
 			this.command.splice(0);
+			this.cpu2_nmi = false;
 			this.cpu2.reset();
 		}
 		return this;
@@ -148,8 +137,8 @@ class SoundTest {
 				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);
 
 		for (let i = 0; i < 8; i++) {
-			const kc = this.fm.reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3) + 2;
-			if (!this.fm.kon[i] || pitch < 0 || pitch >= 12 * 8)
+			const kc = sound[0].reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3) + 2;
+			if (!sound[0].kon[i] || pitch < 0 || pitch >= 12 * 8)
 				continue;
 			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
 		}
@@ -181,8 +170,8 @@ read('cotton.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	}
 	game = new SoundTest();
 	sound = [
-		new YM2151({clock: 4000000, resolution: 65}),
-		new UPD7759({mode: false, resolution: 65}),
+		new YM2151({clock: 8000000 / 2}),
+		new UPD7759({mode: false}),
 	];
 	game.initial = true;
 	canvas.addEventListener('click', e => {

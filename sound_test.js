@@ -21,7 +21,7 @@ class SoundTest {
 	fReset = true;
 	nSound = 0;
 
-	cpu2 = new MC6809();
+	cpu2 = new MC6809(Math.floor(6144000 / 4));
 
 	constructor() {
 		// CPU周りの初期化
@@ -33,8 +33,14 @@ class SoundTest {
 			this.cpu2.memorymap[0xe0 + i].base = PRG2.base[i];
 	}
 
-	execute() {
-		this.cpu2.interrupt(), this.cpu2.execute(0x2000);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.cpu2.interrupt();
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu2.execute(tick_rate);
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 

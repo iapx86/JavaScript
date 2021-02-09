@@ -5,7 +5,7 @@
  */
 
 import C30 from './c30.js';
-import {init, read} from './main.js';
+import {init, IntTimer, read} from './main.js';
 import MC6801 from './mc6801.js';
 let game, sound;
 
@@ -23,11 +23,21 @@ class SoundTest {
 
 	fInterruptEnable1 = false;
 	ram2 = new Uint8Array(0x900).addBase();
-	mcu = new MC6801();
+	mcu_irq = false;
+	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
+	timer = new IntTimer(60);
 
 	constructor() {
 		// CPU周りの初期化
 		this.mcu.memorymap[0].base = this.ram2.base[0];
+		this.mcu.memorymap[0].read = (addr) => {
+			let data;
+			switch (addr) {
+			case 8:
+				return data = this.ram2[8], this.ram2[8] &= ~0xe0, data;
+			}
+			return this.ram2[addr];
+		};
 		this.mcu.memorymap[0].write = null;
 		for (let i = 0; i < 4; i++) {
 			this.mcu.memorymap[0x10 + i].read = (addr) => { return sound.read(addr); };
@@ -43,11 +53,19 @@ class SoundTest {
 		}
 		for (let i = 0; i < 0x10; i++)
 			this.mcu.memorymap[0xf0 + i].base = PRG2I.base[i];
+
+		this.mcu.check_interrupt = () => { return this.mcu_irq && this.mcu.interrupt() ? (this.mcu_irq = false, true) : (this.ram2[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf'); };
 	}
 
-	execute() {
-		this.fInterruptEnable1 && this.mcu.interrupt(), this.mcu.execute(0x1000);
-		this.ram2[8] & 8 && this.mcu.interrupt('ocf'), this.mcu.execute(0x1000);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.mcu_irq = this.fInterruptEnable1;
+		for (let i = 0; i < tick_max; i++) {
+			this.mcu.execute(tick_rate);
+			this.timer.execute(tick_rate, () => this.ram2[8] |= this.ram2[8] << 3 & 0x40);
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -59,6 +77,7 @@ class SoundTest {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
+			this.mcu_irq = false;
 			this.mcu.reset();
 		}
 		return this;

@@ -6,7 +6,7 @@
 
 import MappySound from './mappy_sound.js';
 import Namco62XX from './namco_62xx.js';
-import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, read} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -51,9 +51,9 @@ class Gaplus {
 	rgb = new Uint32Array(0x140);
 	dwCount = 0;
 
-	cpu = new MC6809();
-	cpu2 = new MC6809();
-	cpu3 = new MC6809();
+	cpu = new MC6809(Math.floor(24576000 / 16));
+	cpu2 = new MC6809(Math.floor(24576000 / 16));
+	cpu3 = new MC6809(Math.floor(24576000 / 16));
 
 	constructor() {
 		// CPU周りの初期化
@@ -130,9 +130,17 @@ class Gaplus {
 		this.initializeStar();
 	}
 
-	execute() {
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
 		this.fInterruptEnable0 && this.cpu.interrupt(), this.fInterruptEnable1 && this.cpu2.interrupt(), this.fInterruptEnable2 && this.cpu3.interrupt();
-		Cpu.multiple_execute([this.cpu, this.cpu2, this.cpu3], 0x2000);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			this.cpu3.execute(tick_rate);
+			sound[0].execute(tick_rate, rate_correction);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		this.moveStars();
 		return this;
 	}
@@ -757,7 +765,7 @@ read('gaplus.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	game = new Gaplus();
 	sound = [
 		new MappySound({SND}),
-		new Namco62XX({PRG, clock: 1536000}),
+		new Namco62XX({PRG, clock: 24576000 / 16}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

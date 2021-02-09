@@ -6,8 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
-import Dac8Bit2Ch from './dac_8bit_2ch.js';
-import Cpu, {dummypage, init, seq, rseq, convertGFX, read} from './main.js';
+import {dummypage, init, seq, rseq, convertGFX, DoubleTimer, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -34,10 +33,8 @@ class BlastOff {
 	ram2 = new Uint8Array(0x800).addBase();
 	ram3 = new Uint8Array(0x2000).addBase();
 	ram4 = new Uint8Array(0x900).addBase();
-	fm = {addr: 0, reg: new Uint8Array(0x100), status: 0, timera: 0, timerb: 0};
 	in = Uint8Array.of(0xff, 0xff, 0xff, 0xf8);
 	key = new Uint8Array(8);
-	count = 0;
 	bank1 = new Uint16Array(8);
 	bank2 = new Uint16Array(8);
 	bank3 = 0x40;
@@ -53,10 +50,11 @@ class BlastOff {
 	rgb = new Uint32Array(0x2000).fill(0xff000000);
 	isspace = new Uint8Array(0x4000);
 
-	cpu = new MC6809();
-	cpu2 = new MC6809();
-	cpu3 = new MC6809();
-	mcu = new MC6801();
+	cpu = new MC6809(Math.floor(49152000 / 32));
+	cpu2 = new MC6809(Math.floor(49152000 / 32));
+	cpu3 = new MC6809(Math.floor(49152000 / 32));
+	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
+	timer = new DoubleTimer(49152000 / 8 / 1024);
 
 	constructor() {
 		// CPU周りの初期化
@@ -106,7 +104,7 @@ class BlastOff {
 				this.memorymap[page].write = (addr, data) => { this.ram[0x4000 | addr & 0x1f] = data; };
 			} else if (range(page, 0x2fe0, 0x2fef)) {
 				this.memorymap[page].read = (addr) => { return sound[1].read(addr); };
-				this.memorymap[page].write = (addr, data) => { sound[1].write(addr, data, this.count); };
+				this.memorymap[page].write = (addr, data) => { sound[1].write(addr, data); };
 			} else if (range(page, 0x2ff0, 0x2fff)) {
 				this.memorymap[page].base = this.ram2.base[page & 7];
 				this.memorymap[page].write = null;
@@ -156,23 +154,18 @@ class BlastOff {
 
 		for (let i = 0; i < 0x40; i++)
 			this.cpu3.memorymap[i].base = SND.base[0x40 + i];
-		this.cpu3.memorymap[0x40].read = (addr) => { return addr === 0x4001 ? this.fm.status : 0xff; };
+		this.cpu3.memorymap[0x40].read = (addr) => { return addr === 0x4001 ? sound[0].status : 0xff; };
 		this.cpu3.memorymap[0x40].write = (addr, data) => {
 			switch (addr & 0xff) {
 			case 0:
-				return void(this.fm.addr = data);
+				return void(sound[0].addr = data);
 			case 1:
-				if (this.fm.addr === 0x14) { // CSM/F RESET/IRQEN/LOAD
-					this.fm.status &= ~(data >> 4 & 3);
-					data & ~this.fm.reg[0x14] & 1 && (this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-					data & ~this.fm.reg[0x14] & 2 && (this.fm.timerb = this.fm.reg[0x12]);
-				}
-				return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
+				return sound[0].write(data);
 			}
 		};
 		for (let i = 0; i < 8; i++) {
 			this.cpu3.memorymap[0x50 + i].read = (addr) => { return sound[1].read(addr); };
-			this.cpu3.memorymap[0x50 + i].write = (addr, data) => { sound[1].write(addr, data, this.count); };
+			this.cpu3.memorymap[0x50 + i].write = (addr, data) => { sound[1].write(addr, data); };
 		}
 		for (let i = 0; i < 8; i++) {
 			this.cpu3.memorymap[0x70 + i].base = this.ram2.base[i];
@@ -187,7 +180,7 @@ class BlastOff {
 		this.cpu3.memorymap[0xc0].write = (addr, data) => { this.bankswitch3(data << 2 & 0x1c0); };
 		this.cpu3.memorymap[0xe0].write = () => { this.cpu3_irq = false; };
 
-		this.cpu3.check_interrupt = () => { return this.cpu3_irq && this.cpu3.interrupt() || this.fm.status & 3 && this.cpu3.fast_interrupt(); };
+		this.cpu3.check_interrupt = () => { return this.cpu3_irq && this.cpu3.interrupt() || sound[0].status & 3 && this.cpu3.fast_interrupt(); };
 
 		this.mcu.memorymap[0].base = this.ram4.base[0];
 		this.mcu.memorymap[0].read = (addr) => {
@@ -202,8 +195,8 @@ class BlastOff {
 		};
 		this.mcu.memorymap[0].write = (addr, data) => {
 			if (addr === 3) {
-				sound[2].channel[0].gain = ((data >> 1 & 2 | data & 1) + 1) / 4;
-				sound[2].channel[1].gain = ((data >> 3 & 3) + 1) / 4;
+				sound[2].v1 = ((data >> 1 & 2 | data & 1) + 1) / 4;
+				sound[2].v2 = ((data >> 3 & 3) + 1) / 4;
 			}
 			this.ram4[addr] = data;
 		};
@@ -220,8 +213,8 @@ class BlastOff {
 			this.mcu.memorymap[0xc8 + i].base = this.ram4.base[1 + i];
 			this.mcu.memorymap[0xc8 + i].write = null;
 		}
-		this.mcu.memorymap[0xd0].write = (addr, data) => { sound[2].write(0, data, this.count); };
-		this.mcu.memorymap[0xd4].write = (addr, data) => { sound[2].write(1, data, this.count); };
+		this.mcu.memorymap[0xd0].write = (addr, data) => { sound[2].d1 = (data - 0x80) / 127; };
+		this.mcu.memorymap[0xd4].write = (addr, data) => { sound[2].d2 = (data - 0x80) / 127; };
 		this.mcu.memorymap[0xd8].write = (addr, data) => {
 			const index = [0xf8, 0xf4, 0xec, 0xdc, 0xbc, 0x7c].indexOf(data & 0xfc);
 			this.bankswitch4(index < 0 ? 0 : index ? index << 9 | data << 7 & 0x180 : data << 7 & 0x180 ^ 0x100);
@@ -287,26 +280,19 @@ class BlastOff {
 		this.bank4 = bank;
 	}
 
-	execute() {
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
 		this.cpu_irq = this.cpu2_irq = this.cpu3_irq = this.mcu_irq = true;
-		for (this.count = 0; this.count < 29; this.count++) {
-			Cpu.multiple_execute([this.cpu, this.cpu2, this.cpu3], 146);
-			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 1, this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 2, this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			this.cpu3.execute(tick_rate);
+			this.mcu.execute(tick_rate);
+			this.timer.execute(tick_rate, rate_correction, () => this.ram4[8] |= this.ram4[8] << 3 & 0x40);
+			sound[0].execute(tick_rate);
+			sound[1].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
-		for (this.count = 0; this.count < 50; this.count++)
-			this.ram4[8] |= this.ram4[8] << 3 & 0x40, this.mcu.execute(84);
-		for (this.count = 29; this.count < 58; this.count++) { // 3579580 / 60 / 1024
-			Cpu.multiple_execute([this.cpu, this.cpu2, this.cpu3], 146);
-			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 1, this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 2, this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
-		}
-		for (this.count = 50; this.count < 100; this.count++)
-			this.ram4[8] |= this.ram4[8] << 3 & 0x40, this.mcu.execute(84);
 		return this;
 	}
 
@@ -699,9 +685,9 @@ read('blastoff.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	OBJ = Uint8Array.concat(...['bo_obj-0.bin', 'bo_obj-1.bin', 'bo_obj-2.bin', 'bo_obj-3.bin', 'bo1_obj4.bin'].map(e => zip.decompress(e)));
 	game = new BlastOff();
 	sound = [
-		new YM2151({clock: 3579580, resolution: 58, gain: 1.4}),
-		new C30({clock: 49152000 / 2048 / 2, resolution: 58}),
-		new Dac8Bit2Ch({resolution: 100, gain: 0.5}),
+		new YM2151({clock: 3579580, gain: 1.4}),
+		new C30({clock: 49152000 / 2048}),
+		{output: 0, gain: 0.5, d1: 0, d2: 0, v1: 0, v2: 0, update() { this.output = (this.d1 * this.v1 + this.d2 * this.v2) * this.gain; }}, // DAC
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

@@ -31,12 +31,10 @@ class NewRallyX {
 	nBonus = 'A';
 
 	fInterruptEnable = false;
-//	fSoundEnable = false;
 
 	ram = new Uint8Array(0x1800).addBase();
 	mmi = new Uint8Array(0x200).fill(0xff).addBase();
 	mmo = new Uint8Array(0x200);
-	adwCount = new Uint8Array(8);
 	intvec = 0;
 	cpu_irq = false;
 
@@ -44,9 +42,9 @@ class NewRallyX {
 	obj = new Uint8Array(0x4000).fill(3);
 	rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 
-	se = [{buf: BANG, loop: false, start: false, stop: false}];
+	se = [{freq: 11025, buf: BANG, loop: false, start: false, stop: false}];
 
-	cpu = new Z80();
+	cpu = new Z80(Math.floor(18432000 / 6));
 
 	constructor() {
 		// CPU周りの初期化
@@ -79,7 +77,7 @@ class NewRallyX {
 						this.fInterruptEnable = (data & 1) !== 0, this.cpu_irq = false;
 						break;
 //					case 2:
-//						this.fSoundEnable = (data & 1) !== 0;
+//						sound[0].control(data & 1);
 //						break;
 					}
 					// fallthrough
@@ -93,29 +91,19 @@ class NewRallyX {
 
 		this.cpu.check_interrupt = () => { return this.cpu_irq && this.cpu.interrupt(this.intvec); };
 
-		this.cpu.breakpoint = (addr) => {
-			switch (addr) {
-			case 0x0d39:
-				if (!this.adwCount[(this.ixl | this.ixh << 8) - 0x8088 >> 5])
-					this.adwCount[(this.ixl | this.ixh << 8) - 0x8088 >> 5] = 0x88;
-				break;
-			case 0x1886:
-				if (!this.adwCount[(this.ixl | this.ixh << 8) - 0x8088 >> 5])
-					this.adwCount[(this.ixl | this.ixh << 8) - 0x8088 >> 5] = 0x20;
-				break;
-			}
-		};
-		this.cpu.set_breakpoint(0x0d39);
-		this.cpu.set_breakpoint(0x1886);
-
 		// Videoの初期化
 		convertGFX(this.bg, BGOBJ, 256, rseq(8, 0, 8), seq(4, 64).concat(seq(4)), [0, 4], 16);
 		convertGFX(this.obj, BGOBJ, 64, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4, 64).concat(seq(4, 128), seq(4, 192), seq(4)), [0, 4], 64);
 	}
 
-	execute() {
-//		sound[0].mute(!this.fSoundEnable);
-		this.cpu_irq = this.fInterruptEnable, this.cpu.execute(0x2400);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.cpu_irq = this.fInterruptEnable;
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			sound[0].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -161,15 +149,8 @@ class NewRallyX {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.adwCount.fill(0);
 			this.cpu_irq = false;
 			this.cpu.reset();
-		}
-
-		for (let i = 0; i < 8; i++) {
-			if (!this.adwCount[i] || --this.adwCount[i] || !this.ram[0x88 + i * 0x20])
-				continue;
-			this.ram[0x88 + i * 0x20] = this.ram[0x88 + 0x15 + i * 0x20] ? 1 : 0xff;
 		}
 		return this;
 	}
@@ -1195,7 +1176,7 @@ read('nrallyx.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	game = new NewRallyX();
 	sound = [
 		new PacManSound({SND}),
-		new SoundEffect({se: game.se, freq: 11025, gain: 9 / 16}),
+		new SoundEffect({se: game.se, gain: 9 / 16}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

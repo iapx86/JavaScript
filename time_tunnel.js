@@ -5,10 +5,9 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import SoundEffect from './sound_effect.js';
-import Cpu, {init, read} from './main.js';
+import {init, IntTimer, read} from './main.js';
 import Z80 from './z80.js';
-let game, sound, pcm = [];
+let game, sound;
 
 class TimeTunnel {
 	cxScreen = 224;
@@ -34,8 +33,6 @@ class TimeTunnel {
 	ram2 = new Uint8Array(0x400).addBase();
 	in = Uint8Array.of(0xff, 0xff, 0x1c, 0xff, 0xff, 0x0f, 0, 0xf0);
 	psg = [{addr: 0}, {addr: 0}, {addr: 0}, {addr: 0}];
-	count = 0;
-	timer = 0;
 	cpu2_irq = false;
 	cpu2_nmi = false;
 	cpu2_nmi2 = false;
@@ -55,12 +52,11 @@ class TimeTunnel {
 	colorbank = new Uint8Array(2);
 	mode = 0;
 
-	se;
+	cpu = new Z80(Math.floor(8000000 / 2));
+	cpu2 = new Z80(Math.floor(6000000 / 2));
+	timer = new IntTimer(6000000 / 163840);
 
-	cpu = new Z80();
-	cpu2 = new Z80();
-
-	constructor(rate) {
+	constructor() {
 		// CPU周りの初期化
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[i].base = PRG1.base[i];
@@ -108,7 +104,7 @@ class TimeTunnel {
 			case 0xe:
 				return void(this.psg[0].addr = data);
 			case 0xf:
-				return void((this.psg[0].addr & 0xf) < 0xe && sound[0].write(this.psg[0].addr, data, this.count));
+				return void((this.psg[0].addr & 0xf) < 0xe && sound[0].write(this.psg[0].addr, data));
 			}
 		};
 		this.cpu.memorymap[0xd5].write = (addr, data) => {
@@ -168,13 +164,13 @@ class TimeTunnel {
 				case 0:
 					return void(this.psg[1].addr = data);
 				case 1:
-					return sound[1].write(this.psg[1].addr, data, this.count);
+					return sound[1].write(this.psg[1].addr, data);
 				case 2:
 					return void(this.psg[2].addr = data);
 				case 3:
 					if ((this.psg[2].addr & 0xf) === 0xe)
 						this.in[5] = this.in[5] & 0x0f | data & 0xf0;
-					return sound[2].write(this.psg[2].addr, data, this.count);
+					return sound[2].write(this.psg[2].addr, data);
 				case 4:
 				case 6:
 					return void(this.psg[3].addr = data);
@@ -182,7 +178,7 @@ class TimeTunnel {
 				case 7:
 					if ((this.psg[3].addr & 0xf) === 0xf)
 						this.fNmiEnable = !(data & 1);
-					return sound[3].write(this.psg[3].addr, data, this.count);
+					return sound[3].write(this.psg[3].addr, data);
 				}
 			};
 			this.cpu2.memorymap[0x50 + i].read = (addr) => {
@@ -212,13 +208,6 @@ class TimeTunnel {
 			return false;
 		};
 
-		this.cpu2.breakpoint = () => {
-			this.se.forEach(se => se.stop = true);
-			if (this.cpu2.a > 0 && this.cpu2.a < 16)
-				this.se[this.cpu2.a - 1].start = true;
-		};
-		this.cpu2.set_breakpoint(0x04f3);
-
 		// Videoの初期化
 		for (let i = 0; i < 32; i++)
 			this.pri.push(new Uint8Array(4));
@@ -230,18 +219,18 @@ class TimeTunnel {
 		for (let i = 16; i < 32; i++)
 			for (let mask = 0, j = 3; j >= 0; mask |= 1 << this.pri[i][j], --j)
 				this.pri[i][j] = PRI[i << 4 & 0xf0 | mask] >> 2 & 3;
-
-		// 効果音の初期化
-		TimeTunnel.convertPCM(rate);
-		this.se = pcm.map(buf => ({buf, loop: false, start: false, stop: false}));
 	}
 
-	execute() {
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
 		this.cpu.interrupt();
-		for (this.count = 0; this.count < 3; this.count++) {
-			!this.timer && (this.cpu2_irq = true);
-			Cpu.multiple_execute([this.cpu, this.cpu2], 0x800);
-			++this.timer >= 5 && (this.timer = 0);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			this.timer.execute(tick_rate, () => this.cpu2_irq = true);
+			for (let j = 0; j < 4; j++)
+				sound[j].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		return this;
 	}
@@ -282,7 +271,6 @@ class TimeTunnel {
 			this.cpu2_irq = false;
 			this.cpu2_nmi = false;
 			this.cpu2_nmi2 = false;
-			this.timer = 0;
 			this.cpu2_command = 0;
 			this.cpu2_flag = 0;
 			this.cpu2_flag2 = 0;
@@ -330,60 +318,6 @@ class TimeTunnel {
 
 	triggerB(fDown) {
 		this.in[0] = this.in[0] & ~(1 << 5) | !fDown << 5;
-	}
-
-	static convertPCM(rate) {
-		const clock = 3000000;
-
-		for (let idx = 1; idx < 16; idx++) {
-			const desc1 = PRG2[0x05f3 + idx * 2] | PRG2[0x05f3 + idx * 2 + 1] << 8;
-			const n = PRG2[desc1], w1 = PRG2[desc1 + 1], r1 = PRG2[desc1 + 2], desc2 = PRG2[desc1 + 3] | PRG2[desc1 + 4] << 8;
-			let timer = 0;
-			for (let i = 0; i < r1; i++) {
-				timer += 84;
-				for (let j = 0; j < n; j++) {
-					let len = PRG2[desc2 + j * 8], w2 = PRG2[desc2 + j * 8 + 1], r2 = PRG2[desc2 + j * 8 + 2], dw2 = PRG2[desc2 + j * 8 + 3];
-					timer += 314 + 4;
-					for (let k = 0; k < r2; w2 = w2 + dw2 & 0xff, k++)
-						timer += 33 + (83 + (w1 - 1 & 0xff) * 16 + 50 + (w2 - 1 & 0xff) * 16) * len + 103 + 49;
-					timer += 62;
-				}
-				timer += 47;
-			}
-			const buf = new Int16Array(Math.floor(timer * rate / clock));
-			let e = 0, m = 0, vol = 0, cnt = 0;
-			const advance = cycle => {
-				for (timer += cycle * rate; timer >= clock; timer -= clock)
-					buf[cnt++] = e;
-			};
-			timer = 0;
-			for (let i = 0; i < r1; i++) {
-				advance(84);
-				for (let j = 0; j < n; j++) {
-					let len = PRG2[desc2 + j * 8], w2 = PRG2[desc2 + j * 8 + 1], r2 = PRG2[desc2 + j * 8 + 2], dw2 = PRG2[desc2 + j * 8 + 3];
-					let addr = PRG2[desc2 + j * 8 + 4] | PRG2[desc2 + j * 8 + 5] << 8, _vol = PRG2[desc2 + j * 8 + 6], dv = PRG2[desc2 + j * 8 + 7];
-					advance(314);
-					e = m * (vol = ~_vol & 0xff);
-					advance(4);
-					for (let k = 0; k < r2; k++) {
-						advance(33);
-						for (let l = 0; l < len; l++) {
-							advance(83 + (w1 - 1 & 0xff) * 16);
-							e = (m = PRG2[addr + l] - 0x80) * vol;
-							advance(50 + (w2 - 1 & 0xff) * 16);
-						}
-						_vol = _vol + dv & 0xff;
-						w2 = w2 + dw2 & 0xff;
-						advance(103);
-						e = m * (vol = ~_vol & 0xff);
-						advance(49);
-					}
-					advance(62);
-				}
-				advance(47);
-			}
-			pcm.push(buf);
-		}
 	}
 
 	makeBitmap(data) {
@@ -713,13 +647,13 @@ read('timetunl.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	PRG2 = zip.decompress('un19.70').addBase();
 	GFX = Uint8Array.concat(...['un11.1', 'un12.2', 'un13.3', 'un14.4', 'un15.5', 'un16.6', 'un17.7', 'un18.8'].map(e => zip.decompress(e)));
 	PRI = zip.decompress('eb16.22');
-	game = new TimeTunnel(audioCtx.sampleRate);
+	game = new TimeTunnel();
 	sound = [
-		new AY_3_8910({clock: 1500000, resolution: 3}),
-		new AY_3_8910({clock: 1500000, resolution: 3}),
-		new AY_3_8910({clock: 1500000, resolution: 3}),
-		new AY_3_8910({clock: 1500000, resolution: 3}),
-		new SoundEffect({se: game.se, freq: audioCtx.sampleRate, gain: 0.2}),
+		new AY_3_8910({clock: 6000000 / 4}),
+		new AY_3_8910({clock: 6000000 / 4}),
+		new AY_3_8910({clock: 6000000 / 4}),
+		new AY_3_8910({clock: 6000000 / 4}),
+		{output: 0, gain: 0.2, update() { this.output = (sound[1].reg[0xe] - 128) * (sound[1].reg[0xf] ^ 255) / 32385 * this.gain; }},
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

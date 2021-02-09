@@ -29,7 +29,6 @@ class Galaxian {
 	nBonus = 'B';
 
 	fInterruptEnable = false;
-	fSoundEnable = false;
 	mode = 0;
 	ram = new Uint8Array(0x900).addBase();
 	mmo = new Uint8Array(0x100);
@@ -44,7 +43,7 @@ class Galaxian {
 
 	se;
 
-	cpu = new Z80();
+	cpu = new Z80(Math.floor(18432000 / 6));
 
 	constructor() {
 		// CPU周りの初期化
@@ -69,6 +68,9 @@ class Galaxian {
 			case 5: // SHOT
 				data & 1 && !this.mmo[0x15] && (this.se[1].start = this.se[1].stop = true);
 				break;
+			case 7: // SOUND VOICE/FREQUENCY
+				sound[0].set_reg17(data);
+				break;
 			}
 			this.mmo[addr & 7 | 0x10] = data & 1;
 		};
@@ -79,12 +81,12 @@ class Galaxian {
 				this.fInterruptEnable = (data & 1) !== 0;
 				break;
 			case 4:
-				!this.fSoundEnable && (this.mmo[0x30] = 0xff), this.fStarEnable = this.fSoundEnable = (data & 1) !== 0;
+				this.fStarEnable = (data & 1) !== 0, sound[0].control(data & 1);
 				break;
 			}
 			this.mmo[addr & 7 | 0x20] = data & 1;
 		};
-		this.cpu.memorymap[0x78].write = (addr, data) => { this.mmo[0x30] = data; }; // SOUND FREQUENCY
+		this.cpu.memorymap[0x78].write = (addr, data) => { sound[0].set_reg30(data), this.mmo[0x30] = data; }; // SOUND FREQUENCY
 
 		this.cpu.breakpoint = (addr) => {
 			switch (addr) {
@@ -111,13 +113,17 @@ class Galaxian {
 
 		// 効果音の初期化
 		const table = [BOMB, SHOT, WAVE0001, WAVE0010, WAVE0011, WAVE0100, WAVE0101, WAVE0110, WAVE0111, WAVE1000, WAVE1001, WAVE1010, WAVE1011, WAVE1100, WAVE1101, WAVE1110, WAVE1111];
-		this.se = table.map(buf => ({buf, loop: true, start: false, stop: false}));
+		this.se = table.map(buf => ({freq: 11025, buf, loop: true, start: false, stop: false}));
 		this.se[0].loop = this.se[1].loop = false;
 	}
 
-	execute() {
-		sound[0].mute(!this.fSoundEnable);
-		this.fInterruptEnable && this.cpu.non_maskable_interrupt(), this.cpu.execute(0x2000);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.fInterruptEnable && this.cpu.non_maskable_interrupt();
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			audio.execute(tick_rate, rate_correction);
+		}
 		this.moveStars();
 		return this;
 	}
@@ -164,7 +170,6 @@ class Galaxian {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.fSoundEnable = false;
 			this.se.forEach(se => se.stop = true);
 			this.cpu.reset();
 			this.fInterruptEnable = false;
@@ -2670,7 +2675,7 @@ read('galaxian.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	game = new Galaxian();
 	sound = [
 		new GalaxianSound({SND}),
-		new SoundEffect({se: game.se, freq: 11025, gain: 0.5}),
+		new SoundEffect({se: game.se, gain: 0.5}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

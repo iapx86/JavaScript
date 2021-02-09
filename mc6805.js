@@ -13,8 +13,8 @@ export default class MC6805 extends Cpu {
 	s = 0;
 	irq = false;
 
-	constructor() {
-		super();
+	constructor(clock) {
+		super(clock);
 	}
 
 	reset() {
@@ -30,7 +30,7 @@ export default class MC6805 extends Cpu {
 	interrupt(intvec) {
 		if (!super.interrupt() || this.ccr & 8)
 			return false;
-		this.psh16(this.pc), this.psh(this.x, this.a, this.ccr), this.ccr |= 8;
+		this.cycle -= cc[0x83], this.psh16(this.pc), this.psh(this.x, this.a, this.ccr), this.ccr |= 8;
 		switch (intvec) {
 		case 'timer':
 			return this.pc = this.read16(0x7f8) & 0x7ff, true;
@@ -41,9 +41,9 @@ export default class MC6805 extends Cpu {
 	}
 
 	_execute() {
-		let ea;
-
-		switch (this.fetch()) {
+		let ea, op = this.fetch();
+		this.cycle -= cc[op];
+		switch (op) {
 		case 0x00: // BRSET0
 			return this.bcc(((this.ccr = this.ccr & ~1 | this.read(this.fetch()) & 1) & 1) !== 0);
 		case 0x01: // BRCLR0
@@ -590,4 +590,22 @@ export default class MC6805 extends Cpu {
 		!page.write ? void(page.base[addr & 0xff] = data) : page.write(addr, data);
 	}
 }
+
+const cc = Uint8Array.of( // MC68705P5
+	10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,
+	 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+	 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	 6, 0, 0, 6, 6, 0, 6, 6, 6, 6, 6, 0, 6, 6, 0, 6,
+	 4, 0, 0, 4, 4, 0, 4, 4, 4, 4, 4, 0, 4, 4, 0, 4,
+	 4, 0, 0, 4, 4, 0, 4, 4, 4, 4, 4, 0, 4, 4, 0, 4,
+	 7, 0, 0, 7, 7, 0, 7, 7, 7, 7, 7, 0, 7, 7, 0, 7,
+	 6, 0, 0, 6, 6, 0, 6, 6, 6, 6, 6, 0, 6, 6, 0, 6,
+	 9, 6, 0,11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 0, 2,
+	 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 0, 8, 2, 0,
+	 4, 4, 4, 4, 4, 4, 4, 5, 4, 4, 4, 4, 3, 7, 4, 5,
+	 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 4, 8, 5, 6,
+	 6, 6, 6, 6, 6, 6, 6, 7, 6, 6, 6, 6, 5, 9, 6, 7,
+	 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 4, 8, 5, 6,
+	 4, 4, 4, 4, 4, 4, 4, 5, 4, 4, 4, 4, 3, 7, 4, 5);
 

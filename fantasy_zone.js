@@ -34,17 +34,16 @@ class FantasyZone {
 	ram = new Uint8Array(0x18000).addBase();
 	ram2 = new Uint8Array(0x800).addBase();
 	in = Uint8Array.of(0xff, 0xff, 0xff, 0xff, 0xff, 0xfc);
-	fm = {addr: 0, reg: new Uint8Array(0x100), status: 0, timera: 0, timerb: 0};
-	count = 0;
-	command = [];
+	command = 0;
+	cpu2_nmi = false;
 
 	bg = new Uint8Array(0x40000).fill(7);
 	rgb = new Uint32Array(0x800).fill(0xff000000);
 	isspace;
 	mode = new Uint8Array(2);
 
-	cpu = new MC68000();
-	cpu2 = new Z80();
+	cpu = new MC68000(10000000);
+	cpu2 = new Z80(4000000);
 
 	constructor() {
 		// CPU周りの初期化
@@ -86,7 +85,7 @@ class FantasyZone {
 				this.cpu.memorymap[page].write = (addr, data) => {
 					switch (addr & 0x3007) {
 					case 1:
-						return this.command.push(data);
+						return this.cpu2_nmi = true, void(this.command = data);
 					case 3:
 						return void(this.mode[0] = data);
 					case 5:
@@ -100,7 +99,7 @@ class FantasyZone {
 
 		for (let i = 0; i < 0x80; i++)
 			this.cpu2.memorymap[i].base = PRG2.base[i];
-		this.cpu2.memorymap[0xe8].read = (addr) => { return addr === 0xe800 && this.command.length ? this.command.shift() : 0xff; };
+		this.cpu2.memorymap[0xe8].read = (addr) => { return addr === 0xe800 ? this.command : 0xff; };
 		for (let i = 0; i < 8; i++) {
 			this.cpu2.memorymap[0xf8 + i].base = this.ram2.base[i];
 			this.cpu2.memorymap[0xf8 + i].write = null;
@@ -109,39 +108,30 @@ class FantasyZone {
 			this.cpu2.iomap[i].read = (addr) => {
 				switch (addr >> 6 & 3) {
 				case 0:
-					return addr & 1 ? this.fm.status : 0xff;
+					return addr & 1 ? sound.status : 0xff;
 				case 3:
-					return this.command.length ? this.command.shift() : 0xff;
+					return this.command;
 				}
 				return 0xff;
 			};
-			this.cpu2.iomap[i].write = (addr, data) => {
-				if (addr >> 6 & 3)
-					return;
-				if (~addr & 1)
-					return void(this.fm.addr = data);
-				if (this.fm.addr === 0x14) { // CSM/F RESET/IRQEN/LOAD
-					this.fm.status &= ~(data >> 4 & 3);
-					data & ~this.fm.reg[0x14] & 1 && (this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-					data & ~this.fm.reg[0x14] & 2 && (this.fm.timerb = this.fm.reg[0x12]);
-				}
-				return sound.write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
-			};
+			this.cpu2.iomap[i].write = (addr, data) => { addr >> 6 & 3 ? void(0) : ~addr & 1 ? void(sound.addr = data) : sound.write(data); };
 		}
+
+		this.cpu2.check_interrupt = () => { return this.cpu2_nmi && this.cpu2.non_maskable_interrupt() && (this.cpu2_nmi = false, true); };
 
 		// Videoの初期化
 		convertGFX(this.bg, BG, 4096, rseq(8, 0, 8), seq(8), [Math.floor(BG.length / 3) * 16, Math.floor(BG.length / 3) * 8, 0], 8);
 		this.isspace = Uint8Array.from(seq(4096), i => Number(this.bg.subarray(i << 6, i + 1 << 6).every(e => !e)));
 	}
 
-	execute() {
-		this.cpu.interrupt(4), this.cpu.execute(0x4000);
-		for (this.count = 0; this.count < 65; this.count++) { // 4000000 / 60 / 1024
-			this.command.length && this.cpu2.non_maskable_interrupt(), this.cpu2.execute(128);
-			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 1, this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 2, this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.cpu.interrupt(4);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			sound.execute(tick_rate);
+			audio.execute(tick_rate, rate_correction);
 		}
 		return this;
 	}
@@ -212,7 +202,7 @@ class FantasyZone {
 		if (this.fReset) {
 			this.fReset = false;
 			this.cpu.reset();
-			this.command.splice(0);
+			this.cpu2_nmi = false;
 			this.cpu2.reset();
 		}
 		return this;
@@ -537,7 +527,7 @@ read('fantzone.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	zip.decompress('epr-7398.24').forEach((e, i) => OBJ[0x20000 | i << 1] = e);
 	PRG2 = zip.decompress('epr-7535a.12').addBase();
 	game = new FantasyZone();
-	sound = new YM2151({clock: 4000000, resolution: 65});
+	sound = new YM2151({clock: 4000000});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound, keydown, keyup});
 });

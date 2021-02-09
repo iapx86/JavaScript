@@ -5,12 +5,10 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import SoundEffect from './sound_effect.js';
-import Cpu, {init, read} from './main.js';
+import {init, IntTimer, read} from './main.js';
 import Z80 from './z80.js';
 import MC6805 from './mc6805.js';
-const pcmtable = [0xd2d, 0xdca, 0xe09, 0xe6f, 0xe85];
-let game, sound, pcm = [];
+let game, sound;
 
 class ElevatorAction {
 	cxScreen = 224;
@@ -38,8 +36,6 @@ class ElevatorAction {
 	ram3 = new Uint8Array(0x80);
 	in = Uint8Array.of(0xff, 0xff, 0x7f, 0xff, 0xef, 0x0f, 0, 0xff);
 	psg = [{addr: 0}, {addr: 0}, {addr: 0}, {addr: 0}];
-	count = 0;
-	timer = 0;
 	cpu2_irq = false;
 	cpu2_nmi = false;
 	cpu2_nmi2 = false;
@@ -62,13 +58,12 @@ class ElevatorAction {
 	colorbank = new Uint8Array(2);
 	mode = 0;
 
-	se;
+	cpu = new Z80(Math.floor(8000000 / 2));
+	cpu2 = new Z80(Math.floor(6000000 / 2));
+	mcu = new MC6805(Math.floor(3000000 / 4));
+	timer = new IntTimer(6000000 / 163840);
 
-	cpu = new Z80();
-	cpu2 = new Z80();
-	mcu = new MC6805();
-
-	constructor(rate) {
+	constructor() {
 		// CPU周りの初期化
 		for (let i = 0; i < 0x80; i++)
 			this.cpu.memorymap[i].base = PRG1.base[i];
@@ -118,7 +113,7 @@ class ElevatorAction {
 			case 0xe:
 				return void(this.psg[0].addr = data);
 			case 0xf:
-				return void((this.psg[0].addr & 0xf) < 0xe && sound[0].write(this.psg[0].addr, data, this.count));
+				return void((this.psg[0].addr & 0xf) < 0xe && sound[0].write(this.psg[0].addr, data));
 			}
 		};
 		this.cpu.memorymap[0xd5].write = (addr, data) => {
@@ -171,13 +166,13 @@ class ElevatorAction {
 				case 0:
 					return void(this.psg[1].addr = data);
 				case 1:
-					return sound[1].write(this.psg[1].addr, data, this.count);
+					return sound[1].write(this.psg[1].addr, data);
 				case 2:
 					return void(this.psg[2].addr = data);
 				case 3:
 					if ((this.psg[2].addr & 0xf) === 0xe)
 						this.in[5] = this.in[5] & 0x0f | data & 0xf0;
-					return sound[2].write(this.psg[2].addr, data, this.count);
+					return sound[2].write(this.psg[2].addr, data);
 				case 4:
 				case 6:
 					return void(this.psg[3].addr = data);
@@ -185,7 +180,7 @@ class ElevatorAction {
 				case 7:
 					if ((this.psg[3].addr & 0xf) === 0xf)
 						this.fNmiEnable = !(data & 1);
-					return sound[3].write(this.psg[3].addr, data, this.count);
+					return sound[3].write(this.psg[3].addr, data);
 				}
 			};
 			this.cpu2.memorymap[0x50 + i].read = (addr) => {
@@ -214,14 +209,6 @@ class ElevatorAction {
 				return this.cpu2_irq = false, true;
 			return false;
 		};
-
-		this.cpu2.breakpoint = () => {
-			const idx = pcmtable.indexOf(this.ram2[1] | this.ram2[2] << 8);
-			this.se.forEach(se => se.stop = true);
-			if (idx >= 0)
-				this.se[idx].start = true;
-		};
-		this.cpu2.set_breakpoint(0x0210);
 
 		this.mcu.memorymap[0].fetch = (addr) => { return addr >= 0x80 ? PRG3[addr] : this.ram3[addr]; };
 		this.mcu.memorymap[0].read = (addr) => {
@@ -260,18 +247,19 @@ class ElevatorAction {
 		for (let i = 16; i < 32; i++)
 			for (let mask = 0, j = 3; j >= 0; mask |= 1 << this.pri[i][j], --j)
 				this.pri[i][j] = PRI[i << 4 & 0xf0 | mask] >> 2 & 3;
-
-		// 効果音の初期化
-		ElevatorAction.convertPCM(rate);
-		this.se = pcm.map(buf => ({buf, loop: false, start: false, stop: false}));
 	}
 
-	execute() {
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
 		this.cpu.interrupt();
-		for (this.count = 0; this.count < 3; this.count++) {
-			!this.timer && (this.cpu2_irq = true);
-			Cpu.multiple_execute([this.cpu, this.cpu2, this.mcu], 0x800);
-			++this.timer >= 5 && (this.timer = 0);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			this.mcu.execute(tick_rate);
+			this.timer.execute(tick_rate, () => this.cpu2_irq = true);
+			for (let j = 0; j < 4; j++)
+				sound[j].execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
 		}
 		return this;
 	}
@@ -340,7 +328,6 @@ class ElevatorAction {
 			this.cpu2_irq = false;
 			this.cpu2_nmi = false;
 			this.cpu2_nmi2 = false;
-			this.timer = 0;
 			this.cpu2_command = 0;
 			this.cpu2_flag = 0;
 			this.cpu2_flag2 = 0;
@@ -392,61 +379,6 @@ class ElevatorAction {
 
 	triggerB(fDown) {
 		this.in[0] = this.in[0] & ~(1 << 5) | !fDown << 5;
-	}
-
-	static convertPCM(rate) {
-		const clock = 3000000;
-
-		for (let idx = 0; idx < pcmtable.length; idx++) {
-			const desc1 = pcmtable[idx];
-			const r1 = PRG2[desc1 + 1], n = PRG2[desc1 + 2], desc2 = PRG2[desc1 + 3] | PRG2[desc1 + 4] << 8, w1 = PRG2[desc1 + 5];
-			let timer = 61;
-			for (let i = 0; i < r1; i++) {
-				for (let j = 0; j < n; j++) {
-					let len = PRG2[desc2 + j * 8], w2 = PRG2[desc2 + j * 8 + 1], r2 = PRG2[desc2 + j * 8 + 2], dw2 = PRG2[desc2 + j * 8 + 3];
-					for (let k = 0; k < r2; w2 = w2 + dw2 & 0xff, k++)
-						timer += 46 + 57 + (53 + 63 + (w1 - 1 & 0xff) * 16 + (w2 - 1 & 0xff) * 16) * len + 174;
-					if (j < n - 1)
-						timer += 388 + (j + 1) * 38;
-				}
-				if (i < r1 - 1)
-					timer += 496;
-			}
-			timer += 138;
-			const buf = new Int16Array(Math.floor(timer * rate / clock));
-			let e = 0, m = 0, vol = 0, cnt = 0;
-			const advance = cycle => {
-				for (timer += cycle * rate; timer >= clock; timer -= clock)
-					buf[cnt++] = e;
-			};
-			timer = 0;
-			advance(61);
-			for (let i = 0; i < r1; i++) {
-				for (let j = 0; j < n; j++) {
-					let len = PRG2[desc2 + j * 8], w2 = PRG2[desc2 + j * 8 + 1], r2 = PRG2[desc2 + j * 8 + 2], dw2 = PRG2[desc2 + j * 8 + 3];
-					let addr = PRG2[desc2 + j * 8 + 4] | PRG2[desc2 + j * 8 + 5] << 8, _vol = PRG2[desc2 + j * 8 + 6], dv = PRG2[desc2 + j * 8 + 7];
-					for (let k = 0; k < r2; k++) {
-						advance(46);
-						e = m * (vol = ~_vol & 0xff);
-						advance(57);
-						for (let l = 0; l < len; l++) {
-							advance(53);
-							e = (m = PRG2[addr + l] - 0x80) * vol;
-							advance(63 + (w1 - 1 & 0xff) * 16 + (w2 - 1 & 0xff) * 16);
-						}
-						_vol = _vol + dv & 0xff;
-						w2 = w2 + dw2 & 0xff;
-						advance(174);
-					}
-					if (j < n - 1)
-						advance(388 + (j + 1) * 38);
-				}
-				if (i < r1 - 1)
-					advance(496);
-			}
-			advance(138);
-			pcm.push(buf);
-		}
 	}
 
 	makeBitmap(data) {
@@ -778,13 +710,13 @@ read('elevator.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	GFX = Uint8Array.concat(...['ea_20.2732.ic1', 'ea_21.2732.ic2', 'ea_22.2732.ic3', 'ea_23.2732.ic4'].map(e => zip.decompress(e)));
 	GFX = Uint8Array.concat(GFX, ...['ea_24.2732.ic5', 'ea_25.2732.ic6', 'ea_26.2732.ic7', 'ea_27.2732.ic8'].map(e => zip.decompress(e))).addBase();
 	PRI = zip.decompress('eb16.ic22');
-	game = new ElevatorAction(audioCtx.sampleRate);
+	game = new ElevatorAction();
 	sound = [
-		new AY_3_8910({clock: 1500000, resolution: 3}),
-		new AY_3_8910({clock: 1500000, resolution: 3}),
-		new AY_3_8910({clock: 1500000, resolution: 3}),
-		new AY_3_8910({clock: 1500000, resolution: 3}),
-		new SoundEffect({se: game.se, freq: audioCtx.sampleRate, gain: 0.2}),
+		new AY_3_8910({clock: 6000000 / 4}),
+		new AY_3_8910({clock: 6000000 / 4}),
+		new AY_3_8910({clock: 6000000 / 4}),
+		new AY_3_8910({clock: 6000000 / 4}),
+		{output: 0, gain: 0.2, update() { this.output = (sound[1].reg[0xe] - 128) * (sound[1].reg[0xf] ^ 255) / 32385 * this.gain; }},
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

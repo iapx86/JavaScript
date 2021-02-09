@@ -27,8 +27,8 @@ export default class MC68000 extends Cpu {
 	usp = 0;
 	sr = 0; // sr:t-s--iii ccr:---xnzvc
 
-	constructor() {
-		super();
+	constructor(clock) {
+		super(clock);
 		this.memorymap.splice(0);
 		for (let i = 0; i < 0x10000; i++)
 			this.memorymap.push({base: dummypage, read: null, read16: null, write: () => {}, write16: null});
@@ -49,13 +49,13 @@ export default class MC68000 extends Cpu {
 	}
 
 	exception(vector) {
-		if (~this.sr & 0x2000)
-			this.usp = this.a7, this.a7 = this.ssp;
+		this.cycle -= cc_ex[vector], ~this.sr & 0x2000 && (this.usp = this.a7, this.a7 = this.ssp);
 		this.a7 = this.a7 - 4 | 0, this.write32(this.pc, this.a7), this.a7 = this.a7 - 2 | 0, this.write16(this.sr, this.a7), this.pc = this.read32(vector << 2), this.sr = this.sr & ~0x8000 | 0x2000;
 	}
 
 	_execute() {
 		const op = this.fetch16();
+		this.cycle -= cc[op];
 		switch (op >> 12) {
 		case 0x0: // Bit Manipulation/MOVEP/Immediate
 			return this.execute_0(op);
@@ -2722,7 +2722,7 @@ export default class MC68000 extends Cpu {
 			case 1: // NOP
 				return;
 			case 2: // STOP
-				return ~this.sr & 0x2000 ? this.exception(8) : ~(src = this.fetch16()) & 0x2000 ? this.exception(8) : (this.sr = src, void(this.fSuspend = true));
+				return ~this.sr & 0x2000 || ~(src = this.fetch16()) & 0x2000 ? this.exception(8) : (this.sr = src, void(this.fSuspend = true));
 			case 3: // RTE
 				return ~this.sr & 0x2000 ? this.exception(8) : this.rte();
 			case 4: // RTD 68010
@@ -3503,33 +3503,33 @@ export default class MC68000 extends Cpu {
 		case 0x1: // BSR <label>
 			return this.a7 = this.a7 - 4 | 0, this.write32(this.pc, this.a7), void(this.pc = addr);
 		case 0x2: // BHI <label>
-			return void(~(this.sr >> 2 | this.sr) & 1 && (this.pc = addr));
+			return void(~(this.sr >> 2 | this.sr) & 1 ? (this.pc = addr) : (this.cycle -= op & 0xff ? -2 : 2));
 		case 0x3: // BLS <label>
-			return void((this.sr >> 2 | this.sr) & 1 && (this.pc = addr));
+			return void((this.sr >> 2 | this.sr) & 1 ? (this.pc = addr) : (this.cycle -= op & 0xff ? -2 : 2));
 		case 0x4: // BCC <label>
-			return void(~this.sr & 1 && (this.pc = addr));
+			return void(~this.sr & 1 ? (this.pc = addr) : (this.cycle -= op & 0xff ? -2 : 2));
 		case 0x5: // BCS <label>
-			return void(this.sr & 1 && (this.pc = addr));
+			return void(this.sr & 1 ? (this.pc = addr) : (this.cycle -= op & 0xff ? -2 : 2));
 		case 0x6: // BNE <label>
-			return void(~this.sr & 4 && (this.pc = addr));
+			return void(~this.sr & 4 ? (this.pc = addr) : (this.cycle -= op & 0xff ? -2 : 2));
 		case 0x7: // BEQ <label>
-			return void(this.sr & 4 && (this.pc = addr));
+			return void(this.sr & 4 ? (this.pc = addr) : (this.cycle -= op & 0xff ? -2 : 2));
 		case 0x8: // BVC <label>
-			return void(~this.sr & 2 && (this.pc = addr));
+			return void(~this.sr & 2 ? (this.pc = addr) : (this.cycle -= op & 0xff ? -2 : 2));
 		case 0x9: // BVS <label>
-			return void(this.sr & 2 && (this.pc = addr));
+			return void(this.sr & 2 ? (this.pc = addr) : (this.cycle -= op & 0xff ? -2 : 2));
 		case 0xa: // BPL <label>
-			return void(~this.sr & 8 && (this.pc = addr));
+			return void(~this.sr & 8 ? (this.pc = addr) : (this.cycle -= op & 0xff ? -2 : 2));
 		case 0xb: // BMI <label>
-			return void(this.sr & 8 && (this.pc = addr));
+			return void(this.sr & 8 ? (this.pc = addr) : (this.cycle -= op & 0xff ? -2 : 2));
 		case 0xc: // BGE <label>
-			return void(~(this.sr >> 2 ^ this.sr) & 2 && (this.pc = addr));
+			return void(~(this.sr >> 2 ^ this.sr) & 2 ? (this.pc = addr) : (this.cycle -= op & 0xff ? -2 : 2));
 		case 0xd: // BLT <label>
-			return void((this.sr >> 2 ^ this.sr) & 2 && (this.pc = addr));
+			return void((this.sr >> 2 ^ this.sr) & 2 ? (this.pc = addr) : (this.cycle -= op & 0xff ? -2 : 2));
 		case 0xe: // BGT <label>
-			return void(~(this.sr >> 2 ^ this.sr | this.sr >> 1) & 2 && (this.pc = addr));
+			return void(~(this.sr >> 2 ^ this.sr | this.sr >> 1) & 2 ? (this.pc = addr) : (this.cycle -= op & 0xff ? -2 : 2));
 		case 0xf: // BLE <label>
-			return void((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2 && (this.pc = addr));
+			return void((this.sr >> 2 ^ this.sr | this.sr >> 1) & 2 ? (this.pc = addr) : (this.cycle -= op & 0xff ? -2 : 2));
 		}
 	}
 
@@ -6865,13 +6865,13 @@ export default class MC68000 extends Cpu {
 		case 0o003: // ROR.B #8,Dy
 			return this.rwop8(op & 7, this.ror8, 8);
 		case 0o004: // ASR.B D0,Dy
-			return this.rwop8(op & 7, this.asr8, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop8(op & 7, this.asr8, this.d0);
 		case 0o005: // LSR.B D0,Dy
-			return this.rwop8(op & 7, this.lsr8, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop8(op & 7, this.lsr8, this.d0);
 		case 0o006: // ROXR.B D0,Dy
-			return this.rwop8(op & 7, this.roxr8, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop8(op & 7, this.roxr8, this.d0);
 		case 0o007: // ROR.B D0,Dy
-			return this.rwop8(op & 7, this.ror8, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop8(op & 7, this.ror8, this.d0);
 		case 0o010: // ASR.W #8,Dy
 			return this.rwop16(op & 7, this.asr16, 8);
 		case 0o011: // LSR.W #8,Dy
@@ -6881,13 +6881,13 @@ export default class MC68000 extends Cpu {
 		case 0o013: // ROR.W #8,Dy
 			return this.rwop16(op & 7, this.ror16, 8);
 		case 0o014: // ASR.W D0,Dy
-			return this.rwop16(op & 7, this.asr16, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop16(op & 7, this.asr16, this.d0);
 		case 0o015: // LSR.W D0,Dy
-			return this.rwop16(op & 7, this.lsr16, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop16(op & 7, this.lsr16, this.d0);
 		case 0o016: // ROXR.W D0,Dy
-			return this.rwop16(op & 7, this.roxr16, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop16(op & 7, this.roxr16, this.d0);
 		case 0o017: // ROR.W D0,Dy
-			return this.rwop16(op & 7, this.ror16, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop16(op & 7, this.ror16, this.d0);
 		case 0o020: // ASR.L #8,Dy
 			return this.rwop32(op & 7, this.asr32, 8);
 		case 0o021: // LSR.L #8,Dy
@@ -6897,13 +6897,13 @@ export default class MC68000 extends Cpu {
 		case 0o023: // ROR.L #8,Dy
 			return this.rwop32(op & 7, this.ror32, 8);
 		case 0o024: // ASR.L D0,Dy
-			return this.rwop32(op & 7, this.asr32, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop32(op & 7, this.asr32, this.d0);
 		case 0o025: // LSR.L D0,Dy
-			return this.rwop32(op & 7, this.lsr32, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop32(op & 7, this.lsr32, this.d0);
 		case 0o026: // ROXR.L D0,Dy
-			return this.rwop32(op & 7, this.roxr32, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop32(op & 7, this.roxr32, this.d0);
 		case 0o027: // ROR.L D0,Dy
-			return this.rwop32(op & 7, this.ror32, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop32(op & 7, this.ror32, this.d0);
 		case 0o032: // ASR.W (An)
 		case 0o033: // ASR.W (An)+
 		case 0o034: // ASR.W -(An)
@@ -6921,13 +6921,13 @@ export default class MC68000 extends Cpu {
 		case 0o043: // ROL.B #8,Dy
 			return this.rwop8(op & 7, this.rol8, 8);
 		case 0o044: // ASL.B D0,Dy
-			return this.rwop8(op & 7, this.asl8, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop8(op & 7, this.asl8, this.d0);
 		case 0o045: // LSL.B D0,Dy
-			return this.rwop8(op & 7, this.lsl8, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop8(op & 7, this.lsl8, this.d0);
 		case 0o046: // ROXL.B D0,Dy
-			return this.rwop8(op & 7, this.roxl8, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop8(op & 7, this.roxl8, this.d0);
 		case 0o047: // ROL.B D0,Dy
-			return this.rwop8(op & 7, this.rol8, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop8(op & 7, this.rol8, this.d0);
 		case 0o050: // ASL.W #8,Dy
 			return this.rwop16(op & 7, this.asl16, 8);
 		case 0o051: // LSL.W #8,Dy
@@ -6937,13 +6937,13 @@ export default class MC68000 extends Cpu {
 		case 0o053: // ROL.W #8,Dy
 			return this.rwop16(op & 7, this.rol16, 8);
 		case 0o054: // ASL.W D0,Dy
-			return this.rwop16(op & 7, this.asl16, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop16(op & 7, this.asl16, this.d0);
 		case 0o055: // LSL.W D0,Dy
-			return this.rwop16(op & 7, this.lsl16, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop16(op & 7, this.lsl16, this.d0);
 		case 0o056: // ROXL.W D0,Dy
-			return this.rwop16(op & 7, this.roxl16, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop16(op & 7, this.roxl16, this.d0);
 		case 0o057: // ROL.W D0,Dy
-			return this.rwop16(op & 7, this.rol16, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop16(op & 7, this.rol16, this.d0);
 		case 0o060: // ASL.L #8,Dy
 			return this.rwop32(op & 7, this.asl32, 8);
 		case 0o061: // LSL.L #8,Dy
@@ -6953,13 +6953,13 @@ export default class MC68000 extends Cpu {
 		case 0o063: // ROL.L #8,Dy
 			return this.rwop32(op & 7, this.rol32, 8);
 		case 0o064: // ASL.L D0,Dy
-			return this.rwop32(op & 7, this.asl32, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop32(op & 7, this.asl32, this.d0);
 		case 0o065: // LSL.L D0,Dy
-			return this.rwop32(op & 7, this.lsl32, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop32(op & 7, this.lsl32, this.d0);
 		case 0o066: // ROXL.L D0,Dy
-			return this.rwop32(op & 7, this.roxl32, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop32(op & 7, this.roxl32, this.d0);
 		case 0o067: // ROL.L D0,Dy
-			return this.rwop32(op & 7, this.rol32, this.d0);
+			return this.cycle -= this.d0 << 1 & 0x7e, this.rwop32(op & 7, this.rol32, this.d0);
 		case 0o072: // ASL.W (An)
 		case 0o073: // ASL.W (An)+
 		case 0o074: // ASL.W -(An)
@@ -6977,13 +6977,13 @@ export default class MC68000 extends Cpu {
 		case 0o103: // ROR.B #1,Dy
 			return this.rwop8(op & 7, this.ror8, 1);
 		case 0o104: // ASR.B D1,Dy
-			return this.rwop8(op & 7, this.asr8, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop8(op & 7, this.asr8, this.d1);
 		case 0o105: // LSR.B D1,Dy
-			return this.rwop8(op & 7, this.lsr8, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop8(op & 7, this.lsr8, this.d1);
 		case 0o106: // ROXR.B D1,Dy
-			return this.rwop8(op & 7, this.roxr8, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop8(op & 7, this.roxr8, this.d1);
 		case 0o107: // ROR.B D1,Dy
-			return this.rwop8(op & 7, this.ror8, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop8(op & 7, this.ror8, this.d1);
 		case 0o110: // ASR.W #1,Dy
 			return this.rwop16(op & 7, this.asr16, 1);
 		case 0o111: // LSR.W #1,Dy
@@ -6993,13 +6993,13 @@ export default class MC68000 extends Cpu {
 		case 0o113: // ROR.W #1,Dy
 			return this.rwop16(op & 7, this.ror16, 1);
 		case 0o114: // ASR.W D1,Dy
-			return this.rwop16(op & 7, this.asr16, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop16(op & 7, this.asr16, this.d1);
 		case 0o115: // LSR.W D1,Dy
-			return this.rwop16(op & 7, this.lsr16, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop16(op & 7, this.lsr16, this.d1);
 		case 0o116: // ROXR.W D1,Dy
-			return this.rwop16(op & 7, this.roxr16, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop16(op & 7, this.roxr16, this.d1);
 		case 0o117: // ROR.W D1,Dy
-			return this.rwop16(op & 7, this.ror16, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop16(op & 7, this.ror16, this.d1);
 		case 0o120: // ASR.L #1,Dy
 			return this.rwop32(op & 7, this.asr32, 1);
 		case 0o121: // LSR.L #1,Dy
@@ -7009,13 +7009,13 @@ export default class MC68000 extends Cpu {
 		case 0o123: // ROR.L #1,Dy
 			return this.rwop32(op & 7, this.ror32, 1);
 		case 0o124: // ASR.L D1,Dy
-			return this.rwop32(op & 7, this.asr32, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop32(op & 7, this.asr32, this.d1);
 		case 0o125: // LSR.L D1,Dy
-			return this.rwop32(op & 7, this.lsr32, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop32(op & 7, this.lsr32, this.d1);
 		case 0o126: // ROXR.L D1,Dy
-			return this.rwop32(op & 7, this.roxr32, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop32(op & 7, this.roxr32, this.d1);
 		case 0o127: // ROR.L D1,Dy
-			return this.rwop32(op & 7, this.ror32, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop32(op & 7, this.ror32, this.d1);
 		case 0o132: // LSR.W (An)
 		case 0o133: // LSR.W (An)+
 		case 0o134: // LSR.W -(An)
@@ -7033,13 +7033,13 @@ export default class MC68000 extends Cpu {
 		case 0o143: // ROL.B #1,Dy
 			return this.rwop8(op & 7, this.rol8, 1);
 		case 0o144: // ASL.B D1,Dy
-			return this.rwop8(op & 7, this.asl8, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop8(op & 7, this.asl8, this.d1);
 		case 0o145: // LSL.B D1,Dy
-			return this.rwop8(op & 7, this.lsl8, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop8(op & 7, this.lsl8, this.d1);
 		case 0o146: // ROXL.B D1,Dy
-			return this.rwop8(op & 7, this.roxl8, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop8(op & 7, this.roxl8, this.d1);
 		case 0o147: // ROL.B D1,Dy
-			return this.rwop8(op & 7, this.rol8, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop8(op & 7, this.rol8, this.d1);
 		case 0o150: // ASL.W #1,Dy
 			return this.rwop16(op & 7, this.asl16, 1);
 		case 0o151: // LSL.W #1,Dy
@@ -7049,13 +7049,13 @@ export default class MC68000 extends Cpu {
 		case 0o153: // ROL.W #1,Dy
 			return this.rwop16(op & 7, this.rol16, 1);
 		case 0o154: // ASL.W D1,Dy
-			return this.rwop16(op & 7, this.asl16, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop16(op & 7, this.asl16, this.d1);
 		case 0o155: // LSL.W D1,Dy
-			return this.rwop16(op & 7, this.lsl16, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop16(op & 7, this.lsl16, this.d1);
 		case 0o156: // ROXL.W D1,Dy
-			return this.rwop16(op & 7, this.roxl16, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop16(op & 7, this.roxl16, this.d1);
 		case 0o157: // ROL.W D1,Dy
-			return this.rwop16(op & 7, this.rol16, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop16(op & 7, this.rol16, this.d1);
 		case 0o160: // ASL.L #1,Dy
 			return this.rwop32(op & 7, this.asl32, 1);
 		case 0o161: // LSL.L #1,Dy
@@ -7065,13 +7065,13 @@ export default class MC68000 extends Cpu {
 		case 0o163: // ROL.L #1,Dy
 			return this.rwop32(op & 7, this.rol32, 1);
 		case 0o164: // ASL.L D1,Dy
-			return this.rwop32(op & 7, this.asl32, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop32(op & 7, this.asl32, this.d1);
 		case 0o165: // LSL.L D1,Dy
-			return this.rwop32(op & 7, this.lsl32, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop32(op & 7, this.lsl32, this.d1);
 		case 0o166: // ROXL.L D1,Dy
-			return this.rwop32(op & 7, this.roxl32, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop32(op & 7, this.roxl32, this.d1);
 		case 0o167: // ROL.L D1,Dy
-			return this.rwop32(op & 7, this.rol32, this.d1);
+			return this.cycle -= this.d1 << 1 & 0x7e, this.rwop32(op & 7, this.rol32, this.d1);
 		case 0o172: // LSL.W (An)
 		case 0o173: // LSL.W (An)+
 		case 0o174: // LSL.W -(An)
@@ -7089,13 +7089,13 @@ export default class MC68000 extends Cpu {
 		case 0o203: // ROR.B #2,Dy
 			return this.rwop8(op & 7, this.ror8, 2);
 		case 0o204: // ASR.B D2,Dy
-			return this.rwop8(op & 7, this.asr8, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop8(op & 7, this.asr8, this.d2);
 		case 0o205: // LSR.B D2,Dy
-			return this.rwop8(op & 7, this.lsr8, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop8(op & 7, this.lsr8, this.d2);
 		case 0o206: // ROXR.B D2,Dy
-			return this.rwop8(op & 7, this.roxr8, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop8(op & 7, this.roxr8, this.d2);
 		case 0o207: // ROR.B D2,Dy
-			return this.rwop8(op & 7, this.ror8, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop8(op & 7, this.ror8, this.d2);
 		case 0o210: // ASR.W #2,Dy
 			return this.rwop16(op & 7, this.asr16, 2);
 		case 0o211: // LSR.W #2,Dy
@@ -7105,13 +7105,13 @@ export default class MC68000 extends Cpu {
 		case 0o213: // ROR.W #2,Dy
 			return this.rwop16(op & 7, this.ror16, 2);
 		case 0o214: // ASR.W D2,Dy
-			return this.rwop16(op & 7, this.asr16, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop16(op & 7, this.asr16, this.d2);
 		case 0o215: // LSR.W D2,Dy
-			return this.rwop16(op & 7, this.lsr16, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop16(op & 7, this.lsr16, this.d2);
 		case 0o216: // ROXR.W D2,Dy
-			return this.rwop16(op & 7, this.roxr16, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop16(op & 7, this.roxr16, this.d2);
 		case 0o217: // ROR.W D2,Dy
-			return this.rwop16(op & 7, this.ror16, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop16(op & 7, this.ror16, this.d2);
 		case 0o220: // ASR.L #2,Dy
 			return this.rwop32(op & 7, this.asr32, 2);
 		case 0o221: // LSR.L #2,Dy
@@ -7121,13 +7121,13 @@ export default class MC68000 extends Cpu {
 		case 0o223: // ROR.L #2,Dy
 			return this.rwop32(op & 7, this.ror32, 2);
 		case 0o224: // ASR.L D2,Dy
-			return this.rwop32(op & 7, this.asr32, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop32(op & 7, this.asr32, this.d2);
 		case 0o225: // LSR.L D2,Dy
-			return this.rwop32(op & 7, this.lsr32, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop32(op & 7, this.lsr32, this.d2);
 		case 0o226: // ROXR.L D2,Dy
-			return this.rwop32(op & 7, this.roxr32, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop32(op & 7, this.roxr32, this.d2);
 		case 0o227: // ROR.L D2,Dy
-			return this.rwop32(op & 7, this.ror32, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop32(op & 7, this.ror32, this.d2);
 		case 0o232: // ROXR.W (An)
 		case 0o233: // ROXR.W (An)+
 		case 0o234: // ROXR.W -(An)
@@ -7145,13 +7145,13 @@ export default class MC68000 extends Cpu {
 		case 0o243: // ROL.B #2,Dy
 			return this.rwop8(op & 7, this.rol8, 2);
 		case 0o244: // ASL.B D2,Dy
-			return this.rwop8(op & 7, this.asl8, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop8(op & 7, this.asl8, this.d2);
 		case 0o245: // LSL.B D2,Dy
-			return this.rwop8(op & 7, this.lsl8, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop8(op & 7, this.lsl8, this.d2);
 		case 0o246: // ROXL.B D2,Dy
-			return this.rwop8(op & 7, this.roxl8, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop8(op & 7, this.roxl8, this.d2);
 		case 0o247: // ROL.B D2,Dy
-			return this.rwop8(op & 7, this.rol8, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop8(op & 7, this.rol8, this.d2);
 		case 0o250: // ASL.W #2,Dy
 			return this.rwop16(op & 7, this.asl16, 2);
 		case 0o251: // LSL.W #2,Dy
@@ -7161,13 +7161,13 @@ export default class MC68000 extends Cpu {
 		case 0o253: // ROL.W #2,Dy
 			return this.rwop16(op & 7, this.rol16, 2);
 		case 0o254: // ASL.W D2,Dy
-			return this.rwop16(op & 7, this.asl16, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop16(op & 7, this.asl16, this.d2);
 		case 0o255: // LSL.W D2,Dy
-			return this.rwop16(op & 7, this.lsl16, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop16(op & 7, this.lsl16, this.d2);
 		case 0o256: // ROXL.W D2,Dy
-			return this.rwop16(op & 7, this.roxl16, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop16(op & 7, this.roxl16, this.d2);
 		case 0o257: // ROL.W D2,Dy
-			return this.rwop16(op & 7, this.rol16, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop16(op & 7, this.rol16, this.d2);
 		case 0o260: // ASL.L #2,Dy
 			return this.rwop32(op & 7, this.asl32, 2);
 		case 0o261: // LSL.L #2,Dy
@@ -7177,13 +7177,13 @@ export default class MC68000 extends Cpu {
 		case 0o263: // ROL.L #2,Dy
 			return this.rwop32(op & 7, this.rol32, 2);
 		case 0o264: // ASL.L D2,Dy
-			return this.rwop32(op & 7, this.asl32, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop32(op & 7, this.asl32, this.d2);
 		case 0o265: // LSL.L D2,Dy
-			return this.rwop32(op & 7, this.lsl32, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop32(op & 7, this.lsl32, this.d2);
 		case 0o266: // ROXL.L D2,Dy
-			return this.rwop32(op & 7, this.roxl32, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop32(op & 7, this.roxl32, this.d2);
 		case 0o267: // ROL.L D2,Dy
-			return this.rwop32(op & 7, this.rol32, this.d2);
+			return this.cycle -= this.d2 << 1 & 0x7e, this.rwop32(op & 7, this.rol32, this.d2);
 		case 0o272: // ROXL.W (An)
 		case 0o273: // ROXL.W (An)+
 		case 0o274: // ROXL.W -(An)
@@ -7201,13 +7201,13 @@ export default class MC68000 extends Cpu {
 		case 0o303: // ROR.B #3,Dy
 			return this.rwop8(op & 7, this.ror8, 3);
 		case 0o304: // ASR.B D3,Dy
-			return this.rwop8(op & 7, this.asr8, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop8(op & 7, this.asr8, this.d3);
 		case 0o305: // LSR.B D3,Dy
-			return this.rwop8(op & 7, this.lsr8, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop8(op & 7, this.lsr8, this.d3);
 		case 0o306: // ROXR.B D3,Dy
-			return this.rwop8(op & 7, this.roxr8, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop8(op & 7, this.roxr8, this.d3);
 		case 0o307: // ROR.B D3,Dy
-			return this.rwop8(op & 7, this.ror8, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop8(op & 7, this.ror8, this.d3);
 		case 0o310: // ASR.W #3,Dy
 			return this.rwop16(op & 7, this.asr16, 3);
 		case 0o311: // LSR.W #3,Dy
@@ -7217,13 +7217,13 @@ export default class MC68000 extends Cpu {
 		case 0o313: // ROR.W #3,Dy
 			return this.rwop16(op & 7, this.ror16, 3);
 		case 0o314: // ASR.W D3,Dy
-			return this.rwop16(op & 7, this.asr16, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop16(op & 7, this.asr16, this.d3);
 		case 0o315: // LSR.W D3,Dy
-			return this.rwop16(op & 7, this.lsr16, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop16(op & 7, this.lsr16, this.d3);
 		case 0o316: // ROXR.W D3,Dy
-			return this.rwop16(op & 7, this.roxr16, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop16(op & 7, this.roxr16, this.d3);
 		case 0o317: // ROR.W D3,Dy
-			return this.rwop16(op & 7, this.ror16, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop16(op & 7, this.ror16, this.d3);
 		case 0o320: // ASR.L #3,Dy
 			return this.rwop32(op & 7, this.asr32, 3);
 		case 0o321: // LSR.L #3,Dy
@@ -7233,13 +7233,13 @@ export default class MC68000 extends Cpu {
 		case 0o323: // ROR.L #3,Dy
 			return this.rwop32(op & 7, this.ror32, 3);
 		case 0o324: // ASR.L D3,Dy
-			return this.rwop32(op & 7, this.asr32, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop32(op & 7, this.asr32, this.d3);
 		case 0o325: // LSR.L D3,Dy
-			return this.rwop32(op & 7, this.lsr32, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop32(op & 7, this.lsr32, this.d3);
 		case 0o326: // ROXR.L D3,Dy
-			return this.rwop32(op & 7, this.roxr32, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop32(op & 7, this.roxr32, this.d3);
 		case 0o327: // ROR.L D3,Dy
-			return this.rwop32(op & 7, this.ror32, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop32(op & 7, this.ror32, this.d3);
 		case 0o332: // ROR.W (An)
 		case 0o333: // ROR.W (An)+
 		case 0o334: // ROR.W -(An)
@@ -7257,13 +7257,13 @@ export default class MC68000 extends Cpu {
 		case 0o343: // ROL.B #3,Dy
 			return this.rwop8(op & 7, this.rol8, 3);
 		case 0o344: // ASL.B D3,Dy
-			return this.rwop8(op & 7, this.asl8, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop8(op & 7, this.asl8, this.d3);
 		case 0o345: // LSL.B D3,Dy
-			return this.rwop8(op & 7, this.lsl8, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop8(op & 7, this.lsl8, this.d3);
 		case 0o346: // ROXL.B D3,Dy
-			return this.rwop8(op & 7, this.roxl8, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop8(op & 7, this.roxl8, this.d3);
 		case 0o347: // ROL.B D3,Dy
-			return this.rwop8(op & 7, this.rol8, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop8(op & 7, this.rol8, this.d3);
 		case 0o350: // ASL.W #3,Dy
 			return this.rwop16(op & 7, this.asl16, 3);
 		case 0o351: // LSL.W #3,Dy
@@ -7273,13 +7273,13 @@ export default class MC68000 extends Cpu {
 		case 0o353: // ROL.W #3,Dy
 			return this.rwop16(op & 7, this.rol16, 3);
 		case 0o354: // ASL.W D3,Dy
-			return this.rwop16(op & 7, this.asl16, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop16(op & 7, this.asl16, this.d3);
 		case 0o355: // LSL.W D3,Dy
-			return this.rwop16(op & 7, this.lsl16, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop16(op & 7, this.lsl16, this.d3);
 		case 0o356: // ROXL.W D3,Dy
-			return this.rwop16(op & 7, this.roxl16, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop16(op & 7, this.roxl16, this.d3);
 		case 0o357: // ROL.W D3,Dy
-			return this.rwop16(op & 7, this.rol16, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop16(op & 7, this.rol16, this.d3);
 		case 0o360: // ASL.L #3,Dy
 			return this.rwop32(op & 7, this.asl32, 3);
 		case 0o361: // LSL.L #3,Dy
@@ -7289,13 +7289,13 @@ export default class MC68000 extends Cpu {
 		case 0o363: // ROL.L #3,Dy
 			return this.rwop32(op & 7, this.rol32, 3);
 		case 0o364: // ASL.L D3,Dy
-			return this.rwop32(op & 7, this.asl32, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop32(op & 7, this.asl32, this.d3);
 		case 0o365: // LSL.L D3,Dy
-			return this.rwop32(op & 7, this.lsl32, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop32(op & 7, this.lsl32, this.d3);
 		case 0o366: // ROXL.L D3,Dy
-			return this.rwop32(op & 7, this.roxl32, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop32(op & 7, this.roxl32, this.d3);
 		case 0o367: // ROL.L D3,Dy
-			return this.rwop32(op & 7, this.rol32, this.d3);
+			return this.cycle -= this.d3 << 1 & 0x7e, this.rwop32(op & 7, this.rol32, this.d3);
 		case 0o372: // ROL.W (An)
 		case 0o373: // ROL.W (An)+
 		case 0o374: // ROL.W -(An)
@@ -7313,13 +7313,13 @@ export default class MC68000 extends Cpu {
 		case 0o403: // ROR.B #4,Dy
 			return this.rwop8(op & 7, this.ror8, 4);
 		case 0o404: // ASR.B D4,Dy
-			return this.rwop8(op & 7, this.asr8, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop8(op & 7, this.asr8, this.d4);
 		case 0o405: // LSR.B D4,Dy
-			return this.rwop8(op & 7, this.lsr8, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop8(op & 7, this.lsr8, this.d4);
 		case 0o406: // ROXR.B D4,Dy
-			return this.rwop8(op & 7, this.roxr8, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop8(op & 7, this.roxr8, this.d4);
 		case 0o407: // ROR.B D4,Dy
-			return this.rwop8(op & 7, this.ror8, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop8(op & 7, this.ror8, this.d4);
 		case 0o410: // ASR.W #4,Dy
 			return this.rwop16(op & 7, this.asr16, 4);
 		case 0o411: // LSR.W #4,Dy
@@ -7329,13 +7329,13 @@ export default class MC68000 extends Cpu {
 		case 0o413: // ROR.W #4,Dy
 			return this.rwop16(op & 7, this.ror16, 4);
 		case 0o414: // ASR.W D4,Dy
-			return this.rwop16(op & 7, this.asr16, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop16(op & 7, this.asr16, this.d4);
 		case 0o415: // LSR.W D4,Dy
-			return this.rwop16(op & 7, this.lsr16, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop16(op & 7, this.lsr16, this.d4);
 		case 0o416: // ROXR.W D4,Dy
-			return this.rwop16(op & 7, this.roxr16, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop16(op & 7, this.roxr16, this.d4);
 		case 0o417: // ROR.W D4,Dy
-			return this.rwop16(op & 7, this.ror16, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop16(op & 7, this.ror16, this.d4);
 		case 0o420: // ASR.L #4,Dy
 			return this.rwop32(op & 7, this.asr32, 4);
 		case 0o421: // LSR.L #4,Dy
@@ -7345,13 +7345,13 @@ export default class MC68000 extends Cpu {
 		case 0o423: // ROR.L #4,Dy
 			return this.rwop32(op & 7, this.ror32, 4);
 		case 0o424: // ASR.L D4,Dy
-			return this.rwop32(op & 7, this.asr32, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop32(op & 7, this.asr32, this.d4);
 		case 0o425: // LSR.L D4,Dy
-			return this.rwop32(op & 7, this.lsr32, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop32(op & 7, this.lsr32, this.d4);
 		case 0o426: // ROXR.L D4,Dy
-			return this.rwop32(op & 7, this.roxr32, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop32(op & 7, this.roxr32, this.d4);
 		case 0o427: // ROR.L D4,Dy
-			return this.rwop32(op & 7, this.ror32, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop32(op & 7, this.ror32, this.d4);
 		case 0o440: // ASL.B #4,Dy
 			return this.rwop8(op & 7, this.asl8, 4);
 		case 0o441: // LSL.B #4,Dy
@@ -7361,13 +7361,13 @@ export default class MC68000 extends Cpu {
 		case 0o443: // ROL.B #4,Dy
 			return this.rwop8(op & 7, this.rol8, 4);
 		case 0o444: // ASL.B D4,Dy
-			return this.rwop8(op & 7, this.asl8, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop8(op & 7, this.asl8, this.d4);
 		case 0o445: // LSL.B D4,Dy
-			return this.rwop8(op & 7, this.lsl8, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop8(op & 7, this.lsl8, this.d4);
 		case 0o446: // ROXL.B D4,Dy
-			return this.rwop8(op & 7, this.roxl8, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop8(op & 7, this.roxl8, this.d4);
 		case 0o447: // ROL.B D4,Dy
-			return this.rwop8(op & 7, this.rol8, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop8(op & 7, this.rol8, this.d4);
 		case 0o450: // ASL.W #4,Dy
 			return this.rwop16(op & 7, this.asl16, 4);
 		case 0o451: // LSL.W #4,Dy
@@ -7377,13 +7377,13 @@ export default class MC68000 extends Cpu {
 		case 0o453: // ROL.W #4,Dy
 			return this.rwop16(op & 7, this.rol16, 4);
 		case 0o454: // ASL.W D4,Dy
-			return this.rwop16(op & 7, this.asl16, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop16(op & 7, this.asl16, this.d4);
 		case 0o455: // LSL.W D4,Dy
-			return this.rwop16(op & 7, this.lsl16, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop16(op & 7, this.lsl16, this.d4);
 		case 0o456: // ROXL.W D4,Dy
-			return this.rwop16(op & 7, this.roxl16, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop16(op & 7, this.roxl16, this.d4);
 		case 0o457: // ROL.W D4,Dy
-			return this.rwop16(op & 7, this.rol16, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop16(op & 7, this.rol16, this.d4);
 		case 0o460: // ASL.L #4,Dy
 			return this.rwop32(op & 7, this.asl32, 4);
 		case 0o461: // LSL.L #4,Dy
@@ -7393,13 +7393,13 @@ export default class MC68000 extends Cpu {
 		case 0o463: // ROL.L #4,Dy
 			return this.rwop32(op & 7, this.rol32, 4);
 		case 0o464: // ASL.L D4,Dy
-			return this.rwop32(op & 7, this.asl32, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop32(op & 7, this.asl32, this.d4);
 		case 0o465: // LSL.L D4,Dy
-			return this.rwop32(op & 7, this.lsl32, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop32(op & 7, this.lsl32, this.d4);
 		case 0o466: // ROXL.L D4,Dy
-			return this.rwop32(op & 7, this.roxl32, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop32(op & 7, this.roxl32, this.d4);
 		case 0o467: // ROL.L D4,Dy
-			return this.rwop32(op & 7, this.rol32, this.d4);
+			return this.cycle -= this.d4 << 1 & 0x7e, this.rwop32(op & 7, this.rol32, this.d4);
 		case 0o500: // ASR.B #5,Dy
 			return this.rwop8(op & 7, this.asr8, 5);
 		case 0o501: // LSR.B #5,Dy
@@ -7409,13 +7409,13 @@ export default class MC68000 extends Cpu {
 		case 0o503: // ROR.B #5,Dy
 			return this.rwop8(op & 7, this.ror8, 5);
 		case 0o504: // ASR.B D5,Dy
-			return this.rwop8(op & 7, this.asr8, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop8(op & 7, this.asr8, this.d5);
 		case 0o505: // LSR.B D5,Dy
-			return this.rwop8(op & 7, this.lsr8, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop8(op & 7, this.lsr8, this.d5);
 		case 0o506: // ROXR.B D5,Dy
-			return this.rwop8(op & 7, this.roxr8, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop8(op & 7, this.roxr8, this.d5);
 		case 0o507: // ROR.B D5,Dy
-			return this.rwop8(op & 7, this.ror8, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop8(op & 7, this.ror8, this.d5);
 		case 0o510: // ASR.W #5,Dy
 			return this.rwop16(op & 7, this.asr16, 5);
 		case 0o511: // LSR.W #5,Dy
@@ -7425,13 +7425,13 @@ export default class MC68000 extends Cpu {
 		case 0o513: // ROR.W #5,Dy
 			return this.rwop16(op & 7, this.ror16, 5);
 		case 0o514: // ASR.W D5,Dy
-			return this.rwop16(op & 7, this.asr16, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop16(op & 7, this.asr16, this.d5);
 		case 0o515: // LSR.W D5,Dy
-			return this.rwop16(op & 7, this.lsr16, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop16(op & 7, this.lsr16, this.d5);
 		case 0o516: // ROXR.W D5,Dy
-			return this.rwop16(op & 7, this.roxr16, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop16(op & 7, this.roxr16, this.d5);
 		case 0o517: // ROR.W D5,Dy
-			return this.rwop16(op & 7, this.ror16, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop16(op & 7, this.ror16, this.d5);
 		case 0o520: // ASR.L #5,Dy
 			return this.rwop32(op & 7, this.asr32, 5);
 		case 0o521: // LSR.L #5,Dy
@@ -7441,13 +7441,13 @@ export default class MC68000 extends Cpu {
 		case 0o523: // ROR.L #5,Dy
 			return this.rwop32(op & 7, this.ror32, 5);
 		case 0o524: // ASR.L D5,Dy
-			return this.rwop32(op & 7, this.asr32, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop32(op & 7, this.asr32, this.d5);
 		case 0o525: // LSR.L D5,Dy
-			return this.rwop32(op & 7, this.lsr32, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop32(op & 7, this.lsr32, this.d5);
 		case 0o526: // ROXR.L D5,Dy
-			return this.rwop32(op & 7, this.roxr32, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop32(op & 7, this.roxr32, this.d5);
 		case 0o527: // ROR.L D5,Dy
-			return this.rwop32(op & 7, this.ror32, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop32(op & 7, this.ror32, this.d5);
 		case 0o540: // ASL.B #5,Dy
 			return this.rwop8(op & 7, this.asl8, 5);
 		case 0o541: // LSL.B #5,Dy
@@ -7457,13 +7457,13 @@ export default class MC68000 extends Cpu {
 		case 0o543: // ROL.B #5,Dy
 			return this.rwop8(op & 7, this.rol8, 5);
 		case 0o544: // ASL.B D5,Dy
-			return this.rwop8(op & 7, this.asl8, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop8(op & 7, this.asl8, this.d5);
 		case 0o545: // LSL.B D5,Dy
-			return this.rwop8(op & 7, this.lsl8, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop8(op & 7, this.lsl8, this.d5);
 		case 0o546: // ROXL.B D5,Dy
-			return this.rwop8(op & 7, this.roxl8, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop8(op & 7, this.roxl8, this.d5);
 		case 0o547: // ROL.B D5,Dy
-			return this.rwop8(op & 7, this.rol8, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop8(op & 7, this.rol8, this.d5);
 		case 0o550: // ASL.W #5,Dy
 			return this.rwop16(op & 7, this.asl16, 5);
 		case 0o551: // LSL.W #5,Dy
@@ -7473,13 +7473,13 @@ export default class MC68000 extends Cpu {
 		case 0o553: // ROL.W #5,Dy
 			return this.rwop16(op & 7, this.rol16, 5);
 		case 0o554: // ASL.W D5,Dy
-			return this.rwop16(op & 7, this.asl16, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop16(op & 7, this.asl16, this.d5);
 		case 0o555: // LSL.W D5,Dy
-			return this.rwop16(op & 7, this.lsl16, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop16(op & 7, this.lsl16, this.d5);
 		case 0o556: // ROXL.W D5,Dy
-			return this.rwop16(op & 7, this.roxl16, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop16(op & 7, this.roxl16, this.d5);
 		case 0o557: // ROL.W D5,Dy
-			return this.rwop16(op & 7, this.rol16, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop16(op & 7, this.rol16, this.d5);
 		case 0o560: // ASL.L #5,Dy
 			return this.rwop32(op & 7, this.asl32, 5);
 		case 0o561: // LSL.L #5,Dy
@@ -7489,13 +7489,13 @@ export default class MC68000 extends Cpu {
 		case 0o563: // ROL.L #5,Dy
 			return this.rwop32(op & 7, this.rol32, 5);
 		case 0o564: // ASL.L D5,Dy
-			return this.rwop32(op & 7, this.asl32, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop32(op & 7, this.asl32, this.d5);
 		case 0o565: // LSL.L D5,Dy
-			return this.rwop32(op & 7, this.lsl32, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop32(op & 7, this.lsl32, this.d5);
 		case 0o566: // ROXL.L D5,Dy
-			return this.rwop32(op & 7, this.roxl32, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop32(op & 7, this.roxl32, this.d5);
 		case 0o567: // ROL.L D5,Dy
-			return this.rwop32(op & 7, this.rol32, this.d5);
+			return this.cycle -= this.d5 << 1 & 0x7e, this.rwop32(op & 7, this.rol32, this.d5);
 		case 0o600: // ASR.B #6,Dy
 			return this.rwop8(op & 7, this.asr8, 6);
 		case 0o601: // LSR.B #6,Dy
@@ -7505,13 +7505,13 @@ export default class MC68000 extends Cpu {
 		case 0o603: // ROR.B #6,Dy
 			return this.rwop8(op & 7, this.ror8, 6);
 		case 0o604: // ASR.B D6,Dy
-			return this.rwop8(op & 7, this.asr8, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop8(op & 7, this.asr8, this.d6);
 		case 0o605: // LSR.B D6,Dy
-			return this.rwop8(op & 7, this.lsr8, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop8(op & 7, this.lsr8, this.d6);
 		case 0o606: // ROXR.B D6,Dy
-			return this.rwop8(op & 7, this.roxr8, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop8(op & 7, this.roxr8, this.d6);
 		case 0o607: // ROR.B D6,Dy
-			return this.rwop8(op & 7, this.ror8, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop8(op & 7, this.ror8, this.d6);
 		case 0o610: // ASR.W #6,Dy
 			return this.rwop16(op & 7, this.asr16, 6);
 		case 0o611: // LSR.W #6,Dy
@@ -7521,13 +7521,13 @@ export default class MC68000 extends Cpu {
 		case 0o613: // ROR.W #6,Dy
 			return this.rwop16(op & 7, this.ror16, 6);
 		case 0o614: // ASR.W D6,Dy
-			return this.rwop16(op & 7, this.asr16, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop16(op & 7, this.asr16, this.d6);
 		case 0o615: // LSR.W D6,Dy
-			return this.rwop16(op & 7, this.lsr16, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop16(op & 7, this.lsr16, this.d6);
 		case 0o616: // ROXR.W D6,Dy
-			return this.rwop16(op & 7, this.roxr16, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop16(op & 7, this.roxr16, this.d6);
 		case 0o617: // ROR.W D6,Dy
-			return this.rwop16(op & 7, this.ror16, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop16(op & 7, this.ror16, this.d6);
 		case 0o620: // ASR.L #6,Dy
 			return this.rwop32(op & 7, this.asr32, 6);
 		case 0o621: // LSR.L #6,Dy
@@ -7537,13 +7537,13 @@ export default class MC68000 extends Cpu {
 		case 0o623: // ROR.L #6,Dy
 			return this.rwop32(op & 7, this.ror32, 6);
 		case 0o624: // ASR.L D6,Dy
-			return this.rwop32(op & 7, this.asr32, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop32(op & 7, this.asr32, this.d6);
 		case 0o625: // LSR.L D6,Dy
-			return this.rwop32(op & 7, this.lsr32, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop32(op & 7, this.lsr32, this.d6);
 		case 0o626: // ROXR.L D6,Dy
-			return this.rwop32(op & 7, this.roxr32, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop32(op & 7, this.roxr32, this.d6);
 		case 0o627: // ROR.L D6,Dy
-			return this.rwop32(op & 7, this.ror32, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop32(op & 7, this.ror32, this.d6);
 		case 0o640: // ASL.B #6,Dy
 			return this.rwop8(op & 7, this.asl8, 6);
 		case 0o641: // LSL.B #6,Dy
@@ -7553,13 +7553,13 @@ export default class MC68000 extends Cpu {
 		case 0o643: // ROL.B #6,Dy
 			return this.rwop8(op & 7, this.rol8, 6);
 		case 0o644: // ASL.B D6,Dy
-			return this.rwop8(op & 7, this.asl8, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop8(op & 7, this.asl8, this.d6);
 		case 0o645: // LSL.B D6,Dy
-			return this.rwop8(op & 7, this.lsl8, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop8(op & 7, this.lsl8, this.d6);
 		case 0o646: // ROXL.B D6,Dy
-			return this.rwop8(op & 7, this.roxl8, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop8(op & 7, this.roxl8, this.d6);
 		case 0o647: // ROL.B D6,Dy
-			return this.rwop8(op & 7, this.rol8, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop8(op & 7, this.rol8, this.d6);
 		case 0o650: // ASL.W #6,Dy
 			return this.rwop16(op & 7, this.asl16, 6);
 		case 0o651: // LSL.W #6,Dy
@@ -7569,13 +7569,13 @@ export default class MC68000 extends Cpu {
 		case 0o653: // ROL.W #6,Dy
 			return this.rwop16(op & 7, this.rol16, 6);
 		case 0o654: // ASL.W D6,Dy
-			return this.rwop16(op & 7, this.asl16, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop16(op & 7, this.asl16, this.d6);
 		case 0o655: // LSL.W D6,Dy
-			return this.rwop16(op & 7, this.lsl16, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop16(op & 7, this.lsl16, this.d6);
 		case 0o656: // ROXL.W D6,Dy
-			return this.rwop16(op & 7, this.roxl16, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop16(op & 7, this.roxl16, this.d6);
 		case 0o657: // ROL.W D6,Dy
-			return this.rwop16(op & 7, this.rol16, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop16(op & 7, this.rol16, this.d6);
 		case 0o660: // ASL.L #6,Dy
 			return this.rwop32(op & 7, this.asl32, 6);
 		case 0o661: // LSL.L #6,Dy
@@ -7585,13 +7585,13 @@ export default class MC68000 extends Cpu {
 		case 0o663: // ROL.L #6,Dy
 			return this.rwop32(op & 7, this.rol32, 6);
 		case 0o664: // ASL.L D6,Dy
-			return this.rwop32(op & 7, this.asl32, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop32(op & 7, this.asl32, this.d6);
 		case 0o665: // LSL.L D6,Dy
-			return this.rwop32(op & 7, this.lsl32, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop32(op & 7, this.lsl32, this.d6);
 		case 0o666: // ROXL.L D6,Dy
-			return this.rwop32(op & 7, this.roxl32, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop32(op & 7, this.roxl32, this.d6);
 		case 0o667: // ROL.L D6,Dy
-			return this.rwop32(op & 7, this.rol32, this.d6);
+			return this.cycle -= this.d6 << 1 & 0x7e, this.rwop32(op & 7, this.rol32, this.d6);
 		case 0o700: // ASR.B #7,Dy
 			return this.rwop8(op & 7, this.asr8, 7);
 		case 0o701: // LSR.B #7,Dy
@@ -7601,13 +7601,13 @@ export default class MC68000 extends Cpu {
 		case 0o703: // ROR.B #7,Dy
 			return this.rwop8(op & 7, this.ror8, 7);
 		case 0o704: // ASR.B D7,Dy
-			return this.rwop8(op & 7, this.asr8, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop8(op & 7, this.asr8, this.d7);
 		case 0o705: // LSR.B D7,Dy
-			return this.rwop8(op & 7, this.lsr8, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop8(op & 7, this.lsr8, this.d7);
 		case 0o706: // ROXR.B D7,Dy
-			return this.rwop8(op & 7, this.roxr8, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop8(op & 7, this.roxr8, this.d7);
 		case 0o707: // ROR.B D7,Dy
-			return this.rwop8(op & 7, this.ror8, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop8(op & 7, this.ror8, this.d7);
 		case 0o710: // ASR.W #7,Dy
 			return this.rwop16(op & 7, this.asr16, 7);
 		case 0o711: // LSR.W #7,Dy
@@ -7617,13 +7617,13 @@ export default class MC68000 extends Cpu {
 		case 0o713: // ROR.W #7,Dy
 			return this.rwop16(op & 7, this.ror16, 7);
 		case 0o714: // ASR.W D7,Dy
-			return this.rwop16(op & 7, this.asr16, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop16(op & 7, this.asr16, this.d7);
 		case 0o715: // LSR.W D7,Dy
-			return this.rwop16(op & 7, this.lsr16, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop16(op & 7, this.lsr16, this.d7);
 		case 0o716: // ROXR.W D7,Dy
-			return this.rwop16(op & 7, this.roxr16, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop16(op & 7, this.roxr16, this.d7);
 		case 0o717: // ROR.W D7,Dy
-			return this.rwop16(op & 7, this.ror16, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop16(op & 7, this.ror16, this.d7);
 		case 0o720: // ASR.L #7,Dy
 			return this.rwop32(op & 7, this.asr32, 7);
 		case 0o721: // LSR.L #7,Dy
@@ -7633,13 +7633,13 @@ export default class MC68000 extends Cpu {
 		case 0o723: // ROR.L #7,Dy
 			return this.rwop32(op & 7, this.ror32, 7);
 		case 0o724: // ASR.L D7,Dy
-			return this.rwop32(op & 7, this.asr32, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop32(op & 7, this.asr32, this.d7);
 		case 0o725: // LSR.L D7,Dy
-			return this.rwop32(op & 7, this.lsr32, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop32(op & 7, this.lsr32, this.d7);
 		case 0o726: // ROXR.L D7,Dy
-			return this.rwop32(op & 7, this.roxr32, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop32(op & 7, this.roxr32, this.d7);
 		case 0o727: // ROR.L D7,Dy
-			return this.rwop32(op & 7, this.ror32, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop32(op & 7, this.ror32, this.d7);
 		case 0o740: // ASL.B #7,Dy
 			return this.rwop8(op & 7, this.asl8, 7);
 		case 0o741: // LSL.B #7,Dy
@@ -7649,13 +7649,13 @@ export default class MC68000 extends Cpu {
 		case 0o743: // ROL.B #7,Dy
 			return this.rwop8(op & 7, this.rol8, 7);
 		case 0o744: // ASL.B D7,Dy
-			return this.rwop8(op & 7, this.asl8, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop8(op & 7, this.asl8, this.d7);
 		case 0o745: // LSL.B D7,Dy
-			return this.rwop8(op & 7, this.lsl8, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop8(op & 7, this.lsl8, this.d7);
 		case 0o746: // ROXL.B D7,Dy
-			return this.rwop8(op & 7, this.roxl8, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop8(op & 7, this.roxl8, this.d7);
 		case 0o747: // ROL.B D7,Dy
-			return this.rwop8(op & 7, this.rol8, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop8(op & 7, this.rol8, this.d7);
 		case 0o750: // ASL.W #7,Dy
 			return this.rwop16(op & 7, this.asl16, 7);
 		case 0o751: // LSL.W #7,Dy
@@ -7665,13 +7665,13 @@ export default class MC68000 extends Cpu {
 		case 0o753: // ROL.W #7,Dy
 			return this.rwop16(op & 7, this.rol16, 7);
 		case 0o754: // ASL.W D7,Dy
-			return this.rwop16(op & 7, this.asl16, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop16(op & 7, this.asl16, this.d7);
 		case 0o755: // LSL.W D7,Dy
-			return this.rwop16(op & 7, this.lsl16, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop16(op & 7, this.lsl16, this.d7);
 		case 0o756: // ROXL.W D7,Dy
-			return this.rwop16(op & 7, this.roxl16, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop16(op & 7, this.roxl16, this.d7);
 		case 0o757: // ROL.W D7,Dy
-			return this.rwop16(op & 7, this.rol16, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop16(op & 7, this.rol16, this.d7);
 		case 0o760: // ASL.L #7,Dy
 			return this.rwop32(op & 7, this.asl32, 7);
 		case 0o761: // LSL.L #7,Dy
@@ -7681,13 +7681,13 @@ export default class MC68000 extends Cpu {
 		case 0o763: // ROL.L #7,Dy
 			return this.rwop32(op & 7, this.rol32, 7);
 		case 0o764: // ASL.L D7,Dy
-			return this.rwop32(op & 7, this.asl32, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop32(op & 7, this.asl32, this.d7);
 		case 0o765: // LSL.L D7,Dy
-			return this.rwop32(op & 7, this.lsl32, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop32(op & 7, this.lsl32, this.d7);
 		case 0o766: // ROXL.L D7,Dy
-			return this.rwop32(op & 7, this.roxl32, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop32(op & 7, this.roxl32, this.d7);
 		case 0o767: // ROL.L D7,Dy
-			return this.rwop32(op & 7, this.rol32, this.d7);
+			return this.cycle -= this.d7 << 1 & 0x7e, this.rwop32(op & 7, this.rol32, this.d7);
 		default:
 			return this.exception(4);
 		}
@@ -8625,40 +8625,40 @@ export default class MC68000 extends Cpu {
 		const list = this.fetch16();
 		let ea = this.lea(op);
 		if ((op & 0o70) === 0o40) {
-			list & 1 && (ea = ea - 2 | 0, this.write16(this.a7, ea));
-			list & 2 && (ea = ea - 2 | 0, this.write16(this.a6, ea));
-			list & 4 && (ea = ea - 2 | 0, this.write16(this.a5, ea));
-			list & 8 && (ea = ea - 2 | 0, this.write16(this.a4, ea));
-			list & 0x10 && (ea = ea - 2 | 0, this.write16(this.a3, ea));
-			list & 0x20 && (ea = ea - 2 | 0, this.write16(this.a2, ea));
-			list & 0x40 && (ea = ea - 2 | 0, this.write16(this.a1, ea));
-			list & 0x80 && (ea = ea - 2 | 0, this.write16(this.a0, ea));
-			list & 0x100 && (ea = ea - 2 | 0, this.write16(this.d7, ea));
-			list & 0x200 && (ea = ea - 2 | 0, this.write16(this.d6, ea));
-			list & 0x400 && (ea = ea - 2 | 0, this.write16(this.d5, ea));
-			list & 0x800 && (ea = ea - 2 | 0, this.write16(this.d4, ea));
-			list & 0x1000 && (ea = ea - 2 | 0, this.write16(this.d3, ea));
-			list & 0x2000 && (ea = ea - 2 | 0, this.write16(this.d2, ea));
-			list & 0x4000 && (ea = ea - 2 | 0, this.write16(this.d1, ea));
-			list & 0x8000 && (ea = ea - 2 | 0, this.write16(this.d0, ea));
+			list & 1 && (this.cycle -= 4, ea = ea - 2 | 0, this.write16(this.a7, ea));
+			list & 2 && (this.cycle -= 4, ea = ea - 2 | 0, this.write16(this.a6, ea));
+			list & 4 && (this.cycle -= 4, ea = ea - 2 | 0, this.write16(this.a5, ea));
+			list & 8 && (this.cycle -= 4, ea = ea - 2 | 0, this.write16(this.a4, ea));
+			list & 0x10 && (this.cycle -= 4, ea = ea - 2 | 0, this.write16(this.a3, ea));
+			list & 0x20 && (this.cycle -= 4, ea = ea - 2 | 0, this.write16(this.a2, ea));
+			list & 0x40 && (this.cycle -= 4, ea = ea - 2 | 0, this.write16(this.a1, ea));
+			list & 0x80 && (this.cycle -= 4, ea = ea - 2 | 0, this.write16(this.a0, ea));
+			list & 0x100 && (this.cycle -= 4, ea = ea - 2 | 0, this.write16(this.d7, ea));
+			list & 0x200 && (this.cycle -= 4, ea = ea - 2 | 0, this.write16(this.d6, ea));
+			list & 0x400 && (this.cycle -= 4, ea = ea - 2 | 0, this.write16(this.d5, ea));
+			list & 0x800 && (this.cycle -= 4, ea = ea - 2 | 0, this.write16(this.d4, ea));
+			list & 0x1000 && (this.cycle -= 4, ea = ea - 2 | 0, this.write16(this.d3, ea));
+			list & 0x2000 && (this.cycle -= 4, ea = ea - 2 | 0, this.write16(this.d2, ea));
+			list & 0x4000 && (this.cycle -= 4, ea = ea - 2 | 0, this.write16(this.d1, ea));
+			list & 0x8000 && (this.cycle -= 4, ea = ea - 2 | 0, this.write16(this.d0, ea));
 			this.rwop32(op & 7 | 0o10, this.thru, ea);
 		} else {
-			list & 1 && (this.write16(this.d0, ea), ea = ea + 2 | 0);
-			list & 2 && (this.write16(this.d1, ea), ea = ea + 2 | 0);
-			list & 4 && (this.write16(this.d2, ea), ea = ea + 2 | 0);
-			list & 8 && (this.write16(this.d3, ea), ea = ea + 2 | 0);
-			list & 0x10 && (this.write16(this.d4, ea), ea = ea + 2 | 0);
-			list & 0x20 && (this.write16(this.d5, ea), ea = ea + 2 | 0);
-			list & 0x40 && (this.write16(this.d6, ea), ea = ea + 2 | 0);
-			list & 0x80 && (this.write16(this.d7, ea), ea = ea + 2 | 0);
-			list & 0x100 && (this.write16(this.a0, ea), ea = ea + 2 | 0);
-			list & 0x200 && (this.write16(this.a1, ea), ea = ea + 2 | 0);
-			list & 0x400 && (this.write16(this.a2, ea), ea = ea + 2 | 0);
-			list & 0x800 && (this.write16(this.a3, ea), ea = ea + 2 | 0);
-			list & 0x1000 && (this.write16(this.a4, ea), ea = ea + 2 | 0);
-			list & 0x2000 && (this.write16(this.a5, ea), ea = ea + 2 | 0);
-			list & 0x4000 && (this.write16(this.a6, ea), ea = ea + 2 | 0);
-			list & 0x8000 && this.write16(this.a7, ea);
+			list & 1 && (this.cycle -= 4, this.write16(this.d0, ea), ea = ea + 2 | 0);
+			list & 2 && (this.cycle -= 4, this.write16(this.d1, ea), ea = ea + 2 | 0);
+			list & 4 && (this.cycle -= 4, this.write16(this.d2, ea), ea = ea + 2 | 0);
+			list & 8 && (this.cycle -= 4, this.write16(this.d3, ea), ea = ea + 2 | 0);
+			list & 0x10 && (this.cycle -= 4, this.write16(this.d4, ea), ea = ea + 2 | 0);
+			list & 0x20 && (this.cycle -= 4, this.write16(this.d5, ea), ea = ea + 2 | 0);
+			list & 0x40 && (this.cycle -= 4, this.write16(this.d6, ea), ea = ea + 2 | 0);
+			list & 0x80 && (this.cycle -= 4, this.write16(this.d7, ea), ea = ea + 2 | 0);
+			list & 0x100 && (this.cycle -= 4, this.write16(this.a0, ea), ea = ea + 2 | 0);
+			list & 0x200 && (this.cycle -= 4, this.write16(this.a1, ea), ea = ea + 2 | 0);
+			list & 0x400 && (this.cycle -= 4, this.write16(this.a2, ea), ea = ea + 2 | 0);
+			list & 0x800 && (this.cycle -= 4, this.write16(this.a3, ea), ea = ea + 2 | 0);
+			list & 0x1000 && (this.cycle -= 4, this.write16(this.a4, ea), ea = ea + 2 | 0);
+			list & 0x2000 && (this.cycle -= 4, this.write16(this.a5, ea), ea = ea + 2 | 0);
+			list & 0x4000 && (this.cycle -= 4, this.write16(this.a6, ea), ea = ea + 2 | 0);
+			list & 0x8000 && (this.cycle -= 4, this.write16(this.a7, ea));
 		}
 	}
 
@@ -8666,84 +8666,84 @@ export default class MC68000 extends Cpu {
 		const list = this.fetch16();
 		let ea = this.lea(op);
 		if ((op & 0o70) === 0o40) {
-			list & 1 && (ea = ea - 4 | 0, this.write32(this.a7, ea));
-			list & 2 && (ea = ea - 4 | 0, this.write32(this.a6, ea));
-			list & 4 && (ea = ea - 4 | 0, this.write32(this.a5, ea));
-			list & 8 && (ea = ea - 4 | 0, this.write32(this.a4, ea));
-			list & 0x10 && (ea = ea - 4 | 0, this.write32(this.a3, ea));
-			list & 0x20 && (ea = ea - 4 | 0, this.write32(this.a2, ea));
-			list & 0x40 && (ea = ea - 4 | 0, this.write32(this.a1, ea));
-			list & 0x80 && (ea = ea - 4 | 0, this.write32(this.a0, ea));
-			list & 0x100 && (ea = ea - 4 | 0, this.write32(this.d7, ea));
-			list & 0x200 && (ea = ea - 4 | 0, this.write32(this.d6, ea));
-			list & 0x400 && (ea = ea - 4 | 0, this.write32(this.d5, ea));
-			list & 0x800 && (ea = ea - 4 | 0, this.write32(this.d4, ea));
-			list & 0x1000 && (ea = ea - 4 | 0, this.write32(this.d3, ea));
-			list & 0x2000 && (ea = ea - 4 | 0, this.write32(this.d2, ea));
-			list & 0x4000 && (ea = ea - 4 | 0, this.write32(this.d1, ea));
-			list & 0x8000 && (ea = ea - 4 | 0, this.write32(this.d0, ea));
+			list & 1 && (this.cycle -= 8, ea = ea - 4 | 0, this.write32(this.a7, ea));
+			list & 2 && (this.cycle -= 8, ea = ea - 4 | 0, this.write32(this.a6, ea));
+			list & 4 && (this.cycle -= 8, ea = ea - 4 | 0, this.write32(this.a5, ea));
+			list & 8 && (this.cycle -= 8, ea = ea - 4 | 0, this.write32(this.a4, ea));
+			list & 0x10 && (this.cycle -= 8, ea = ea - 4 | 0, this.write32(this.a3, ea));
+			list & 0x20 && (this.cycle -= 8, ea = ea - 4 | 0, this.write32(this.a2, ea));
+			list & 0x40 && (this.cycle -= 8, ea = ea - 4 | 0, this.write32(this.a1, ea));
+			list & 0x80 && (this.cycle -= 8, ea = ea - 4 | 0, this.write32(this.a0, ea));
+			list & 0x100 && (this.cycle -= 8, ea = ea - 4 | 0, this.write32(this.d7, ea));
+			list & 0x200 && (this.cycle -= 8, ea = ea - 4 | 0, this.write32(this.d6, ea));
+			list & 0x400 && (this.cycle -= 8, ea = ea - 4 | 0, this.write32(this.d5, ea));
+			list & 0x800 && (this.cycle -= 8, ea = ea - 4 | 0, this.write32(this.d4, ea));
+			list & 0x1000 && (this.cycle -= 8, ea = ea - 4 | 0, this.write32(this.d3, ea));
+			list & 0x2000 && (this.cycle -= 8, ea = ea - 4 | 0, this.write32(this.d2, ea));
+			list & 0x4000 && (this.cycle -= 8, ea = ea - 4 | 0, this.write32(this.d1, ea));
+			list & 0x8000 && (this.cycle -= 8, ea = ea - 4 | 0, this.write32(this.d0, ea));
 			this.rwop32(op & 7 | 0o10, this.thru, ea);
 		} else {
-			list & 1 && (this.write32(this.d0, ea), ea = ea + 4 | 0);
-			list & 2 && (this.write32(this.d1, ea), ea = ea + 4 | 0);
-			list & 4 && (this.write32(this.d2, ea), ea = ea + 4 | 0);
-			list & 8 && (this.write32(this.d3, ea), ea = ea + 4 | 0);
-			list & 0x10 && (this.write32(this.d4, ea), ea = ea + 4 | 0);
-			list & 0x20 && (this.write32(this.d5, ea), ea = ea + 4 | 0);
-			list & 0x40 && (this.write32(this.d6, ea), ea = ea + 4 | 0);
-			list & 0x80 && (this.write32(this.d7, ea), ea = ea + 4 | 0);
-			list & 0x100 && (this.write32(this.a0, ea), ea = ea + 4 | 0);
-			list & 0x200 && (this.write32(this.a1, ea), ea = ea + 4 | 0);
-			list & 0x400 && (this.write32(this.a2, ea), ea = ea + 4 | 0);
-			list & 0x800 && (this.write32(this.a3, ea), ea = ea + 4 | 0);
-			list & 0x1000 && (this.write32(this.a4, ea), ea = ea + 4 | 0);
-			list & 0x2000 && (this.write32(this.a5, ea), ea = ea + 4 | 0);
-			list & 0x4000 && (this.write32(this.a6, ea), ea = ea + 4 | 0);
-			list & 0x8000 && this.write32(this.a7, ea);
+			list & 1 && (this.cycle -= 8, this.write32(this.d0, ea), ea = ea + 4 | 0);
+			list & 2 && (this.cycle -= 8, this.write32(this.d1, ea), ea = ea + 4 | 0);
+			list & 4 && (this.cycle -= 8, this.write32(this.d2, ea), ea = ea + 4 | 0);
+			list & 8 && (this.cycle -= 8, this.write32(this.d3, ea), ea = ea + 4 | 0);
+			list & 0x10 && (this.cycle -= 8, this.write32(this.d4, ea), ea = ea + 4 | 0);
+			list & 0x20 && (this.cycle -= 8, this.write32(this.d5, ea), ea = ea + 4 | 0);
+			list & 0x40 && (this.cycle -= 8, this.write32(this.d6, ea), ea = ea + 4 | 0);
+			list & 0x80 && (this.cycle -= 8, this.write32(this.d7, ea), ea = ea + 4 | 0);
+			list & 0x100 && (this.cycle -= 8, this.write32(this.a0, ea), ea = ea + 4 | 0);
+			list & 0x200 && (this.cycle -= 8, this.write32(this.a1, ea), ea = ea + 4 | 0);
+			list & 0x400 && (this.cycle -= 8, this.write32(this.a2, ea), ea = ea + 4 | 0);
+			list & 0x800 && (this.cycle -= 8, this.write32(this.a3, ea), ea = ea + 4 | 0);
+			list & 0x1000 && (this.cycle -= 8, this.write32(this.a4, ea), ea = ea + 4 | 0);
+			list & 0x2000 && (this.cycle -= 8, this.write32(this.a5, ea), ea = ea + 4 | 0);
+			list & 0x4000 && (this.cycle -= 8, this.write32(this.a6, ea), ea = ea + 4 | 0);
+			list & 0x8000 && (this.cycle -= 8, this.write32(this.a7, ea));
 		}
 	}
 
 	movem16mr(op) {
 		const list = this.fetch16();
 		let ea = this.lea(op);
-		list & 1 && (this.d0 = this.read16s(ea), ea = ea + 2 | 0);
-		list & 2 && (this.d1 = this.read16s(ea), ea = ea + 2 | 0);
-		list & 4 && (this.d2 = this.read16s(ea), ea = ea + 2 | 0);
-		list & 8 && (this.d3 = this.read16s(ea), ea = ea + 2 | 0);
-		list & 0x10 && (this.d4 = this.read16s(ea), ea = ea + 2 | 0);
-		list & 0x20 && (this.d5 = this.read16s(ea), ea = ea + 2 | 0);
-		list & 0x40 && (this.d6 = this.read16s(ea), ea = ea + 2 | 0);
-		list & 0x80 && (this.d7 = this.read16s(ea), ea = ea + 2 | 0);
-		list & 0x100 && (this.a0 = this.read16s(ea), ea = ea + 2 | 0);
-		list & 0x200 && (this.a1 = this.read16s(ea), ea = ea + 2 | 0);
-		list & 0x400 && (this.a2 = this.read16s(ea), ea = ea + 2 | 0);
-		list & 0x800 && (this.a3 = this.read16s(ea), ea = ea + 2 | 0);
-		list & 0x1000 && (this.a4 = this.read16s(ea), ea = ea + 2 | 0);
-		list & 0x2000 && (this.a5 = this.read16s(ea), ea = ea + 2 | 0);
-		list & 0x4000 && (this.a6 = this.read16s(ea), ea = ea + 2 | 0);
-		list & 0x8000 && (this.a7 = this.read16s(ea), ea = ea + 2 | 0);
+		list & 1 && (this.cycle -= 4, this.d0 = this.read16s(ea), ea = ea + 2 | 0);
+		list & 2 && (this.cycle -= 4, this.d1 = this.read16s(ea), ea = ea + 2 | 0);
+		list & 4 && (this.cycle -= 4, this.d2 = this.read16s(ea), ea = ea + 2 | 0);
+		list & 8 && (this.cycle -= 4, this.d3 = this.read16s(ea), ea = ea + 2 | 0);
+		list & 0x10 && (this.cycle -= 4, this.d4 = this.read16s(ea), ea = ea + 2 | 0);
+		list & 0x20 && (this.cycle -= 4, this.d5 = this.read16s(ea), ea = ea + 2 | 0);
+		list & 0x40 && (this.cycle -= 4, this.d6 = this.read16s(ea), ea = ea + 2 | 0);
+		list & 0x80 && (this.cycle -= 4, this.d7 = this.read16s(ea), ea = ea + 2 | 0);
+		list & 0x100 && (this.cycle -= 4, this.a0 = this.read16s(ea), ea = ea + 2 | 0);
+		list & 0x200 && (this.cycle -= 4, this.a1 = this.read16s(ea), ea = ea + 2 | 0);
+		list & 0x400 && (this.cycle -= 4, this.a2 = this.read16s(ea), ea = ea + 2 | 0);
+		list & 0x800 && (this.cycle -= 4, this.a3 = this.read16s(ea), ea = ea + 2 | 0);
+		list & 0x1000 && (this.cycle -= 4, this.a4 = this.read16s(ea), ea = ea + 2 | 0);
+		list & 0x2000 && (this.cycle -= 4, this.a5 = this.read16s(ea), ea = ea + 2 | 0);
+		list & 0x4000 && (this.cycle -= 4, this.a6 = this.read16s(ea), ea = ea + 2 | 0);
+		list & 0x8000 && (this.cycle -= 4, this.a7 = this.read16s(ea), ea = ea + 2 | 0);
 		(op & 0o70) === 0o30 && this.rwop32(op & 7 | 0o10, this.thru, ea);
 	}
 
 	movem32mr(op) {
 		const list = this.fetch16();
 		let ea = this.lea(op);
-		list & 1 && (this.d0 = this.read32(ea), ea = ea + 4 | 0);
-		list & 2 && (this.d1 = this.read32(ea), ea = ea + 4 | 0);
-		list & 4 && (this.d2 = this.read32(ea), ea = ea + 4 | 0);
-		list & 8 && (this.d3 = this.read32(ea), ea = ea + 4 | 0);
-		list & 0x10 && (this.d4 = this.read32(ea), ea = ea + 4 | 0);
-		list & 0x20 && (this.d5 = this.read32(ea), ea = ea + 4 | 0);
-		list & 0x40 && (this.d6 = this.read32(ea), ea = ea + 4 | 0);
-		list & 0x80 && (this.d7 = this.read32(ea), ea = ea + 4 | 0);
-		list & 0x100 && (this.a0 = this.read32(ea), ea = ea + 4 | 0);
-		list & 0x200 && (this.a1 = this.read32(ea), ea = ea + 4 | 0);
-		list & 0x400 && (this.a2 = this.read32(ea), ea = ea + 4 | 0);
-		list & 0x800 && (this.a3 = this.read32(ea), ea = ea + 4 | 0);
-		list & 0x1000 && (this.a4 = this.read32(ea), ea = ea + 4 | 0);
-		list & 0x2000 && (this.a5 = this.read32(ea), ea = ea + 4 | 0);
-		list & 0x4000 && (this.a6 = this.read32(ea), ea = ea + 4 | 0);
-		list & 0x8000 && (this.a7 = this.read32(ea), ea = ea + 4 | 0);
+		list & 1 && (this.cycle -= 8, this.d0 = this.read32(ea), ea = ea + 4 | 0);
+		list & 2 && (this.cycle -= 8, this.d1 = this.read32(ea), ea = ea + 4 | 0);
+		list & 4 && (this.cycle -= 8, this.d2 = this.read32(ea), ea = ea + 4 | 0);
+		list & 8 && (this.cycle -= 8, this.d3 = this.read32(ea), ea = ea + 4 | 0);
+		list & 0x10 && (this.cycle -= 8, this.d4 = this.read32(ea), ea = ea + 4 | 0);
+		list & 0x20 && (this.cycle -= 8, this.d5 = this.read32(ea), ea = ea + 4 | 0);
+		list & 0x40 && (this.cycle -= 8, this.d6 = this.read32(ea), ea = ea + 4 | 0);
+		list & 0x80 && (this.cycle -= 8, this.d7 = this.read32(ea), ea = ea + 4 | 0);
+		list & 0x100 && (this.cycle -= 8, this.a0 = this.read32(ea), ea = ea + 4 | 0);
+		list & 0x200 && (this.cycle -= 8, this.a1 = this.read32(ea), ea = ea + 4 | 0);
+		list & 0x400 && (this.cycle -= 8, this.a2 = this.read32(ea), ea = ea + 4 | 0);
+		list & 0x800 && (this.cycle -= 8, this.a3 = this.read32(ea), ea = ea + 4 | 0);
+		list & 0x1000 && (this.cycle -= 8, this.a4 = this.read32(ea), ea = ea + 4 | 0);
+		list & 0x2000 && (this.cycle -= 8, this.a5 = this.read32(ea), ea = ea + 4 | 0);
+		list & 0x4000 && (this.cycle -= 8, this.a6 = this.read32(ea), ea = ea + 4 | 0);
+		list & 0x8000 && (this.cycle -= 8, this.a7 = this.read32(ea), ea = ea + 4 | 0);
 		(op & 0o70) === 0o30 && this.rwop32(op & 7 | 0o10, this.thru, ea);
 	}
 
@@ -9081,7 +9081,7 @@ export default class MC68000 extends Cpu {
 
 	mulu(src, dst) {
 		const r = (src & 0xffff) * (dst & 0xffff) | 0;
-		return this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2, r;
+		return this.cycle -= (bc[src >> 8 & 0xff] + bc[src & 0xff]) << 1, this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2, r;
 	}
 
 	abcd(src, dst) {
@@ -9095,8 +9095,8 @@ export default class MC68000 extends Cpu {
 	}
 
 	muls(src, dst) {
-		const r = (dst << 16 >> 16) * (src << 16 >> 16) | 0;
-		return this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2, r;
+		const r = (dst << 16 >> 16) * (src << 16 >> 16) | 0, e = src ^ src << 1;
+		return this.cycle -= (bc[e >> 8 & 0xff] + bc[e & 0xff]) << 1, this.sr = this.sr & ~0x0f | r >> 28 & 8 | !r << 2, r;
 	}
 
 	addx8(src, dst) {
@@ -9389,21 +9389,21 @@ export default class MC68000 extends Cpu {
 		const addr = this.disp(this.pc);
 		switch(op & 7) {
 		case 0:
-			return void(!cond && ((this.d0 = this.d0 & ~0xffff | this.d0 - 1 & 0xffff) & 0xffff) !== 0xffff && (this.pc = addr));
+			return void(cond ? (this.cycle -= 2) : ((this.d0 = this.d0 & ~0xffff | this.d0 - 1 & 0xffff) & 0xffff) !== 0xffff ? (this.pc = addr) : (this.cycle -= 4));
 		case 1:
-			return void(!cond && ((this.d1 = this.d1 & ~0xffff | this.d1 - 1 & 0xffff) & 0xffff) !== 0xffff && (this.pc = addr));
+			return void(cond ? (this.cycle -= 2) : ((this.d1 = this.d1 & ~0xffff | this.d1 - 1 & 0xffff) & 0xffff) !== 0xffff ? (this.pc = addr) : (this.cycle -= 4));
 		case 2:
-			return void(!cond && ((this.d2 = this.d2 & ~0xffff | this.d2 - 1 & 0xffff) & 0xffff) !== 0xffff && (this.pc = addr));
+			return void(cond ? (this.cycle -= 2) : ((this.d2 = this.d2 & ~0xffff | this.d2 - 1 & 0xffff) & 0xffff) !== 0xffff ? (this.pc = addr) : (this.cycle -= 4));
 		case 3:
-			return void(!cond && ((this.d3 = this.d3 & ~0xffff | this.d3 - 1 & 0xffff) & 0xffff) !== 0xffff && (this.pc = addr));
+			return void(cond ? (this.cycle -= 2) : ((this.d3 = this.d3 & ~0xffff | this.d3 - 1 & 0xffff) & 0xffff) !== 0xffff ? (this.pc = addr) : (this.cycle -= 4));
 		case 4:
-			return void(!cond && ((this.d4 = this.d4 & ~0xffff | this.d4 - 1 & 0xffff) & 0xffff) !== 0xffff && (this.pc = addr));
+			return void(cond ? (this.cycle -= 2) : ((this.d4 = this.d4 & ~0xffff | this.d4 - 1 & 0xffff) & 0xffff) !== 0xffff ? (this.pc = addr) : (this.cycle -= 4));
 		case 5:
-			return void(!cond && ((this.d5 = this.d5 & ~0xffff | this.d5 - 1 & 0xffff) & 0xffff) !== 0xffff && (this.pc = addr));
+			return void(cond ? (this.cycle -= 2) : ((this.d5 = this.d5 & ~0xffff | this.d5 - 1 & 0xffff) & 0xffff) !== 0xffff ? (this.pc = addr) : (this.cycle -= 4));
 		case 6:
-			return void(!cond && ((this.d6 = this.d6 & ~0xffff | this.d6 - 1 & 0xffff) & 0xffff) !== 0xffff && (this.pc = addr));
+			return void(cond ? (this.cycle -= 2) : ((this.d6 = this.d6 & ~0xffff | this.d6 - 1 & 0xffff) & 0xffff) !== 0xffff ? (this.pc = addr) : (this.cycle -= 4));
 		case 7:
-			return void(!cond && ((this.d7 = this.d7 & ~0xffff | this.d7 - 1 & 0xffff) & 0xffff) !== 0xffff && (this.pc = addr));
+			return void(cond ? (this.cycle -= 2) : ((this.d7 = this.d7 & ~0xffff | this.d7 - 1 & 0xffff) & 0xffff) !== 0xffff ? (this.pc = addr) : (this.cycle -= 4));
 		}
 	}
 
@@ -9549,4 +9549,748 @@ export default class MC68000 extends Cpu {
 		this.write16(data >> 16 & 0xffff, addr), this.write16(data & 0xffff, addr + 2 | 0);
 	}
 }
+
+const cc = Uint8Array.from(window.atob('\
+CAgICAgICAgAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBASEhISEhISEhQUFBQUFBQUFhYWFhYWFhYUGAAAFAAAAAgICAgICAgIAAAAAAAAAAAQEBAQEBAQEBAQ\
+EBAQEBAQEhISEhISEhIUFBQUFBQUFBYWFhYWFhYWFBgAABQAAAAQEBAQEBAQEAAAAAAAAAAAHBwcHBwcHBwcHBwcHBwcHB4eHh4eHh4eICAgICAgICAiIiIi\
+IiIiIiAkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYGBgYGBgYGEBAQEBAQ\
+EBAICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAAAAAAAAAICAgICAgICBgYGBgYGBgYDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4O\
+EBAQEBAQEBASEhISEhISEhAUAAAAAAAACgoKCgoKCgoQEBAQEBAQEAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAgI\
+CAgICAgIGBgYGBgYGBgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAICAgICAgICAAAAAAAAAAAEBAQEBAQEBAQEBAQ\
+EBAQEBISEhISEhISFBQUFBQUFBQWFhYWFhYWFhQYAAAUAAAACAgICAgICAgAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBASEhISEhISEhQUFBQUFBQUFhYWFhYW\
+FhYUGAAAFAAAABAQEBAQEBAQAAAAAAAAAAAcHBwcHBwcHBwcHBwcHBwcHh4eHh4eHh4gICAgICAgICIiIiIiIiIiICQAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgYGBgYGBgYQEBAQEBAQEAgICAgICAgICAgICAgICAgKCgoKCgoKCgwM\
+DAwMDAwMDg4ODg4ODg4MEAAAAAAAAAgICAgICAgIGBgYGBgYGBgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAKCgoK\
+CgoKChAQEBAQEBAQDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAACAgICAgICAgYGBgYGBgYGAwMDAwMDAwMDAwMDAwM\
+DAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAgICAgICAgIAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBYWFhYWFhYW\
+FBgAAAAAAAAICAgICAgICAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQEBISEhISEhISFBQUFBQUFBQWFhYWFhYWFhQYAAAAAAAAEBAQEBAQEBAAAAAAAAAAABwc\
+HBwcHBwcHBwcHBwcHBweHh4eHh4eHiAgICAgICAgIiIiIiIiIiIgJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAGBgYGBgYGBhAQEBAQEBAQCAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQAAAAAAAACAgICAgI\
+CAgYGBgYGBgYGAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAoKCgoKCgoKEBAQEBAQEBAMDAwMDAwMDAwMDAwMDAwM\
+Dg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAICAgICAgICBgYGBgYGBgYDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAU\
+AAAAAAAACAgICAgICAgAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBASEhISEhISEhQUFBQUFBQUFhYWFhYWFhYUGAAAAAAAAAgICAgICAgIAAAAAAAAAAAQEBAQ\
+EBAQEBAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBYWFhYWFhYWFBgAAAAAAAAQEBAQEBAQEAAAAAAAAAAAHBwcHBwcHBwcHBwcHBwcHB4eHh4eHh4eICAgICAg\
+ICAiIiIiIiIiIiAkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYGBgYGBgYG\
+EBAQEBAQEBAICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAAAAAAAAAICAgICAgICBgYGBgYGBgYDAwMDAwMDAwMDAwMDAwMDA4O\
+Dg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAACgoKCgoKCgoQEBAQEBAQEAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAA\
+AAAAAAgICAgICAgIGBgYGBgYGBgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAKCgoKCgoKCgAAAAAAAAAADAwMDAwM\
+DAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAADAwMDAwMDAwAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBASEhISEhISEhQUFBQUFBQU\
+FhYWFhYWFhYUGAAAAAAAAA4ODg4ODg4OAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBYWFhYWFhYWFBgAAAAAAAAMDAwMDAwMDAAA\
+AAAAAAAAEBAQEBAQEBAQEBAQEBAQEBISEhISEhISFBQUFBQUFBQWFhYWFhYWFhQYAAAAAAAABgYGBgYGBgYQEBAQEBAQEAgICAgICAgICAgICAgICAgKCgoK\
+CgoKCgwMDAwMDAwMDg4ODg4ODg4MEAAAAAAAAAgICAgICAgIGBgYGBgYGBgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAA\
+AAAKCgoKCgoKChAQEBAQEBAQDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAACAgICAgICAgYGBgYGBgYGAwMDAwMDAwM\
+DAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAgICAgICAgIAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBYW\
+FhYWFhYWFBgAABQAAAAICAgICAgICAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQEBISEhISEhISFBQUFBQUFBQWFhYWFhYWFhQYAAAUAAAAEBAQEBAQEBAAAAAA\
+AAAAABwcHBwcHBwcHBwcHBwcHBweHh4eHh4eHiAgICAgICAgIiIiIiIiIiIgJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGBgYGBgYGBhAQEBAQEBAQCAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQAAAAAAAA\
+CAgICAgICAgYGBgYGBgYGAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAoKCgoKCgoKEBAQEBAQEBAMDAwMDAwMDAwM\
+DAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAICAgICAgICBgYGBgYGBgYDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhIS\
+EhISEhAUAAAAAAAACAgICAgICAgAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAgICAgICAgIAAAAAAAA\
+AAAMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAODg4ODg4ODgAAAAAAAAAAFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYW\
+GBgYGBgYGBgaGhoaGhoaGhgcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYG\
+BgYGBgYGEBAQEBAQEBAICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAAAAAAAAAICAgICAgICBgYGBgYGBgYDAwMDAwMDAwMDAwM\
+DAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAACgoKCgoKCgoQEBAQEBAQEAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhIS\
+EhIQFAAAAAAAAAgICAgICAgIGBgYGBgYGBgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgYGBgYGBgYQEBAQEBAQEAgICAgICAgICAgICAgI\
+CAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAAAAAAAAAgICAgICAgIGBgYGBgYGBgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhIS\
+EBQAAAAAAAAKCgoKCgoKChAQEBAQEBAQDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAACAgICAgICAgYGBgYGBgYGAwM\
+DAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAQEBAQEBAQEAAAAAAAAAAAICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwM\
+DAwMDA4ODg4ODg4ODBAMDggAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgICAgI\
+CAgAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAgICAgICAgIAAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwM\
+Dg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAICAgICAgICAAAAAAAAAAADAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAU\
+EBIMAAAADAwMDAwMDAwAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBASEhISEhISEhQUFBQUFBQUFhYWFhYWFhYUGBQWEAAAAA4ODg4ODg4OAAAAAAAAAAASEhIS\
+EhISEhISEhISEhISFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYFhoWGBIAAAAMDAwMDAwMDAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQEBISEhISEhISFBQUFBQU\
+FBQWFhYWFhYWFhQYFBYQAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgICAgICAAAAAAAAAAADAwMDAwMDAwMDAwMDAwMDA4O\
+Dg4ODg4OEBAQEBAQEBASEhISEhISEhAUEBIMAAAACAgICAgICAgAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBAS\
+DAAAAAgICAgICAgIAAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAMDAwMDAwMDAAAAAAAAAAAEBAQEBAQ\
+EBAQEBAQEBAQEBISEhISEhISFBQUFBQUFBQWFhYWFhYWFhQYFBYQAAAADg4ODg4ODg4AAAAAAAAAABISEhISEhISEhISEhISEhIUFBQUFBQUFBYWFhYWFhYW\
+GBgYGBgYGBgWGhYYEgAAABAQEBAQEBAQAAAAAAAAAAAUFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwYGhQAAAAEBAQEBAQEBAAA\
+AAAAAAAACAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAgICAgIAAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwA\
+AAAICAgICAgICAAAAAAAAAAADAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUEBIMAAAACAgICAgICAgAAAAAAAAAAAwMDAwMDAwM\
+DAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAwMDAwMDAwMAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBYW\
+FhYWFhYWFBgUFhAAAAAODg4ODg4ODgAAAAAAAAAAEhISEhISEhISEhISEhISEhQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBYaFhgSAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEAAAAAAAAAAAICAgICAgICAgICAgICAgICgoKCgoK\
+CgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+CAgICAgICAgAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAgICAgICAgIAAAAAAAAAAAMDAwMDAwMDAwM\
+DAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAICAgICAgICAAAAAAAAAAADAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhIS\
+EhISEhAUEBIMAAAADAwMDAwMDAwAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBASEhISEhISEhQUFBQUFBQUFhYWFhYWFhYUGBQWEAAAAA4ODg4ODg4OAAAAAAAA\
+AAASEhISEhISEhISEhISEhISFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYFhoWGBIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgICAgICAAAAAAAAAAADAwMDAwMDAwMDAwM\
+DAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUEBIMAAAACAgICAgICAgAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhIS\
+EhIQFBASDAAAAAgICAgICAgIAAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAMDAwMDAwMDAAAAAAAAAAA\
+EBAQEBAQEBAQEBAQEBAQEBISEhISEhISFBQUFBQUFBQWFhYWFhYWFhQYFBYQAAAADg4ODg4ODg4AAAAAAAAAABISEhISEhISEhISEhISEhIUFBQUFBQUFBYW\
+FhYWFhYWGBgYGBgYGBgWGhYYEgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQE\
+BAQEBAAAAAAAAAAACAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAgICAgIAAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhIS\
+EBQQEgwAAAAICAgICAgICAAAAAAAAAAADAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUEBIMAAAACAgICAgICAgAAAAAAAAAAAwM\
+DAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAwMDAwMDAwMAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEhISEhISEhIUFBQU\
+FBQUFBYWFhYWFhYWFBgUFhAAAAAODg4ODg4ODgAAAAAAAAAAEhISEhISEhISEhISEhISEhQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBYaFhgSAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEAAAAAAAAAAAICAgICAgICAgICAgICAgI\
+CgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAACAgICAgICAgAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAgICAgICAgIAAAAAAAAAAAMDAwM\
+DAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAICAgICAgICAAAAAAAAAAADAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQ\
+EBASEhISEhISEhAUEBIMAAAADAwMDAwMDAwAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBASEhISEhISEhQUFBQUFBQUFhYWFhYWFhYUGBQWEAAAAA4ODg4ODg4O\
+AAAAAAAAAAASEhISEhISEhISEhISEhISFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYFhoWGBIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwO\
+CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgICAgICAAAAAAAAAAADAwMDAwM\
+DAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUEBIMAAAACAgICAgICAgAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQ\
+EhISEhISEhIQFBASDAAAAAgICAgICAgIAAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAMDAwMDAwMDAAA\
+AAAAAAAAEBAQEBAQEBAQEBAQEBAQEBISEhISEhISFBQUFBQUFBQWFhYWFhYWFhQYFBYQAAAADg4ODg4ODg4AAAAAAAAAABISEhISEhISEhISEhISEhIUFBQU\
+FBQUFBYWFhYWFhYWGBgYGBgYGBgWGhYYEgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAEBAQEBAQEBAQEBAQEBAQEDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUEBIMAAAABAQEBAQEBAQEBAQEBAQEBAwMDAwMDAwM\
+DAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAwMDAwMDAwMDAwMDAwMDAwUFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoa\
+GhoaGhoaGBwYGhQAAAAMDAwMDAwMDAwMDAwMDAwMFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcGBoUAAAADAwMDAwMDAwMDAwM\
+DAwMDBQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHBgaFAAAABAQEBAQEBAQEBAQEBAQEBAYGBgYGBgYGBgYGBgYGBgYGhoaGhoa\
+GhocHBwcHBwcHB4eHh4eHh4eHCAcHhgAAAASEhISEhISEhISEhISEhISGhoaGhoaGhoaGhoaGhoaGhwcHBwcHBwcHh4eHh4eHh4gICAgICAgIB4iHiAaAAAA\
+EBAQEBAQEBAQEBAQEBAQEBgYGBgYGBgYGBgYGBgYGBgaGhoaGhoaGhwcHBwcHBwcHh4eHh4eHh4cIBweGAAAAAQEBAQEBAQEBAQEBAQEBAQMDAwMDAwMDAwM\
+DAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAEBAQEBAQEBAQEBAQEBAQEDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhIS\
+EhISEhAUEBIMAAAADAwMDAwMDAwMDAwMDAwMDBQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHBgaFAAAAAwMDAwMDAwMDAwMDAwM\
+DAwUFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwYGhQAAAAMDAwMDAwMDAwMDAwMDAwMFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYW\
+GBgYGBgYGBgaGhoaGhoaGhgcGBoUAAAAEBAQEBAQEBAQEBAQEBAQEBgYGBgYGBgYGBgYGBgYGBgaGhoaGhoaGhwcHBwcHBwcHh4eHh4eHh4cIBweGAAAABIS\
+EhISEhISEhISEhISEhIaGhoaGhoaGhoaGhoaGhoaHBwcHBwcHBweHh4eHh4eHiAgICAgICAgHiIeIBoAAAAUFBQUFBQUFBQUFBQUFBQUHBwcHBwcHBwcHBwc\
+HBwcHB4eHh4eHh4eICAgICAgICAiIiIiIiIiIiAkICIcAAAABAQEBAQEBAQEBAQEBAQEBAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhIS\
+EhIQFBASDAAAAAQEBAQEBAQEBAQEBAQEBAQMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAMDAwMDAwMDAwMDAwMDAwM\
+FBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcGBoUAAAADAwMDAwMDAwMDAwMDAwMDBQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgY\
+GBgYGBgYGhoaGhoaGhoYHBgaFAAAAAwMDAwMDAwMDAwMDAwMDAwUFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwYGhQAAAAQEBAQ\
+EBAQEBAQEBAQEBAQGBgYGBgYGBgYGBgYGBgYGBoaGhoaGhoaHBwcHBwcHBweHh4eHh4eHhwgHB4YAAAAEhISEhISEhISEhISEhISEhoaGhoaGhoaGhoaGhoa\
+GhocHBwcHBwcHB4eHh4eHh4eICAgICAgICAeIh4gGgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQEDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUEBIMAAAABAQEBAQEBAQEBAQEBAQEBAwM\
+DAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAwMDAwMDAwMDAwMDAwMDAwUFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgY\
+GBgYGBoaGhoaGhoaGBwYGhQAAAAMDAwMDAwMDAwMDAwMDAwMFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcGBoUAAAADAwMDAwM\
+DAwMDAwMDAwMDBQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHBgaFAAAABAQEBAQEBAQEBAQEBAQEBAYGBgYGBgYGBgYGBgYGBgY\
+GhoaGhoaGhocHBwcHBwcHB4eHh4eHh4eHCAcHhgAAAASEhISEhISEhISEhISEhISGhoaGhoaGhoaGhoaGhoaGhwcHBwcHBwcHh4eHh4eHh4gICAgICAgIB4i\
+HiAaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQMDAwM\
+DAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAEBAQEBAQEBAQEBAQEBAQEDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQ\
+EBASEhISEhISEhAUEBIMAAAADAwMDAwMDAwMDAwMDAwMDBQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHBgaFAAAAAwMDAwMDAwM\
+DAwMDAwMDAwUFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwYGhQAAAAMDAwMDAwMDAwMDAwMDAwMFBQUFBQUFBQUFBQUFBQUFBYW\
+FhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcGBoUAAAAEBAQEBAQEBAQEBAQEBAQEBgYGBgYGBgYGBgYGBgYGBgaGhoaGhoaGhwcHBwcHBwcHh4eHh4eHh4cIBwe\
+GAAAABISEhISEhISEhISEhISEhIaGhoaGhoaGhoaGhoaGhoaHBwcHBwcHBweHh4eHh4eHiAgICAgICAgHiIeIBoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQ\
+EhISEhISEhIQFBASDAAAAAQEBAQEBAQEBAQEBAQEBAQMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAMDAwMDAwMDAwM\
+DAwMDAwMFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcGBoUAAAADAwMDAwMDAwMDAwMDAwMDBQUFBQUFBQUFBQUFBQUFBQWFhYW\
+FhYWFhgYGBgYGBgYGhoaGhoaGhoYHBgaFAAAAAwMDAwMDAwMDAwMDAwMDAwUFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwYGhQA\
+AAAQEBAQEBAQEBAQEBAQEBAQGBgYGBgYGBgYGBgYGBgYGBoaGhoaGhoaHBwcHBwcHBweHh4eHh4eHhwgHB4YAAAAEhISEhISEhISEhISEhISEhoaGhoaGhoa\
+GhoaGhoaGhocHBwcHBwcHB4eHh4eHh4eICAgICAgICAeIh4gGgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQEDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUEBIMAAAABAQEBAQEBAQEBAQE\
+BAQEBAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAwMDAwMDAwMDAwMDAwMDAwUFBQUFBQUFBQUFBQUFBQUFhYWFhYW\
+FhYYGBgYGBgYGBoaGhoaGhoaGBwYGhQAAAAMDAwMDAwMDAwMDAwMDAwMFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcGBoUAAAA\
+DAwMDAwMDAwMDAwMDAwMDBQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHBgaFAAAABAQEBAQEBAQEBAQEBAQEBAYGBgYGBgYGBgY\
+GBgYGBgYGhoaGhoaGhocHBwcHBwcHB4eHh4eHh4eHCAcHhgAAAASEhISEhISEhISEhISEhISGhoaGhoaGhoaGhoaGhoaGhwcHBwcHBwcHh4eHh4eHh4gICAg\
+ICAgIB4iHiAaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQE\
+BAQMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAEBAQEBAQEBAQEBAQEBAQEDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4O\
+EBAQEBAQEBASEhISEhISEhAUEBIMAAAADAwMDAwMDAwMDAwMDAwMDBQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHBgaFAAAAAwM\
+DAwMDAwMDAwMDAwMDAwUFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwYGhQAAAAMDAwMDAwMDAwMDAwMDAwMFBQUFBQUFBQUFBQU\
+FBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcGBoUAAAAEBAQEBAQEBAQEBAQEBAQEBgYGBgYGBgYGBgYGBgYGBgaGhoaGhoaGhwcHBwcHBwcHh4eHh4e\
+Hh4cIBweGAAAABISEhISEhISEhISEhISEhIaGhoaGhoaGhoaGhoaGhoaHBwcHBwcHBweHh4eHh4eHiAgICAgICAgHiIeIBoAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAgICAgICAgICAgICAgICAgKCgoKCgoKCgwM\
+DAwMDAwMDg4ODg4ODg4MEAwOCAAAAAQEBAQEBAQEBAQEBAQEBAQICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAICAgI\
+CAgICAgICAgICAgIDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUEBIMAAAACAgICAgICAgICAgICAgICAwMDAwMDAwMDAwMDAwM\
+DAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAgICAgICAgICAgICAgICAgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhIS\
+EBQQEgwAAAAMDAwMDAwMDAwMDAwMDAwMEBAQEBAQEBAQEBAQEBAQEBISEhISEhISFBQUFBQUFBQWFhYWFhYWFhQYFBYQAAAADg4ODg4ODg4ODg4ODg4ODhIS\
+EhISEhISEhISEhISEhIUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgWGhYYEgAAAAwMDAwMDAwMDAwMDAwMDAwQEBAQEBAQEBAQEBAQEBAQEhISEhISEhIUFBQU\
+FBQUFBYWFhYWFhYWFBgUFhAAAAAEBAQEBAQEBAQEBAQEBAQECAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAABAQEBAQE\
+BAQEBAQEBAQEBAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAgICAgICAgICAgICAgICAgMDAwMDAwMDAwMDAwMDAwM\
+Dg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAICAgICAgICAgICAgICAgIDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAU\
+EBIMAAAACAgICAgICAgICAgICAgICAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAwMDAwMDAwMDAwMDAwMDAwQEBAQ\
+EBAQEBAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBYWFhYWFhYWFBgUFhAAAAAODg4ODg4ODg4ODg4ODg4OEhISEhISEhISEhISEhISEhQUFBQUFBQUFhYWFhYW\
+FhYYGBgYGBgYGBYaFhgSAAAAEBAQEBAQEBAQEBAQEBAQEBQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHBgaFAAAAAQEBAQEBAQE\
+BAQEBAQEBAQICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAEBAQEBAQEBAQEBAQEBAQECAgICAgICAgICAgICAgICAoK\
+CgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAACAgICAgICAgICAgICAgICAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBAS\
+DAAAAAgICAgICAgICAgICAgICAgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAICAgICAgICAgICAgICAgIDAwMDAwM\
+DAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUEBIMAAAADAwMDAwMDAwMDAwMDAwMDBAQEBAQEBAQEBAQEBAQEBASEhISEhISEhQUFBQUFBQU\
+FhYWFhYWFhYUGBQWEAAAAA4ODg4ODg4ODg4ODg4ODg4SEhISEhISEhISEhISEhISFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYFhoWGBIAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAgICAgICAgICAgICAgICAgKCgoK\
+CgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAQEBAQEBAQEBAQEBAQEBAQICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggA\
+AAAICAgICAgICAgICAgICAgIDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUEBIMAAAACAgICAgICAgICAgICAgICAwMDAwMDAwM\
+DAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAgICAgICAgICAgICAgICAgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBIS\
+EhISEhISEBQQEgwAAAAMDAwMDAwMDAwMDAwMDAwMEBAQEBAQEBAQEBAQEBAQEBISEhISEhISFBQUFBQUFBQWFhYWFhYWFhQYFBYQAAAADg4ODg4ODg4ODg4O\
+Dg4ODhISEhISEhISEhISEhISEhIUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgWGhYYEgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQECAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAA\
+BAQEBAQEBAQEBAQEBAQEBAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAgICAgICAgICAgICAgICAgMDAwMDAwMDAwM\
+DAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAICAgICAgICAgICAgICAgIDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhIS\
+EhISEhAUEBIMAAAACAgICAgICAgICAgICAgICAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAwMDAwMDAwMDAwMDAwM\
+DAwQEBAQEBAQEBAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBYWFhYWFhYWFBgUFhAAAAAODg4ODg4ODg4ODg4ODg4OEhISEhISEhISEhISEhISEhQUFBQUFBQU\
+FhYWFhYWFhYYGBgYGBgYGBYaFhgSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQE\
+BAQEBAQEBAQEBAQEBAQICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAEBAQEBAQEBAQEBAQEBAQECAgICAgICAgICAgI\
+CAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAACAgICAgICAgICAgICAgICAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhIS\
+EhIQFBASDAAAAAgICAgICAgICAgICAgICAgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAICAgICAgICAgICAgICAgI\
+DAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUEBIMAAAADAwMDAwMDAwMDAwMDAwMDBAQEBAQEBAQEBAQEBAQEBASEhISEhISEhQU\
+FBQUFBQUFhYWFhYWFhYUGBQWEAAAAA4ODg4ODg4ODg4ODg4ODg4SEhISEhISEhISEhISEhISFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYFhoWGBIAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAgICAgICAgICAgICAgI\
+CAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAQEBAQEBAQEBAQEBAQEBAQICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4O\
+DBAMDggAAAAICAgICAgICAgICAgICAgIDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUEBIMAAAACAgICAgICAgICAgICAgICAwM\
+DAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAgICAgICAgICAgICAgICAgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQ\
+EBAQEBISEhISEhISEBQQEgwAAAAMDAwMDAwMDAwMDAwMDAwMEBAQEBAQEBAQEBAQEBAQEBISEhISEhISFBQUFBQUFBQWFhYWFhYWFhQYFBYQAAAADg4ODg4O\
+Dg4ODg4ODg4ODhISEhISEhISEhISEhISEhIUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgWGhYYEgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQECAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQ\
+DA4IAAAABAQEBAQEBAQEBAQEBAQEBAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAgICAgICAgICAgICAgICAgMDAwM\
+DAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAICAgICAgICAgICAgICAgIDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQ\
+EBASEhISEhISEhAUEBIMAAAACAgICAgICAgICAgICAgICAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAwMDAwMDAwM\
+DAwMDAwMDAwQEBAQEBAQEBAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBYWFhYWFhYWFBgUFhAAAAAODg4ODg4ODg4ODg4ODg4OEhISEhISEhISEhISEhISEhQU\
+FBQUFBQUFhYWFhYWFhYYGBgYGBgYGBYaFhgSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAQEBAQEBAQEAAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAEBAQEBAQEBAAAAAAAAAAADAwMDAwM\
+DAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAABgYGBgYGBgYAAAAAAAAAABQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgY\
+GhoaGhoaGhoYHAAAAAAAAAYGBgYGBgYGAAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAoKCgoKCgoKAAAAAAAAAAAODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhISEhISEhQUFBQUFBQUEhYSFA4A\
+AAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAACAgICAgICAgMDAwMDAwMDAgMCAwAAAAABAQEBAQEBAQAAAAAAAAAAAwMDAwMDAwM\
+DAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAQEBAQEBAQEAAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBIS\
+EhISEhISEBQAAAAAAAAGBgYGBgYGBgAAAAAAAAAAFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+CgoKCgoKCgoAAAAAAAAAAA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUDgAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAAA\
+AAAAAAAAAAAAAAAAAAAICAgICAgICAwMDAwMDAwMCAwIDAAAAAAEBAQEBAQEBAAAAAAAAAAADAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhIS\
+EhISEhAUAAAAAAAABAQEBAQEBAQAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAYGBgYGBgYGAAAAAAAA\
+AAAUFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAAAMDAwMDAwMDAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQEBISEhISEhIS\
+FBQUFBQUFBQWFhYWFhYWFhQYFBYQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKCgoKCgoKCgAAAAAAAAAADg4ODg4ODg4ODg4O\
+Dg4ODhAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQOAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAgICAgICAgIDAwMDAwM\
+DAwIDAgMAAAAAAQEBAQEBAQEAAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAEBAQEBAQEBAAAAAAAAAAA\
+DAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAABgYGBgYGBgYAAAAAAAAAABQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgY\
+GBgYGBgYGhoaGhoaGhoYHAAAAAAAAAwMDAwMDAwMAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBYWFhYWFhYWFBgUFhAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAoKCgoKCgoKAAAAAAAAAAAODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhISEhISEhQUFBQUFBQU\
+EhYSFA4AAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAACAgICAgICAgMDAwMDAwMDAgMCAwAAAAABgYGBgYGBgYAAAAAAAAAAAwM\
+DAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAQEBAQEBAQEAAAAAAAAAAAMDAwMDAwMDAAAAAAAAAAAAAAAAAAAAAAQEBAQ\
+EBAQEBQUFBQUFBQUEBQQFAAAAAAEBAQEBAQEBAAAAAAAAAAACAgICAgICAgAAAAAAAAAAAgICAgICAgIDAwMDAwMDAwODg4ODg4ODgwQAAAAAAAABAQEBAQE\
+BAQAAAAAAAAAAAgICAgICAgIAAAAAAAAAAAICAgICAgICAwMDAwMDAwMDg4ODg4ODg4MEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAACgoKCgoKCgoAAAAAAAAAAA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUDgAAAAAAAAAAAAAAAAAAAAAAAAAEBAQE\
+BAQEBAAAAAAAAAAAAAAAAAAAAAAICAgICAgICAwMDAwMDAwMCAwIDAAAAAAEBAQEBAQEBAAAAAAAAAAACAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwM\
+DAwODg4ODg4ODgwQAAAAAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAAAAAAAAAQEBAQEBAQE\
+AAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAEBAQEBAQEBAAAAAAAAAAADg4ODg4ODg4ODg4ODg4ODhAQ\
+EBAQEBAQEhISEhISEhIUFBQUFBQUFBIWAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKCgoKCgoKCgAAAAAAAAAADg4ODg4O\
+Dg4ODg4ODg4ODhAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQOAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAgICAgICAgI\
+DAwMDAwMDAwIDAgMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwAAAAA\
+AAAAABAQEBAQEBAQEhISEhISEhIQFBASAAAAAAAAAAAAAAAAAAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwMAAAAAAAAAAAQEBAQEBAQEBISEhISEhISEBQQEgAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAoKCgoKCgoKAAAAAAAAAAAODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhISEhISEhQU\
+FBQUFBQUEhYSFA4AAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAACAgICAgICAgMDAwMDAwMDAgMCAwAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEAwMDAwMDAwMBAQEBAQE\
+BAQEBAQEBAQEBIQEBBQAEAQUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAEhISEhISEhIWFhYWFhYWFhIUEhYAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAgICAgICAgIAAAAAAAAAAAAAAAAAAAAAAoKCgoKCgoKDg4ODg4ODg4KDAoOAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAACgoKCgoKCgoAAAAAAAAAAA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUDgAAAAAAAAAAAAAAAAAAAAAA\
+AAAEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAICAgICAgICAwMDAwMDAwMCAwIDAAAAAAEBAQEBAQEBAAAAAAAAAAADAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4O\
+EBAQEBAQEBASEhISEhISEhAUAAAAAAAABAQEBAQEBAQICAgICAgICAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAgI\
+CAgICAgICAgICAgICAgUFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAAAEBAQEBAQEBAoKCgoKCgoKDAwMDAwMDAwMDAwM\
+DAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAABAQEBAQEBAQAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhIS\
+EhIQFAAAAAAAAAQEBAQEBAQECAgICAgICAgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAICAgICAgICAgICAgICAgI\
+FBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcAAAAAAAABAQEBAQEBAQKCgoKCgoKCgwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQ\
+EBAQEBAQEhISEhISEhIQFAAAAAAAAAQEBAQEBAQEAAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAEBAQE\
+BAQEBAgICAgICAgIDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAACAgICAgICAgICAgICAgICBQUFBQUFBQUFBQUFBQU\
+FBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHAAAAAAAAAQEBAQEBAQECgoKCgoKCgoMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhIS\
+EBQAAAAAAAAEBAQEBAQEBAAAAAAAAAAADAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAABAQEBAQEBAQICAgICAgICAwM\
+DAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAgICAgICAgICAgICAgICAgUFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgY\
+GBgYGBoaGhoaGhoaGBwAAAAAAAAEBAQEBAQEBAoKCgoKCgoKDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAABAQEBAQE\
+BAQAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAQEBAQEBAQECAgICAgICAgMDAwMDAwMDAwMDAwMDAwM\
+Dg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAICAgICAgICAgICAgICAgIFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgc\
+AAAAAAAABAQEBAQEBAQKCgoKCgoKCgwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAQEBAQEBAQEAAAAAAAAAAAMDAwM\
+DAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAEBAQEBAQEBAgICAgICAgIDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQ\
+EBASEhISEhISEhAUAAAAAAAACAgICAgICAgICAgICAgICBQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHAAAAAAAAAQEBAQEBAQE\
+CgoKCgoKCgoMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAEBAQEBAQEBAAAAAAAAAAADAwMDAwMDAwMDAwMDAwMDA4O\
+Dg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAABAQEBAQEBAQICAgICAgICAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAA\
+AAAAAAgICAgICAgICAgICAgICAgUFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAAAEBAQEBAQEBAoKCgoKCgoKDAwMDAwM\
+DAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAABAQEBAQEBAQAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQ\
+EhISEhISEhIQFAAAAAAAAAQEBAQEBAQECAgICAgICAgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAICAgICAgICAgI\
+CAgICAgIFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcAAAAAAAABAQEBAQEBAQKCgoKCgoKCgwMDAwMDAwMDAwMDAwMDAwODg4O\
+Dg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAQEBAQEBAQEAAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAA\
+AAAEBAQEBAQEBAgICAgICAgIDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAACAgICAgICAgICAgICAgICBQUFBQUFBQU\
+FBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHAAAAAAAAAQEBAQEBAQECgoKCgoKCgoMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBIS\
+EhISEhISEBQAAAAAAAAEBAQEBAQEBAAAAAAAAAAADAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAABAQEBAQEBAQICAgI\
+CAgICAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAgICAgICAgICAgICAgICAgUFBQUFBQUFBQUFBQUFBQUFhYWFhYW\
+FhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAAAEBAQEBAQEBAoKCgoKCgoKDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAA\
+BAQEBAQEBAQAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAQEBAQEBAQECAgICAgICAgMDAwMDAwMDAwM\
+DAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAICAgICAgICAgICAgICAgIFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoa\
+GhoaGhgcAAAAAAAABAQEBAQEBAQKCgoKCgoKCgwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAQEBAQEBAQEAAAAAAAA\
+AAAMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAEBAQEBAQEBAgICAgICAgIDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4O\
+EBAQEBAQEBASEhISEhISEhAUAAAAAAAACAgICAgICAgICAgICAgICBQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHAAAAAAAAAQE\
+BAQEBAQECgoKCgoKCgoMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAEBAQEBAQEBAAAAAAAAAAADAwMDAwMDAwMDAwM\
+DAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAABAQEBAQEBAQICAgICAgICAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhIS\
+EhIQFAAAAAAAAAgICAgICAgICAgICAgICAgUFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAAAEBAQEBAQEBAoKCgoKCgoK\
+DAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAABAQEBAQEBAQAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQ\
+EBAQEBAQEhISEhISEhIQFAAAAAAAAAQEBAQEBAQECAgICAgICAgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAICAgI\
+CAgICAgICAgICAgIFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcAAAAAAAABAQEBAQEBAQKCgoKCgoKCgwMDAwMDAwMDAwMDAwM\
+DAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAQEBAQEBAQEAAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhIS\
+EBQAAAAAAAAEBAQEBAQEBAgICAgICAgIDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAACAgICAgICAgICAgICAgICBQU\
+FBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHAAAAAAAAAQEBAQEBAQECgoKCgoKCgoMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQ\
+EBAQEBISEhISEhISEBQAAAAAAAAEBAQEBAQEBAAAAAAAAAAADAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAABAQEBAQE\
+BAQICAgICAgICAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAgICAgICAgICAgICAgICAgUFBQUFBQUFBQUFBQUFBQU\
+FhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAAAEBAQEBAQEBAoKCgoKCgoKDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAU\
+AAAAAAAACgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKChISEhISEhIS\
+EhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhIS\
+EhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhIS\
+EhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhIKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoK\
+CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAEBAQEBAQEBAAAAAAAAAAACAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAABAQEBAQEBAQAAAAAAAAAAAgI\
+CAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAgICAgICAgIAAAAAAAAAAAODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhIS\
+EhISEhQUFBQUFBQUEhYSFBAAAACMjIyMjIyMjAAAAAAAAAAAkJCQkJCQkJCQkJCQkJCQkJKSkpKSkpKSlJSUlJSUlJSWlpaWlpaWlpSYlJaQAAAABgYGBgYG\
+BgYSEhISEhISEgwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwM\
+Dg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgc\
+AAAAAAAAnp6enp6enp4AAAAAAAAAAKampqampqampqampqampqaoqKioqKioqKqqqqqqqqqqrKysrKysrKyqrqqspgAAAAQEBAQEBAQEAAAAAAAAAAAICAgI\
+CAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAEBAQEBAQEBAAAAAAAAAAACAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwM\
+DAwODg4ODg4ODgwQDA4IAAAACAgICAgICAgAAAAAAAAAAA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUEAAAAIyMjIyMjIyM\
+AAAAAAAAAACQkJCQkJCQkJCQkJCQkJCQkpKSkpKSkpKUlJSUlJSUlJaWlpaWlpaWlJiUlpAAAAAGBgYGBgYGBhISEhISEhISDAwMDAwMDAwMDAwMDAwMDA4O\
+Dg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAUFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAACenp6enp6engAAAAAAAAAApqampqam\
+pqampqampqampqioqKioqKioqqqqqqqqqqqsrKysrKysrKquqqymAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwM\
+Dg4ODg4ODg4MEAwOCAAAAAQEBAQEBAQEAAAAAAAAAAAICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAICAgICAgICAAA\
+AAAAAAAADg4ODg4ODg4ODg4ODg4ODhAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQQAAAAjIyMjIyMjIwAAAAAAAAAAJCQkJCQkJCQkJCQkJCQkJCSkpKS\
+kpKSkpSUlJSUlJSUlpaWlpaWlpaUmJSWkAAAAAYGBgYGBgYGEhISEhISEhIMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAADAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAAAAAAAAAAAAAAAAAAAAAAABQUFBQUFBQU\
+FBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHAAAAAAAAJ6enp6enp6eAAAAAAAAAACmpqampqampqampqampqamqKioqKioqKiqqqqqqqqqqqys\
+rKysrKysqq6qrKYAAAAEBAQEBAQEBAAAAAAAAAAACAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAABAQEBAQEBAQAAAAA\
+AAAAAAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAgICAgICAgIAAAAAAAAAAAODg4ODg4ODg4ODg4ODg4OEBAQEBAQ\
+EBASEhISEhISEhQUFBQUFBQUEhYSFBAAAACMjIyMjIyMjAAAAAAAAAAAkJCQkJCQkJCQkJCQkJCQkJKSkpKSkpKSlJSUlJSUlJSWlpaWlpaWlpSYlJaQAAAA\
+BgYGBgYGBgYSEhISEhISEgwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDAwMDAwMDAwM\
+DAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoa\
+GhoaGhgcAAAAAAAAnp6enp6enp4AAAAAAAAAAKampqampqampqampqampqaoqKioqKioqKqqqqqqqqqqrKysrKysrKyqrqqspgAAAAQEBAQEBAQEAAAAAAAA\
+AAAICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAEBAQEBAQEBAAAAAAAAAAACAgICAgICAgICAgICAgICAoKCgoKCgoK\
+DAwMDAwMDAwODg4ODg4ODgwQDA4IAAAACAgICAgICAgAAAAAAAAAAA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUEAAAAIyM\
+jIyMjIyMAAAAAAAAAACQkJCQkJCQkJCQkJCQkJCQkpKSkpKSkpKUlJSUlJSUlJaWlpaWlpaWlJiUlpAAAAAGBgYGBgYGBhISEhISEhISDAwMDAwMDAwMDAwM\
+DAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhIS\
+EhIQFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAACenp6enp6engAAAAAAAAAA\
+pqampqampqampqampqampqioqKioqKioqqqqqqqqqqqsrKysrKysrKquqqymAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoKCgoKCgwM\
+DAwMDAwMDg4ODg4ODg4MEAwOCAAAAAQEBAQEBAQEAAAAAAAAAAAICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAICAgI\
+CAgICAAAAAAAAAAADg4ODg4ODg4ODg4ODg4ODhAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQQAAAAjIyMjIyMjIwAAAAAAAAAAJCQkJCQkJCQkJCQkJCQ\
+kJCSkpKSkpKSkpSUlJSUlJSUlpaWlpaWlpaUmJSWkAAAAAYGBgYGBgYGEhISEhISEhIMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhIS\
+EBQAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAAAAAAAAAAAAAAAAAAAAAAABQU\
+FBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHAAAAAAAAJ6enp6enp6eAAAAAAAAAACmpqampqampqampqampqamqKioqKioqKiqqqqq\
+qqqqqqysrKysrKysqq6qrKYAAAAEBAQEBAQEBAAAAAAAAAAACAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAABAQEBAQE\
+BAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAgICAgICAgIAAAAAAAAAAAODg4ODg4ODg4ODg4ODg4O\
+EBAQEBAQEBASEhISEhISEhQUFBQUFBQUEhYSFBAAAACMjIyMjIyMjAAAAAAAAAAAkJCQkJCQkJCQkJCQkJCQkJKSkpKSkpKSlJSUlJSUlJSWlpaWlpaWlpSY\
+lJaQAAAABgYGBgYGBgYSEhISEhISEgwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDAwM\
+DAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgY\
+GBgaGhoaGhoaGhgcAAAAAAAAnp6enp6enp4AAAAAAAAAAKampqampqampqampqampqaoqKioqKioqKqqqqqqqqqqrKysrKysrKyqrqqspgAAAAQEBAQEBAQE\
+AAAAAAAAAAAICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAEBAQEBAQEBAAAAAAAAAAACAgICAgICAgICAgICAgICAoK\
+CgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAACAgICAgICAgAAAAAAAAAAA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIU\
+EAAAAIyMjIyMjIyMAAAAAAAAAACQkJCQkJCQkJCQkJCQkJCQkpKSkpKSkpKUlJSUlJSUlJaWlpaWlpaWlJiUlpAAAAAGBgYGBgYGBhISEhISEhISDAwMDAwM\
+DAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQ\
+EhISEhISEhIQFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAACenp6enp6engAA\
+AAAAAAAApqampqampqampqampqampqioqKioqKioqqqqqqqqqqqsrKysrKysrKquqqymAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoK\
+CgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAQEBAQEBAQEBAQEBAQEBAQICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggA\
+AAAICAgICAgICAgICAgICAgIDg4ODg4ODg4ODg4ODg4ODhAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQQAAAACAgICAgICAgICAgICAgICAwMDAwMDAwM\
+DAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAQEBAQEBAQEEhISEhISEhIMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBIS\
+EhISEhISEBQAAAAAAAAEBAQEBAQEBBISEhISEhISDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAACAgICAgICAgeHh4e\
+Hh4eHhQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHAAAAAAAAAgICAgICAgICAgICAgICAgODg4ODg4ODg4ODg4ODg4OEBAQEBAQ\
+EBASEhISEhISEhQUFBQUFBQUEhYSFBAAAAAEBAQEBAQEBAAAAAAAAAAACAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAA\
+BAQEBAQEBAQEBAQEBAQEBAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAgICAgICAgICAgICAgICAgODg4ODg4ODg4O\
+Dg4ODg4OEBAQEBAQEBASEhISEhISEhQUFBQUFBQUEhYSFBAAAAAICAgICAgICAgICAgICAgIDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhIS\
+EhISEhAUEBIMAAAABAQEBAQEBAQSEhISEhISEgwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAQEBAQEBAQEEhISEhIS\
+EhIMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAICAgICAgICB4eHh4eHh4eFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYW\
+GBgYGBgYGBgaGhoaGhoaGhgcAAAAAAAACAgICAgICAgICAgICAgICA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUEAAAAAQE\
+BAQEBAQEAAAAAAAAAAAICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAEBAQEBAQEBAQEBAQEBAQECAgICAgICAgICAgI\
+CAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAACAgICAgICAgICAgICAgICA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQU\
+FBQSFhIUEAAAAAgICAgICAgICAgICAgICAgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAEBAQEBAQEBBISEhISEhIS\
+DAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAABAQEBAQEBAQSEhISEhISEgwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQ\
+EBAQEBAQEhISEhISEhIQFAAAAAAAAAgICAgICAgIHh4eHh4eHh4UFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAAAICAgI\
+CAgICAgICAgICAgIDg4ODg4ODg4ODg4ODg4ODhAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQQAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgI\
+CAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAQEBAQEBAQEBAQEBAQEBAQICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4O\
+DBAMDggAAAAICAgICAgICAgICAgICAgIDg4ODg4ODg4ODg4ODg4ODhAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQQAAAACAgICAgICAgICAgICAgICAwM\
+DAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAQEBAQEBAQEEhISEhISEhIMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQ\
+EBAQEBISEhISEhISEBQAAAAAAAAEBAQEBAQEBBISEhISEhISDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAACAgICAgI\
+CAgeHh4eHh4eHhQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHAAAAAAAAAgICAgICAgICAgICAgICAgODg4ODg4ODg4ODg4ODg4O\
+EBAQEBAQEBASEhISEhISEhQUFBQUFBQUEhYSFBAAAAAEBAQEBAQEBAAAAAAAAAAACAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQ\
+DA4IAAAABAQEBAQEBAQEBAQEBAQEBAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAgICAgICAgICAgICAgICAgODg4O\
+Dg4ODg4ODg4ODg4OEBAQEBAQEBASEhISEhISEhQUFBQUFBQUEhYSFBAAAAAICAgICAgICAgICAgICAgIDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQ\
+EBASEhISEhISEhAUEBIMAAAABAQEBAQEBAQSEhISEhISEgwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAQEBAQEBAQE\
+EhISEhISEhIMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAICAgICAgICB4eHh4eHh4eFBQUFBQUFBQUFBQUFBQUFBYW\
+FhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcAAAAAAAACAgICAgICAgICAgICAgICA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIU\
+EAAAAAQEBAQEBAQEAAAAAAAAAAAICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAEBAQEBAQEBAQEBAQEBAQECAgICAgI\
+CAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAACAgICAgICAgICAgICAgICA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhIS\
+FBQUFBQUFBQSFhIUEAAAAAgICAgICAgICAgICAgICAgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAEBAQEBAQEBBIS\
+EhISEhISDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAABAQEBAQEBAQSEhISEhISEgwMDAwMDAwMDAwMDAwMDAwODg4O\
+Dg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAgICAgICAgIHh4eHh4eHh4UFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAA\
+AAAICAgICAgICAgICAgICAgIDg4ODg4ODg4ODg4ODg4ODhAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQQAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgI\
+CAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAQEBAQEBAQEBAQEBAQEBAQICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4O\
+Dg4ODg4ODBAMDggAAAAICAgICAgICAgICAgICAgIDg4ODg4ODg4ODg4ODg4ODhAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQQAAAACAgICAgICAgICAgI\
+CAgICAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAQEBAQEBAQEEhISEhISEhIMDAwMDAwMDAwMDAwMDAwMDg4ODg4O\
+Dg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAEBAQEBAQEBBISEhISEhISDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAA\
+CAgICAgICAgeHh4eHh4eHhQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHAAAAAAAAAgICAgICAgICAgICAgICAgODg4ODg4ODg4O\
+Dg4ODg4OEBAQEBAQEBASEhISEhISEhQUFBQUFBQUEhYSFBAAAAAEBAQEBAQEBAAAAAAAAAAACAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4O\
+Dg4ODgwQDA4IAAAABAQEBAQEBAQEBAQEBAQEBAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAgICAgICAgICAgICAgI\
+CAgODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhISEhISEhQUFBQUFBQUEhYSFBAAAAAICAgICAgICAgICAgICAgIDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4O\
+EBAQEBAQEBASEhISEhISEhAUEBIMAAAABAQEBAQEBAQSEhISEhISEgwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAQE\
+BAQEBAQEEhISEhISEhIMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAICAgICAgICB4eHh4eHh4eFBQUFBQUFBQUFBQU\
+FBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcAAAAAAAACAgICAgICAgICAgICAgICA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQU\
+FBQSFhIUEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAAAAAAAAAAACAgICAgICAgICAgICAgICAoK\
+CgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAABAQEBAQEBAQEBAQEBAQEBAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwO\
+CAAAAAYGBgYGBgYGBgYGBgYGBgYODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhISEhISEhQUFBQUFBQUEhYSFA4AAAAGBgYGBgYGBgYGBgYGBgYGCgoKCgoK\
+CgoKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEA4SDhAKAAAABAQEBAQEBAQMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQ\
+EhISEhISEhIQFAAAAAAAAAQEBAQEBAQEDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAICAgICAgICBQU\
+FBQUFBQUFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcAAAAAAAABgYGBgYGBgYGBgYGBgYGBg4ODg4ODg4ODg4ODg4ODg4QEBAQ\
+EBAQEBISEhISEhISFBQUFBQUFBQSFhIUDgAAAAQEBAQEBAQEAAAAAAAAAAAICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggA\
+AAAEBAQEBAQEBAQEBAQEBAQECAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAABgYGBgYGBgYGBgYGBgYGBg4ODg4ODg4O\
+Dg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUDgAAAAYGBgYGBgYGBgYGBgYGBgYKCgoKCgoKCgoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODhAQ\
+EBAQEBAQDhIOEAoAAAAEBAQEBAQEBAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAABAQEBAQEBAQMDAwM\
+DAwMDAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAgICAgICAgIFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFhYWFhYW\
+FhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAAAGBgYGBgYGBgYGBgYGBgYGDg4ODg4ODg4ODg4ODg4ODhAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQOAAAA\
+BAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAQEBAQEBAQEBAQEBAQEBAQICAgICAgICAgI\
+CAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAGBgYGBgYGBgYGBgYGBgYGDg4ODg4ODg4ODg4ODg4ODhAQEBAQEBAQEhISEhISEhIUFBQU\
+FBQUFBIWEhQOAAAABgYGBgYGBgYGBgYGBgYGBgoKCgoKCgoKCgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBAOEg4QCgAAAAQEBAQEBAQEDAwMDAwM\
+DAwMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAEBAQEBAQEBAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4O\
+EBAQEBAQEBASEhISEhISEhAUAAAAAAAACAgICAgICAgUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHAAAAAAAAAYG\
+BgYGBgYGBgYGBgYGBgYODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhISEhISEhQUFBQUFBQUEhYSFA4AAAAEBAQEBAQEBAAAAAAAAAAACAgICAgICAgICAgI\
+CAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAABAQEBAQEBAQEBAQEBAQEBAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4O\
+Dg4MEAwOCAAAAAYGBgYGBgYGBgYGBgYGBgYODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhISEhISEhQUFBQUFBQUEhYSFA4AAAAGBgYGBgYGBgYGBgYGBgYG\
+CgoKCgoKCgoKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEA4SDhAKAAAABAQEBAQEBAQMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQ\
+EBAQEBAQEhISEhISEhIQFAAAAAAAAAQEBAQEBAQEDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAICAgI\
+CAgICBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcAAAAAAAABgYGBgYGBgYGBgYGBgYGBg4ODg4ODg4ODg4ODg4O\
+Dg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUDgAAAAQEBAQEBAQEAAAAAAAAAAAICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4O\
+DBAMDggAAAAEBAQEBAQEBAQEBAQEBAQECAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAABgYGBgYGBgYGBgYGBgYGBg4O\
+Dg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUDgAAAAYGBgYGBgYGBgYGBgYGBgYKCgoKCgoKCgoKCgoKCgoKDAwMDAwMDAwODg4O\
+Dg4ODhAQEBAQEBAQDhIOEAoAAAAEBAQEBAQEBAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAABAQEBAQE\
+BAQMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAgICAgICAgIFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQU\
+FhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAAAGBgYGBgYGBgYGBgYGBgYGDg4ODg4ODg4ODg4ODg4ODhAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBIW\
+EhQOAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAQEBAQEBAQEBAQEBAQEBAQICAgI\
+CAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAGBgYGBgYGBgYGBgYGBgYGDg4ODg4ODg4ODg4ODg4ODhAQEBAQEBAQEhISEhIS\
+EhIUFBQUFBQUFBIWEhQOAAAABgYGBgYGBgYGBgYGBgYGBgoKCgoKCgoKCgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBAOEg4QCgAAAAQEBAQEBAQE\
+DAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAEBAQEBAQEBAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA4O\
+Dg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAACAgICAgICAgUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHAAA\
+AAAAAAYGBgYGBgYGBgYGBgYGBgYODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhISEhISEhQUFBQUFBQUEhYSFA4AAAAEBAQEBAQEBAAAAAAAAAAACAgICAgI\
+CAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAABAQEBAQEBAQEBAQEBAQEBAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwM\
+Dg4ODg4ODg4MEAwOCAAAAAYGBgYGBgYGBgYGBgYGBgYODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhISEhISEhQUFBQUFBQUEhYSFA4AAAAGBgYGBgYGBgYG\
+BgYGBgYGCgoKCgoKCgoKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEA4SDhAKAAAABAQEBAQEBAQMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwODg4O\
+Dg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAQEBAQEBAQEDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAA\
+AAAICAgICAgICBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcAAAAAAAABgYGBgYGBgYGBgYGBgYGBg4ODg4ODg4O\
+Dg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUDgAAAAQEBAQEBAQEAAAAAAAAAAAICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4O\
+Dg4ODg4ODBAMDggAAAAEBAQEBAQEBAQEBAQEBAQECAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAABgYGBgYGBgYGBgYG\
+BgYGBg4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUDgAAAAYGBgYGBgYGBgYGBgYGBgYKCgoKCgoKCgoKCgoKCgoKDAwMDAwM\
+DAwODg4ODg4ODhAQEBAQEBAQDhIOEAoAAAAEBAQEBAQEBAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAA\
+BAQEBAQEBAQMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAgICAgICAgIFBQUFBQUFBQUFBQUFBQUFBQU\
+FBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAAAGBgYGBgYGBgYGBgYGBgYGDg4ODg4ODg4ODg4ODg4ODhAQEBAQEBAQEhISEhISEhIUFBQU\
+FBQUFBIWEhQOAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAQEBAQEBAQEAAAAAAAA\
+AAAICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAICAgICAgICAAAAAAAAAAADg4ODg4ODg4ODg4ODg4ODhAQEBAQEBAQ\
+EhISEhISEhIUFBQUFBQUFBIWEhQQAAAAJiYmJiYmJiYAAAAAAAAAACoqKioqKioqKioqKioqKiosLCwsLCwsLC4uLi4uLi4uMDAwMDAwMDAuMi4wKgAAAAYG\
+BgYGBgYGEhISEhISEhIMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAGBgYGBgYGBgYGBgYGBgYGDAwMDAwMDAwMDAwM\
+DAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAAAAAAAAAAAAAGBgYGBgYGBhQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoa\
+GhoYHAAAAAAAACYmJiYmJiYmAAAAAAAAAAAuLi4uLi4uLi4uLi4uLi4uMDAwMDAwMDAyMjIyMjIyMjQ0NDQ0NDQ0MjYyNC4AAAAEBAQEBAQEBAAAAAAAAAAA\
+CAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoKCgoKCgwM\
+DAwMDAwMDg4ODg4ODg4MEAwOCAAAAAgICAgICAgIAAAAAAAAAAAODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhISEhISEhQUFBQUFBQUEhYSFBAAAAAmJiYm\
+JiYmJgAAAAAAAAAAKioqKioqKioqKioqKioqKiwsLCwsLCwsLi4uLi4uLi4wMDAwMDAwMC4yLjAqAAAABgYGBgYGBgYSEhISEhISEgwMDAwMDAwMDAwMDAwM\
+DAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAYGBgYGBgYGBgYGBgYGBgYMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhIS\
+EBQAAAAAAAAAAAAAAAAAAAYGBgYGBgYGFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcAAAAAAAAJiYmJiYmJiYAAAAAAAAAAC4u\
+Li4uLi4uLi4uLi4uLi4wMDAwMDAwMDIyMjIyMjIyNDQ0NDQ0NDQyNjI0LgAAAAQEBAQEBAQEAAAAAAAAAAAICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwM\
+DAwMDA4ODg4ODg4ODBAMDggAAAAEBAQEBAQEBAAAAAAAAAAACAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAACAgICAgI\
+CAgAAAAAAAAAAA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUEAAAACYmJiYmJiYmAAAAAAAAAAAqKioqKioqKioqKioqKioq\
+LCwsLCwsLCwuLi4uLi4uLjAwMDAwMDAwLjIuMCoAAAAGBgYGBgYGBhISEhISEhISDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAU\
+AAAAAAAABgYGBgYGBgYGBgYGBgYGBgwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAAAAAAAAAAABgYGBgYGBgYUFBQU\
+FBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAAAmJiYmJiYmJgAAAAAAAAAALi4uLi4uLi4uLi4uLi4uLjAwMDAwMDAwMjIyMjIy\
+MjI0NDQ0NDQ0NDI2MjQuAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAQEBAQEBAQE\
+AAAAAAAAAAAICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAICAgICAgICAAAAAAAAAAADg4ODg4ODg4ODg4ODg4ODhAQ\
+EBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQQAAAAJiYmJiYmJiYAAAAAAAAAACoqKioqKioqKioqKioqKiosLCwsLCwsLC4uLi4uLi4uMDAwMDAwMDAuMi4w\
+KgAAAAYGBgYGBgYGEhISEhISEhIMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAGBgYGBgYGBgYGBgYGBgYGDAwMDAwM\
+DAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAAAAAAAAAAAAAGBgYGBgYGBhQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgY\
+GhoaGhoaGhoYHAAAAAAAACYmJiYmJiYmAAAAAAAAAAAuLi4uLi4uLi4uLi4uLi4uMDAwMDAwMDAyMjIyMjIyMjQ0NDQ0NDQ0MjYyNC4AAAAEBAQEBAQEBAAA\
+AAAAAAAACAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoK\
+CgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAgICAgICAgIAAAAAAAAAAAODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhISEhISEhQUFBQUFBQUEhYSFBAA\
+AAAmJiYmJiYmJgAAAAAAAAAAKioqKioqKioqKioqKioqKiwsLCwsLCwsLi4uLi4uLi4wMDAwMDAwMC4yLjAqAAAABgYGBgYGBgYSEhISEhISEgwMDAwMDAwM\
+DAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAYGBgYGBgYGBgYGBgYGBgYMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBIS\
+EhISEhISEBQAAAAAAAAAAAAAAAAAAAYGBgYGBgYGFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcAAAAAAAAJiYmJiYmJiYAAAAA\
+AAAAAC4uLi4uLi4uLi4uLi4uLi4wMDAwMDAwMDIyMjIyMjIyNDQ0NDQ0NDQyNjI0LgAAAAQEBAQEBAQEAAAAAAAAAAAICAgICAgICAgICAgICAgICgoKCgoK\
+CgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAEBAQEBAQEBAAAAAAAAAAACAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAA\
+CAgICAgICAgAAAAAAAAAAA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUEAAAACYmJiYmJiYmAAAAAAAAAAAqKioqKioqKioq\
+KioqKioqLCwsLCwsLCwuLi4uLi4uLjAwMDAwMDAwLjIuMCoAAAAGBgYGBgYGBhISEhISEhISDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhIS\
+EhISEhAUAAAAAAAABgYGBgYGBgYGBgYGBgYGBgwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAAAAAAAAAAABgYGBgYG\
+BgYUFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAAAmJiYmJiYmJgAAAAAAAAAALi4uLi4uLi4uLi4uLi4uLjAwMDAwMDAw\
+MjIyMjIyMjI0NDQ0NDQ0NDI2MjQuAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAQE\
+BAQEBAQEAAAAAAAAAAAICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAICAgICAgICAAAAAAAAAAADg4ODg4ODg4ODg4O\
+Dg4ODhAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQQAAAAJiYmJiYmJiYAAAAAAAAAACoqKioqKioqKioqKioqKiosLCwsLCwsLC4uLi4uLi4uMDAwMDAw\
+MDAuMi4wKgAAAAYGBgYGBgYGEhISEhISEhIMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAGBgYGBgYGBgYGBgYGBgYG\
+DAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAAAAAAAAAAAAAGBgYGBgYGBhQUFBQUFBQUFBQUFBQUFBQWFhYWFhYWFhgY\
+GBgYGBgYGhoaGhoaGhoYHAAAAAAAACYmJiYmJiYmAAAAAAAAAAAuLi4uLi4uLi4uLi4uLi4uMDAwMDAwMDAyMjIyMjIyMjQ0NDQ0NDQ0MjYyNC4AAAAEBAQE\
+BAQEBAAAAAAAAAAACAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgI\
+CAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAgICAgICAgIAAAAAAAAAAAODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhISEhISEhQUFBQUFBQU\
+EhYSFBAAAAAmJiYmJiYmJgAAAAAAAAAAKioqKioqKioqKioqKioqKiwsLCwsLCwsLi4uLi4uLi4wMDAwMDAwMC4yLjAqAAAABgYGBgYGBgYSEhISEhISEgwM\
+DAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAYGBgYGBgYGBgYGBgYGBgYMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQ\
+EBAQEBISEhISEhISEBQAAAAAAAAAAAAAAAAAAAYGBgYGBgYGFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcAAAAAAAAJiYmJiYm\
+JiYAAAAAAAAAAC4uLi4uLi4uLi4uLi4uLi4wMDAwMDAwMDIyMjIyMjIyNDQ0NDQ0NDQyNjI0LgAAAAQEBAQEBAQEAAAAAAAAAAAICAgICAgICAgICAgICAgI\
+CgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAEBAQEBAQEBAQEBAQEBAQECAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQ\
+DA4IAAAACAgICAgICAgICAgICAgICA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUEAAAAAgICAgICAgICAgICAgICAgMDAwM\
+DAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAEBAQEBAQEBBISEhISEhISDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQ\
+EBASEhISEhISEhAUAAAAAAAABAQEBAQEBAQSEhISEhISEgwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAgICAgICAgI\
+Hh4eHh4eHh4UFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAAAICAgICAgICAgICAgICAgIDg4ODg4ODg4ODg4ODg4ODhAQ\
+EBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQQAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwO\
+CAAAAAQEBAQEBAQEBAQEBAQEBAQICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAICAgICAgICAgICAgICAgIDg4ODg4O\
+Dg4ODg4ODg4ODhAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQQAAAACAgICAgICAgICAgICAgICAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQ\
+EhISEhISEhIQFBASDAAAAAQEBAQEBAQEEhISEhISEhIMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAEBAQEBAQEBBIS\
+EhISEhISDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAACAgICAgICAgeHh4eHh4eHhQUFBQUFBQUFBQUFBQUFBQWFhYW\
+FhYWFhgYGBgYGBgYGhoaGhoaGhoYHAAAAAAAAAgICAgICAgICAgICAgICAgODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhISEhISEhQUFBQUFBQUEhYSFBAA\
+AAAEBAQEBAQEBAAAAAAAAAAACAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAABAQEBAQEBAQEBAQEBAQEBAgICAgICAgI\
+CAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAgICAgICAgICAgICAgICAgODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhISEhISEhQU\
+FBQUFBQUEhYSFBAAAAAICAgICAgICAgICAgICAgIDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUEBIMAAAABAQEBAQEBAQSEhIS\
+EhISEgwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAQEBAQEBAQEEhISEhISEhIMDAwMDAwMDAwMDAwMDAwMDg4ODg4O\
+Dg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAICAgICAgICB4eHh4eHh4eFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgcAAAAAAAA\
+CAgICAgICAgICAgICAgICA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUEAAAAAQEBAQEBAQEAAAAAAAAAAAICAgICAgICAgI\
+CAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAEBAQEBAQEBAQEBAQEBAQECAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4O\
+Dg4ODgwQDA4IAAAACAgICAgICAgICAgICAgICA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUEAAAAAgICAgICAgICAgICAgI\
+CAgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAEBAQEBAQEBBISEhISEhISDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4O\
+EBAQEBAQEBASEhISEhISEhAUAAAAAAAABAQEBAQEBAQSEhISEhISEgwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAgI\
+CAgICAgIHh4eHh4eHh4UFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAAAICAgICAgICAgICAgICAgIDg4ODg4ODg4ODg4O\
+Dg4ODhAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQQAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4O\
+Dg4MEAwOCAAAAAQEBAQEBAQEBAQEBAQEBAQICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAICAgICAgICAgICAgICAgI\
+Dg4ODg4ODg4ODg4ODg4ODhAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQQAAAACAgICAgICAgICAgICAgICAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQ\
+EBAQEBAQEhISEhISEhIQFBASDAAAAAQEBAQEBAQEEhISEhISEhIMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAEBAQE\
+BAQEBBISEhISEhISDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAACAgICAgICAgeHh4eHh4eHhQUFBQUFBQUFBQUFBQU\
+FBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHAAAAAAAAAgICAgICAgICAgICAgICAgODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhISEhISEhQUFBQUFBQU\
+EhYSFBAAAAAEBAQEBAQEBAAAAAAAAAAACAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwMDAwODg4ODg4ODgwQDA4IAAAABAQEBAQEBAQEBAQEBAQEBAgI\
+CAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwMDg4ODg4ODg4MEAwOCAAAAAgICAgICAgICAgICAgICAgODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhIS\
+EhISEhQUFBQUFBQUEhYSFBAAAAAICAgICAgICAgICAgICAgIDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUEBIMAAAABAQEBAQE\
+BAQSEhISEhISEgwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAQEBAQEBAQEEhISEhISEhIMDAwMDAwMDAwMDAwMDAwM\
+Dg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAICAgICAgICB4eHh4eHh4eFBQUFBQUFBQUFBQUFBQUFBYWFhYWFhYWGBgYGBgYGBgaGhoaGhoaGhgc\
+AAAAAAAACAgICAgICAgICAgICAgICA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUEAAAAAQEBAQEBAQEAAAAAAAAAAAICAgI\
+CAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAEBAQEBAQEBAQEBAQEBAQECAgICAgICAgICAgICAgICAoKCgoKCgoKDAwMDAwM\
+DAwODg4ODg4ODgwQDA4IAAAACAgICAgICAgICAgICAgICA4ODg4ODg4ODg4ODg4ODg4QEBAQEBAQEBISEhISEhISFBQUFBQUFBQSFhIUEAAAAAgICAgICAgI\
+CAgICAgICAgMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQQEgwAAAAEBAQEBAQEBBISEhISEhISDAwMDAwMDAwMDAwMDAwMDA4O\
+Dg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAABAQEBAQEBAQSEhISEhISEgwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAA\
+AAAAAAgICAgICAgIHh4eHh4eHh4UFBQUFBQUFBQUFBQUFBQUFhYWFhYWFhYYGBgYGBgYGBoaGhoaGhoaGBwAAAAAAAAICAgICAgICAgICAgICAgIDg4ODg4O\
+Dg4ODg4ODg4ODhAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQQAAAABAQEBAQEBAQAAAAAAAAAAAgICAgICAgICAgICAgICAgKCgoKCgoKCgwMDAwMDAwM\
+Dg4ODg4ODg4MEAwOCAAAAAQEBAQEBAQEBAQEBAQEBAQICAgICAgICAgICAgICAgICgoKCgoKCgoMDAwMDAwMDA4ODg4ODg4ODBAMDggAAAAICAgICAgICAgI\
+CAgICAgIDg4ODg4ODg4ODg4ODg4ODhAQEBAQEBAQEhISEhISEhIUFBQUFBQUFBIWEhQQAAAACAgICAgICAgICAgICAgICAwMDAwMDAwMDAwMDAwMDAwODg4O\
+Dg4ODhAQEBAQEBAQEhISEhISEhIQFBASDAAAAAQEBAQEBAQEEhISEhISEhIMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAA\
+AAAEBAQEBAQEBBISEhISEhISDAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAACAgICAgICAgeHh4eHh4eHhQUFBQUFBQU\
+FBQUFBQUFBQWFhYWFhYWFhgYGBgYGBgYGhoaGhoaGhoYHAAAAAAAAAgICAgICAgICAgICAgICAgODg4ODg4ODg4ODg4ODg4OEBAQEBAQEBASEhISEhISEhQU\
+FBQUFBQUEhYSFBAAAAAWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGFhYWFhYWFhYWFhYW\
+FhYWFhYWFhYWFhYWFhYWFhYWFhYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBhgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYCAgICAgI\
+CAgICAgICAgICAgICAgICAgICAgICAgICAgAAAAAAAAAAAAAAAAAAAAADAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAA\
+FhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYW\
+FhYWFhYWBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGAgICAgICAgICAgICAgICAgICAgI\
+CAgICAgICAgICAgIAAAAAAAAAAAAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAgICAgICAgICAgICAgI\
+CAgICAgICAgICAgICAgICAgIBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAYGBgYGBgYG\
+BgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAAA\
+AAAAAAAAAAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQEBAQEBISEhISEhISEBQAAAAAAAAICAgICAgICAgICAgICAgICAgICAgICAgICAgI\
+CAgICAYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgGBgYGBgYGBgYGBgYGBgYGBgYGBgYG\
+BgYGBgYGBgYGBgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgAAAAAAAAAAAAAAAAAAAAA\
+DAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAUAAAAAAAACgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoGBgYGBgYGBgYG\
+BgYGBgYGBgYGBgYGBgYGBgYGBgYGBgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYMDAwM\
+DAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAAAAAAAAAAAAAAAAAAAAAAwMDAwMDAwMDAwMDAwM\
+DAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAAoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYG\
+BgYGBgYGBgYKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGDAwMDAwMDAwMDAwMDAwMDAwM\
+DAwMDAwMDAwMDAwMDAwICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAAAAAAAAAAAAAAAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDg4ODg4ODg4QEBAQ\
+EBAQEBISEhISEhISEBQAAAAAAAAMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGDAwMDAwM\
+DAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4O\
+CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgAAAAAAAAAAAAAAAAAAAAADAwMDAwMDAwMDAwMDAwMDA4ODg4ODg4OEBAQEBAQEBASEhISEhISEhAU\
+AAAAAAAADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgwMDAwMDAwMDAwMDAwMDAwMDAwM\
+DAwMDAwMDAwMDAwMBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODggICAgICAgICAgICAgI\
+CAgICAgICAgICAgICAgICAgIAAAAAAAAAAAAAAAAAAAAAAwMDAwMDAwMDAwMDAwMDAwODg4ODg4ODhAQEBAQEBAQEhISEhISEhIQFAAAAAAAAA4ODg4ODg4O\
+Dg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4OBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODgYG\
+BgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAICAgICAgICAgICAgICAgICAgICAgICAgICAgI\
+CAgICAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAODg4ODg4ODg4ODg4ODg4ODg4ODg4O\
+Dg4ODg4ODg4ODgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGDg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4GBgYGBgYGBgYGBgYGBgYG\
+BgYGBgYGBgYGBgYGBgYGBhAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAGBgYG\
+BgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBhAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYG\
+BgYSEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEggICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQBgYGBgYGBgYGBgYGBgYGBgYG\
+BgYGBgYGBgYGBgYGBgYQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGEhISEhISEhISEhIS\
+EhISEhISEhISEhISEhISEhISEhIICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYG\
+EhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhIGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBhQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQU\
+FBQUFBQUCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhIGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBhISEhISEhISEhISEhIS\
+EhISEhISEhISEhISEhISEhISBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFAgICAgICAgI\
+CAgICAgICAgICAgICAgICAgICAgICAgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABQU\
+FBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQU\
+FBQUFAYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYICAgICAgICAgICAgICAgICAgICAgI\
+CAgICAgICAgICAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUFBQUFBQUFBQUFBQUFBQU\
+FBQUFBQUFBQUFBQUFBQUFAYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQGBgYGBgYGBgYG\
+BgYGBgYGBgYGBgYGBgYGBgYGBgYGBhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAA==\
+').split(''), c => c.charCodeAt(0));
+
+const cc_ex = Uint8Array.from(window.atob('\
+KAQyMiIqLCIiIgQEBAQELAQEBAQEBAQELCwsLCwsLCwmJiYmJiYmJiYmJiYmJiYmBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
+BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBA==\
+').split(''), c => c.charCodeAt(0));
+
+const bc = Uint8Array.from(window.atob('\
+AAEBAgECAgMBAgIDAgMDBAECAgMCAwMEAgMDBAMEBAUBAgIDAgMDBAIDAwQDBAQFAgMDBAMEBAUDBAQFBAUFBgECAgMCAwMEAgMDBAMEBAUCAwMEAwQEBQME\
+BAUEBQUGAgMDBAMEBAUDBAQFBAUFBgMEBAUEBQUGBAUFBgUGBgcBAgIDAgMDBAIDAwQDBAQFAgMDBAMEBAUDBAQFBAUFBgIDAwQDBAQFAwQEBQQFBQYDBAQF\
+BAUFBgQFBQYFBgYHAgMDBAMEBAUDBAQFBAUFBgMEBAUEBQUGBAUFBgUGBgcDBAQFBAUFBgQFBQYFBgYHBAUFBgUGBgcFBgYHBgcHCA==\
+').split(''), c => c.charCodeAt(0));
 

@@ -35,10 +35,10 @@ class Cotton {
 	ram = new Uint8Array(0x18000).addBase();
 	ram2 = new Uint8Array(0x800).addBase();
 	in = Uint8Array.of(0xff, 0xff, 0xff, 0xff, 0xfe, 0xff);
-	fm = {addr: 0, reg: new Uint8Array(0x100), status: 0, timera: 0, timerb: 0};
-	count = 0;
-	command = [];
+	command = 0;
 	bank = 0;
+	cpu2_irq = false;
+	cpu2_nmi = false;
 
 	bg = new Uint8Array(0x200000).fill(7);
 	rgb = new Uint32Array(0x800).fill(0xff000000);
@@ -46,8 +46,8 @@ class Cotton {
 	mode = 0;
 	bgbank = new Int32Array(2);
 
-	cpu = new FD1094(KEY);
-	cpu2 = new Z80();
+	cpu = new FD1094(KEY, Math.floor(20000000 / 2));
+	cpu2 = new Z80(Math.floor(20000000 / 4));
 
 	constructor() {
 		// CPU周りの初期化
@@ -117,7 +117,7 @@ class Cotton {
 			this.cpu2.memorymap[i].base = PRG2.base[i];
 		for (let i = 0; i < 0x40; i++)
 			this.cpu2.memorymap[0x80 + i].read = (addr) => { return PRG2[this.bank + addr]; };
-		this.cpu2.memorymap[0xe8].read = (addr) => { return addr === 0xe800 && this.command.length ? this.command.shift() : 0xff; };
+		this.cpu2.memorymap[0xe8].read = (addr) => { return addr === 0xe800 ? this.command : 0xff; };
 		for (let i = 0; i < 8; i++) {
 			this.cpu2.memorymap[0xf8 + i].base = this.ram2.base[i];
 			this.cpu2.memorymap[0xf8 + i].write = null;
@@ -126,35 +126,34 @@ class Cotton {
 			this.cpu2.iomap[i].read = (addr) => {
 				switch (addr >> 6 & 3) {
 				case 0:
-					return addr & 1 ? this.fm.status : 0xff;
+					return addr & 1 ? sound[0].status : 0xff;
 				case 2:
 					return sound[1].busy() << 7;
 				case 3:
-					return this.command.length ? this.command.shift() : 0xff;
+					return this.command;
 				}
 				return 0xff;
 			};
 			this.cpu2.iomap[i].write = (addr, data) => {
 				switch (addr >> 6 & 3) {
 				case 0:
-					if (~addr & 1)
-						return void(this.fm.addr = data);
-					if (this.fm.addr === 0x14) { // CSM/F RESET/IRQEN/LOAD
-						this.fm.status &= ~(data >> 4 & 3);
-						data & ~this.fm.reg[0x14] & 1 && (this.fm.timera = this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-						data & ~this.fm.reg[0x14] & 2 && (this.fm.timerb = this.fm.reg[0x12]);
-					}
-					return sound[0].write(this.fm.addr, this.fm.reg[this.fm.addr] = data, this.count);
+					return ~addr & 1 ? void(sound[0].addr = data) : sound[0].write(data);
 				case 1:
-					sound[1].reset(data >> 6 & 1, this.count), sound[1].start(data >> 7, this.count);
+					sound[1].reset(data >> 6 & 1), sound[1].st(data >> 7);
 					return void(this.bank = data << 14 & 0x1c000);
 				case 2:
-					return sound[1].write(data, this.count);
+					return sound[1].write(data);
 				}
 			};
 		}
 
-		this.cpu2.check_interrupt = () => { return this.command.length && this.cpu2.interrupt(); };
+		this.cpu2.check_interrupt = () => {
+			if (this.cpu2_nmi)
+				return this.cpu2_nmi = false, this.cpu2.non_maskable_interrupt();
+			if (this.cpu2_irq && this.cpu2.interrupt())
+				this.cpu2_irq = false, true;
+			return false;
+		};
 
 		// Videoの初期化
 		convertGFX(this.bg, BG, 32768, rseq(8, 0, 8), seq(8), [Math.floor(BG.length / 3) * 16, Math.floor(BG.length / 3) * 8, 0], 8);
@@ -192,7 +191,7 @@ class Cotton {
 						return void(data !== reg[addr] && (reg[addr] = data, this.updateRegion()));
 					switch (addr) {
 					case 3:
-						this.command.push(data);
+						this.cpu2_irq = true, this.command = data;
 						break;
 					case 5:
 						if (data === 1)
@@ -207,15 +206,15 @@ class Cotton {
 				}, write16: null};
 	}
 
-	execute() {
-		this.cpu.interrupt(4), this.cpu.execute(0x4000);
-		for (this.count = 0; this.count < 65; this.count++) { // 4000000 / 60 / 1024
-			!sound[1].busy() && this.cpu2.non_maskable_interrupt(), this.cpu2.execute(64);
-			!sound[1].busy() && this.cpu2.non_maskable_interrupt(), this.cpu2.execute(64);
-			if (this.fm.reg[0x14] & 1 && (this.fm.timera += 16) >= 0x400)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 1, this.fm.timera = (this.fm.timera & 0x3ff) + (this.fm.reg[0x10] << 2 | this.fm.reg[0x11] & 3);
-			if (this.fm.reg[0x14] & 2 && ++this.fm.timerb >= 0x100)
-				this.fm.status |= this.fm.reg[0x14] >> 2 & 2, this.fm.timerb = (this.fm.timerb & 0xff) + this.fm.reg[0x12];
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		this.cpu.interrupt(4);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			sound[0].execute(tick_rate);
+			sound[1].execute(tick_rate, rate_correction, () => this.cpu2_nmi = true);
+			audio.execute(tick_rate, rate_correction);
 		}
 		return this;
 	}
@@ -274,7 +273,7 @@ class Cotton {
 			this.updateRegion();
 			this.fReset = false;
 			this.cpu.reset();
-			this.command.splice(0);
+			this.cpu2_irq = this.cpu2_nmi = false;
 			this.cpu2.reset();
 		}
 		return this;
@@ -618,8 +617,8 @@ read('cotton.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	PRG2 = Uint8Array.concat(...['cottonj/epr-13860.a10', 'cottonj/opr-13061.a11'].map(e => zip.decompress(e))).addBase();
 	game = new Cotton();
 	sound = [
-		new YM2151({clock: 4000000, resolution: 65}),
-		new UPD7759({mode: false, resolution: 65}),
+		new YM2151({clock: 8000000 / 2}),
+		new UPD7759({mode: false}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound, keydown, keyup});

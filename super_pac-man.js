@@ -5,7 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
-import Cpu, {init, seq, rseq, convertGFX, read} from './main.js';
+import {init, seq, rseq, convertGFX, read} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -32,7 +32,6 @@ class SuperPacMan {
 	fPortTest = false;
 	fInterruptEnable0 = false;
 	fInterruptEnable1 = false;
-//	fSoundEnable = false;
 	ram = new Uint8Array(0x2000).addBase();
 	port = new Uint8Array(0x40);
 	in = new Uint8Array(10);
@@ -43,8 +42,8 @@ class SuperPacMan {
 	bgcolor = Uint8Array.from(BGCOLOR, e => 0x10 | ~e & 0xf);
 	rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 
-	cpu = new MC6809();
-	cpu2 = new MC6809();
+	cpu = new MC6809(Math.floor(18432000 / 12));
+	cpu2 = new MC6809(Math.floor(18432000 / 12));
 
 	constructor() {
 		// CPU周りの初期化
@@ -70,10 +69,10 @@ class SuperPacMan {
 				return void(this.fInterruptEnable0 = false);
 			case 0x03: // INTERRUPT START
 				return void(this.fInterruptEnable0 = true);
-//			case 0x06: // SND STOP
-//				return void(this.fSoundEnable = false);
-//			case 0x07: // SND START
-//				return void(this.fSoundEnable = true);
+			case 0x06: // SND STOP
+				return sound.control(false);
+			case 0x07: // SND START
+				return sound.control(true);
 			case 0x08: // PORT TEST START
 				return void(this.fPortTest = true);
 			case 0x09: // PORT TEST END
@@ -100,12 +99,15 @@ class SuperPacMan {
 		convertGFX(this.obj, OBJ, 128, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0, 4], 64);
 	}
 
-	execute() {
-//		sound.mute(!this.fSoundEnable);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
 		this.fInterruptEnable0 && this.cpu.interrupt(), this.fInterruptEnable1 && this.cpu2.interrupt();
-		Cpu.multiple_execute([this.cpu, this.cpu2], 0x2000);
-		if (this.fInterruptEnable0)
-			Cpu.multiple_execute([this.cpu, this.cpu2], 0x2000);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.cpu2.execute(tick_rate);
+			sound.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 

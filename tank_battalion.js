@@ -34,32 +34,36 @@ class TankBattalion {
 	bg = new Uint8Array(0x4000).fill(15);
 	rgb = Uint32Array.from(seq(0x10), i => 0xff000000 | (i >> 3 & 1) * 255 << 16 | (i >> 2 & 1) * 255 << 8 | (i & 3) * 255 / 3);
 
-	se = [BANG, FIRE, ENG2, ENG1, BONUS, COIN].map(buf => ({buf, loop: false, start: false, stop: false}));
+	se = [BANG, FIRE, ENG2, ENG1, BONUS, COIN].map(buf => ({freq: 22050, buf, loop: false, start: false, stop: false}));
 
-	cpu = new MCS6502();
+	cpu = new MCS6502(Math.floor(18432000 / 24));
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
 		const range = (page, start, end, mirror = 0) => (page & ~mirror) >= start && (page & ~mirror) <= end;
 
 		for (let page = 0; page < 0x100; page++)
-			if (range(page, 0, 0xb, 0x80)) {
+			if (range(page, 0, 0xb, 0xd0)) {
 				this.cpu.memorymap[page].base = this.ram.base[page & 0xf];
 				this.cpu.memorymap[page].write = null;
-			} else if (range(page, 0xc, 0xc, 0x80)) {
+			} else if (range(page, 0xc, 0xc, 0xd0)) {
 				this.cpu.memorymap[page].base = this.rport;
 				this.cpu.memorymap[page].write = (addr, data) => {
-					this.wport[addr & 0xff] = data;
-					switch (addr & 0xff) {
-					case 0x02: // SOUND
+					this.wport[addr & 0x1f] = data;
+					switch (addr & 0x1f) {
+					case 2: // SOUND
 						return void(!data && (this.se[2].stop = this.se[3].stop = true));
-					case 0x08: // COIN
+					case 8: // COIN
 						this.se[5].stop = true;
 						return void(data && (this.se[5].start = true)); // XXX 7 times
-					case 0x09: // BONUS
+					case 9: // BONUS
 						this.se[4].stop = true;
 						return void(data && (this.se[4].start = true)); // XXX 7 times
-					case 0x0a: // ENGINE(IDLE)
+					case 0xa: // ENGINE(IDLE)
 						if (!this.wport[0x02])
 							return;
 						if (data)
@@ -69,7 +73,7 @@ class TankBattalion {
 						else
 							this.se[2].start = true;
 						return;
-					case 0x0b: // ENGINE(RUN)
+					case 0xb: // ENGINE(RUN)
 						if (!this.wport[0x02] || this.wport[0x0a])
 							return;
 						if (!data)
@@ -77,13 +81,13 @@ class TankBattalion {
 						else
 							this.se[2].start = this.se[3].stop = true;
 						return;
-					case 0x0c: // FIRE
+					case 0xc: // FIRE
 						return void(data === 0x11 && (this.se[1].start = this.se[1].stop = true));
-					case 0x0d: // EXPLOSION
+					case 0xd: // EXPLOSION
 						return void(data === 0x1f && (this.se[0].start = this.se[0].stop = true));
 					}
 				};
-			} else if (range(page, 0x60, 0x7f, 0x80))
+			} else if (range(page, 0x20, 0x3f, 0xc0))
 				this.cpu.memorymap[page].base = PRG.base[page & 0x1f];
 		this.rport[0x1b] = 0x7f;
 		this.rport[0x1c] = 0x7f;
@@ -98,9 +102,17 @@ class TankBattalion {
 		this.se[2].loop = this.se[3].loop = true;
 	}
 
-	execute() {
-		this.cpu.interrupt(), this.cpu.execute(0x0900);
-		this.wport[0x0f] && this.cpu.non_maskable_interrupt(), this.cpu.execute(0x0900);
+	execute(audio, rate_correction) {
+		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+		for (let i = 0; i < tick_max; i++) {
+			this.cpu.execute(tick_rate);
+			this.scanline.execute(tick_rate, (cnt) => {
+				const vpos = cnt + 224 & 0xff;
+				vpos === 16 && this.cpu.interrupt();
+				vpos === 224 && this.wport[0x0f] && this.cpu.non_maskable_interrupt();
+			});
+			audio.execute(tick_rate, rate_correction);
+		}
 		return this;
 	}
 
@@ -3285,7 +3297,7 @@ read('tankbatt.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	BG = zip.decompress('tb1-5.2k');
 	RGB = zip.decompress('bct1-1.l3');
 	game = new TankBattalion();
-	sound = new SoundEffect({se: game.se, freq: 22050, gain: 0.5});
+	sound = new SoundEffect({se: game.se, gain: 0.5});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
 });
