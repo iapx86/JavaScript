@@ -5,101 +5,84 @@
  */
 
 export default class UPD7759 {
-	base;
+	voi;
 	clock;
 	sampleRate;
 	gain;
 	output = 0;
 	frac = 0;
-	md = true;
 	signal = 0;
-	port = 0;
-	m = {state: 'IDLE', count: 0, valid: false, cycle: 0, repeat: 0, num: 0, addr: 0, rate: 0};
-	addr = 0;
-	adpcm_state = 0;
-	adpcm_data = 0;
-	output0 = 0;
+	m = {port: 0, drq: true, cycle: 0, addr: 0, output: 0};
+	g = generator(this.m);
+	done = true;
 
-	constructor({VOI, mode = true, clock = 640000, gain = 0.5}) {
-		this.base = VOI;
+	constructor({VOI, clock = 640000, gain = 0.5} = {}) {
+		this.voi = VOI;
 		this.clock = clock;
 		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.gain = gain;
-		this.md = mode;
 	}
 
 	reset(state) {
-		~state & 1 && this.m.state !== 'IDLE' && (this.m.state = 'IDLE', this.m.cycle = this.adpcm_state = this.output0 = 0);
+		~state & 1 && (this.done = this.g.return(undefined).done, this.m.drq = true, this.m.output = 0);
 		return void(this.signal = this.signal & ~1 | state & 1);
 	}
 
 	st(state) {
-		this.signal & 1 && state << 1 & ~this.signal & 2 && this.m.state === 'IDLE' && (this.m.state = 'START', this.m.cycle -= 70);
+		this.signal & 1 && state << 1 & ~this.signal & 2 && this.done && (this.g = generator(this.m, this.voi), this.done = false, this.m.cycle = -70, this.m.addr = 0);
 		return void(this.signal = this.signal & ~2 | state << 1 & 2);
 	}
 
 	busy() {
-		return this.m.state === 'IDLE';
+		return this.done;
 	}
 
 	write(data) {
-		this.port = data;
+		this.m.port = data, this.m.drq = true;
 	}
 
 	execute(rate, rate_correction, fn) {
-		if (!this.md)
-			for (this.m.cycle += Math.floor((this.frac += this.clock * rate_correction) / rate), this.frac %= rate; this.m.cycle > 0;)
-				!this.transition() && fn();
+		if (!this.voi)
+			for (this.m.cycle += Math.floor((this.frac += this.clock * rate_correction) / rate), this.frac %= rate; !this.done && this.m.cycle > 0 && this.m.drq;)
+				this.done = this.g.next().done, !this.m.drq && fn();
 	}
 
 	update() {
-		if (this.md)
-			for (this.m.cycle += Math.floor((this.frac += this.clock) / this.sampleRate), this.frac %= this.sampleRate; this.m.cycle > 0; this.transition()) {}
-		this.output = this.output0 / 255 * this.gain;
+		if (this.voi)
+			for (this.m.cycle += Math.floor((this.frac += this.clock) / this.sampleRate), this.frac %= this.sampleRate; !this.done && this.m.cycle > 0;)
+				!this.m.drq && (this.m.port = this.voi[this.m.addr++], this.m.drq = true), this.done = this.g.next().done;
+		this.output = this.m.output / 255 * this.gain;
 	}
+}
 
-	transition() {
-		const next = () => { return this.md ? this.base[this.addr++] : this.port; };
-		let data;
-		switch (this.m.state) {
-		case 'IDLE':
-			return this.m.cycle -= 4, true;
-		case 'START':
-			return this.m.num = this.md ? this.port : 0x10, this.addr = 0, this.m.state = 'MAX_NUM', this.m.cycle -= 44, false;
-		case 'MAX_NUM':
-			return data = next(), this.m.state = data < this.m.num ? 'IDLE' : 'DUMMY', this.m.cycle -= 32, this.m.state === 'IDLE';
-		case 'DUMMY':
-			return next(), this.addr = this.m.num * 2 + 5, this.m.state = 'ADDR_H', this.m.cycle -= 32, false;
-		case 'ADDR_H':
-			return this.m.addr = next(), this.m.state = 'ADDR_L', this.m.cycle -= 44, false;
-		case 'ADDR_L':
-			return data = next(), this.addr = (this.m.addr << 8 | data) << 1, this.m.state = 'DUMMY2', this.m.cycle -= 36, false;
-		case 'DUMMY2':
-			return next(), this.m.valid = false, this.m.repeat = 0, this.m.state = 'HEADER', this.m.cycle -= 36, false;
-		case 'HEADER':
-			this.m.repeat && (--this.m.repeat, this.addr = this.m.addr);
-			(data = next()) && (this.m.valid = true);
-			switch (data >> 6) {
-			case 0:
-				return this.adpcm_state = this.output0 = 0, this.m.state = !data && this.m.valid ? 'IDLE' : 'HEADER', this.m.cycle -= 1024 * ((data & 0x3f) + 1), this.m.state === 'IDLE';
-			case 1:
-				return this.m.rate = 4 * ((data & 0x3f) + 1), this.m.count = 256, this.m.state = 'NIBBLE_H', this.m.cycle -= 36, false;
-			case 2:
-				return this.m.rate = 4 * ((data & 0x3f) + 1), this.m.state = 'COUNT', this.m.cycle -= 36, false;
-			case 3:
-				return this.m.repeat = (data & 7) + 1, this.m.addr = this.addr, this.m.state = 'HEADER', this.m.cycle -= 36, false;
-			}
-			return;
-		case 'COUNT':
-			return data = next(), this.m.count = data + 1, this.m.state = 'NIBBLE_H', this.m.cycle -= 36, false;
-		case 'NIBBLE_H':
-			this.adpcm_data = next();
-			data = this.adpcm_data >> 4, this.output0 += step[this.adpcm_state][data], this.adpcm_state = Math.min(Math.max(this.adpcm_state + state_table[data], 0), 15);
-			return this.m.state = --this.m.count ? 'NIBBLE_L' : 'HEADER', this.m.cycle -= this.m.rate, this.m.state === 'NIBBLE_L';
-		case 'NIBBLE_L':
-			data = this.adpcm_data & 15, this.output0 += step[this.adpcm_state][data], this.adpcm_state = Math.min(Math.max(this.adpcm_state + state_table[data], 0), 15);
-			return this.m.state = --this.m.count ? 'NIBBLE_H' : 'HEADER', this.m.cycle -= this.m.rate, false;
+function* generator(m, voi) {
+	let num, addr_h, cycle = n => m.cycle -= n, drq = () => m.drq = false;
+	yield, num = voi ? m.port : 0x10, cycle(44), drq(), yield;
+	if (m.port < num)
+		return;
+	cycle(28), drq(), yield, m.addr = num * 2 + 5, cycle(32), drq(), yield, addr_h = m.port, cycle(44), drq();
+	yield, m.addr = (addr_h << 8 | m.port) << 1, cycle(36), drq(), yield, cycle(36), drq();
+	for (let header, repeat = 0, addr = 0, valid = false, state = 0, rate = 0, count = 0;;) {
+		repeat && (--repeat, m.addr = addr), yield, (header = m.port) && (valid = true);
+		switch (header >> 6) {
+		case 0:
+			if (!header && valid)
+				return void(m.output = 0);
+			state = m.output = 0, cycle(1024 * ((header & 63) + 1)), drq();
+			continue;
+		case 1:
+			rate = 4 * ((header & 63) + 1), count = 256, cycle(36), drq();
+			break;
+		case 2:
+			rate = 4 * ((header & 63) + 1), cycle(36), drq(), yield, count = m.port + 1, cycle(36), drq();
+			break;
+		case 3:
+			repeat = (header & 7) + 1, addr = m.addr, cycle(36), drq();
+			continue;
 		}
+		for (let i = 0; i < count; m.port = m.port << 4 & 0xf0, i++)
+			yield, m.output += step[state][m.port >> 4], state = Math.min(Math.max(state + state_table[m.port >> 4], 0), 15), cycle(rate), i & 1 && drq();
+		count & 1 && drq();
 	}
 }
 

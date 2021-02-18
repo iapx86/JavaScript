@@ -610,7 +610,7 @@ read('goldnaxe.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	game = new GoldenAxe();
 	sound = [
 		new YM2151({clock: 8000000 / 2}),
-		new UPD7759({mode: false}),
+		new UPD7759(),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound, keydown, keyup});

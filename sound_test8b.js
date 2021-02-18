@@ -171,7 +171,7 @@ read('cotton.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	game = new SoundTest();
 	sound = [
 		new YM2151({clock: 8000000 / 2}),
-		new UPD7759({mode: false}),
+		new UPD7759(),
 	];
 	game.initial = true;
 	canvas.addEventListener('click', e => {

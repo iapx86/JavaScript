@@ -42,10 +42,10 @@ export default class MC68000 extends Cpu {
 		this.pc = this.txread32(4);
 	}
 
-	interrupt(ipl = 1) {
+	interrupt(ipl = 1, vector = 24 + ipl) {
 		if (ipl < 7 && ipl <= (this.sr >> 8 & 7) || !super.interrupt())
 			return false;
-		return this.exception(24 + ipl), this.sr = this.sr & ~0x0700 | ipl << 8, true;
+		return this.exception(vector), this.sr = this.sr & ~0x0700 | ipl << 8, true;
 	}
 
 	exception(vector) {
@@ -10283,9 +10283,9 @@ AAAAAAAAAAAAAAAAAAAAAA==\
 ').split(''), c => c.charCodeAt(0));
 
 const cc_ex = Uint8Array.from(window.atob('\
-KAQyMiIqLCIiIgQEBAQELAQEBAQEBAQELCwsLCwsLCwmJiYmJiYmJiYmJiYmJiYmBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
-BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\
-BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBA==\
+KAQyMiIqLCIiIgQEBAQELAQEBAQEBAQELCwsLCwsLCwmJiYmJiYmJiYmJiYmJiYmBAQEBAQEBAQEBAQEBAQEBCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCws\
+LCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCws\
+LCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLA==\
 ').split(''), c => c.charCodeAt(0));
 
 const bc = Uint8Array.from(window.atob('\

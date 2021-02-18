@@ -164,7 +164,7 @@ module.exports = {
 			use: [{
 				loader: 'babel-loader',
 				options: {
-					presets: [['@babel/preset-env', {modules: false, targets: 'defaults'}]],
+					presets: [['@babel/preset-env', {modules: false, targets: ['>0.25%', 'not ie 11', 'not op_mini all']}]],
 					plugins: [['@babel/plugin-proposal-class-properties', { loose: true }]],
 				}
 			}]

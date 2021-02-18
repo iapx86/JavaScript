@@ -19,7 +19,7 @@ export default class YM2151 {
 		this.gain = gain;
 		this.timera.rate = clock / 64;
 		this.timerb.rate = clock / 1024;
-		this.opm.Init(clock, Math.floor(audioCtx ? audioCtx.sampleRate : 48000));
+		this.opm.Init(Math.floor(clock), Math.floor(audioCtx.sampleRate));
 	}
 
 	write(data) {

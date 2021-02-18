@@ -18,7 +18,7 @@ export default class AY_3_8910 {
 	step = 0;
 
 	constructor({clock, gain = 0.1}) {
-		this.rate = Math.floor(clock / 8);
+		this.rate = clock / 8;
 		this.gain = gain;
 		for (let i = 0; i < 3; i++)
 			this.channel.push({freq: 0, count: 0, output: 0});

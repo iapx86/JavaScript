@@ -17,7 +17,7 @@ export default class SN76496 {
 	rng = 0x10000;
 
 	constructor({clock, gain = 0.1}) {
-		this.rate = Math.floor(clock / 16);
+		this.rate = clock / 16;
 		this.gain = gain;
 		for (let i = 0; i < 3; i++)
 			this.channel.push({freq: 0, count: 0, output: 0});

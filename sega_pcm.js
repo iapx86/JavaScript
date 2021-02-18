@@ -15,7 +15,7 @@ export default class SegaPCM {
 
 	constructor({PCM, clock, gain = 1}) {
 		this.pcm = PCM;
-		this.rate = Math.floor(clock / 128);
+		this.rate = clock / 128;
 		this.gain = gain;
 	}
 

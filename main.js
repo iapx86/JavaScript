@@ -210,7 +210,7 @@ export function init({keydown, keyup, ...args} = {}) {
 		}
 	});
 	requestAnimationFrame(function loop(timestamp) {
-		for (!(toggle ^= 1) && timestamps.shift(), timestamps.push(timestamp); timestamps.length > 61; timestamps.shift()) {}
+		for (!(toggle ^= 1) && timestamps.shift(), timestamps.push(timestamp); timestamps.length > 4096; timestamps.shift()) {}
 		const rate_correction = timestamps.length > 1 ? Math.max(0.8, Math.min(1.25, (timestamp - timestamps[0]) / (timestamps.length - 1) * 0.06)) : 1;
 		updateGamepad(game);
 		game.updateStatus().updateInput().execute(audio, rate_correction).makeBitmap(data);

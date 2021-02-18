@@ -25,6 +25,7 @@ class SukebanJansiRyuko {
 	fDIPSwitchChanged = true;
 	fCoin = 0;
 	fStart1P = 0;
+	fTurbo = false;
 	fDemoSound = true;
 	nLevel = 'Weak';
 
@@ -201,8 +202,8 @@ class SukebanJansiRyuko {
 	}
 
 	updateInput() {
-		this.in[6] = this.in[6] & ~8 | !this.fCoin << 3, this.in[4] = this.in[4] & ~1 | !this.fStart1P;
-		this.fCoin -= !!this.fCoin, this.fStart1P -= !!this.fStart1P;
+		this.in[6] = this.in[6] & ~8 | !this.fCoin << 3, this.in[4] = this.in[4] & ~1 | (this.fStart1P < 1);
+		this.fCoin -= !!this.fCoin, this.fStart1P -= (this.fStart1P > 0 || this.fTurbo), this.fStart1P < 0 && (this.fStart1P = 2);
 		return this;
 	}
 
@@ -462,6 +463,8 @@ const keydown = e => {
 		else if (audioCtx.state === 'running')
 			audioCtx.suspend().catch();
 		return;
+	case 'KeyZ':
+		return void(game.fTurbo = true);
 	}
 };
 
@@ -516,6 +519,8 @@ const keyup = e => {
 		return void(game.in[3] |= 1 << 1);
 	case 'KeyT':
 		return void(game.fTest = false);
+	case 'KeyZ':
+		return void(game.fTurbo = false);
 	}
 };
 

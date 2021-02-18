@@ -16,7 +16,7 @@ export default class Namco63701X {
 	constructor({PCM, clock, gain = 0.7}) {
 		this.pcm = PCM;
 		this.rate = Math.floor(clock / 1000);
-		this.sampleRate = Math.floor(audioCtx ? audioCtx.sampleRate : 48000);
+		this.sampleRate = Math.floor(audioCtx.sampleRate);
 		this.gain = gain;
 		for (let i = 0; i < 2; i++)
 			this.channel.push({select: 0, play: false, pos: 0, vol: 0, count: 0});

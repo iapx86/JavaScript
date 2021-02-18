@@ -15,7 +15,7 @@ export default class K054539 {
 
 	constructor({PCM, clock, gain = 1}) {
 		this.pcm = PCM;
-		this.rate = Math.floor(clock / 384);
+		this.rate = clock / 384;
 		this.gain = gain;
 		for (let i = 0; i < 8; i++)
 			this.channel.push({play: false, output: 0, addr: 0, frac: 0});

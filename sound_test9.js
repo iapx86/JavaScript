@@ -156,8 +156,8 @@ read('outrun.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	}
 	game = new SoundTest();
 	sound = [
-		new YM2151({clock: 4000000}),
-		new SegaPCM({PCM, clock: 4000000}),
+		new YM2151({clock: 16000000 / 4}),
+		new SegaPCM({PCM, clock: 16000000 / 4}),
 	];
 	game.initial = true;
 	canvas.addEventListener('click', e => {
