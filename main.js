@@ -98,12 +98,6 @@ export function init({keydown, keyup, ...args} = {}) {
 	pixel = new Uint8Array(game.width * game.height * 4);
 	data = new Uint32Array(pixel.buffer);
 	const positions = new Float32Array(game.rotate ? [-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0] : [-1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, -1.0]);
-	const textureCoordinates = new Float32Array([
-		game.xOffset / game.width, game.yOffset / game.height,
-		game.xOffset / game.width, (game.yOffset + game.cyScreen) / game.height,
-		(game.xOffset + game.cxScreen) / game.width, game.yOffset / game.height,
-		(game.xOffset + game.cxScreen) / game.width, (game.yOffset + game.cyScreen) / game.height
-	]);
 	const program = initShaderProgram(gl, vsSource, fsSource);
 	const aVertexPositionHandle = gl.getAttribLocation(program, 'aVertexPosition');
 	const aTextureCoordHandle = gl.getAttribLocation(program, 'aTextureCoord');
@@ -113,21 +107,14 @@ export function init({keydown, keyup, ...args} = {}) {
 	const texture = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, texture);
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, game.width, game.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 	gl.useProgram(program);
 	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
 	gl.vertexAttribPointer(aVertexPositionHandle, 2, gl.FLOAT, false, 0, 0);
 	gl.enableVertexAttribArray(aVertexPositionHandle);
-	gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, textureCoordinates, gl.STATIC_DRAW);
-	gl.vertexAttribPointer(aTextureCoordHandle, 2, gl.FLOAT, false, 0, 0);
-	gl.enableVertexAttribArray(aTextureCoordHandle);
 	source = audioCtx.createBufferSource();
 	addStreamOut.then(() => {
-		worklet = new AudioWorkletNode(audioCtx, 'StreamOut'), worklet.port.start();
-		source.connect(worklet).connect(audioCtx.destination), source.start();
+		worklet = new AudioWorkletNode(audioCtx, 'StreamOut'), worklet.port.start(), source.connect(worklet).connect(audioCtx.destination), source.start();
 	}).catch(() => {
 		scriptNode = audioCtx.createScriptProcessor(1024, 1, 1);
 		scriptNode.onaudioprocess = ({outputBuffer}) => {
@@ -137,26 +124,12 @@ export function init({keydown, keyup, ...args} = {}) {
 		source.connect(scriptNode).connect(audioCtx.destination), source.start();
 	});
 	button = new Image();
-	(button.update = () => {
-		button.src = audioCtx.state === 'suspended' ? volume0 : volume1;
-		button.alt = 'audio state: ' + audioCtx.state;
-	})();
+	(button.update = () => { button.src = audioCtx.state === 'suspended' ? volume0 : volume1, button.alt = 'audio state: ' + audioCtx.state; })();
 	audioCtx.onstatechange = button.update;
 	document.body.appendChild(button);
-	button.addEventListener('click', () => {
-		if (audioCtx.state === 'suspended')
-			audioCtx.resume().catch();
-		else if (audioCtx.state === 'running')
-			audioCtx.suspend().catch();
-	});
-	window.addEventListener('blur', () => {
-		state = audioCtx.state;
-		audioCtx.suspend().catch();
-	});
-	window.addEventListener('focus', () => {
-		if (state === 'running')
-			audioCtx.resume().catch();
-	});
+	button.addEventListener('click', () => { audioCtx.state === 'suspended' ? audioCtx.resume().catch() : audioCtx.state === 'running' && audioCtx.suspend().catch(); });
+	window.addEventListener('blur', () => { state = audioCtx.state, audioCtx.suspend().catch(); });
+	window.addEventListener('focus', () => { state === 'running' && audioCtx.resume().catch(), timestamps.splice(0); });
 	document.addEventListener('keydown', keydown ? keydown : e => {
 		if (e.repeat)
 			return;
@@ -176,11 +149,7 @@ export function init({keydown, keyup, ...args} = {}) {
 		case 'Digit2':
 			return void('start2P' in game && game.start2P());
 		case 'KeyM': // MUTE
-			if (audioCtx.state === 'suspended')
-				audioCtx.resume().catch();
-			else if (audioCtx.state === 'running')
-				audioCtx.suspend().catch();
-			return;
+			return void(audioCtx.state === 'suspended' ? audioCtx.resume().catch() : audioCtx.state === 'running' && audioCtx.suspend().catch());
 		case 'KeyR':
 			return game.reset();
 		case 'KeyT':
@@ -210,12 +179,24 @@ export function init({keydown, keyup, ...args} = {}) {
 		}
 	});
 	requestAnimationFrame(function loop(timestamp) {
+		const textureCoordinates = new Float32Array([
+			game.xOffset / game.width, game.yOffset / game.height,
+			game.xOffset / game.width, (game.yOffset + game.cyScreen) / game.height,
+			(game.xOffset + game.cxScreen) / game.width, game.yOffset / game.height,
+			(game.xOffset + game.cxScreen) / game.width, (game.yOffset + game.cyScreen) / game.height
+		]);
 		for (!(toggle ^= 1) && timestamps.shift(), timestamps.push(timestamp); timestamps.length > 4096; timestamps.shift()) {}
 		const rate_correction = timestamps.length > 1 ? Math.max(0.8, Math.min(1.25, (timestamp - timestamps[0]) / (timestamps.length - 1) * 0.06)) : 1;
 		updateGamepad(game);
 		game.updateStatus().updateInput().execute(audio, rate_correction).makeBitmap(data);
 		audioCtx.state !== 'running' && samples.splice(0), worklet && samples.length && (worklet.port.postMessage({samples}), samples.splice(0));
 		gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, game.yOffset, game.width, game.cyScreen, gl.RGBA, gl.UNSIGNED_BYTE, pixel.subarray(game.yOffset * game.width * 4));
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, game.cxScreen <= 384 && game.cyScreen <= 384 ? gl.NEAREST : gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, game.cxScreen <= 384 && game.cyScreen <= 384 ? gl.NEAREST : gl.LINEAR);
+		gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, textureCoordinates, gl.STATIC_DRAW);
+		gl.vertexAttribPointer(aTextureCoordHandle, 2, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(aTextureCoordHandle);
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 		requestAnimationFrame(loop);
 	});

@@ -56,8 +56,7 @@ export function init({keydown, keyup, ...args} = {}) {
 	data = new Uint32Array(imageData.data.buffer);
 	source = audioCtx.createBufferSource();
 	addStreamOut.then(() => {
-		worklet = new AudioWorkletNode(audioCtx, 'StreamOut'), worklet.port.start();
-		source.connect(worklet).connect(audioCtx.destination), source.start();
+		worklet = new AudioWorkletNode(audioCtx, 'StreamOut'), worklet.port.start(), source.connect(worklet).connect(audioCtx.destination), source.start();
 	}).catch(() => {
 		scriptNode = audioCtx.createScriptProcessor(1024, 1, 1);
 		scriptNode.onaudioprocess = ({outputBuffer}) => {
@@ -67,26 +66,12 @@ export function init({keydown, keyup, ...args} = {}) {
 		source.connect(scriptNode).connect(audioCtx.destination), source.start();
 	});
 	button = new Image();
-	(button.update = () => {
-		button.src = audioCtx.state === 'suspended' ? volume0 : volume1;
-		button.alt = 'audio state: ' + audioCtx.state;
-	})();
+	(button.update = () => { button.src = audioCtx.state === 'suspended' ? volume0 : volume1, button.alt = 'audio state: ' + audioCtx.state; })();
 	audioCtx.onstatechange = button.update;
 	document.body.appendChild(button);
-	button.addEventListener('click', () => {
-		if (audioCtx.state === 'suspended')
-			audioCtx.resume().catch();
-		else if (audioCtx.state === 'running')
-			audioCtx.suspend().catch();
-	});
-	window.addEventListener('blur', () => {
-		state = audioCtx.state;
-		audioCtx.suspend().catch();
-	});
-	window.addEventListener('focus', () => {
-		if (state === 'running')
-			audioCtx.resume().catch();
-	});
+	button.addEventListener('click', () => { audioCtx.state === 'suspended' ? audioCtx.resume().catch() : audioCtx.state === 'running' && audioCtx.suspend().catch(); });
+	window.addEventListener('blur', () => { state = audioCtx.state, audioCtx.suspend().catch(); });
+	window.addEventListener('focus', () => { state === 'running' && audioCtx.resume().catch(), timestamps.splice(0); });
 	document.addEventListener('keydown', keydown ? keydown : e => {
 		if (e.repeat)
 			return;
@@ -106,11 +91,7 @@ export function init({keydown, keyup, ...args} = {}) {
 		case 'Digit2':
 			return void('start2P' in game && game.start2P());
 		case 'KeyM': // MUTE
-			if (audioCtx.state === 'suspended')
-				audioCtx.resume().catch();
-			else if (audioCtx.state === 'running')
-				audioCtx.suspend().catch();
-			return;
+			return void(audioCtx.state === 'suspended' ? audioCtx.resume().catch() : audioCtx.state === 'running' && audioCtx.suspend().catch());
 		case 'KeyR':
 			return game.reset();
 		case 'KeyT':

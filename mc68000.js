@@ -49,11 +49,18 @@ export default class MC68000 extends Cpu {
 	}
 
 	exception(vector) {
+		switch (vector) {
+		case 4: case 8: case 10: case 11:
+			this.pc = this.pc - 2 | 0;
+			break;
+		}
 		this.cycle -= cc_ex[vector], ~this.sr & 0x2000 && (this.usp = this.a7, this.a7 = this.ssp);
 		this.a7 = this.a7 - 4 | 0, this.write32(this.pc, this.a7), this.a7 = this.a7 - 2 | 0, this.write16(this.sr, this.a7), this.pc = this.read32(vector << 2), this.sr = this.sr & ~0x8000 | 0x2000;
 	}
 
 	_execute() {
+		if (this.pc & 1)
+			return this.exception(3);
 		const op = this.fetch16();
 		this.cycle -= cc[op];
 		switch (op >> 12) {
@@ -2581,9 +2588,9 @@ export default class MC68000 extends Cpu {
 		case 0o412: // PEA (An)
 		case 0o415: // PEA d(An)
 		case 0o416: // PEA d(An,Xi)
-			return this.a7 = this.a7 - 4 | 0, this.write32(this.lea(op), this.a7);
+			return src = this.lea(op), this.a7 = this.a7 - 4 | 0, this.write32(src, this.a7);
 		case 0o417: // PEA Abs...
-			return (op & 7) >= 4 ? this.exception(4) : (this.a7 = this.a7 - 4 | 0, this.write32(this.lea(op), this.a7));
+			return (op & 7) >= 4 ? this.exception(4) : (src = this.lea(op), this.a7 = this.a7 - 4 | 0, this.write32(src, this.a7));
 		case 0o420: // EXT.W Dn
 			return this.rwop16(op, this.ext16);
 		case 0o422: // MOVEM.W <register list>,(An)
