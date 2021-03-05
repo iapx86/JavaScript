@@ -1,7 +1,7 @@
 ### Webpackのインストール
 ```
 $ npm init -y
-$ npm install webpack webpack-cli html-webpack-plugin html-webpack-inline-source-plugin babel-loader @babel/core @babel/preset-env @babel/plugin-proposal-class-properties --save-dev
+$ npm install webpack webpack-cli html-webpack-plugin html-webpack-inline-source-plugin babel-loader @babel/core @babel/preset-env @babel/plugin-proposal-class-properties @babel/plugin-transform-runtime @babel/runtime --save-dev
 ```
 ※最新のhtml-webpack-inline-source-pluginに問題があるらしいです。
 ### Webpackの実行
