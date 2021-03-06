@@ -65,6 +65,7 @@ class X68000 {
 				addr += 0x20000, r21 & 0x80 && (this.ram[addr] = this.ram[addr] & mask | data & ~mask);
 			};
 		this.cpu.memorymap[0xe800].write = (addr, data) => { // CRTC
+			(addr & ~1) === 0xe80012 && (this.ram[0xe88001] |= 0x40);
 			addr === 0xe80028 && (data ^ this.ram[addr]) & 4 && this.ram.fill(0, 0xc00000, 0xe00000);
 			addr === 0xe80029 && (this.cxScreen = [256, 512, 768][data & 3], this.cyScreen = data >> 2 & 1 ? 512 : 256);
 			this.ram[addr] = data;
@@ -82,13 +83,58 @@ class X68000 {
 			this.ram[addr] = data;
 		};
 		this.cpu.memorymap[0xe840].write = (addr, data) => { // DMAC
-			const base = addr & ~0x3f, ch = addr >> 6 & 3;
+			const base = addr & ~0x3f;
 			switch (addr & ~0xc0) {
 			case 0xe84000:
 				return void(this.ram[addr] &= ~(data & 0xf6));
 			case 0xe84007:
 				data & 0x10 && this.ram[base] & 8 && (this.ram[base] = this.ram[base] & ~8 | 0x10, this.ram[base + 1] = 0x11);
-				data & 0x80 && (this.ram[base] & 0xf8) === 0 && (this.ram[base] |= 8, ch === 2 && this.dma(2));
+				if (data & 0x80 && (this.ram[base] & 0xf8) === 0) {
+					const ch = addr >> 6 & 3, cr = this.view.getUint32(base + 4);
+					let mtc = this.view.getUint16(base + 0xa), mar = this.view.getUint32(base + 0xc), dar = this.view.getUint32(base + 0x14);
+					let btc = this.view.getUint16(base + 0x1a), bar = this.view.getUint32(base + 0x1c);
+					if (ch === 2) {
+						(data | this.ram[addr]) & 0x40 && console.log(`dma continue operation`);
+						const size = 1 << (cr >> 20 & 3);
+						switch (cr & ~0xff) {
+						case 0x08010100: case 0x08110100: case 0x08210100:
+							if (size === 1)
+								this.ram.fill(this.ram[mar], dar, dar + mtc);
+							else if (size === 2)
+								for (let i = 0; i < mtc; i++)
+									this.view.setUint16(dar + i * 2, this.view.getUint16(mar));
+							else if (size === 4)
+								for (let i = 0; i < mtc; i++)
+									this.view.setUint16(dar + i * 4, this.view.getUint16(mar)), this.view.setUint16(dar + i * 4 + 2, this.view.getUint16(mar));
+							this.view.setUint16(base + 0xa, 0), this.view.setUint32(base + 0x14, dar + mtc * size);
+							return this.ram[base] |= 0x80, void(this.ram[addr] = data & 8);
+						case 0x08010500: case 0x08110500: case 0x08210500:
+							this.ram.copyWithin(dar, mar, mar + mtc * size), dar += mtc * size;
+							this.view.setUint16(base + 0xa, 0), this.view.setUint32(base + 0xc, mar + mtc * size), this.view.setUint32(base + 0x14, dar);
+							return this.ram[base] |= 0x80, void(this.ram[addr] = data & 8);
+						case 0x08090500: case 0x08190500: case 0x08290500:
+							do {
+								mar = this.view.getUint32(bar), mtc = this.view.getUint16(bar + 4), bar += 6, this.ram.copyWithin(dar, mar, mar + mtc * size), dar += mtc * size;
+							} while (--btc);
+							this.view.setUint16(base + 0xa, 0), this.view.setUint32(base + 0xc, mar + mtc * size), this.view.setUint32(base + 0x14, dar);
+							return this.view.setUint16(base + 0x1a, 0), this.view.setUint32(base + 0x1c, bar), this.ram[base] |= 0x80, void(this.ram[addr] = data & 8);
+						case 0x080d0500: case 0x081d0500: case 0x082d0500:
+							do {
+								mar = this.view.getUint32(bar), mtc = this.view.getUint16(bar + 4), this.ram.copyWithin(dar, mar, mar + mtc * size), dar += mtc * size;
+							} while (bar = this.view.getUint32(bar + 6));
+							this.view.setUint16(base + 0xa, 0), this.view.setUint32(base + 0xc, mar + mtc * size), this.view.setUint32(base + 0x14, dar);
+							return this.view.setUint32(base + 0x1c, bar), this.ram[base] |= 0x80, void(this.ram[addr] = data & 8);
+						}
+						console.log(`unknown dma control: $${cr.toString(16)}`);
+						return this.view.setUint16(base + 0xa, 0), this.ram[base] |= 0x80, void(this.ram[addr] = data & 8);
+					}
+					if (cr & 0x80000) {
+						this.view.setUint32(base + 0xc, this.view.getUint32(bar)), this.view.setUint16(base + 0xa, this.view.getUint16(bar + 4));
+						cr & 0x40000 ? this.view.setUint32(base + 0x1c, this.view.getUint32(bar + 6))
+							: (this.view.setUint16(base + 0x1a, btc - 1), this.view.setUint32(base + 0x1c, bar + 6));
+					}
+					this.ram[base] |= 8;
+				}
 				return void(this.ram[addr] = data & 0x48);
 			default:
 				return void(this.ram[addr] = data);
@@ -303,30 +349,34 @@ class X68000 {
 		const base = 0xe84000 | ch << 6;
 		if (~this.ram[base] & 8)
 			return true;
-		let ocr = this.ram[base + 5], scr = this.ram[base + 6];
+		let ocr = this.ram[base + 5], scr = this.ram[base + 6], ccr = this.ram[base + 7];
 		let mtc = this.view.getUint16(base + 0xa), mar = this.view.getUint32(base + 0xc), dar = this.view.getUint32(base + 0x14);
 		if (ch === 0) {
 			ocr & 0x80 ? (this.ram[mar] = this.fdc.data) : (this.fdc.data = this.ram[mar]), scr & 4 && ++mar, scr & 8 && --mar, --mtc;
-		} else if (ch === 1) {
-			console.log(`dma ch1:`);
-		} else if (ch === 2) {
-			do {
-				switch (ocr >> 4 & 3) {
-				case 0:
-					ocr & 0x80 ? void(this.ram[mar] = this.ram[dar]) : void(this.ram[dar] = this.ram[mar]);
-					scr & 1 && ++dar, scr & 2 && --dar, scr & 4 && ++mar, scr & 8 && ++mar;
-					break;
-				case 1:
-					ocr & 0x80 ? this.view.setUint16(mar, this.view.getUint16(dar)) : this.view.setUint16(dar, this.view.getUint16(mar));
-					scr & 1 && (dar += 2), scr & 2 && (dar -= 2), scr & 4 && (mar += 2), scr & 8 && (mar -= 2);
-					break;
-				}
-			} while ((mtc = mtc - 1 & 0xffff));
 		} else if (ch === 3) {
 			ocr & 0x80 ? void(this.ram[mar] = 0) : sound[1].write(this.ram[mar]), scr & 4 && ++mar, scr & 8 && --mar, --mtc;
+		} else
+			console.log(`dma ch${ch}:`);
+		if (!mtc) {
+			if ((ocr >> 2 & 3) === 2) {
+				let btc = this.view.getUint16(base + 0x1a), bar = this.view.getUint32(base + 0x1c);
+				if (btc)
+					mar = this.view.getUint32(bar), mtc = this.view.getUint16(bar + 4), this.view.setUint16(base + 0x1a, btc - 1), this.view.setUint32(base + 0x1c, bar + 6);
+				else
+					this.ram[base] = this.ram[base] & ~8 | 0x80;
+			} else if ((ocr >> 2 & 3) === 3) {
+				let bar = this.view.getUint32(base + 0x1c);
+				if (bar)
+					mar = this.view.getUint32(bar), mtc = this.view.getUint16(bar + 4), this.view.setUint32(base + 0x1c, this.view.getUint32(bar + 6));
+				else
+					this.ram[base] = this.ram[base] & ~8 | 0x80;
+			} else if (ccr & 0x40)
+				mtc = this.view.getUint16(base + 0x1a), mar = this.view.getUint32(base + 0x1c), this.ram[base] |= 0x40;
+			else
+				this.ram[base] = this.ram[base] & ~8 | 0x80;
 		}
 		this.view.setUint16(base + 0xa, mtc), this.view.setUint32(base + 0xc, mar), this.view.setUint32(base + 0x14, dar);
-		return !mtc && (this.ram[base] = this.ram[base] & ~8 | 0x80), !mtc;
+		return !mtc;
 	}
 
 	execute(audio, rate_correction) {
@@ -335,7 +385,7 @@ class X68000 {
 			this.cpu.execute(tick_rate);
 			this.scanline.execute(tick_rate, () => {
 				if (++this.scanline.h_count > this.ram[0xe80001]) {
-					this.scanline.h_count = 0;
+					this.scanline.h_count = 0, this.ram[0xe8800b] |= this.ram[0xe88007] & 0x80;
 					if (++this.scanline.v_count > this.view.getUint16(0xe80008)) {
 						if (this.bitmap) {
 							for (let p = 1024 * 16 + 16, i = this.cyScreen; i !== 0; p += 1024, --i)
@@ -348,22 +398,24 @@ class X68000 {
 								else if (i === (this.ram[0xe82500] >> 4 & 3))
 									this.drawSprite(this.bitmap);
 						}
-						this.scanline.v_count = 0, (this.ram[0xe88019] & 15) === 8 && (this.ram[0xe8800b] |= this.ram[0xe88007] & ~this.ram[0xe8800f] & 0x20);
-						if (this.ram[0xe80481] & 2)
-							this.ram.fill(0, 0xc00000, 0xe00000), this.ram[0xe80481] &= ~2, console.log(`fast clear:`);
+						this.scanline.v_count = 0;
+						this.ram[0xe88019] & 8 ? (this.ram[0xe8800b] |= this.ram[0xe88007] & 0x20) : (this.ram[0xe8800d] |= this.ram[0xe88009] & 0x40);
+						this.ram[0xe80481] & 2 && (this.ram.fill(0, 0xc00000, 0xe00000), this.ram[0xe80481] &= ~2);
 					}
+					const cirq = this.scanline.v_count === (this.view.getUint16(0xe80012) & 0x3ff);
+					cirq && (this.ram[0xe88001] &= ~0x40, this.ram[0xe8800b] |= this.ram[0xe88007] & ~this.ram[0xe8800f] & 0x40);
 					this.ram[0xe88001] = this.ram[0xe88001] & ~0x10 | (this.scanline.v_count > this.view.getUint16(0xe8000a)) << 4;
 				}
 				this.ram[0xe88001] = this.ram[0xe88001] & ~0x80 | (this.scanline.h_count <= this.ram[0xe80003]) << 7;
 			});
 			this.timer1.execute(tick_rate, () => {
-				!--this.ram[0xe88023] && (this.ram[0xe88023] = this.timer1.reload, this.ram[0xe8800d] |= this.ram[0xe88009] & ~this.ram[0xe88011] & 0x20);
+				!--this.ram[0xe88023] && (this.ram[0xe88023] = this.timer1.reload, this.ram[0xe8800d] |= this.ram[0xe88009] & 0x20);
 			});
 			this.timer2.execute(tick_rate, () => {
-				!--this.ram[0xe88025] && (this.ram[0xe88025] = this.timer2.reload, this.ram[0xe8800d] |= this.ram[0xe88009] & ~this.ram[0xe88011] & 0x10);
+				!--this.ram[0xe88025] && (this.ram[0xe88025] = this.timer2.reload, this.ram[0xe8800d] |= this.ram[0xe88009] & 0x10);
 			});
 			sound[0].execute(tick_rate);
-			sound[0].status & 3 && this.ram[0xe88001] & 8 && (this.ram[0xe88001] &= ~8, this.ram[0xe8800d] |= this.ram[0xe88009] & ~this.ram[0xe88011] & 8);
+			sound[0].status & 3 && this.ram[0xe88001] & 8 && (this.ram[0xe88001] &= ~8, this.ram[0xe8800d] |= this.ram[0xe88009] & 8);
 			!(sound[0].status & 3) && ~this.ram[0xe88001] & 8 && (this.ram[0xe88001] |= 8);
 			sound[1].execute(tick_rate, rate_correction, () => void this.dma(3));
 			audio.execute(tick_rate, rate_correction);
@@ -390,32 +442,32 @@ class X68000 {
 
 	updateInput() {
 		if (this.keyboard.fifo.length && (this.ram[0xe8802b] & 0x81) === 1)
-			this.ram[0xe8802f] = this.keyboard.fifo.shift(), this.ram[0xe8802b] |= 0x80, this.ram[0xe8800b] |= this.ram[0xe88007] & ~this.ram[0xe8800f] & 0x10;
+			this.ram[0xe8802f] = this.keyboard.fifo.shift(), this.ram[0xe8802b] |= 0x80, this.ram[0xe8800b] |= this.ram[0xe88007] & 0x10;
 		return this;
 	}
 
 	up(fDown) {
-		this.ram[0xe9a001] = this.ram[0xe9a001] & ~1 | fDown << 0;
+		this.ram[0xe9a001] = this.ram[0xe9a001] & ~(1 << 0) | fDown << 0;
 	}
 
 	right(fDown) {
-		this.ram[0xe9a001] = this.ram[0xe9a001] & ~8 | fDown << 3;
+		this.ram[0xe9a001] = this.ram[0xe9a001] & ~(1 << 3) | fDown << 3;
 	}
 
 	down(fDown) {
-		this.ram[0xe9a001] = this.ram[0xe9a001] & ~2 | fDown << 1;
+		this.ram[0xe9a001] = this.ram[0xe9a001] & ~(1 << 1) | fDown << 1;
 	}
 
 	left(fDown) {
-		this.ram[0xe9a001] = this.ram[0xe9a001] & ~4 | fDown << 2;
+		this.ram[0xe9a001] = this.ram[0xe9a001] & ~(1 << 2) | fDown << 2;
 	}
 
 	triggerA(fDown) {
-		this.ram[0xe9a001] = this.ram[0xe9a001] & ~0x20 | fDown << 5;
+		this.ram[0xe9a001] = this.ram[0xe9a001] & ~(1 << 6) | fDown << 6;
 	}
 
 	triggerB(fDown) {
-		this.ram[0xe9a001] = this.ram[0xe9a001] & ~0x40 | fDown << 6;
+		this.ram[0xe9a001] = this.ram[0xe9a001] & ~(1 << 5) | fDown << 5;
 	}
 
 	makeBitmap(data) {
