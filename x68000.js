@@ -20,21 +20,33 @@ class X68000 {
 	rotate = false;
 
 	fReset = true;
+	fTurboA = false;
+	fTurboB = false;
 
 	ram = new Uint8Array(0xf00000).addBase();
 	view = new DataView(this.ram.buffer);
-	fdc = {status: 0x80, data: 0, irq: false, c: new Uint8Array(4), done: true, g: generator()};
-	fdd = {control: 0, select: 0};
+	fdc = {rate: 62500, frac: 0, status: 0x80, data: 0, irq: false, drq: false, tc: false, c: new Uint8Array(4), done: true, g: generator(), execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn();
+	}};
+	fdd = {control: 0, select: 0, command: []};
 	scc = {a: {wr: new Uint8Array(16), rr: new Uint8Array(16)}, b: {wr: new Uint8Array(16), rr: new Uint8Array(16)}};
 	keyboard = {fifo: []};
 	mouse = {button: 0, x: 0, y: 0, fifo: []};
 
 	pcg8 = new Uint8Array(0x4000);
 	pcg16 = new Uint8Array(0x10000);
-	rgb = new Uint32Array(0x10000).fill(0xff000000);
+	temp = new Uint8Array(0x100000);
+	palette1 = new Uint16Array(0x100);
+	palette2 = new Uint16Array(0x100);
+	rgb = new Int32Array(0x10000).fill(0xff000000);
 	bitmap;
 
 	cpu = new MC68000(Math.floor(40000000 / 4));
+	dmac = {rate: Math.floor(40000000 / 4), frac: 0, cycle: 0, execute(rate, fn) {
+		for (this.cycle += Math.floor((this.frac += this.rate) / rate), this.frac %= rate; this.cycle > 0;)
+			fn();
+	}};
 	scanline = {rate: 31500 * 138, frac: 0, h_count: 0, v_count: 0, execute(rate, fn) {
 		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
 			fn();
@@ -65,10 +77,14 @@ class X68000 {
 				addr += 0x20000, r21 & 0x80 && (this.ram[addr] = this.ram[addr] & mask | data & ~mask);
 			};
 		this.cpu.memorymap[0xe800].write = (addr, data) => { // CRTC
-			(addr & ~1) === 0xe80012 && (this.ram[0xe88001] |= 0x40);
 			addr === 0xe80028 && (data ^ this.ram[addr]) & 4 && this.ram.fill(0, 0xc00000, 0xe00000);
-			addr === 0xe80029 && (this.cxScreen = [256, 512, 768][data & 3], this.cyScreen = data >> 2 & 1 ? 512 : 256);
 			this.ram[addr] = data;
+			(addr & ~1) === 0xe80012 && (this.ram[0xe88001] |= 0x40);
+			if ((addr & ~0xb) === 0xe80004 || addr === 0xe80029) {
+				this.cxScreen = Math.max(1, (this.ram[0xe80007] - this.ram[0xe80005]) * 8);
+				const r06 = this.view.getUint16(0xe8000c) & 0x3ff, r07 = this.view.getUint16(0xe8000e) & 0x3ff, r20 = this.view.getUint16(0xe80028);
+				this.cyScreen = Math.max(1, Math.floor((r07 - r06) * [1, 2, 1, 1, 0.5, 1, 1, 1][r20 >> 2 & 7]));
+			}
 			if (addr === 0xe80001 || addr === 0xe80029)
 				this.scanline.rate = (this.ram[0xe80029] & 0x10 ? 31500 : 15980) * (this.ram[0xe80001] + 1), this.scanline.frac = 0;
 		};
@@ -82,6 +98,16 @@ class X68000 {
 			}
 			this.ram[addr] = data;
 		};
+		for (let i = 0; i < 2; i++)
+			this.cpu.memorymap[0xe820 + i].write = (addr, data) => { // GRAPHIC PALETTE
+				this.ram[addr] = data;
+				this.palette1[addr >> 1 & 0xff] = this.view.getUint16(addr & ~1);
+			};
+		for (let i = 0; i < 2; i++)
+			this.cpu.memorymap[0xe822 + i].write = (addr, data) => { // TEXT PALETTE
+				this.ram[addr] = data;
+				this.palette2[addr >> 1 & 0xff] = this.view.getUint16(addr & ~1);
+			};
 		this.cpu.memorymap[0xe840].write = (addr, data) => { // DMAC
 			const base = addr & ~0x3f;
 			switch (addr & ~0xc0) {
@@ -90,45 +116,9 @@ class X68000 {
 			case 0xe84007:
 				data & 0x10 && this.ram[base] & 8 && (this.ram[base] = this.ram[base] & ~8 | 0x10, this.ram[base + 1] = 0x11);
 				if (data & 0x80 && (this.ram[base] & 0xf8) === 0) {
-					const ch = addr >> 6 & 3, cr = this.view.getUint32(base + 4);
-					let mtc = this.view.getUint16(base + 0xa), mar = this.view.getUint32(base + 0xc), dar = this.view.getUint32(base + 0x14);
-					let btc = this.view.getUint16(base + 0x1a), bar = this.view.getUint32(base + 0x1c);
-					if (ch === 2) {
-						(data | this.ram[addr]) & 0x40 && console.log(`dma continue operation`);
-						const size = 1 << (cr >> 20 & 3);
-						switch (cr & ~0xff) {
-						case 0x08010100: case 0x08110100: case 0x08210100:
-							if (size === 1)
-								this.ram.fill(this.ram[mar], dar, dar + mtc);
-							else if (size === 2)
-								for (let i = 0; i < mtc; i++)
-									this.view.setUint16(dar + i * 2, this.view.getUint16(mar));
-							else if (size === 4)
-								for (let i = 0; i < mtc; i++)
-									this.view.setUint16(dar + i * 4, this.view.getUint16(mar)), this.view.setUint16(dar + i * 4 + 2, this.view.getUint16(mar));
-							this.view.setUint16(base + 0xa, 0), this.view.setUint32(base + 0x14, dar + mtc * size);
-							return this.ram[base] |= 0x80, void(this.ram[addr] = data & 8);
-						case 0x08010500: case 0x08110500: case 0x08210500:
-							this.ram.copyWithin(dar, mar, mar + mtc * size), dar += mtc * size;
-							this.view.setUint16(base + 0xa, 0), this.view.setUint32(base + 0xc, mar + mtc * size), this.view.setUint32(base + 0x14, dar);
-							return this.ram[base] |= 0x80, void(this.ram[addr] = data & 8);
-						case 0x08090500: case 0x08190500: case 0x08290500:
-							do {
-								mar = this.view.getUint32(bar), mtc = this.view.getUint16(bar + 4), bar += 6, this.ram.copyWithin(dar, mar, mar + mtc * size), dar += mtc * size;
-							} while (--btc);
-							this.view.setUint16(base + 0xa, 0), this.view.setUint32(base + 0xc, mar + mtc * size), this.view.setUint32(base + 0x14, dar);
-							return this.view.setUint16(base + 0x1a, 0), this.view.setUint32(base + 0x1c, bar), this.ram[base] |= 0x80, void(this.ram[addr] = data & 8);
-						case 0x080d0500: case 0x081d0500: case 0x082d0500:
-							do {
-								mar = this.view.getUint32(bar), mtc = this.view.getUint16(bar + 4), this.ram.copyWithin(dar, mar, mar + mtc * size), dar += mtc * size;
-							} while (bar = this.view.getUint32(bar + 6));
-							this.view.setUint16(base + 0xa, 0), this.view.setUint32(base + 0xc, mar + mtc * size), this.view.setUint32(base + 0x14, dar);
-							return this.view.setUint32(base + 0x1c, bar), this.ram[base] |= 0x80, void(this.ram[addr] = data & 8);
-						}
-						console.log(`unknown dma control: $${cr.toString(16)}`);
-						return this.view.setUint16(base + 0xa, 0), this.ram[base] |= 0x80, void(this.ram[addr] = data & 8);
-					}
+					const cr = this.view.getUint32(base + 4);
 					if (cr & 0x80000) {
+						let btc = this.view.getUint16(base + 0x1a), bar = this.view.getUint32(base + 0x1c);
 						this.view.setUint32(base + 0xc, this.view.getUint32(bar)), this.view.setUint16(base + 0xa, this.view.getUint16(bar + 4));
 						cr & 0x40000 ? this.view.setUint32(base + 0x1c, this.view.getUint32(bar + 6))
 							: (this.view.setUint16(base + 0x1a, btc - 1), this.view.setUint32(base + 0x1c, bar + 6));
@@ -153,6 +143,12 @@ class X68000 {
 		this.cpu.memorymap[0xe880].write = (addr, data) => { // MFP
 			const delta = this.ram[addr] ^ data;
 			switch (addr) {
+			case 0xe88007:
+			case 0xe88009:
+				return this.ram[addr + 4] &= data, void(this.ram[addr] = data);
+			case 0xe8800b:
+			case 0xe8800d:
+				return void(bc[data] === 7 && (this.ram[addr] &= data));
 			case 0xe8801d:
 				delta & 0x70 && (this.timer1.prescaler = this.timer1.count = [0, 4, 10, 16, 50, 64, 100, 200][data >> 4 & 7]);
 				delta & 7 && (this.timer2.prescaler = this.timer2.count = [0, 4, 10, 16, 50, 64, 100, 200][data & 7]);
@@ -241,7 +237,7 @@ class X68000 {
 			switch (addr) {
 			case 0xe92001:
 				return sound[1].command(data);
-			case 0xe90003:
+			case 0xe92003:
 				return sound[1].write(data);
 			default:
 				return void(this.ram[addr] = data);
@@ -254,6 +250,8 @@ class X68000 {
 				return this.fdc.status;
 			case 0xe94003:
 				return data = this.fdc.data, !this.fdc.done && (this.fdc.done = this.fdc.g.next().done), data;
+			case 0xe94005:
+				return this.ram[0xe9c001] &= ~0x40, this.ram[addr];
 			default:
 				return this.ram[addr];
 			}
@@ -261,7 +259,7 @@ class X68000 {
 		this.cpu.memorymap[0xe940].write = (addr, data) => { // FDC/FDD
 			switch (addr) {
 			case 0xe94003:
-				return this.fdc.data = data, this.fdc.done && (this.fdc.g = generator(this.fdc, () => this.dma(0))), void(this.fdc.done = this.fdc.g.next().done);
+				return this.fdc.data = data, this.fdc.done && (this.fdc.g = generator(this.fdc)), void(this.fdc.done = this.fdc.g.next().done);
 			case 0xe94005:
 				return this.ram[addr] = FDD[31 - Math.clz32(data & 15)] ? 0x80 : 0, void(this.fdd.control = data);
 			case 0xe94007:
@@ -339,44 +337,51 @@ class X68000 {
 				return true;
 			if (this.ram[0xe840c0] & 0xe0 && this.ram[0xe840c7] & 8 && this.cpu.interrupt(3, this.ram[0xe840e5]))
 				return true;
-			if (this.fdc.irq && this.cpu.interrupt(1, this.ram[0xe9c003] & ~3))
+			if (this.fdc.irq && this.ram[0xe9c001] & 4 && this.cpu.interrupt(1, this.ram[0xe9c003] & ~3))
 				return this.fdc.irq = false, true;
-			return false;
+			return (this.ram[0xe9c001] & 0x42) === 0x42 && this.cpu.interrupt(1, this.ram[0xe9c003] & ~3 | 1);
 		};
 	}
 
 	dma(ch) {
 		const base = 0xe84000 | ch << 6;
 		if (~this.ram[base] & 8)
-			return true;
-		let ocr = this.ram[base + 5], scr = this.ram[base + 6], ccr = this.ram[base + 7];
+			return;
+		const cr = this.view.getUint32(base + 4);
 		let mtc = this.view.getUint16(base + 0xa), mar = this.view.getUint32(base + 0xc), dar = this.view.getUint32(base + 0x14);
-		if (ch === 0) {
-			ocr & 0x80 ? (this.ram[mar] = this.fdc.data) : (this.fdc.data = this.ram[mar]), scr & 4 && ++mar, scr & 8 && --mar, --mtc;
-		} else if (ch === 3) {
-			ocr & 0x80 ? void(this.ram[mar] = 0) : sound[1].write(this.ram[mar]), scr & 4 && ++mar, scr & 8 && --mar, --mtc;
-		} else
-			console.log(`dma ch${ch}:`);
+		--mtc, ch === 0 && (this.fdc.tc = !mtc);
+		switch (cr >> 20 & 3) {
+		case 2:
+			this.dmac.cycle -= 4, this.cpu.cycle -= 4, cr & 0x800000 ? this.cpu.write16(this.cpu.read16(dar), mar) : this.cpu.write16(this.cpu.read16(mar), dar);
+			cr & 0x100 && (dar += 2), cr & 0x200 && (dar -= 2), cr & 0x400 && (mar += 2), cr & 0x800 && (mar -= 2); // fallthrough
+		case 1:
+			this.dmac.cycle -= 4, this.cpu.cycle -= 4, cr & 0x800000 ? this.cpu.write16(this.cpu.read16(dar), mar) : this.cpu.write16(this.cpu.read16(mar), dar);
+			cr & 0x100 && (dar += 2), cr & 0x200 && (dar -= 2), cr & 0x400 && (mar += 2), cr & 0x800 && (mar -= 2);
+			break;
+		case 0: case 3:
+			this.dmac.cycle -= 4, this.cpu.cycle -= 4, cr & 0x800000 ? this.cpu.write8(this.cpu.read8(dar), mar) : this.cpu.write8(this.cpu.read8(mar), dar);
+			cr & 0x100 && ++dar, cr & 0x200 && --dar, cr & 0x400 && ++mar, cr & 0x800 && --mar;
+			break;
+		}
 		if (!mtc) {
-			if ((ocr >> 2 & 3) === 2) {
+			if ((cr & 0xc0000) === 0x80000) {
 				let btc = this.view.getUint16(base + 0x1a), bar = this.view.getUint32(base + 0x1c);
 				if (btc)
 					mar = this.view.getUint32(bar), mtc = this.view.getUint16(bar + 4), this.view.setUint16(base + 0x1a, btc - 1), this.view.setUint32(base + 0x1c, bar + 6);
 				else
 					this.ram[base] = this.ram[base] & ~8 | 0x80;
-			} else if ((ocr >> 2 & 3) === 3) {
+			} else if ((cr & 0xc0000) === 0xc0000) {
 				let bar = this.view.getUint32(base + 0x1c);
 				if (bar)
 					mar = this.view.getUint32(bar), mtc = this.view.getUint16(bar + 4), this.view.setUint32(base + 0x1c, this.view.getUint32(bar + 6));
 				else
 					this.ram[base] = this.ram[base] & ~8 | 0x80;
-			} else if (ccr & 0x40)
+			} else if (cr & 0x40)
 				mtc = this.view.getUint16(base + 0x1a), mar = this.view.getUint32(base + 0x1c), this.ram[base] |= 0x40;
 			else
 				this.ram[base] = this.ram[base] & ~8 | 0x80;
 		}
 		this.view.setUint16(base + 0xa, mtc), this.view.setUint32(base + 0xc, mar), this.view.setUint32(base + 0x14, dar);
-		return !mtc;
 	}
 
 	execute(audio, rate_correction) {
@@ -386,25 +391,33 @@ class X68000 {
 			this.scanline.execute(tick_rate, () => {
 				if (++this.scanline.h_count > this.ram[0xe80001]) {
 					this.scanline.h_count = 0, this.ram[0xe8800b] |= this.ram[0xe88007] & 0x80;
-					if (++this.scanline.v_count > this.view.getUint16(0xe80008)) {
+					const r04 = this.view.getUint16(0xe80008), v_return = r04 + this.view.getUint16(0xe8000c) - this.view.getUint16(0xe8000e);
+					if (++this.scanline.v_count > (r04 & 0x3ff)) {
+						this.scanline.v_count = 0, this.ram[0xe8800d] |= this.ram[0xe88009] & 0x40;
+						this.ram[0xe88019] & 8 && (this.ram[0xe8800b] |= this.ram[0xe88007] & 0x20);
 						if (this.bitmap) {
-							for (let p = 1024 * 16 + 16, i = this.cyScreen; i !== 0; p += 1024, --i)
-								this.bitmap.fill(0xff000000, p, p + this.cxScreen);
-							for (let i = 2; i >= 0; --i)
-								if (i === (this.ram[0xe82500] & 3))
-									this.drawGraphic(this.bitmap);
-								else if (i === (this.ram[0xe82500] >> 2 & 3))
-									this.drawText(this.bitmap);
-								else if (i === (this.ram[0xe82500] >> 4 & 3))
-									this.drawSprite(this.bitmap);
+							const cx = this.cxScreen, cy = this.cyScreen;
+							for (let p = 1024 * 16 + 16, i = cy; i > 0; p += 1024, --i)
+								this.bitmap.fill(0, p, p + cx);
+							for (let r1 = this.view.getUint16(0xe82500), s = r1 >> 12 & 3, t = r1 >> 10 & 3, g = r1 >> 8 & 3, pri = 2; pri >= 0; --pri)
+								pri === s ? this.drawSprite(this.bitmap) : pri === t ? this.drawText(this.bitmap) : pri === g && this.drawGraphic(this.bitmap);
+							for (let p = 1024 * 16 + 16, i = cy; i > 0; p += 1024 - cx, --i)
+								for (let j = cx >> 3; j > 0; p += 8, --j) {
+									this.bitmap[p] = this.rgb[this.bitmap[p]];
+									this.bitmap[p + 1] = this.rgb[this.bitmap[p + 1]];
+									this.bitmap[p + 2] = this.rgb[this.bitmap[p + 2]];
+									this.bitmap[p + 3] = this.rgb[this.bitmap[p + 3]];
+									this.bitmap[p + 4] = this.rgb[this.bitmap[p + 4]];
+									this.bitmap[p + 5] = this.rgb[this.bitmap[p + 5]];
+									this.bitmap[p + 6] = this.rgb[this.bitmap[p + 6]];
+									this.bitmap[p + 7] = this.rgb[this.bitmap[p + 7]];
+								}
 						}
-						this.scanline.v_count = 0;
-						this.ram[0xe88019] & 8 ? (this.ram[0xe8800b] |= this.ram[0xe88007] & 0x20) : (this.ram[0xe8800d] |= this.ram[0xe88009] & 0x40);
 						this.ram[0xe80481] & 2 && (this.ram.fill(0, 0xc00000, 0xe00000), this.ram[0xe80481] &= ~2);
 					}
 					const cirq = this.scanline.v_count === (this.view.getUint16(0xe80012) & 0x3ff);
 					cirq && (this.ram[0xe88001] &= ~0x40, this.ram[0xe8800b] |= this.ram[0xe88007] & ~this.ram[0xe8800f] & 0x40);
-					this.ram[0xe88001] = this.ram[0xe88001] & ~0x10 | (this.scanline.v_count > this.view.getUint16(0xe8000a)) << 4;
+					this.ram[0xe88001] = this.ram[0xe88001] & ~0x10 | (this.scanline.v_count > (v_return & 0x3ff)) << 4;
 				}
 				this.ram[0xe88001] = this.ram[0xe88001] & ~0x80 | (this.scanline.h_count <= this.ram[0xe80003]) << 7;
 			});
@@ -414,11 +427,13 @@ class X68000 {
 			this.timer2.execute(tick_rate, () => {
 				!--this.ram[0xe88025] && (this.ram[0xe88025] = this.timer2.reload, this.ram[0xe8800d] |= this.ram[0xe88009] & 0x10);
 			});
+			this.fdc.execute(tick_rate, () => this.fdc.drq && (this.fdc.drq = false, this.dma(0)));
 			sound[0].execute(tick_rate);
 			sound[0].status & 3 && this.ram[0xe88001] & 8 && (this.ram[0xe88001] &= ~8, this.ram[0xe8800d] |= this.ram[0xe88009] & 8);
 			!(sound[0].status & 3) && ~this.ram[0xe88001] & 8 && (this.ram[0xe88001] |= 8);
-			sound[1].execute(tick_rate, rate_correction, () => void this.dma(3));
+			sound[1].execute(tick_rate, rate_correction, () => this.dma(3));
 			audio.execute(tick_rate, rate_correction);
+			this.dmac.execute(tick_rate, () => this.ram[0xe84080] & 8 ? this.dma(2) : this.dmac.cycle > 0 && (this.dmac.cycle = 0));
 		}
 		return this;
 	}
@@ -437,12 +452,22 @@ class X68000 {
 			this.cpu.reset();
 			this.cpu.memorymap[0].base = this.ram.base[0];
 		}
+		if (this.fdd.command.length) {
+			const command = this.fdd.command.shift();
+			if ('disk' in command)
+				FDD[command.unit] = command.disk;
+			else
+				delete FDD[command.unit];
+			this.ram[0xe9c001] |= 0x40;
+		}
 		return this;
 	}
 
 	updateInput() {
 		if (this.keyboard.fifo.length && (this.ram[0xe8802b] & 0x81) === 1)
 			this.ram[0xe8802f] = this.keyboard.fifo.shift(), this.ram[0xe8802b] |= 0x80, this.ram[0xe8800b] |= this.ram[0xe88007] & 0x10;
+		this.fTurboA && (this.ram[0xe9a001] ^= 1 << 5);
+		this.fTurboB && (this.ram[0xe9a001] ^= 1 << 6);
 		return this;
 	}
 
@@ -463,11 +488,19 @@ class X68000 {
 	}
 
 	triggerA(fDown) {
-		this.ram[0xe9a001] = this.ram[0xe9a001] & ~(1 << 6) | fDown << 6;
+		this.ram[0xe9a001] = this.ram[0xe9a001] & ~(1 << 5) | fDown << 5;
 	}
 
 	triggerB(fDown) {
-		this.ram[0xe9a001] = this.ram[0xe9a001] & ~(1 << 5) | fDown << 5;
+		this.ram[0xe9a001] = this.ram[0xe9a001] & ~(1 << 6) | fDown << 6;
+	}
+
+	triggerX(fDown) {
+		!(this.fTurboA = fDown) && (this.ram[0xe9a001] &= ~(1 << 5));
+	}
+
+	triggerY(fDown) {
+		!(this.fTurboB = fDown) && (this.ram[0xe9a001] &= ~(1 << 6));
 	}
 
 	makeBitmap(data) {
@@ -481,486 +514,516 @@ class X68000 {
 	}
 
 	drawGraphic(data) {
-		const cx = this.cxScreen, cy = this.cyScreen;
+		const cx = this.cxScreen, cy = this.cyScreen, xon = this.ram[0xe82601];
 		switch (this.ram[0xe82401] & 7) {
 		case 0: // 512x512 16色
-			for (let i = 3; i >= 0; --i)
-				if (this.ram[0xe82601] & 1 << i) {
-					const sc = this.ram[0xe82501] >> i * 2 & 3, hScroll = this.view.getUint16(0xe80018 + sc * 4), vScroll = this.view.getUint16(0xe8001a + sc * 4);
-					let p = 1024 * 16 + 16, k = 0xc00001 | sc << 19 | vScroll << 10 & 0x7fc00 | hScroll << 1 & 0x3fe;
-					if (this.view.getUint16(0xe82000))
-						for (let i = cy; i !== 0; k = k & 0xf80001 | k + 0x400 & 0x7fc00 | k - cx * 2 & 0x3fe, p += 1024 - cx, --i)
-							for (let j = cx; j !== 0; k = k & 0xfffc01 | k + 2 & 0x3fe, ++p, --j)
-								data[p] = this.rgb[this.view.getUint16(0xe82000 | this.ram[k] << 1 & 30)];
-					else
-						for (let i = cy; i !== 0; k = k & 0xf80001 | k + 0x400 & 0x7fc00 | k - cx * 2 & 0x3fe, p += 1024 - cx, --i)
-							for (let px, j = cx; j !== 0; k = k & 0xfffc01 | k + 2 & 0x3fe, ++p, --j)
-								(px = this.ram[k] << 1 & 30) && (data[p] = this.rgb[this.view.getUint16(0xe82000 | px)]);
-				}
+			if (xon & 15) {
+				for (let p = 1024 * 16 + 16, i = cy; i > 0; p += 1024, --i)
+					this.temp.fill(0, p, p + cx);
+				for (let i = 3; i >= 0; --i)
+					if (xon & 1 << i) {
+						const sc = this.ram[0xe82501] >> i * 2 & 3, hScroll = this.view.getUint16(0xe80018 + sc * 4), vScroll = this.view.getUint16(0xe8001a + sc * 4);
+						let k = 0xc00001 | sc << 19 | vScroll << 10 & 0x7fc00 | hScroll << 1 & 0x3fe;
+						for (let p = 1024 * 16 + 16, i = cy; i > 0; k = k & 0xf80001 | k + 0x400 & 0x7fc00 | k - cx * 2 & 0x3fe, p += 1024 - cx, --i)
+							for (let px, j = cx; j > 0; k = k & 0xfffc01 | k + 2 & 0x3fe, ++p, --j)
+								(px = this.ram[k] & 15) && (this.temp[p] = px);
+					}
+				for (let p = 1024 * 16 + 16, i = cy; i > 0; p += 1024 - cx, --i)
+					for (let px, j = cx >> 3; j > 0; p += 8, --j){
+						(px = this.palette1[this.temp[p]]) && (data[p] = px);
+						(px = this.palette1[this.temp[p + 1]]) && (data[p + 1] = px);
+						(px = this.palette1[this.temp[p + 2]]) && (data[p + 2] = px);
+						(px = this.palette1[this.temp[p + 3]]) && (data[p + 3] = px);
+						(px = this.palette1[this.temp[p + 4]]) && (data[p + 4] = px);
+						(px = this.palette1[this.temp[p + 5]]) && (data[p + 5] = px);
+						(px = this.palette1[this.temp[p + 6]]) && (data[p + 6] = px);
+						(px = this.palette1[this.temp[p + 7]]) && (data[p + 7] = px);
+					}
+			}
 			return;
 		case 1: // 512x512 256色
-			for (let i = 2; i >= 0; i -= 2)
-				if (this.ram[0xe82601] & 3 << i) {
-					const sc = this.ram[0xe82501] >> i * 2 & 2, hScroll = this.view.getUint16(0xe80018 + sc * 4), vScroll = this.view.getUint16(0xe8001a + sc * 4);
-					let p = 1024 * 16 + 16, k = 0xc00001 | sc << 18 | vScroll << 10 & 0x7fc00 | hScroll << 1 & 0x3fe;
-					if (this.view.getUint16(0xe82000))
-						for (let i = cy; i !== 0; k = k & 0xf80001 | k + 0x400 & 0x7fc00 | k - cx * 2 & 0x3fe, p += 1024 - cx, --i)
-							for (let j = cx; j !== 0; k = k & 0xfffc01 | k + 2 & 0x3fe, ++p, --j)
-								data[p] = this.rgb[this.view.getUint16(0xe82000 | this.ram[k] << 1)];
-					else
-						for (let i = cy; i !== 0; k = k & 0xf80001 | k + 0x400 & 0x7fc00 | k - cx * 2 & 0x3fe, p += 1024 - cx, --i)
-							for (let px, j = cx; j !== 0; k = k & 0xfffc01 | k + 2 & 0x3fe, ++p, --j)
-								(px = this.ram[k] << 1) && (data[p] = this.rgb[this.view.getUint16(0xe82000 | px)]);
-				}
+			if (xon & 15) {
+				for (let p = 1024 * 16 + 16, i = cy; i > 0; p += 1024, --i)
+					this.temp.fill(0, p, p + cx);
+				for (let i = 2; i >= 0; i -= 2)
+					if (xon & 3 << i) {
+						const sc = this.ram[0xe82501] >> i * 2 & 2, hScroll = this.view.getUint16(0xe80018 + sc * 4), vScroll = this.view.getUint16(0xe8001a + sc * 4);
+						let k = 0xc00001 | sc << 18 | vScroll << 10 & 0x7fc00 | hScroll << 1 & 0x3fe;
+						for (let p = 1024 * 16 + 16, i = cy; i > 0; k = k & 0xf80001 | k + 0x400 & 0x7fc00 | k - cx * 2 & 0x3fe, p += 1024 - cx, --i)
+							for (let px, j = cx; j > 0; k = k & 0xfffc01 | k + 2 & 0x3fe, ++p, --j)
+								(px = this.ram[k]) && (this.temp[p] = px);
+					}
+				for (let p = 1024 * 16 + 16, i = cy; i > 0; p += 1024 - cx, --i)
+					for (let px, j = cx >> 3; j > 0; p += 8, --j){
+						(px = this.palette1[this.temp[p]]) && (data[p] = px);
+						(px = this.palette1[this.temp[p + 1]]) && (data[p + 1] = px);
+						(px = this.palette1[this.temp[p + 2]]) && (data[p + 2] = px);
+						(px = this.palette1[this.temp[p + 3]]) && (data[p + 3] = px);
+						(px = this.palette1[this.temp[p + 4]]) && (data[p + 4] = px);
+						(px = this.palette1[this.temp[p + 5]]) && (data[p + 5] = px);
+						(px = this.palette1[this.temp[p + 6]]) && (data[p + 6] = px);
+						(px = this.palette1[this.temp[p + 7]]) && (data[p + 7] = px);
+					}
+			}
 			return;
 		case 3: // 512x512 65536色
-			if (this.ram[0xe82601] & 15) {
-				let p = 1024 * 16 + 16, k = 0xc00000 | this.view.getUint16(0xe8001a) << 10 & 0x7fc00 | this.view.getUint16(0xe80018) << 1 & 0x3fe;
-				if (this.ram[0xe82000] | this.ram[0xe82002])
-					for (let i = cy; i !== 0; k = 0xc00000 | k + 0x400 & 0x7fc00 | k - cx * 2 & 0x3fe, p += 1024 - cx, --i)
-						for (let px0, px1, j = cx; j !== 0; k = k & 0xfffc00 | k + 2 & 0x3fe, ++p, --j) {
-							px0 = this.ram[k], px1 = this.ram[k + 1];
-							data[p] = this.rgb[this.ram[0xe82002 | px0 << 1 & 0x1fc | px0 & 1] << 8 | this.ram[0xe82000 | px1 << 1 & 0x1fc | px1 & 1]];
-						}
-				else
-					for (let i = cy; i !== 0; k = 0xc00000 | k + 0x400 & 0x7fc00 | k - cx * 2 & 0x3fe, p += 1024 - cx, --i)
-						for (let px0, px1, j = cx; j !== 0; k = k & 0xfffc00 | k + 2 & 0x3fe, ++p, --j)
-							if ((px0 = this.ram[k]) | (px1 = this.ram[k + 1]))
-								data[p] = this.rgb[this.ram[0xe82002 | px0 << 1 & 0x1fc | px0 & 1] << 8 | this.ram[0xe82000 | px1 << 1 & 0x1fc | px1 & 1]];
+			if (xon & 15) {
+				let k = 0xc00000 | this.view.getUint16(0xe8001a) << 10 & 0x7fc00 | this.view.getUint16(0xe80018) << 1 & 0x3fe;
+				for (let p = 1024 * 16 + 16, i = cy; i > 0; k = 0xc00000 | k + 0x400 & 0x7fc00 | k - cx * 2 & 0x3fe, p += 1024 - cx, --i)
+					for (let px, j = cx; j > 0; k = k & 0xfffc00 | k + 2 & 0x3fe, ++p, --j) {
+						const px0 = this.ram[k], px1 = this.ram[k + 1];
+						(px = this.ram[0xe82002 | px0 << 1 & 0x1fc | px0 & 1] << 8 | this.ram[0xe82000 | px1 << 1 & 0x1fc | px1 & 1]) && (data[p] = px);
+					}
 			}
 			return;
 		case 4: // 1024x1024 16色
-			if (this.ram[0xe82601] & 16) {
-				let p = 1024 * 16 + 16, k = 0xc00001 | this.view.getUint16(0xe8001a) << 11 & 0x1ff800 | this.view.getUint16(0xe80018) << 1 & 0x7fe;
-				if (this.view.getUint16(0xe82000))
-					for (let i = cy; i !== 0; k = 0xc00001 | k + 0x800 & 0x1ff800 | k - cx * 2 & 0x7fe, p += 1024 - cx, --i)
-						for (let j = cx; j !== 0; k = k & 0xfff801 | k + 2 & 0x7fe, ++p, --j)
-							data[p] = this.rgb[this.view.getUint16(0xe82000 | this.ram[k] << 1 & 30)];
-				else
-					for (let i = cy; i !== 0; k = 0xc00001 | k + 0x800 & 0x1ff800 | k - cx * 2 & 0x7fe, p += 1024 - cx, --i)
-						for (let px, j = cx; j !== 0; k = k & 0xfff801 | k + 2 & 0x7fe, ++p, --j)
-							(px = this.ram[k] << 1 & 30) && (data[p] = this.rgb[this.view.getUint16(0xe82000 | px)]);
+			if (xon & 16) {
+				let k = 0xc00001 | this.view.getUint16(0xe8001a) << 11 & 0x1ff800 | this.view.getUint16(0xe80018) << 1 & 0x7fe;
+				for (let p = 1024 * 16 + 16, i = cy; i > 0; k = 0xc00001 | k + 0x800 & 0x1ff800 | k - cx * 2 & 0x7fe, p += 1024 - cx, --i)
+					for (let px, j = cx; j > 0; k = k & 0xfff801 | k + 2 & 0x7fe, ++p, --j)
+						(px = this.palette1[this.ram[k] & 15]) && (data[p] = px);
 			}
 			return;
 		}
 	}
 
 	drawText(data) {
-		if (~this.ram[0xe82601] & 0x20)
-			return;
-		const cx = (this.cxScreen >> 3) + 1, cy = this.cyScreen, hScroll = this.view.getUint16(0xe80014), vScroll = this.view.getUint16(0xe80016);
-		let p = 1024 * 16 + 16 - (hScroll & 7), k = 0xe00000 | vScroll << 7 & 0x1ff80 | hScroll >> 3 & 0x7f;
-		if(this.view.getUint16(0xe82200))
-			for (let i = cy; i !== 0; k = 0xe00000 | k + 0x80 & 0x1fff80 | k - cx & 0x7f, p += 1024 - cx * 8, --i)
-				for (let j = cx; j !== 0; k = k & 0xffff80 | k + 1 & 0x7f, p += 8, --j) {
+		const cx = this.cxScreen, cy = this.cyScreen, r1 = this.view.getUint16(0xe82500), r2 = this.view.getUint16(0xe82600), diff = (r1 >> 12 & 3) - (r1 >> 10 & 3);
+		const hScroll = this.view.getUint16(0xe80014), vScroll = this.view.getUint16(0xe80016);
+		if (diff === -1 && r2 & 0x60 || diff !== 1 && diff !== -1 && r2 & 0x20)
+			for (let p = 1024 * 16 + 16, i = cy; i > 0; p += 1024, --i)
+				this.temp.fill(0, p, p + cx);
+		if (r2 & 0x20) {
+			let k = 0xe00000 | vScroll << 7 & 0x1ff80 | hScroll >> 3 & 0x7f;
+			for (let p = 1024 * 16 + 16 - (hScroll & 7), i = cy; i > 0; k = 0xe00000 | k + 0x80 & 0x1fff80 | k - (cx + 8 >> 3) & 0x7f, p += 1024 - cx - 8, --i)
+				for (let px, j = cx + 8 >> 3; j > 0; k = k & 0xffff80 | k + 1 & 0x7f, p += 8, --j) {
 					const p0 = this.ram[k], p1 = this.ram[0x20000 + k], p2 = this.ram[0x40000 + k], p3 = this.ram[0x60000 + k];
-					data[p] = this.rgb[this.view.getUint16(0xe82200 | p0 >> 6 & 2 | p1 >> 5 & 4 | p2 >> 4 & 8 | p3 >> 3 & 16)];
-					data[p + 1] = this.rgb[this.view.getUint16(0xe82200 | p0 >> 5 & 2 | p1 >> 4 & 4 | p2 >> 3 & 8 | p3 >> 2 & 16)];
-					data[p + 2] = this.rgb[this.view.getUint16(0xe82200 | p0 >> 4 & 2 | p1 >> 3 & 4 | p2 >> 2 & 8 | p3 >> 1 & 16)];
-					data[p + 3] = this.rgb[this.view.getUint16(0xe82200 | p0 >> 3 & 2 | p1 >> 2 & 4 | p2 >> 1 & 8 | p3 & 16)];
-					data[p + 4] = this.rgb[this.view.getUint16(0xe82200 | p0 >> 2 & 2 | p1 >> 1 & 4 | p2 & 8 | p3 << 1 & 16)];
-					data[p + 5] = this.rgb[this.view.getUint16(0xe82200 | p0 >> 1 & 2 | p1 & 4 | p2 << 1 & 8 | p3 << 2 & 16)];
-					data[p + 6] = this.rgb[this.view.getUint16(0xe82200 | p0 & 2 | p1 << 1 & 4 | p2 << 2 & 8 | p3 << 3 & 16)];
-					data[p + 7] = this.rgb[this.view.getUint16(0xe82200 | p0 << 1 & 2 | p1 << 2 & 4 | p2 << 3 & 8 | p3 << 4 & 16)];
+					(px = p0 >> 7 & 1 | p1 >> 6 & 2 | p2 >> 5 & 4 | p3 >> 4 & 8) && (this.temp[p] = px);
+					(px = p0 >> 6 & 1 | p1 >> 5 & 2 | p2 >> 4 & 4 | p3 >> 3 & 8) && (this.temp[p + 1] = px);
+					(px = p0 >> 5 & 1 | p1 >> 4 & 2 | p2 >> 3 & 4 | p3 >> 2 & 8) && (this.temp[p + 2] = px);
+					(px = p0 >> 4 & 1 | p1 >> 3 & 2 | p2 >> 2 & 4 | p3 >> 1 & 8) && (this.temp[p + 3] = px);
+					(px = p0 >> 3 & 1 | p1 >> 2 & 2 | p2 >> 1 & 4 | p3 & 8) && (this.temp[p + 4] = px);
+					(px = p0 >> 2 & 1 | p1 >> 1 & 2 | p2 & 4 | p3 << 1 & 8) && (this.temp[p + 5] = px);
+					(px = p0 >> 1 & 1 | p1 & 2 | p2 << 1 & 4 | p3 << 2 & 8) && (this.temp[p + 6] = px);
+					(px = p0 & 1 | p1 << 1 & 2 | p2 << 2 & 4 | p3 << 3 & 8) && (this.temp[p + 7] = px);
 				}
-		else
-			for (let i = cy; i !== 0; k = 0xe00000 | k + 0x80 & 0x1fff80 | k - cx & 0x7f, p += 1024 - cx * 8, --i)
-				for (let px, j = cx; j !== 0; k = k & 0xffff80 | k + 1 & 0x7f, p += 8, --j) {
-					const p0 = this.ram[k], p1 = this.ram[0x20000 + k], p2 = this.ram[0x40000 + k], p3 = this.ram[0x60000 + k];
-					(px = p0 >> 6 & 2 | p1 >> 5 & 4 | p2 >> 4 & 8 | p3 >> 3 & 16) && (data[p] = this.rgb[this.view.getUint16(0xe82200 | px)]);
-					(px = p0 >> 5 & 2 | p1 >> 4 & 4 | p2 >> 3 & 8 | p3 >> 2 & 16) && (data[p + 1] = this.rgb[this.view.getUint16(0xe82200 | px)]);
-					(px = p0 >> 4 & 2 | p1 >> 3 & 4 | p2 >> 2 & 8 | p3 >> 1 & 16) && (data[p + 2] = this.rgb[this.view.getUint16(0xe82200 | px)]);
-					(px = p0 >> 3 & 2 | p1 >> 2 & 4 | p2 >> 1 & 8 | p3 & 16) && (data[p + 3] = this.rgb[this.view.getUint16(0xe82200 | px)]);
-					(px = p0 >> 2 & 2 | p1 >> 1 & 4 | p2 & 8 | p3 << 1 & 16) && (data[p + 4] = this.rgb[this.view.getUint16(0xe82200 | px)]);
-					(px = p0 >> 1 & 2 | p1 & 4 | p2 << 1 & 8 | p3 << 2 & 16) && (data[p + 5] = this.rgb[this.view.getUint16(0xe82200 | px)]);
-					(px = p0 & 2 | p1 << 1 & 4 | p2 << 2 & 8 | p3 << 3 & 16) && (data[p + 6] = this.rgb[this.view.getUint16(0xe82200 | px)]);
-					(px = p0 << 1 & 2 | p1 << 2 & 4 | p2 << 3 & 8 | p3 << 4 & 16) && (data[p + 7] = this.rgb[this.view.getUint16(0xe82200 | px)]);
+		}
+		if (diff === 1 && r2 & 0x60 || diff !== 1 && diff !== -1 && r2 & 0x20)
+			for (let p = 1024 * 16 + 16, i = cy; i > 0; p += 1024 - cx, --i)
+				for (let px, j = cx >> 3; j > 0; p += 8, --j) {
+					(px = this.palette2[this.temp[p]]) && (data[p] = px);
+					(px = this.palette2[this.temp[p + 1]]) && (data[p + 1] = px);
+					(px = this.palette2[this.temp[p + 2]]) && (data[p + 2] = px);
+					(px = this.palette2[this.temp[p + 3]]) && (data[p + 3] = px);
+					(px = this.palette2[this.temp[p + 4]]) && (data[p + 4] = px);
+					(px = this.palette2[this.temp[p + 5]]) && (data[p + 5] = px);
+					(px = this.palette2[this.temp[p + 6]]) && (data[p + 6] = px);
+					(px = this.palette2[this.temp[p + 7]]) && (data[p + 7] = px);
 				}
 	}
 
 	drawSprite(data) {
-		if (~this.ram[0xe82601] & 0x40 || ~this.ram[0xeb0808] & 2)
-			return;
-		const convertPCG8 = (dst, src, n) => {
-			for (let p = 0, q = 0, i = 0; i < n; q += 32, i++)
-				for (let j = 0; j < 8; j++)
-					for (let k = 0; k < 4; k++)
-						dst[p++] = src[q + j * 4 + k] >> 4, dst[p++] = src[q + j * 4 + k] & 15;
-		};
-		~this.ram[0xeb0811] & 1 && convertPCG8(this.pcg8, this.ram.subarray(0xeb8000), 256);
-		const convertPCG16 = (dst, src, n) => {
-			for (let p = 0, q = 0, i = 0; i < n; q += 128, i++)
-				for (let j = 0; j < 16; j++) {
-					for (let k = 0; k < 4; k++)
-						dst[p++] = src[q + j * 4 + k] >> 4, dst[p++] = src[q + j * 4 + k] & 15;
-					for (let k = 0; k < 4; k++)
-						dst[p++] = src[q + j * 4 + k + 64] >> 4, dst[p++] = src[q + j * 4 + k + 64] & 15;
+		const cx = this.cxScreen, cy = this.cyScreen, r1 = this.view.getUint16(0xe82500), r2 = this.view.getUint16(0xe82600), diff = (r1 >> 12 & 3) - (r1 >> 10 & 3);
+		if (diff === 1 && r2 & 0x60 || diff !== 1 && diff !== -1 && r2 & 0x40)
+			for (let p = 1024 * 16 + 16, i = cy; i > 0; p += 1024, --i)
+				this.temp.fill(0, p, p + cx);
+		if (r2 & 0x40) {
+			const convertPCG8 = (dst, src, n) => {
+				for (let p = 0, q = 0, i = 0; i < n; q += 32, i++)
+					for (let j = 0; j < 8; j++)
+						for (let k = 0; k < 4; k++)
+							dst[p++] = src[q + j * 4 + k] >> 4, dst[p++] = src[q + j * 4 + k] & 15;
+			};
+			~this.ram[0xeb0811] & 1 && convertPCG8(this.pcg8, this.ram.subarray(0xeb8000), 256);
+			const convertPCG16 = (dst, src, n) => {
+				for (let p = 0, q = 0, i = 0; i < n; q += 128, i++)
+					for (let j = 0; j < 16; j++) {
+						for (let k = 0; k < 4; k++)
+							dst[p++] = src[q + j * 4 + k] >> 4, dst[p++] = src[q + j * 4 + k] & 15;
+						for (let k = 0; k < 4; k++)
+							dst[p++] = src[q + j * 4 + k + 64] >> 4, dst[p++] = src[q + j * 4 + k + 64] & 15;
+					}
+			};
+			convertPCG16(this.pcg16, this.ram.subarray(0xeb8000), 256);
+			const prw = new Uint8Array(128);
+			for (let i = 127; i >= 0; --i)
+				if ((prw[i] = this.ram[0xeb0007 | i << 3] & 3)) {
+					const x = this.view.getUint16(0xeb0000 | i << 3) & 0x3ff, y = this.view.getUint16(0xeb0002 | i << 3) & 0x3ff;
+					for (let j = 127; j > i; --j)
+						if (prw[j]) {
+							const dx = this.view.getUint16(0xeb0000 | j << 3) - x & 0x3ff, dy = this.view.getUint16(0xeb0002 | j << 3) - y & 0x3ff;
+							(dx < 16 || dx > 1008) && (dy < 16 || dy > 1008) && (prw[i] = Math.max(prw[i], prw[j]));
+						}
+					prw[i] === 1 && x > 0 && x < cx + 16 && y > 0 && y < cy + 16 && this.xfer16x16(this.temp, x | y << 10, 0xeb0004 | i << 3);
 				}
-		};
-		convertPCG16(this.pcg16, this.ram.subarray(0xeb8000), 256);
-		const cx = this.cxScreen, cy = this.cyScreen;
-		for (let k = 0xeb03f8; k >= 0xeb0000; k -= 8) {
-			const pri = this.ram[k + 7] & 3, x = this.view.getUint16(k) & 0x3ff, y = this.view.getUint16(k + 2) & 0x3ff;
-			if (pri === 1 && x > 0 && x < cx + 16 && y > 0 && y < cy + 16)
-				this.xfer16x16(data, x | y << 10, k + 4);
+			if (~this.ram[0xeb0811] & 1 && this.ram[0xeb0809] & 8) {
+				const hScroll = this.view.getUint16(0xeb0804), vScroll = this.view.getUint16(0xeb0806);
+				const base = this.ram[0xeb0809] & 0x10 ? 0xebe000 : 0xebc000;
+				for (let i = 0; i < 64; i++)
+					for (let j = 0; j < 64; j++) {
+						const x = 16 + j * 8 - hScroll & 0x1ff, y = 16 + i * 8 - vScroll & 0x1ff;
+						if (x > 8 && x < cx + 16 && y > 8 && y < cy + 16)
+							this.xfer8x8(this.temp, x | y << 10, base + i * 128 + j * 2);
+					}
+			}
+			for (let i = 127; i >= 0; --i) {
+				const x = this.view.getUint16(0xeb0000 | i << 3) & 0x3ff, y = this.view.getUint16(0xeb0002 | i << 3) & 0x3ff;
+				prw[i] === 2 && x > 0 && x < cx + 16 && y > 0 && y < cy + 16 && this.xfer16x16(this.temp, x | y << 10, 0xeb0004 | i << 3);
+			}
+			if (this.ram[0xeb0811] & 1 && this.ram[0xeb0809] & 1) {
+				const hScroll = this.view.getUint16(0xeb0800), vScroll = this.view.getUint16(0xeb0802);
+				const base = this.ram[0xeb0809] & 0x2 ? 0xebe000 : 0xebc000;
+				for (let i = 0; i < 64; i++)
+					for (let j = 0; j < 64; j++) {
+						const x = 16 + j * 16 - hScroll & 0x3ff, y = 16 + i * 16 - vScroll & 0x3ff;
+						if (x > 0 && x < cx + 16 && y > 0 && y < cy + 16)
+							this.xfer16x16(this.temp, x | y << 10, base + i * 128 + j * 2);
+					}
+			} else if (~this.ram[0xeb0811] & 1 && this.ram[0xeb0809] & 1) {
+				const hScroll = this.view.getUint16(0xeb0800), vScroll = this.view.getUint16(0xeb0802);
+				const base = this.ram[0xeb0809] & 0x2 ? 0xebe000 : 0xebc000;
+				for (let i = 0; i < 64; i++)
+					for (let j = 0; j < 64; j++) {
+						const x = 16 + j * 8 - hScroll & 0x1ff, y = 16 + i * 8 - vScroll & 0x1ff;
+						if (x > 8 && x < cx + 16 && y > 8 && y < cy + 16)
+							this.xfer8x8(this.temp, x | y << 10, base + i * 128 + j * 2);
+					}
+			}
+			for (let i = 127; i >= 0; --i) {
+				const x = this.view.getUint16(0xeb0000 | i << 3) & 0x3ff, y = this.view.getUint16(0xeb0002 | i << 3) & 0x3ff;
+				prw[i] === 3 && x > 0 && x < cx + 16 && y > 0 && y < cy + 16 && this.xfer16x16(this.temp, x | y << 10, 0xeb0004 | i << 3);
+			}
 		}
-		if (~this.ram[0xeb0811] & 1 && this.ram[0xeb0809] & 8) {
-			const hScroll = this.view.getUint16(0xeb0804), vScroll = this.view.getUint16(0xeb0806);
-			const base = this.ram[0xeb0809] & 0x10 ? 0xebe000 : 0xebc000;
-			for (let i = 0; i < 64; i++)
-				for (let j = 0; j < 64; j++) {
-					const x = 16 + j * 8 - hScroll & 0x1ff, y = 16 + i * 8 - vScroll & 0x1ff;
-					if (x > 8 && x < cx + 16 && y > 8 && y < cy + 16)
-						this.xfer8x8(data, x | y << 10, base + i * 128 + j * 2);
+		if (diff === -1 && r2 & 0x60 || diff !== 1 && diff !== -1 && r2 & 0x40)
+			for (let p = 1024 * 16 + 16, i = cy; i > 0; p += 1024 - cx, --i)
+				for (let px, j = cx >> 3; j > 0; p += 8, --j) {
+					(px = this.palette2[this.temp[p]]) && (data[p] = px);
+					(px = this.palette2[this.temp[p + 1]]) && (data[p + 1] = px);
+					(px = this.palette2[this.temp[p + 2]]) && (data[p + 2] = px);
+					(px = this.palette2[this.temp[p + 3]]) && (data[p + 3] = px);
+					(px = this.palette2[this.temp[p + 4]]) && (data[p + 4] = px);
+					(px = this.palette2[this.temp[p + 5]]) && (data[p + 5] = px);
+					(px = this.palette2[this.temp[p + 6]]) && (data[p + 6] = px);
+					(px = this.palette2[this.temp[p + 7]]) && (data[p + 7] = px);
 				}
-		}
-		for (let k = 0xeb03f8; k >= 0xeb0000; k -= 8) {
-			const pri = this.ram[k + 7] & 3, x = this.view.getUint16(k) & 0x3ff, y = this.view.getUint16(k + 2) & 0x3ff;
-			if (pri === 2 && x > 0 && x < cx + 16 && y > 0 && y < cy + 16)
-				this.xfer16x16(data, x | y << 10, k + 4);
-		}
-		if (this.ram[0xeb0811] & 1 && this.ram[0xeb0809] & 1) {
-			const hScroll = this.view.getUint16(0xeb0800), vScroll = this.view.getUint16(0xeb0802);
-			const base = this.ram[0xeb0809] & 0x2 ? 0xebe000 : 0xebc000;
-			for (let i = 0; i < 64; i++)
-				for (let j = 0; j < 64; j++) {
-					const x = 16 + j * 16 - hScroll & 0x3ff, y = 16 + i * 16 - vScroll & 0x3ff;
-					if (x > 0 && x < cx + 16 && y > 0 && y < cy + 16)
-						this.xfer16x16(data, x | y << 10, base + i * 128 + j * 2);
-				}
-		} else if (~this.ram[0xeb0811] & 1 && this.ram[0xeb0809] & 1) {
-			const hScroll = this.view.getUint16(0xeb0800), vScroll = this.view.getUint16(0xeb0802);
-			const base = this.ram[0xeb0809] & 0x2 ? 0xebe000 : 0xebc000;
-			for (let i = 0; i < 64; i++)
-				for (let j = 0; j < 64; j++) {
-					const x = 16 + j * 8 - hScroll & 0x1ff, y = 16 + i * 8 - vScroll & 0x1ff;
-					if (x > 8 && x < cx + 16 && y > 8 && y < cy + 16)
-						this.xfer8x8(data, x | y << 10, base + i * 128 + j * 2);
-				}
-		}
-		for (let k = 0xeb03f8; k >= 0xeb0000; k -= 8) {
-			const pri = this.ram[k + 7] & 3, x = this.view.getUint16(k) & 0x3ff, y = this.view.getUint16(k + 2) & 0x3ff;
-			if (pri === 3 && x > 0 && x < cx + 16 && y > 0 && y < cy + 16)
-				this.xfer16x16(data, x | y << 10, k + 4);
-		}
 	}
 
 	xfer8x8(data, p, k) {
-		let q = this.ram[k + 1] << 6, idx = 0xe82200 | this.ram[k] << 5 & 0x1e0, px;
+		let q = this.ram[k + 1] << 6, idx = this.ram[k] << 4 & 0xf0, px;
 		switch (this.ram[k] >> 6) {
 		case 0: // ノーマル
-			(px = this.pcg8[q | 0x00]) && (data[p + 0x0000] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x01]) && (data[p + 0x0001] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x02]) && (data[p + 0x0002] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x03]) && (data[p + 0x0003] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x04]) && (data[p + 0x0004] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x05]) && (data[p + 0x0005] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x06]) && (data[p + 0x0006] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x07]) && (data[p + 0x0007] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x08]) && (data[p + 0x0400] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x09]) && (data[p + 0x0401] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0a]) && (data[p + 0x0402] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0b]) && (data[p + 0x0403] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0c]) && (data[p + 0x0404] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0d]) && (data[p + 0x0405] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0e]) && (data[p + 0x0406] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0f]) && (data[p + 0x0407] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x10]) && (data[p + 0x0800] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x11]) && (data[p + 0x0801] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x12]) && (data[p + 0x0802] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x13]) && (data[p + 0x0803] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x14]) && (data[p + 0x0804] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x15]) && (data[p + 0x0805] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x16]) && (data[p + 0x0806] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x17]) && (data[p + 0x0807] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x18]) && (data[p + 0x0c00] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x19]) && (data[p + 0x0c01] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1a]) && (data[p + 0x0c02] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1b]) && (data[p + 0x0c03] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1c]) && (data[p + 0x0c04] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1d]) && (data[p + 0x0c05] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1e]) && (data[p + 0x0c06] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1f]) && (data[p + 0x0c07] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x20]) && (data[p + 0x1000] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x21]) && (data[p + 0x1001] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x22]) && (data[p + 0x1002] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x23]) && (data[p + 0x1003] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x24]) && (data[p + 0x1004] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x25]) && (data[p + 0x1005] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x26]) && (data[p + 0x1006] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x27]) && (data[p + 0x1007] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x28]) && (data[p + 0x1400] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x29]) && (data[p + 0x1401] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2a]) && (data[p + 0x1402] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2b]) && (data[p + 0x1403] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2c]) && (data[p + 0x1404] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2d]) && (data[p + 0x1405] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2e]) && (data[p + 0x1406] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2f]) && (data[p + 0x1407] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x30]) && (data[p + 0x1800] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x31]) && (data[p + 0x1801] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x32]) && (data[p + 0x1802] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x33]) && (data[p + 0x1803] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x34]) && (data[p + 0x1804] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x35]) && (data[p + 0x1805] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x36]) && (data[p + 0x1806] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x37]) && (data[p + 0x1807] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x38]) && (data[p + 0x1c00] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x39]) && (data[p + 0x1c01] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3a]) && (data[p + 0x1c02] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3b]) && (data[p + 0x1c03] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3c]) && (data[p + 0x1c04] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3d]) && (data[p + 0x1c05] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3e]) && (data[p + 0x1c06] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3f]) && (data[p + 0x1c07] = this.rgb[this.view.getUint16(idx | px << 1)]);
+			(px = this.pcg8[q | 0x00]) && (data[p + 0x0000] = idx | px);
+			(px = this.pcg8[q | 0x01]) && (data[p + 0x0001] = idx | px);
+			(px = this.pcg8[q | 0x02]) && (data[p + 0x0002] = idx | px);
+			(px = this.pcg8[q | 0x03]) && (data[p + 0x0003] = idx | px);
+			(px = this.pcg8[q | 0x04]) && (data[p + 0x0004] = idx | px);
+			(px = this.pcg8[q | 0x05]) && (data[p + 0x0005] = idx | px);
+			(px = this.pcg8[q | 0x06]) && (data[p + 0x0006] = idx | px);
+			(px = this.pcg8[q | 0x07]) && (data[p + 0x0007] = idx | px);
+			(px = this.pcg8[q | 0x08]) && (data[p + 0x0400] = idx | px);
+			(px = this.pcg8[q | 0x09]) && (data[p + 0x0401] = idx | px);
+			(px = this.pcg8[q | 0x0a]) && (data[p + 0x0402] = idx | px);
+			(px = this.pcg8[q | 0x0b]) && (data[p + 0x0403] = idx | px);
+			(px = this.pcg8[q | 0x0c]) && (data[p + 0x0404] = idx | px);
+			(px = this.pcg8[q | 0x0d]) && (data[p + 0x0405] = idx | px);
+			(px = this.pcg8[q | 0x0e]) && (data[p + 0x0406] = idx | px);
+			(px = this.pcg8[q | 0x0f]) && (data[p + 0x0407] = idx | px);
+			(px = this.pcg8[q | 0x10]) && (data[p + 0x0800] = idx | px);
+			(px = this.pcg8[q | 0x11]) && (data[p + 0x0801] = idx | px);
+			(px = this.pcg8[q | 0x12]) && (data[p + 0x0802] = idx | px);
+			(px = this.pcg8[q | 0x13]) && (data[p + 0x0803] = idx | px);
+			(px = this.pcg8[q | 0x14]) && (data[p + 0x0804] = idx | px);
+			(px = this.pcg8[q | 0x15]) && (data[p + 0x0805] = idx | px);
+			(px = this.pcg8[q | 0x16]) && (data[p + 0x0806] = idx | px);
+			(px = this.pcg8[q | 0x17]) && (data[p + 0x0807] = idx | px);
+			(px = this.pcg8[q | 0x18]) && (data[p + 0x0c00] = idx | px);
+			(px = this.pcg8[q | 0x19]) && (data[p + 0x0c01] = idx | px);
+			(px = this.pcg8[q | 0x1a]) && (data[p + 0x0c02] = idx | px);
+			(px = this.pcg8[q | 0x1b]) && (data[p + 0x0c03] = idx | px);
+			(px = this.pcg8[q | 0x1c]) && (data[p + 0x0c04] = idx | px);
+			(px = this.pcg8[q | 0x1d]) && (data[p + 0x0c05] = idx | px);
+			(px = this.pcg8[q | 0x1e]) && (data[p + 0x0c06] = idx | px);
+			(px = this.pcg8[q | 0x1f]) && (data[p + 0x0c07] = idx | px);
+			(px = this.pcg8[q | 0x20]) && (data[p + 0x1000] = idx | px);
+			(px = this.pcg8[q | 0x21]) && (data[p + 0x1001] = idx | px);
+			(px = this.pcg8[q | 0x22]) && (data[p + 0x1002] = idx | px);
+			(px = this.pcg8[q | 0x23]) && (data[p + 0x1003] = idx | px);
+			(px = this.pcg8[q | 0x24]) && (data[p + 0x1004] = idx | px);
+			(px = this.pcg8[q | 0x25]) && (data[p + 0x1005] = idx | px);
+			(px = this.pcg8[q | 0x26]) && (data[p + 0x1006] = idx | px);
+			(px = this.pcg8[q | 0x27]) && (data[p + 0x1007] = idx | px);
+			(px = this.pcg8[q | 0x28]) && (data[p + 0x1400] = idx | px);
+			(px = this.pcg8[q | 0x29]) && (data[p + 0x1401] = idx | px);
+			(px = this.pcg8[q | 0x2a]) && (data[p + 0x1402] = idx | px);
+			(px = this.pcg8[q | 0x2b]) && (data[p + 0x1403] = idx | px);
+			(px = this.pcg8[q | 0x2c]) && (data[p + 0x1404] = idx | px);
+			(px = this.pcg8[q | 0x2d]) && (data[p + 0x1405] = idx | px);
+			(px = this.pcg8[q | 0x2e]) && (data[p + 0x1406] = idx | px);
+			(px = this.pcg8[q | 0x2f]) && (data[p + 0x1407] = idx | px);
+			(px = this.pcg8[q | 0x30]) && (data[p + 0x1800] = idx | px);
+			(px = this.pcg8[q | 0x31]) && (data[p + 0x1801] = idx | px);
+			(px = this.pcg8[q | 0x32]) && (data[p + 0x1802] = idx | px);
+			(px = this.pcg8[q | 0x33]) && (data[p + 0x1803] = idx | px);
+			(px = this.pcg8[q | 0x34]) && (data[p + 0x1804] = idx | px);
+			(px = this.pcg8[q | 0x35]) && (data[p + 0x1805] = idx | px);
+			(px = this.pcg8[q | 0x36]) && (data[p + 0x1806] = idx | px);
+			(px = this.pcg8[q | 0x37]) && (data[p + 0x1807] = idx | px);
+			(px = this.pcg8[q | 0x38]) && (data[p + 0x1c00] = idx | px);
+			(px = this.pcg8[q | 0x39]) && (data[p + 0x1c01] = idx | px);
+			(px = this.pcg8[q | 0x3a]) && (data[p + 0x1c02] = idx | px);
+			(px = this.pcg8[q | 0x3b]) && (data[p + 0x1c03] = idx | px);
+			(px = this.pcg8[q | 0x3c]) && (data[p + 0x1c04] = idx | px);
+			(px = this.pcg8[q | 0x3d]) && (data[p + 0x1c05] = idx | px);
+			(px = this.pcg8[q | 0x3e]) && (data[p + 0x1c06] = idx | px);
+			(px = this.pcg8[q | 0x3f]) && (data[p + 0x1c07] = idx | px);
 			return;
 		case 1: // H反転
-			(px = this.pcg8[q | 0x07]) && (data[p + 0x0000] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x06]) && (data[p + 0x0001] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x05]) && (data[p + 0x0002] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x04]) && (data[p + 0x0003] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x03]) && (data[p + 0x0004] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x02]) && (data[p + 0x0005] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x01]) && (data[p + 0x0006] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x00]) && (data[p + 0x0007] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0f]) && (data[p + 0x0400] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0e]) && (data[p + 0x0401] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0d]) && (data[p + 0x0402] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0c]) && (data[p + 0x0403] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0b]) && (data[p + 0x0404] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0a]) && (data[p + 0x0405] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x09]) && (data[p + 0x0406] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x08]) && (data[p + 0x0407] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x17]) && (data[p + 0x0800] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x16]) && (data[p + 0x0801] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x15]) && (data[p + 0x0802] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x14]) && (data[p + 0x0803] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x13]) && (data[p + 0x0804] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x12]) && (data[p + 0x0805] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x11]) && (data[p + 0x0806] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x10]) && (data[p + 0x0807] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1f]) && (data[p + 0x0c00] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1e]) && (data[p + 0x0c01] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1d]) && (data[p + 0x0c02] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1c]) && (data[p + 0x0c03] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1b]) && (data[p + 0x0c04] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1a]) && (data[p + 0x0c05] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x19]) && (data[p + 0x0c06] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x18]) && (data[p + 0x0c07] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x27]) && (data[p + 0x1000] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x26]) && (data[p + 0x1001] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x25]) && (data[p + 0x1002] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x24]) && (data[p + 0x1003] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x23]) && (data[p + 0x1004] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x22]) && (data[p + 0x1005] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x21]) && (data[p + 0x1006] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x20]) && (data[p + 0x1007] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2f]) && (data[p + 0x1400] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2e]) && (data[p + 0x1401] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2d]) && (data[p + 0x1402] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2c]) && (data[p + 0x1403] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2b]) && (data[p + 0x1404] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2a]) && (data[p + 0x1405] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x29]) && (data[p + 0x1406] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x28]) && (data[p + 0x1407] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x37]) && (data[p + 0x1800] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x36]) && (data[p + 0x1801] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x35]) && (data[p + 0x1802] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x34]) && (data[p + 0x1803] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x33]) && (data[p + 0x1804] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x32]) && (data[p + 0x1805] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x31]) && (data[p + 0x1806] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x30]) && (data[p + 0x1807] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3f]) && (data[p + 0x1c00] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3e]) && (data[p + 0x1c01] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3d]) && (data[p + 0x1c02] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3c]) && (data[p + 0x1c03] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3b]) && (data[p + 0x1c04] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3a]) && (data[p + 0x1c05] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x39]) && (data[p + 0x1c06] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x38]) && (data[p + 0x1c07] = this.rgb[this.view.getUint16(idx | px << 1)]);
+			(px = this.pcg8[q | 0x07]) && (data[p + 0x0000] = idx | px);
+			(px = this.pcg8[q | 0x06]) && (data[p + 0x0001] = idx | px);
+			(px = this.pcg8[q | 0x05]) && (data[p + 0x0002] = idx | px);
+			(px = this.pcg8[q | 0x04]) && (data[p + 0x0003] = idx | px);
+			(px = this.pcg8[q | 0x03]) && (data[p + 0x0004] = idx | px);
+			(px = this.pcg8[q | 0x02]) && (data[p + 0x0005] = idx | px);
+			(px = this.pcg8[q | 0x01]) && (data[p + 0x0006] = idx | px);
+			(px = this.pcg8[q | 0x00]) && (data[p + 0x0007] = idx | px);
+			(px = this.pcg8[q | 0x0f]) && (data[p + 0x0400] = idx | px);
+			(px = this.pcg8[q | 0x0e]) && (data[p + 0x0401] = idx | px);
+			(px = this.pcg8[q | 0x0d]) && (data[p + 0x0402] = idx | px);
+			(px = this.pcg8[q | 0x0c]) && (data[p + 0x0403] = idx | px);
+			(px = this.pcg8[q | 0x0b]) && (data[p + 0x0404] = idx | px);
+			(px = this.pcg8[q | 0x0a]) && (data[p + 0x0405] = idx | px);
+			(px = this.pcg8[q | 0x09]) && (data[p + 0x0406] = idx | px);
+			(px = this.pcg8[q | 0x08]) && (data[p + 0x0407] = idx | px);
+			(px = this.pcg8[q | 0x17]) && (data[p + 0x0800] = idx | px);
+			(px = this.pcg8[q | 0x16]) && (data[p + 0x0801] = idx | px);
+			(px = this.pcg8[q | 0x15]) && (data[p + 0x0802] = idx | px);
+			(px = this.pcg8[q | 0x14]) && (data[p + 0x0803] = idx | px);
+			(px = this.pcg8[q | 0x13]) && (data[p + 0x0804] = idx | px);
+			(px = this.pcg8[q | 0x12]) && (data[p + 0x0805] = idx | px);
+			(px = this.pcg8[q | 0x11]) && (data[p + 0x0806] = idx | px);
+			(px = this.pcg8[q | 0x10]) && (data[p + 0x0807] = idx | px);
+			(px = this.pcg8[q | 0x1f]) && (data[p + 0x0c00] = idx | px);
+			(px = this.pcg8[q | 0x1e]) && (data[p + 0x0c01] = idx | px);
+			(px = this.pcg8[q | 0x1d]) && (data[p + 0x0c02] = idx | px);
+			(px = this.pcg8[q | 0x1c]) && (data[p + 0x0c03] = idx | px);
+			(px = this.pcg8[q | 0x1b]) && (data[p + 0x0c04] = idx | px);
+			(px = this.pcg8[q | 0x1a]) && (data[p + 0x0c05] = idx | px);
+			(px = this.pcg8[q | 0x19]) && (data[p + 0x0c06] = idx | px);
+			(px = this.pcg8[q | 0x18]) && (data[p + 0x0c07] = idx | px);
+			(px = this.pcg8[q | 0x27]) && (data[p + 0x1000] = idx | px);
+			(px = this.pcg8[q | 0x26]) && (data[p + 0x1001] = idx | px);
+			(px = this.pcg8[q | 0x25]) && (data[p + 0x1002] = idx | px);
+			(px = this.pcg8[q | 0x24]) && (data[p + 0x1003] = idx | px);
+			(px = this.pcg8[q | 0x23]) && (data[p + 0x1004] = idx | px);
+			(px = this.pcg8[q | 0x22]) && (data[p + 0x1005] = idx | px);
+			(px = this.pcg8[q | 0x21]) && (data[p + 0x1006] = idx | px);
+			(px = this.pcg8[q | 0x20]) && (data[p + 0x1007] = idx | px);
+			(px = this.pcg8[q | 0x2f]) && (data[p + 0x1400] = idx | px);
+			(px = this.pcg8[q | 0x2e]) && (data[p + 0x1401] = idx | px);
+			(px = this.pcg8[q | 0x2d]) && (data[p + 0x1402] = idx | px);
+			(px = this.pcg8[q | 0x2c]) && (data[p + 0x1403] = idx | px);
+			(px = this.pcg8[q | 0x2b]) && (data[p + 0x1404] = idx | px);
+			(px = this.pcg8[q | 0x2a]) && (data[p + 0x1405] = idx | px);
+			(px = this.pcg8[q | 0x29]) && (data[p + 0x1406] = idx | px);
+			(px = this.pcg8[q | 0x28]) && (data[p + 0x1407] = idx | px);
+			(px = this.pcg8[q | 0x37]) && (data[p + 0x1800] = idx | px);
+			(px = this.pcg8[q | 0x36]) && (data[p + 0x1801] = idx | px);
+			(px = this.pcg8[q | 0x35]) && (data[p + 0x1802] = idx | px);
+			(px = this.pcg8[q | 0x34]) && (data[p + 0x1803] = idx | px);
+			(px = this.pcg8[q | 0x33]) && (data[p + 0x1804] = idx | px);
+			(px = this.pcg8[q | 0x32]) && (data[p + 0x1805] = idx | px);
+			(px = this.pcg8[q | 0x31]) && (data[p + 0x1806] = idx | px);
+			(px = this.pcg8[q | 0x30]) && (data[p + 0x1807] = idx | px);
+			(px = this.pcg8[q | 0x3f]) && (data[p + 0x1c00] = idx | px);
+			(px = this.pcg8[q | 0x3e]) && (data[p + 0x1c01] = idx | px);
+			(px = this.pcg8[q | 0x3d]) && (data[p + 0x1c02] = idx | px);
+			(px = this.pcg8[q | 0x3c]) && (data[p + 0x1c03] = idx | px);
+			(px = this.pcg8[q | 0x3b]) && (data[p + 0x1c04] = idx | px);
+			(px = this.pcg8[q | 0x3a]) && (data[p + 0x1c05] = idx | px);
+			(px = this.pcg8[q | 0x39]) && (data[p + 0x1c06] = idx | px);
+			(px = this.pcg8[q | 0x38]) && (data[p + 0x1c07] = idx | px);
 			return;
 		case 2: // V反転
-			(px = this.pcg8[q | 0x38]) && (data[p + 0x0000] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x39]) && (data[p + 0x0001] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3a]) && (data[p + 0x0002] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3b]) && (data[p + 0x0003] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3c]) && (data[p + 0x0004] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3d]) && (data[p + 0x0005] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3e]) && (data[p + 0x0006] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3f]) && (data[p + 0x0007] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x30]) && (data[p + 0x0400] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x31]) && (data[p + 0x0401] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x32]) && (data[p + 0x0402] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x33]) && (data[p + 0x0403] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x34]) && (data[p + 0x0404] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x35]) && (data[p + 0x0405] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x36]) && (data[p + 0x0406] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x37]) && (data[p + 0x0407] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x28]) && (data[p + 0x0800] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x29]) && (data[p + 0x0801] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2a]) && (data[p + 0x0802] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2b]) && (data[p + 0x0803] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2c]) && (data[p + 0x0804] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2d]) && (data[p + 0x0805] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2e]) && (data[p + 0x0806] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2f]) && (data[p + 0x0807] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x20]) && (data[p + 0x0c00] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x21]) && (data[p + 0x0c01] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x22]) && (data[p + 0x0c02] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x23]) && (data[p + 0x0c03] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x24]) && (data[p + 0x0c04] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x25]) && (data[p + 0x0c05] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x26]) && (data[p + 0x0c06] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x27]) && (data[p + 0x0c07] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x18]) && (data[p + 0x1000] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x19]) && (data[p + 0x1001] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1a]) && (data[p + 0x1002] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1b]) && (data[p + 0x1003] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1c]) && (data[p + 0x1004] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1d]) && (data[p + 0x1005] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1e]) && (data[p + 0x1006] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1f]) && (data[p + 0x1007] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x10]) && (data[p + 0x1400] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x11]) && (data[p + 0x1401] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x12]) && (data[p + 0x1402] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x13]) && (data[p + 0x1403] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x14]) && (data[p + 0x1404] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x15]) && (data[p + 0x1405] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x16]) && (data[p + 0x1406] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x17]) && (data[p + 0x1407] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x08]) && (data[p + 0x1800] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x09]) && (data[p + 0x1801] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0a]) && (data[p + 0x1802] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0b]) && (data[p + 0x1803] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0c]) && (data[p + 0x1804] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0d]) && (data[p + 0x1805] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0e]) && (data[p + 0x1806] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0f]) && (data[p + 0x1807] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x00]) && (data[p + 0x1c00] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x01]) && (data[p + 0x1c01] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x02]) && (data[p + 0x1c02] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x03]) && (data[p + 0x1c03] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x04]) && (data[p + 0x1c04] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x05]) && (data[p + 0x1c05] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x06]) && (data[p + 0x1c06] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x07]) && (data[p + 0x1c07] = this.rgb[this.view.getUint16(idx | px << 1)]);
+			(px = this.pcg8[q | 0x38]) && (data[p + 0x0000] = idx | px);
+			(px = this.pcg8[q | 0x39]) && (data[p + 0x0001] = idx | px);
+			(px = this.pcg8[q | 0x3a]) && (data[p + 0x0002] = idx | px);
+			(px = this.pcg8[q | 0x3b]) && (data[p + 0x0003] = idx | px);
+			(px = this.pcg8[q | 0x3c]) && (data[p + 0x0004] = idx | px);
+			(px = this.pcg8[q | 0x3d]) && (data[p + 0x0005] = idx | px);
+			(px = this.pcg8[q | 0x3e]) && (data[p + 0x0006] = idx | px);
+			(px = this.pcg8[q | 0x3f]) && (data[p + 0x0007] = idx | px);
+			(px = this.pcg8[q | 0x30]) && (data[p + 0x0400] = idx | px);
+			(px = this.pcg8[q | 0x31]) && (data[p + 0x0401] = idx | px);
+			(px = this.pcg8[q | 0x32]) && (data[p + 0x0402] = idx | px);
+			(px = this.pcg8[q | 0x33]) && (data[p + 0x0403] = idx | px);
+			(px = this.pcg8[q | 0x34]) && (data[p + 0x0404] = idx | px);
+			(px = this.pcg8[q | 0x35]) && (data[p + 0x0405] = idx | px);
+			(px = this.pcg8[q | 0x36]) && (data[p + 0x0406] = idx | px);
+			(px = this.pcg8[q | 0x37]) && (data[p + 0x0407] = idx | px);
+			(px = this.pcg8[q | 0x28]) && (data[p + 0x0800] = idx | px);
+			(px = this.pcg8[q | 0x29]) && (data[p + 0x0801] = idx | px);
+			(px = this.pcg8[q | 0x2a]) && (data[p + 0x0802] = idx | px);
+			(px = this.pcg8[q | 0x2b]) && (data[p + 0x0803] = idx | px);
+			(px = this.pcg8[q | 0x2c]) && (data[p + 0x0804] = idx | px);
+			(px = this.pcg8[q | 0x2d]) && (data[p + 0x0805] = idx | px);
+			(px = this.pcg8[q | 0x2e]) && (data[p + 0x0806] = idx | px);
+			(px = this.pcg8[q | 0x2f]) && (data[p + 0x0807] = idx | px);
+			(px = this.pcg8[q | 0x20]) && (data[p + 0x0c00] = idx | px);
+			(px = this.pcg8[q | 0x21]) && (data[p + 0x0c01] = idx | px);
+			(px = this.pcg8[q | 0x22]) && (data[p + 0x0c02] = idx | px);
+			(px = this.pcg8[q | 0x23]) && (data[p + 0x0c03] = idx | px);
+			(px = this.pcg8[q | 0x24]) && (data[p + 0x0c04] = idx | px);
+			(px = this.pcg8[q | 0x25]) && (data[p + 0x0c05] = idx | px);
+			(px = this.pcg8[q | 0x26]) && (data[p + 0x0c06] = idx | px);
+			(px = this.pcg8[q | 0x27]) && (data[p + 0x0c07] = idx | px);
+			(px = this.pcg8[q | 0x18]) && (data[p + 0x1000] = idx | px);
+			(px = this.pcg8[q | 0x19]) && (data[p + 0x1001] = idx | px);
+			(px = this.pcg8[q | 0x1a]) && (data[p + 0x1002] = idx | px);
+			(px = this.pcg8[q | 0x1b]) && (data[p + 0x1003] = idx | px);
+			(px = this.pcg8[q | 0x1c]) && (data[p + 0x1004] = idx | px);
+			(px = this.pcg8[q | 0x1d]) && (data[p + 0x1005] = idx | px);
+			(px = this.pcg8[q | 0x1e]) && (data[p + 0x1006] = idx | px);
+			(px = this.pcg8[q | 0x1f]) && (data[p + 0x1007] = idx | px);
+			(px = this.pcg8[q | 0x10]) && (data[p + 0x1400] = idx | px);
+			(px = this.pcg8[q | 0x11]) && (data[p + 0x1401] = idx | px);
+			(px = this.pcg8[q | 0x12]) && (data[p + 0x1402] = idx | px);
+			(px = this.pcg8[q | 0x13]) && (data[p + 0x1403] = idx | px);
+			(px = this.pcg8[q | 0x14]) && (data[p + 0x1404] = idx | px);
+			(px = this.pcg8[q | 0x15]) && (data[p + 0x1405] = idx | px);
+			(px = this.pcg8[q | 0x16]) && (data[p + 0x1406] = idx | px);
+			(px = this.pcg8[q | 0x17]) && (data[p + 0x1407] = idx | px);
+			(px = this.pcg8[q | 0x08]) && (data[p + 0x1800] = idx | px);
+			(px = this.pcg8[q | 0x09]) && (data[p + 0x1801] = idx | px);
+			(px = this.pcg8[q | 0x0a]) && (data[p + 0x1802] = idx | px);
+			(px = this.pcg8[q | 0x0b]) && (data[p + 0x1803] = idx | px);
+			(px = this.pcg8[q | 0x0c]) && (data[p + 0x1804] = idx | px);
+			(px = this.pcg8[q | 0x0d]) && (data[p + 0x1805] = idx | px);
+			(px = this.pcg8[q | 0x0e]) && (data[p + 0x1806] = idx | px);
+			(px = this.pcg8[q | 0x0f]) && (data[p + 0x1807] = idx | px);
+			(px = this.pcg8[q | 0x00]) && (data[p + 0x1c00] = idx | px);
+			(px = this.pcg8[q | 0x01]) && (data[p + 0x1c01] = idx | px);
+			(px = this.pcg8[q | 0x02]) && (data[p + 0x1c02] = idx | px);
+			(px = this.pcg8[q | 0x03]) && (data[p + 0x1c03] = idx | px);
+			(px = this.pcg8[q | 0x04]) && (data[p + 0x1c04] = idx | px);
+			(px = this.pcg8[q | 0x05]) && (data[p + 0x1c05] = idx | px);
+			(px = this.pcg8[q | 0x06]) && (data[p + 0x1c06] = idx | px);
+			(px = this.pcg8[q | 0x07]) && (data[p + 0x1c07] = idx | px);
 			return;
 		case 3: // HV反転
-			(px = this.pcg8[q | 0x3f]) && (data[p + 0x0000] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3e]) && (data[p + 0x0001] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3d]) && (data[p + 0x0002] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3c]) && (data[p + 0x0003] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3b]) && (data[p + 0x0004] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x3a]) && (data[p + 0x0005] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x39]) && (data[p + 0x0006] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x38]) && (data[p + 0x0007] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x37]) && (data[p + 0x0400] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x36]) && (data[p + 0x0401] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x35]) && (data[p + 0x0402] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x34]) && (data[p + 0x0403] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x33]) && (data[p + 0x0404] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x32]) && (data[p + 0x0405] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x31]) && (data[p + 0x0406] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x30]) && (data[p + 0x0407] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2f]) && (data[p + 0x0800] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2e]) && (data[p + 0x0801] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2d]) && (data[p + 0x0802] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2c]) && (data[p + 0x0803] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2b]) && (data[p + 0x0804] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x2a]) && (data[p + 0x0805] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x29]) && (data[p + 0x0806] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x28]) && (data[p + 0x0807] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x27]) && (data[p + 0x0c00] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x26]) && (data[p + 0x0c01] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x25]) && (data[p + 0x0c02] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x24]) && (data[p + 0x0c03] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x23]) && (data[p + 0x0c04] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x22]) && (data[p + 0x0c05] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x21]) && (data[p + 0x0c06] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x20]) && (data[p + 0x0c07] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1f]) && (data[p + 0x1000] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1e]) && (data[p + 0x1001] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1d]) && (data[p + 0x1002] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1c]) && (data[p + 0x1003] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1b]) && (data[p + 0x1004] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x1a]) && (data[p + 0x1005] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x19]) && (data[p + 0x1006] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x18]) && (data[p + 0x1007] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x17]) && (data[p + 0x1400] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x16]) && (data[p + 0x1401] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x15]) && (data[p + 0x1402] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x14]) && (data[p + 0x1403] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x13]) && (data[p + 0x1404] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x12]) && (data[p + 0x1405] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x11]) && (data[p + 0x1406] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x10]) && (data[p + 0x1407] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0f]) && (data[p + 0x1800] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0e]) && (data[p + 0x1801] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0d]) && (data[p + 0x1802] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0c]) && (data[p + 0x1803] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0b]) && (data[p + 0x1804] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x0a]) && (data[p + 0x1805] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x09]) && (data[p + 0x1806] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x08]) && (data[p + 0x1807] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x07]) && (data[p + 0x1c00] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x06]) && (data[p + 0x1c01] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x05]) && (data[p + 0x1c02] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x04]) && (data[p + 0x1c03] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x03]) && (data[p + 0x1c04] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x02]) && (data[p + 0x1c05] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x01]) && (data[p + 0x1c06] = this.rgb[this.view.getUint16(idx | px << 1)]);
-			(px = this.pcg8[q | 0x00]) && (data[p + 0x1c07] = this.rgb[this.view.getUint16(idx | px << 1)]);
+			(px = this.pcg8[q | 0x3f]) && (data[p + 0x0000] = idx | px);
+			(px = this.pcg8[q | 0x3e]) && (data[p + 0x0001] = idx | px);
+			(px = this.pcg8[q | 0x3d]) && (data[p + 0x0002] = idx | px);
+			(px = this.pcg8[q | 0x3c]) && (data[p + 0x0003] = idx | px);
+			(px = this.pcg8[q | 0x3b]) && (data[p + 0x0004] = idx | px);
+			(px = this.pcg8[q | 0x3a]) && (data[p + 0x0005] = idx | px);
+			(px = this.pcg8[q | 0x39]) && (data[p + 0x0006] = idx | px);
+			(px = this.pcg8[q | 0x38]) && (data[p + 0x0007] = idx | px);
+			(px = this.pcg8[q | 0x37]) && (data[p + 0x0400] = idx | px);
+			(px = this.pcg8[q | 0x36]) && (data[p + 0x0401] = idx | px);
+			(px = this.pcg8[q | 0x35]) && (data[p + 0x0402] = idx | px);
+			(px = this.pcg8[q | 0x34]) && (data[p + 0x0403] = idx | px);
+			(px = this.pcg8[q | 0x33]) && (data[p + 0x0404] = idx | px);
+			(px = this.pcg8[q | 0x32]) && (data[p + 0x0405] = idx | px);
+			(px = this.pcg8[q | 0x31]) && (data[p + 0x0406] = idx | px);
+			(px = this.pcg8[q | 0x30]) && (data[p + 0x0407] = idx | px);
+			(px = this.pcg8[q | 0x2f]) && (data[p + 0x0800] = idx | px);
+			(px = this.pcg8[q | 0x2e]) && (data[p + 0x0801] = idx | px);
+			(px = this.pcg8[q | 0x2d]) && (data[p + 0x0802] = idx | px);
+			(px = this.pcg8[q | 0x2c]) && (data[p + 0x0803] = idx | px);
+			(px = this.pcg8[q | 0x2b]) && (data[p + 0x0804] = idx | px);
+			(px = this.pcg8[q | 0x2a]) && (data[p + 0x0805] = idx | px);
+			(px = this.pcg8[q | 0x29]) && (data[p + 0x0806] = idx | px);
+			(px = this.pcg8[q | 0x28]) && (data[p + 0x0807] = idx | px);
+			(px = this.pcg8[q | 0x27]) && (data[p + 0x0c00] = idx | px);
+			(px = this.pcg8[q | 0x26]) && (data[p + 0x0c01] = idx | px);
+			(px = this.pcg8[q | 0x25]) && (data[p + 0x0c02] = idx | px);
+			(px = this.pcg8[q | 0x24]) && (data[p + 0x0c03] = idx | px);
+			(px = this.pcg8[q | 0x23]) && (data[p + 0x0c04] = idx | px);
+			(px = this.pcg8[q | 0x22]) && (data[p + 0x0c05] = idx | px);
+			(px = this.pcg8[q | 0x21]) && (data[p + 0x0c06] = idx | px);
+			(px = this.pcg8[q | 0x20]) && (data[p + 0x0c07] = idx | px);
+			(px = this.pcg8[q | 0x1f]) && (data[p + 0x1000] = idx | px);
+			(px = this.pcg8[q | 0x1e]) && (data[p + 0x1001] = idx | px);
+			(px = this.pcg8[q | 0x1d]) && (data[p + 0x1002] = idx | px);
+			(px = this.pcg8[q | 0x1c]) && (data[p + 0x1003] = idx | px);
+			(px = this.pcg8[q | 0x1b]) && (data[p + 0x1004] = idx | px);
+			(px = this.pcg8[q | 0x1a]) && (data[p + 0x1005] = idx | px);
+			(px = this.pcg8[q | 0x19]) && (data[p + 0x1006] = idx | px);
+			(px = this.pcg8[q | 0x18]) && (data[p + 0x1007] = idx | px);
+			(px = this.pcg8[q | 0x17]) && (data[p + 0x1400] = idx | px);
+			(px = this.pcg8[q | 0x16]) && (data[p + 0x1401] = idx | px);
+			(px = this.pcg8[q | 0x15]) && (data[p + 0x1402] = idx | px);
+			(px = this.pcg8[q | 0x14]) && (data[p + 0x1403] = idx | px);
+			(px = this.pcg8[q | 0x13]) && (data[p + 0x1404] = idx | px);
+			(px = this.pcg8[q | 0x12]) && (data[p + 0x1405] = idx | px);
+			(px = this.pcg8[q | 0x11]) && (data[p + 0x1406] = idx | px);
+			(px = this.pcg8[q | 0x10]) && (data[p + 0x1407] = idx | px);
+			(px = this.pcg8[q | 0x0f]) && (data[p + 0x1800] = idx | px);
+			(px = this.pcg8[q | 0x0e]) && (data[p + 0x1801] = idx | px);
+			(px = this.pcg8[q | 0x0d]) && (data[p + 0x1802] = idx | px);
+			(px = this.pcg8[q | 0x0c]) && (data[p + 0x1803] = idx | px);
+			(px = this.pcg8[q | 0x0b]) && (data[p + 0x1804] = idx | px);
+			(px = this.pcg8[q | 0x0a]) && (data[p + 0x1805] = idx | px);
+			(px = this.pcg8[q | 0x09]) && (data[p + 0x1806] = idx | px);
+			(px = this.pcg8[q | 0x08]) && (data[p + 0x1807] = idx | px);
+			(px = this.pcg8[q | 0x07]) && (data[p + 0x1c00] = idx | px);
+			(px = this.pcg8[q | 0x06]) && (data[p + 0x1c01] = idx | px);
+			(px = this.pcg8[q | 0x05]) && (data[p + 0x1c02] = idx | px);
+			(px = this.pcg8[q | 0x04]) && (data[p + 0x1c03] = idx | px);
+			(px = this.pcg8[q | 0x03]) && (data[p + 0x1c04] = idx | px);
+			(px = this.pcg8[q | 0x02]) && (data[p + 0x1c05] = idx | px);
+			(px = this.pcg8[q | 0x01]) && (data[p + 0x1c06] = idx | px);
+			(px = this.pcg8[q | 0x00]) && (data[p + 0x1c07] = idx | px);
 			return;
 		}
 	}
 
 	xfer16x16(data, p, k) {
-		let q = this.ram[k + 1] << 8, idx = 0xe82200 | this.ram[k] << 5 & 0x1e0;
+		let q = this.ram[k + 1] << 8, idx = this.ram[k] << 4 & 0xf0;
 		switch (this.ram[k] >> 6) {
 		case 0: // ノーマル
 			for (let i = 16; i !== 0; p += 1024 - 16, --i)
 				for (let px, j = 16; j !== 0; ++p, --j)
-					(px = this.pcg16[q++]) && (data[p] = this.rgb[this.view.getUint16(idx | px << 1)]);
+					(px = this.pcg16[q++]) && (data[p] = idx | px);
 			return;
 		case 1: // H反転
 			q += 16;
 			for (let i = 16; i !== 0; p += 1024 - 16, q += 32, --i)
 				for (let px, j = 16; j !== 0; ++p, --j)
-					(px = this.pcg16[--q]) && (data[p] = this.rgb[this.view.getUint16(idx | px << 1)]);
+					(px = this.pcg16[--q]) && (data[p] = idx | px);
 			return;
 		case 2: // V反転
 			q += 256 - 16;
 			for (let i = 16; i !== 0; p += 1024 - 16, q -= 32, --i)
 				for (let px, j = 16; j !== 0; ++p, --j)
-					(px = this.pcg16[q++]) && (data[p] = this.rgb[this.view.getUint16(idx | px << 1)]);
+					(px = this.pcg16[q++]) && (data[p] = idx | px);
 			return;
 		case 3: // HV反転
 			q += 256;
 			for (let i = 16; i !== 0; p += 1024 - 16, --i)
 				for (let px, j = 16; j !== 0; ++p, --j)
-					(px = this.pcg16[--q]) && (data[p] = this.rgb[this.view.getUint16(idx | px << 1)]);
+					(px = this.pcg16[--q]) && (data[p] = idx | px);
 			return;
 		}
 	}
 }
 
-function* generator(fdc, drq) {
-	let command = fdc.data, us, irq = () => fdc.irq = true;
+function* generator(fdc) {
+	let command = fdc.data, us, irq = () => fdc.irq = true, drq = () => fdc.drq = true;
 	if (command === 3) { // SPECIFY
 		fdc.status |= 0x10, yield, yield, fdc.status &= ~0x10;
 	} else if (command === 4) { // SENSE DEVICE STATUS
 		fdc.status |= 0x10, yield, us = fdc.data, fdc.data = (FDD[us & 3] ? 1 : 0) << 5 | !fdc.c[us & 3] << 4 | us & 7, fdc.status |= 0x40, yield, fdc.status &= ~0x50;
 	} else if ((command & ~0xc0) === 5) { // WRITE DATA
-		let c, h, r, n, eot, length, offset, tc;
+		let c, h, r, n, eot, length, offset;
 		fdc.status |= 0x10, yield, us = fdc.data & 7, yield, c = fdc.data, yield, h = fdc.data, yield, r = fdc.data, yield, n = fdc.data;
 		yield, eot = fdc.data, yield, /* gsl */ yield, /* dtl */ length = 128 << n, offset = (c * 2 + h) * 8192 + (r - 1) * length;
 		if (FDD[us & 3]) {
 			do {
-				tc = drq(), FDD[us & 3][offset] = fdc.data;
+				drq(), yield, FDD[us & 3][offset] = fdc.data;
 				if (!(++offset & length - 1))
 					r < eot ? ++r : ~command & 0x80 ? (++c, r = 1) : (us & 4 && ++c, us ^= 4, h ^= 1, r = 1), offset = (c * 2 + h) * 8192 + (r - 1) * length;
-			} while (!tc);
+			} while (!fdc.tc);
 			offset & length - 1 && (r < eot ? ++r : ~command & 0x80 ? (++c, r = 1) : (us & 4 && ++c, h ^= 1, r = 1)), fdc.data = us, fdc.status |= 0x40, irq();
 			yield, fdc.data = 0, yield, yield, fdc.data = c, yield, fdc.data = h, yield, fdc.data = r, yield, fdc.data = n, yield, fdc.status &= ~0x50;
 		} else
@@ -974,7 +1037,8 @@ function* generator(fdc, drq) {
 				fdc.data = FDD[us & 3][offset];
 				if (!(++offset & length - 1))
 					r < eot ? ++r : ~command & 0x80 ? (++c, r = 1) : (us & 4 && ++c, us ^= 4, h ^= 1, r = 1), offset = (c * 2 + h) * 8192 + (r - 1) * length;
-			} while (!drq());
+				drq(), yield;
+			} while (!fdc.tc);
 			offset & length - 1 && (r < eot ? ++r : ~command & 0x80 ? (++c, r = 1) : (us & 4 && ++c, h ^= 1, r = 1)), fdc.data = us, irq();
 			yield, fdc.data = 0, yield, yield, fdc.data = c, yield, fdc.data = h, yield, fdc.data = r, yield, fdc.data = n, yield, fdc.status &= ~0x50;
 		} else
@@ -994,10 +1058,11 @@ function* generator(fdc, drq) {
 		} else
 			fdc.data = 0x48 | us, fdc.status |= 0x40, irq(), yield, fdc.data = 0, yield, yield, yield, yield, yield, yield, fdc.status &= ~0x50;
 	} else if ((command & ~0x40) === 13) { // WRITE ID
-		let n, sc, d, offset;
+		let n, sc, d, offset, count = 0;
 		fdc.status |= 0x10, yield, us = fdc.data & 7, yield n = fdc.data, yield, sc = fdc.data, yield, /* gpl */ yield, d = fdc.data;
 		if (FDD[us & 3]) {
-			for (let count = 0; !drq() && ++count < sc * 4;) {}
+			for (fdc.tc = false; !fdc.tc && count < sc * 4; ++count)
+				drq(), yield;
 			offset = (fdc.c[us & 3] * 2 + (us >> 2)) * 8192, FDD[us & 3].fill(d, offset, offset + 8192);
 			fdc.data = us, fdc.status |= 0x40, irq(), yield, fdc.data = 0, yield, yield, yield, yield, yield, fdc.data = n, yield, fdc.status &= ~0x50;
 		} else
@@ -1005,13 +1070,13 @@ function* generator(fdc, drq) {
 	} else if (command === 15) { // SEEK
 		fdc.status |= 0x10, yield, us = fdc.data & 3, yield, fdc.c[us] = fdc.data, fdc.status = fdc.status & ~0x10 | 1 << us, irq();
 	} else if ((command & ~0xe0) === 17) { // SCAN EQUAL
-		let c, h, r, n, eot, stp, length, offset, tc, sh;
+		let c, h, r, n, eot, stp, length, offset, sh;
 		fdc.status |= 0x10, yield, us = fdc.data & 7, yield, c = fdc.data, yield, h = fdc.data, yield, r = fdc.data, yield, n = fdc.data;
 		yield, eot = fdc.data, yield, /* gsl */ yield, stp = fdc.data, length = 128 << n, offset = (c * 2 + h) * 8192 + (r - 1) * length;
 		if (FDD[us & 3]) {
-			for (; ;) {
-				for (sh = true, tc = false; !tc; ++offset)
-					tc = drq(), fdc.data !== 0xff && fdc.data !== FDD[us & 3][offset] && (sh = false);
+			for (;;) {
+				for (sh = true, fdc.tc = false; !fdc.tc; ++offset)
+					drq(), yield, fdc.data !== 0xff && fdc.data !== FDD[us & 3][offset] && (sh = false);
 				if (sh || r === eot && (~command & 0x80 || us & 4))
 					break;
 				r < eot ? r += stp : command & 0x80 && (us |= 4, h ^= 1, r = stp), offset = (c * 2 + h) * 8192 + (r - 1) * length;
@@ -1308,8 +1373,14 @@ const keyup = e => {
  *
  */
 
+const bc = Uint8Array.from(window.atob('\
+AAEBAgECAgMBAgIDAgMDBAECAgMCAwMEAgMDBAMEBAUBAgIDAgMDBAIDAwQDBAQFAgMDBAMEBAUDBAQFBAUFBgECAgMCAwMEAgMDBAMEBAUCAwMEAwQEBQME\
+BAUEBQUGAgMDBAMEBAUDBAQFBAUFBgMEBAUEBQUGBAUFBgUGBgcBAgIDAgMDBAIDAwQDBAQFAgMDBAMEBAUDBAQFBAUFBgIDAwQDBAQFAwQEBQQFBQYDBAQF\
+BAUFBgQFBQYFBgYHAgMDBAMEBAUDBAQFBAUFBgMEBAUEBQUGBAUFBgUGBgcDBAQFBAUFBgQFBQYFBgYHBAUFBgUGBgcFBgYHBgcHCA==\
+').split(''), c => c.charCodeAt(0));
 const SRAM = Uint8Array.from(window.atob('\
-gnc2ODAwMFcAwAAAAL///ADtAQD/////kHBuBwAQAAAAAP//AAAHAQ4ADQAAAAAA+D7/wP/+zahAIgMCAAgAAAAAAAAAAAAAAP/cAAQAAQEAAAAgAAn5AQAAAADgAOAA4ADgAAAAAAAAAAAAAAAAVg8=\
+gnc2ODAwMFcAwAAAAL///ADtAQD/////kHBuBwAQAAAAAP//AAAHAQ4ADQAAAAAA+D7/wP/+zahAIgMCAAgAAAAAAAAAAAAAAP/cAAQAAQEAAAAgAAn5AQAA\
+AADgAOAA4ADgAAAAAAAAAAAAAAAAVg8=\
 ').split(''), c => c.charCodeAt(0));
 let FDD = [], ROM;
 
