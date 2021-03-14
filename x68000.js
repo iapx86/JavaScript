@@ -25,10 +25,11 @@ class X68000 {
 
 	ram = new Uint8Array(0xf00000).addBase();
 	view = new DataView(this.ram.buffer);
-	fdc = {rate: 62500, frac: 0, status: 0x80, data: 0, irq: false, drq: false, tc: false, c: new Uint8Array(4), done: true, g: generator(), execute(rate, fn) {
+	fdc = {rate: 62500, frac: 0, status: 0x80, data: 0, irq: false, drq: false, tc: false, c: new Uint8Array(4), execute(rate, fn) {
 		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
 			fn();
 	}};
+	g = generator(this.fdc);
 	fdd = {control: 0, select: 0, command: []};
 	scc = {a: {wr: new Uint8Array(16), rr: new Uint8Array(16)}, b: {wr: new Uint8Array(16), rr: new Uint8Array(16)}};
 	keyboard = {fifo: []};
@@ -261,7 +262,7 @@ class X68000 {
 			case 0xe94001:
 				return this.fdc.status;
 			case 0xe94003:
-				return data = this.fdc.data, !this.fdc.done && (this.fdc.done = this.fdc.g.next().done), data;
+				return data = this.fdc.data, this.g.next(), data;
 			case 0xe94005:
 				return this.ram[0xe9c001] &= ~0x40, this.ram[addr];
 			default:
@@ -271,7 +272,7 @@ class X68000 {
 		this.cpu.memorymap[0xe940].write = (addr, data) => { // FDC/FDD
 			switch (addr) {
 			case 0xe94003:
-				return this.fdc.data = data, this.fdc.done && (this.fdc.g = generator(this.fdc)), void(this.fdc.done = this.fdc.g.next().done);
+				return this.fdc.data = data, void this.g.next();
 			case 0xe94005:
 				return this.ram[addr] = FDD[31 - Math.clz32(data & 15)] ? 0x80 : 0, void(this.fdd.control = data);
 			case 0xe94007:
@@ -462,11 +463,15 @@ class X68000 {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.ram.set(SRAM, 0xed0000);
+			this.bitmap = null;
+			this.ram.fill(0).set(SRAM, 0xed0000);
 			this.view.setUint32(0xbffffc, 0xffce14);
+			this.scc.a.wr.fill(0), this.scc.a.rr.fill(0), this.scc.b.wr.fill(0), this.scc.b.rr.fill(0);
+			this.keyboard.fifo.splice(0), this.mouse.fifo.splice(0);
 			this.cpu.memorymap[0].base = ROM.base[0xd00];
 			this.cpu.reset();
 			this.cpu.memorymap[0].base = this.ram.base[0];
+			sound[0].reg.fill(0);
 		}
 		if (this.fdd.command.length) {
 			const command = this.fdd.command.shift();
@@ -1077,84 +1082,88 @@ class X68000 {
 }
 
 function* generator(fdc) {
-	let command = fdc.data, us, irq = () => fdc.irq = true, drq = () => fdc.drq = true;
-	if (command === 3) { // SPECIFY
-		fdc.status |= 0x10, yield, yield, fdc.status &= ~0x10;
-	} else if (command === 4) { // SENSE DEVICE STATUS
-		fdc.status |= 0x10, yield, us = fdc.data, fdc.data = (FDD[us & 3] ? 1 : 0) << 5 | !fdc.c[us & 3] << 4 | us & 7, fdc.status |= 0x40, yield, fdc.status &= ~0x50;
-	} else if ((command & ~0xc0) === 5) { // WRITE DATA
-		let c, h, r, n, eot, length, offset;
-		fdc.status |= 0x10, yield, us = fdc.data & 7, yield, c = fdc.data, yield, h = fdc.data, yield, r = fdc.data, yield, n = fdc.data;
-		yield, eot = fdc.data, yield, /* gsl */ yield, /* dtl */ length = 128 << n, offset = (c * 2 + h) * 8192 + (r - 1) * length;
-		if (FDD[us & 3]) {
-			do {
-				drq(), yield, FDD[us & 3][offset] = fdc.data;
-				if (!(++offset & length - 1))
-					r < eot ? ++r : ~command & 0x80 ? (++c, r = 1) : (us & 4 && ++c, us ^= 4, h ^= 1, r = 1), offset = (c * 2 + h) * 8192 + (r - 1) * length;
-			} while (!fdc.tc);
-			offset & length - 1 && (r < eot ? ++r : ~command & 0x80 ? (++c, r = 1) : (us & 4 && ++c, h ^= 1, r = 1)), fdc.data = us, fdc.status |= 0x40, irq();
-			yield, fdc.data = 0, yield, yield, fdc.data = c, yield, fdc.data = h, yield, fdc.data = r, yield, fdc.data = n, yield, fdc.status &= ~0x50;
+	const irq = () => fdc.irq = true, drq = () => fdc.drq = true;
+	for (;;) {
+		let command = fdc.data, us;
+		if (command === 3) { // SPECIFY
+			fdc.status |= 0x10, yield, yield, fdc.status &= ~0x10;
+		} else if (command === 4) { // SENSE DEVICE STATUS
+			fdc.status |= 0x10, yield, us = fdc.data, fdc.data = (FDD[us & 3] ? 1 : 0) << 5 | !fdc.c[us & 3] << 4 | us & 7, fdc.status |= 0x40, yield;
+		} else if ((command & ~0xc0) === 5) { // WRITE DATA
+			let c, h, r, n, eot, length, offset;
+			fdc.status |= 0x10, yield, us = fdc.data & 7, yield, c = fdc.data, yield, h = fdc.data, yield, r = fdc.data, yield, n = fdc.data;
+			yield, eot = fdc.data, yield, /* gsl */ yield, /* dtl */ length = 128 << n, offset = (c * 2 + h) * 8192 + (r - 1) * length;
+			if (FDD[us & 3]) {
+				do {
+					drq(), yield, FDD[us & 3][offset] = fdc.data;
+					if (!(++offset & length - 1))
+						r < eot ? ++r : ~command & 0x80 ? (++c, r = 1) : (us & 4 && ++c, us ^= 4, h ^= 1, r = 1), offset = (c * 2 + h) * 8192 + (r - 1) * length;
+				} while (!fdc.tc);
+				offset & length - 1 && (r < eot ? ++r : ~command & 0x80 ? (++c, r = 1) : (us & 4 && ++c, h ^= 1, r = 1)), fdc.data = us, fdc.status |= 0x40, irq();
+				yield, fdc.data = 0, yield, yield, fdc.data = c, yield, fdc.data = h, yield, fdc.data = r, yield, fdc.data = n, yield;
+			} else
+				fdc.data = 0x48 | us, fdc.status |= 0x40, irq(), yield, fdc.data = 0, yield, yield, yield, yield, yield, yield;
+		} else if ((command & ~0xe0) === 6) { // READ DATA
+			let c, h, r, n, eot, length, offset;
+			fdc.status |= 0x10, yield, us = fdc.data & 7, yield, c = fdc.data, yield, h = fdc.data, yield, r = fdc.data, yield, n = fdc.data;
+			yield, eot = fdc.data, yield, /* gsl */ yield, /* dtl */ length = 128 << n, offset = (c * 2 + h) * 8192 + (r - 1) * length, fdc.status |= 0x40;
+			if (FDD[us & 3]) {
+				do {
+					fdc.data = FDD[us & 3][offset];
+					if (!(++offset & length - 1))
+						r < eot ? ++r : ~command & 0x80 ? (++c, r = 1) : (us & 4 && ++c, us ^= 4, h ^= 1, r = 1), offset = (c * 2 + h) * 8192 + (r - 1) * length;
+					drq(), yield;
+				} while (!fdc.tc);
+				offset & length - 1 && (r < eot ? ++r : ~command & 0x80 ? (++c, r = 1) : (us & 4 && ++c, h ^= 1, r = 1)), fdc.data = us, irq();
+				yield, fdc.data = 0, yield, yield, fdc.data = c, yield, fdc.data = h, yield, fdc.data = r, yield, fdc.data = n, yield;
+			} else
+				fdc.data = 0x48 | us, irq(), yield, fdc.data = 0, yield, yield, yield, yield, yield, yield;
+		} else if (command === 7) { // RECALIBRATE
+			fdc.status |= 0x10, yield, us = fdc.data & 3, fdc.c[us] = 0, fdc.status = fdc.status & ~0x10 | 1 << us, irq();
+		} else if (command === 8) { // SENSE INTERRUPT STATUS
+			if (fdc.status & 15)
+				fdc.status |= 0x50, us = 31 - Math.clz32(fdc.status & 15), fdc.data = 0x20 | us, yield, fdc.data = fdc.c[us], yield, fdc.status &= ~(1 << us);
+			else
+				fdc.status |= 0x50, fdc.data = 0x80, yield;
+		} else if ((command & ~0x40) === 10) { // READ ID
+			fdc.status |= 0x10, yield, us = fdc.data & 7;
+			if (FDD[us & 3]) {
+				fdc.data = 0 | us, fdc.status |= 0x40, irq(), yield, fdc.data = 0, yield, yield, fdc.data = fdc.c[us & 3];
+				yield, fdc.data = us >> 2, yield, fdc.data = 1, yield, fdc.data = 3, yield;
+			} else
+				fdc.data = 0x48 | us, fdc.status |= 0x40, irq(), yield, fdc.data = 0, yield, yield, yield, yield, yield, yield;
+		} else if ((command & ~0x40) === 13) { // WRITE ID
+			let n, sc, d, offset, count = 0;
+			fdc.status |= 0x10, yield, us = fdc.data & 7, yield, n = fdc.data, yield, sc = fdc.data, yield, /* gpl */ yield, d = fdc.data;
+			if (FDD[us & 3]) {
+				for (fdc.tc = false; !fdc.tc && count < sc * 4; ++count)
+					drq(), yield;
+				offset = (fdc.c[us & 3] * 2 + (us >> 2)) * 8192, FDD[us & 3].fill(d, offset, offset + 8192);
+				fdc.data = us, fdc.status |= 0x40, irq(), yield, fdc.data = 0, yield, yield, yield, yield, yield, fdc.data = n, yield;
+			} else
+				fdc.data = 0x48 | us, fdc.status |= 0x40, irq(), yield, fdc.data = 0, yield, yield, yield, yield, yield, yield;
+		} else if (command === 15) { // SEEK
+			fdc.status |= 0x10, yield, us = fdc.data & 3, yield, fdc.c[us] = fdc.data, fdc.status = fdc.status & ~0x10 | 1 << us, irq();
+		} else if ((command & ~0xe0) === 17) { // SCAN EQUAL
+			let c, h, r, n, eot, stp, length, offset, sh;
+			fdc.status |= 0x10, yield, us = fdc.data & 7, yield, c = fdc.data, yield, h = fdc.data, yield, r = fdc.data, yield, n = fdc.data;
+			yield, eot = fdc.data, yield, /* gsl */ yield, stp = fdc.data, length = 128 << n, offset = (c * 2 + h) * 8192 + (r - 1) * length;
+			if (FDD[us & 3]) {
+				for (; ;) {
+					for (sh = true, fdc.tc = false; !fdc.tc; ++offset)
+						drq(), yield, fdc.data !== 0xff && fdc.data !== FDD[us & 3][offset] && (sh = false);
+					if (sh || r === eot && (~command & 0x80 || us & 4))
+						break;
+					r < eot ? r += stp : command & 0x80 && (us |= 4, h ^= 1, r = stp), offset = (c * 2 + h) * 8192 + (r - 1) * length;
+				}
+				fdc.data = us, fdc.status |= 0x40, irq(), yield, fdc.data = 0, yield, fdc.data = sh << 3 | !sh << 2;
+				yield, fdc.data = c, yield, fdc.data = h, yield, fdc.data = r, yield, fdc.data = n, yield;
+			} else
+				fdc.data = 0x48 | us, fdc.status |= 0x40, irq(), yield, fdc.data = 0, yield, yield, yield, yield, yield, yield;
 		} else
-			fdc.data = 0x48 | us, fdc.status |= 0x40, irq(), yield, fdc.data = 0, yield, yield, yield, yield, yield, yield, fdc.status &= ~0x50;
-	} else if ((command & ~0xe0) === 6) { // READ DATA
-		let c, h, r, n, eot, length, offset;
-		fdc.status |= 0x10, yield, us = fdc.data & 7, yield, c = fdc.data, yield, h = fdc.data, yield, r = fdc.data, yield, n = fdc.data;
-		yield, eot = fdc.data, yield, /* gsl */ yield, /* dtl */ length = 128 << n, offset = (c * 2 + h) * 8192 + (r - 1) * length, fdc.status |= 0x40;
-		if (FDD[us & 3]) {
-			do {
-				fdc.data = FDD[us & 3][offset];
-				if (!(++offset & length - 1))
-					r < eot ? ++r : ~command & 0x80 ? (++c, r = 1) : (us & 4 && ++c, us ^= 4, h ^= 1, r = 1), offset = (c * 2 + h) * 8192 + (r - 1) * length;
-				drq(), yield;
-			} while (!fdc.tc);
-			offset & length - 1 && (r < eot ? ++r : ~command & 0x80 ? (++c, r = 1) : (us & 4 && ++c, h ^= 1, r = 1)), fdc.data = us, irq();
-			yield, fdc.data = 0, yield, yield, fdc.data = c, yield, fdc.data = h, yield, fdc.data = r, yield, fdc.data = n, yield, fdc.status &= ~0x50;
-		} else
-			fdc.data = 0x48 | us, irq(), yield, fdc.data = 0, yield, yield, yield, yield, yield, yield, fdc.status &= ~0x50;
-	} else if (command === 7) { // RECALIBRATE
-		fdc.status |= 0x10, yield, us = fdc.data & 3, fdc.c[us] = 0, fdc.status = fdc.status & ~0x10 | 1 << us, irq();
-	} else if (command === 8) { // SENSE INTERRUPT STATUS
-		if (fdc.status & 15)
-			fdc.status |= 0x50, us = 31 - Math.clz32(fdc.status & 15), fdc.data = 0x20 | us, yield, fdc.data = fdc.c[us], yield, fdc.status &= ~(0x50 | 1 << us);
-		else
-			fdc.status |= 0x50, fdc.data = 0x80, yield, fdc.status &= ~0x50;
-	} else if ((command & ~0x40) === 10) { // READ ID
-		fdc.status |= 0x10, yield, us = fdc.data & 7;
-		if (FDD[us & 3]) {
-			fdc.data = 0 | us, fdc.status |= 0x40, irq(), yield, fdc.data = 0, yield, yield, fdc.data = fdc.c[us & 3];
-			yield, fdc.data = us >> 2, yield, fdc.data = 1, yield, fdc.data = 3, yield, fdc.status &= ~0x50;
-		} else
-			fdc.data = 0x48 | us, fdc.status |= 0x40, irq(), yield, fdc.data = 0, yield, yield, yield, yield, yield, yield, fdc.status &= ~0x50;
-	} else if ((command & ~0x40) === 13) { // WRITE ID
-		let n, sc, d, offset, count = 0;
-		fdc.status |= 0x10, yield, us = fdc.data & 7, yield n = fdc.data, yield, sc = fdc.data, yield, /* gpl */ yield, d = fdc.data;
-		if (FDD[us & 3]) {
-			for (fdc.tc = false; !fdc.tc && count < sc * 4; ++count)
-				drq(), yield;
-			offset = (fdc.c[us & 3] * 2 + (us >> 2)) * 8192, FDD[us & 3].fill(d, offset, offset + 8192);
-			fdc.data = us, fdc.status |= 0x40, irq(), yield, fdc.data = 0, yield, yield, yield, yield, yield, fdc.data = n, yield, fdc.status &= ~0x50;
-		} else
-			fdc.data = 0x48 | us, fdc.status |= 0x40, irq(), yield, fdc.data = 0, yield, yield, yield, yield, yield, yield, fdc.status &= ~0x50;
-	} else if (command === 15) { // SEEK
-		fdc.status |= 0x10, yield, us = fdc.data & 3, yield, fdc.c[us] = fdc.data, fdc.status = fdc.status & ~0x10 | 1 << us, irq();
-	} else if ((command & ~0xe0) === 17) { // SCAN EQUAL
-		let c, h, r, n, eot, stp, length, offset, sh;
-		fdc.status |= 0x10, yield, us = fdc.data & 7, yield, c = fdc.data, yield, h = fdc.data, yield, r = fdc.data, yield, n = fdc.data;
-		yield, eot = fdc.data, yield, /* gsl */ yield, stp = fdc.data, length = 128 << n, offset = (c * 2 + h) * 8192 + (r - 1) * length;
-		if (FDD[us & 3]) {
-			for (;;) {
-				for (sh = true, fdc.tc = false; !fdc.tc; ++offset)
-					drq(), yield, fdc.data !== 0xff && fdc.data !== FDD[us & 3][offset] && (sh = false);
-				if (sh || r === eot && (~command & 0x80 || us & 4))
-					break;
-				r < eot ? r += stp : command & 0x80 && (us |= 4, h ^= 1, r = stp), offset = (c * 2 + h) * 8192 + (r - 1) * length;
-			}
-			fdc.data = us, fdc.status |= 0x40, irq(), yield, fdc.data = 0, yield, fdc.data = sh << 3 | !sh << 2;
-			yield, fdc.data = c, yield, fdc.data = h, yield, fdc.data = r, yield, fdc.data = n, yield, fdc.status &= ~0x50;
-		} else
-			fdc.data = 0x48 | us, fdc.status |= 0x40, irq(), yield, fdc.data = 0, yield, yield, yield, yield, yield, yield, fdc.status &= ~0x50;
-	} else
-		console.log(`FDC Command ($${Number(command).toString(16)})`), fdc.status |= 0x50, fdc.data = 0x80, yield, fdc.status &= ~0x50;
+			console.log(`FDC Command ($${Number(command).toString(16)})`), fdc.status |= 0x50, fdc.data = 0x80, yield;
+		fdc.status &= ~0x50, yield;
+	}
 }
 
 const keydown = e => {
@@ -1461,13 +1470,13 @@ read(`human302.xdf`).then(buffer => {
 		new YM2151({clock: 16000000 / 4}),
 		new MSM6258(),
 	];
-	game.touch = {x: undefined, y: undefined};
+	game.touch = {x: null, y: null};
 	canvas.addEventListener('mousedown', e => game.mouse.button |= e.button === 0 ? 1 : e.button === 2 ? 2 : 0);
 	canvas.addEventListener('mouseup', e => game.mouse.button &= ~(e.button === 0 ? 1 : e.button === 2 ? 2 : 0));
 	canvas.addEventListener('mousemove', e => {
 		typeof game.touch.x === 'number' && (game.mouse.x += e.offsetX - game.touch.x, game.mouse.y += e.offsetY - game.touch.y);
 		game.touch = {x: e.offsetX, y: e.offsetY}
 	});
-	init({game, sound, keyup, keydown});
+	init({game, sound, keydown, keyup});
 });
 

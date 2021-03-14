@@ -42,6 +42,8 @@ export default class MSM6258 {
 				!this.m.shift && fn(), this.m.output = Math.min(Math.max(this.m.output + step[this.m.state][this.m.port >> this.m.shift & 15], -512), 511);
 				this.m.state = Math.min(Math.max(this.m.state + state_table[this.m.port >> this.m.shift & 7], 0), 48), this.m.shift ^= 4;
 			}
+		else if (this.m.output)
+			this.m.output += this.m.output < 0 ? 1 : -1;
 	}
 
 	update() {
