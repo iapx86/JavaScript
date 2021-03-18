@@ -33,7 +33,8 @@ class TTMahjong {
 	select = 0;
 	psg = {addr: 0};
 
-	rgb = Uint32Array.of(0xff000000, 0xffff0000, 0xff00ff00, 0xffffff00, 0xff0000ff, 0xffff00ff, 0xff00ffff, 0xffffffff);
+	rgb = Int32Array.of(0xff000000, 0xffff0000, 0xff00ff00, 0xffffff00, 0xff0000ff, 0xffff00ff, 0xff00ffff, 0xffffffff);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 	palette1 = 0;
 	palette2 = 0;
 
@@ -134,15 +135,17 @@ class TTMahjong {
 		this.fStart2P = 2;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		for (let p = 252 * 256, k = 0x200, i = 240; i !== 0; p += 256 * 256 + 1, --i)
 			for (let j = 256 >> 2; j !== 0; k++, p -= 4 * 256, --j) {
 				const p1 = this.vram1[k], p2 = this.vram2[k];
-				data[p] = this.rgb[(COLOR1[p1 >> 3 & 1 | p1 >> 6 & 2 | this.palette1] | COLOR2[p2 >> 3 & 1 | p2 >> 6 & 2 | this.palette2 | p1 << 4 & 0x80 | p1 & 0x80]) & 7];
-				data[p + 256] = this.rgb[(COLOR1[p1 >> 2 & 1 | p1 >> 5 & 2 | this.palette1] | COLOR2[p2 >> 2 & 1 | p2 >> 5 & 2 | this.palette2 | p1 << 5 & 0x80 | p1 << 1 & 0x80]) & 7];
-				data[p + 2 * 256] = this.rgb[(COLOR1[p1 >> 1 & 1 | p1 >> 4 & 2 | this.palette1] | COLOR2[p2 >> 1 & 1 | p2 >> 4 & 2 | this.palette2 | p1 << 6 & 0x80 | p1 << 2 & 0x80]) & 7];
-				data[p + 3 * 256] = this.rgb[(COLOR1[p1 & 1 | p1 >> 3 & 2 | this.palette1] | COLOR2[p2 & 1 | p2 >> 3 & 2 | this.palette2 | p1 << 7 & 0x80 | p1 << 3 & 0x80]) & 7];
+				this.bitmap[p] = this.rgb[(COLOR1[p1 >> 3 & 1 | p1 >> 6 & 2 | this.palette1] | COLOR2[p2 >> 3 & 1 | p2 >> 6 & 2 | this.palette2 | p1 << 4 & 0x80 | p1 & 0x80]) & 7];
+				this.bitmap[p + 256] = this.rgb[(COLOR1[p1 >> 2 & 1 | p1 >> 5 & 2 | this.palette1] | COLOR2[p2 >> 2 & 1 | p2 >> 5 & 2 | this.palette2 | p1 << 5 & 0x80 | p1 << 1 & 0x80]) & 7];
+				this.bitmap[p + 2 * 256] = this.rgb[(COLOR1[p1 >> 1 & 1 | p1 >> 4 & 2 | this.palette1] | COLOR2[p2 >> 1 & 1 | p2 >> 4 & 2 | this.palette2 | p1 << 6 & 0x80 | p1 << 2 & 0x80]) & 7];
+				this.bitmap[p + 3 * 256] = this.rgb[(COLOR1[p1 & 1 | p1 >> 3 & 2 | this.palette1] | COLOR2[p2 & 1 | p2 >> 3 & 2 | this.palette2 | p1 << 7 & 0x80 | p1 << 3 & 0x80]) & 7];
 			}
+
+		return this.bitmap;
 	}
 }
 

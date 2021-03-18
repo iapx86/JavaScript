@@ -39,11 +39,9 @@ export default class YM2151 {
 
 	execute(rate, rate_correction = 1) {
 		for (this.timera.frac += this.timera.rate * rate_correction; this.timera.frac >= rate; this.timera.frac -= rate)
-			if (this.reg[0x14] & 1 && ++this.timera.count >= 0x400)
-				this.status |= this.reg[0x14] >> 2 & 1, this.timera.count = this.reg[0x10] << 2 | this.reg[0x11] & 3;
+			this.reg[0x14] & 1 && ++this.timera.count >= 0x400 && (this.status |= 1, this.timera.count = this.reg[0x10] << 2 | this.reg[0x11] & 3);
 		for (this.timerb.frac += this.timerb.rate * rate_correction; this.timerb.frac >= rate; this.timerb.frac -= rate)
-			if (this.reg[0x14] & 2 && ++this.timerb.count >= 0x100)
-				this.status |= this.reg[0x14] >> 2 & 2, this.timerb.count = this.reg[0x12];
+			this.reg[0x14] & 2 && ++this.timerb.count >= 0x100 && (this.status |= 2, this.timerb.count = this.reg[0x12]);
 	}
 
 	update() {

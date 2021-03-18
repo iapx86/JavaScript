@@ -42,7 +42,8 @@ class TimeTunnel {
 
 	bg = new Uint8Array(0x8000);
 	obj = new Uint8Array(0x8000);
-	rgb = new Uint32Array(0x40);
+	rgb = new Int32Array(0x40);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 	pri = [];
 	layer = [];
 	priority = 0;
@@ -320,7 +321,7 @@ class TimeTunnel {
 		this.in[0] = this.in[0] & ~(1 << 5) | !fDown << 5;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		// 画像データ変換
 		const convertBG = (dst, src, n) => {
 			for (let p = 0, q = 0, i = 0; i < n; q += 8, i++)
@@ -356,7 +357,7 @@ class TimeTunnel {
 		// 画面クリア
 		let p = 256 * 16 + 16;
 		for (let i = 0; i < 256; p += 256, i++)
-			data.fill(this.colorbank[1] << 3 & 0x38, p, p + 224);
+			this.bitmap.fill(this.colorbank[1] << 3 & 0x38, p, p + 224);
 
 		// bg描画
 		if (this.mode & 0x10) {
@@ -414,38 +415,38 @@ class TimeTunnel {
 			for (let j = 0; j < 256; p += 256 - 224, j++)
 				for (let k = 0; k < 7; p += 32, k++) {
 					let px;
-					(px = _layer[p]) & 7 && (data[p] = px);
-					(px = _layer[p + 0x01]) & 7 && (data[p + 0x01] = px);
-					(px = _layer[p + 0x02]) & 7 && (data[p + 0x02] = px);
-					(px = _layer[p + 0x03]) & 7 && (data[p + 0x03] = px);
-					(px = _layer[p + 0x04]) & 7 && (data[p + 0x04] = px);
-					(px = _layer[p + 0x05]) & 7 && (data[p + 0x05] = px);
-					(px = _layer[p + 0x06]) & 7 && (data[p + 0x06] = px);
-					(px = _layer[p + 0x07]) & 7 && (data[p + 0x07] = px);
-					(px = _layer[p + 0x08]) & 7 && (data[p + 0x08] = px);
-					(px = _layer[p + 0x09]) & 7 && (data[p + 0x09] = px);
-					(px = _layer[p + 0x0a]) & 7 && (data[p + 0x0a] = px);
-					(px = _layer[p + 0x0b]) & 7 && (data[p + 0x0b] = px);
-					(px = _layer[p + 0x0c]) & 7 && (data[p + 0x0c] = px);
-					(px = _layer[p + 0x0d]) & 7 && (data[p + 0x0d] = px);
-					(px = _layer[p + 0x0e]) & 7 && (data[p + 0x0e] = px);
-					(px = _layer[p + 0x0f]) & 7 && (data[p + 0x0f] = px);
-					(px = _layer[p + 0x10]) & 7 && (data[p + 0x10] = px);
-					(px = _layer[p + 0x11]) & 7 && (data[p + 0x11] = px);
-					(px = _layer[p + 0x12]) & 7 && (data[p + 0x12] = px);
-					(px = _layer[p + 0x13]) & 7 && (data[p + 0x13] = px);
-					(px = _layer[p + 0x14]) & 7 && (data[p + 0x14] = px);
-					(px = _layer[p + 0x15]) & 7 && (data[p + 0x15] = px);
-					(px = _layer[p + 0x16]) & 7 && (data[p + 0x16] = px);
-					(px = _layer[p + 0x17]) & 7 && (data[p + 0x17] = px);
-					(px = _layer[p + 0x18]) & 7 && (data[p + 0x18] = px);
-					(px = _layer[p + 0x19]) & 7 && (data[p + 0x19] = px);
-					(px = _layer[p + 0x1a]) & 7 && (data[p + 0x1a] = px);
-					(px = _layer[p + 0x1b]) & 7 && (data[p + 0x1b] = px);
-					(px = _layer[p + 0x1c]) & 7 && (data[p + 0x1c] = px);
-					(px = _layer[p + 0x1d]) & 7 && (data[p + 0x1d] = px);
-					(px = _layer[p + 0x1e]) & 7 && (data[p + 0x1e] = px);
-					(px = _layer[p + 0x1f]) & 7 && (data[p + 0x1f] = px);
+					(px = _layer[p]) & 7 && (this.bitmap[p] = px);
+					(px = _layer[p + 0x01]) & 7 && (this.bitmap[p + 0x01] = px);
+					(px = _layer[p + 0x02]) & 7 && (this.bitmap[p + 0x02] = px);
+					(px = _layer[p + 0x03]) & 7 && (this.bitmap[p + 0x03] = px);
+					(px = _layer[p + 0x04]) & 7 && (this.bitmap[p + 0x04] = px);
+					(px = _layer[p + 0x05]) & 7 && (this.bitmap[p + 0x05] = px);
+					(px = _layer[p + 0x06]) & 7 && (this.bitmap[p + 0x06] = px);
+					(px = _layer[p + 0x07]) & 7 && (this.bitmap[p + 0x07] = px);
+					(px = _layer[p + 0x08]) & 7 && (this.bitmap[p + 0x08] = px);
+					(px = _layer[p + 0x09]) & 7 && (this.bitmap[p + 0x09] = px);
+					(px = _layer[p + 0x0a]) & 7 && (this.bitmap[p + 0x0a] = px);
+					(px = _layer[p + 0x0b]) & 7 && (this.bitmap[p + 0x0b] = px);
+					(px = _layer[p + 0x0c]) & 7 && (this.bitmap[p + 0x0c] = px);
+					(px = _layer[p + 0x0d]) & 7 && (this.bitmap[p + 0x0d] = px);
+					(px = _layer[p + 0x0e]) & 7 && (this.bitmap[p + 0x0e] = px);
+					(px = _layer[p + 0x0f]) & 7 && (this.bitmap[p + 0x0f] = px);
+					(px = _layer[p + 0x10]) & 7 && (this.bitmap[p + 0x10] = px);
+					(px = _layer[p + 0x11]) & 7 && (this.bitmap[p + 0x11] = px);
+					(px = _layer[p + 0x12]) & 7 && (this.bitmap[p + 0x12] = px);
+					(px = _layer[p + 0x13]) & 7 && (this.bitmap[p + 0x13] = px);
+					(px = _layer[p + 0x14]) & 7 && (this.bitmap[p + 0x14] = px);
+					(px = _layer[p + 0x15]) & 7 && (this.bitmap[p + 0x15] = px);
+					(px = _layer[p + 0x16]) & 7 && (this.bitmap[p + 0x16] = px);
+					(px = _layer[p + 0x17]) & 7 && (this.bitmap[p + 0x17] = px);
+					(px = _layer[p + 0x18]) & 7 && (this.bitmap[p + 0x18] = px);
+					(px = _layer[p + 0x19]) & 7 && (this.bitmap[p + 0x19] = px);
+					(px = _layer[p + 0x1a]) & 7 && (this.bitmap[p + 0x1a] = px);
+					(px = _layer[p + 0x1b]) & 7 && (this.bitmap[p + 0x1b] = px);
+					(px = _layer[p + 0x1c]) & 7 && (this.bitmap[p + 0x1c] = px);
+					(px = _layer[p + 0x1d]) & 7 && (this.bitmap[p + 0x1d] = px);
+					(px = _layer[p + 0x1e]) & 7 && (this.bitmap[p + 0x1e] = px);
+					(px = _layer[p + 0x1f]) & 7 && (this.bitmap[p + 0x1f] = px);
 				}
 		}
 
@@ -453,7 +454,9 @@ class TimeTunnel {
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 256; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	xfer8x8(data, color, p, k) {

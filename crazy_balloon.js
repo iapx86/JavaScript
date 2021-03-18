@@ -32,12 +32,13 @@ class CrazyBalloon {
 
 	bg = new Uint8Array(0x4000).fill(1);
 	obj = new Uint8Array(0x4000).fill(1);
-	rgb = Uint32Array.of(
+	rgb = Int32Array.of(
 		0xffffffff, 0xffffff00, 0xffff00ff, 0xffff0000,
 		0xff00ffff, 0xff00ff00, 0xff0000ff, 0xff000000,
 		0xff555555, 0xff555500, 0xff550055, 0xff550000,
 		0xff005555, 0xff005500, 0xff000055, 0xff000000,
 	);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 	objctrl = new Uint8Array(3);
 
 	cpu = new Z80(Math.floor(9987000 / 3));
@@ -174,21 +175,23 @@ class CrazyBalloon {
 		this.io[1] = this.io[1] & ~(1 << 2) | fDown << 3 | !fDown << 2;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		// bg描画
 		let p = 256 * 8 * 31;
 		for (let k = 0x0080, i = 0; i < 28; p += 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p -= 256 * 8, j++)
-				this.xfer8x8(data, p, k);
+				this.xfer8x8(this.bitmap, p, k);
 
 		// obj描画
-		this.xfer32x32(data, (224 - this.objctrl[2]) & 0xff | this.objctrl[1] << 8, this.objctrl[0]);
+		this.xfer32x32(this.bitmap, (224 - this.objctrl[2]) & 0xff | this.objctrl[1] << 8, this.objctrl[0]);
 
 		// palette変換
 		p = 0;
 		for (let i = 0; i < 256; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	xfer8x8(data, p, k) {

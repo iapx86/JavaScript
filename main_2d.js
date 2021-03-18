@@ -30,7 +30,7 @@ registerProcessor('StreamOut', class extends AudioWorkletProcessor {
 	}
 });
 `;
-let game, sound, imageData, data;
+let game, sound;
 const cxScreen = canvas.width, cyScreen = canvas.height;
 const ctx = canvas.getContext('2d'), timestamps = [], samples = [];
 let source, worklet, scriptNode, button, state = '', toggle = 0;
@@ -52,8 +52,6 @@ const audio = {rate: audioCtx.sampleRate, frac: 0, execute(rate, rate_correction
 
 export function init({keydown, keyup, ...args} = {}) {
 	({game, sound} = args);
-	imageData = ctx.createImageData(game.width, game.height);
-	data = new Uint32Array(imageData.data.buffer);
 	source = audioCtx.createBufferSource();
 	addStreamOut.then(() => {
 		worklet = new AudioWorkletNode(audioCtx, 'StreamOut'), worklet.port.start(), source.connect(worklet).connect(audioCtx.destination), source.start();
@@ -124,9 +122,9 @@ export function init({keydown, keyup, ...args} = {}) {
 		for (!(toggle ^= 1) && timestamps.shift(), timestamps.push(timestamp); timestamps.length > 4096; timestamps.shift()) {}
 		const rate_correction = timestamps.length > 1 ? Math.max(0.8, Math.min(1.25, (timestamp - timestamps[0]) / (timestamps.length - 1) * 0.06)) : 1;
 		updateGamepad(game);
-		game.updateStatus().updateInput().execute(audio, rate_correction).makeBitmap(data);
+		const data = game.updateStatus().updateInput().execute(audio, rate_correction).makeBitmap();
 		audioCtx.state !== 'running' && samples.splice(0), worklet && samples.length && (worklet.port.postMessage({samples}), samples.splice(0));
-		ctx.putImageData(imageData, -game.xOffset, -game.yOffset);
+		ctx.putImageData(new ImageData(new Uint8ClampedArray(data.buffer), game.width, game.height), -game.xOffset, -game.yOffset);
 		requestAnimationFrame(loop);
 	});
 }
@@ -314,7 +312,7 @@ export default class Cpu {
 	pc = 0;
 	memorymap = [];
 	check_interrupt = null;
-	breakpointmap = new Uint32Array(0x800);
+	breakpointmap = new Int32Array(0x800);
 	breakpoint = null;
 	undef = null;
 	undefsize = 0;

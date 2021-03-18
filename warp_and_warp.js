@@ -31,7 +31,8 @@ class WarpAndWarp {
 	ram = new Uint8Array(0xe00).fill(0xff).addBase();
 
 	bg = new Uint8Array(0x4000).fill(255);
-	rgb = Uint32Array.from(seq(0x100), i => 0xff000000 | (i >> 6) * 255 / 3 << 16 | (i >> 3 & 7) * 255 / 7 << 8 | (i & 7) * 255 / 7);
+	rgb = Int32Array.from(seq(0x100), i => 0xff000000 | (i >> 6) * 255 / 3 << 16 | (i >> 3 & 7) * 255 / 7 << 8 | (i & 7) * 255 / 7);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 
 	se = [WAVE02, WAVE10, WAVE11, WAVE14, WAVE16].map(buf => ({freq: 22050, buf, loop: false, start: false, stop: false}));
 
@@ -197,23 +198,23 @@ class WarpAndWarp {
 //		this.ram[0xc01] = ~(1 << 0) | !fDown << 0; //2P
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		// bg描画
 		let p = 256 * 8 * 3 + 232;
 		for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
-				this.xfer8x8(data, p, k);
+				this.xfer8x8(this.bitmap, p, k);
 		p = 256 * 8 * 35 + 232;
 		for (let k = 2, i = 0; i < 28; k++, p -= 8, i++)
-			this.xfer8x8(data, p, k);
+			this.xfer8x8(this.bitmap, p, k);
 		p = 256 * 8 * 2 + 232;
 		for (let k = 0x22, i = 0; i < 28; k++, p -= 8, i++)
-			this.xfer8x8(data, p, k);
+			this.xfer8x8(this.bitmap, p, k);
 
 		// 弾描画
 		p = 256 * 8 * 3 + (0xfc - this.ram[0xd00]) * 256 + this.ram[0xd01];
 		for (let i = 0; i < 4; i++) {
-			data[p] = data[p + 1] = data[p + 2] = data[p + 3] = 0xf6;
+			this.bitmap[p] = this.bitmap[p + 1] = this.bitmap[p + 2] = this.bitmap[p + 3] = 0xf6;
 			p += 256;
 			if (p >= 256 * 8 * 35)
 				p -= 256 * 8 * 32;
@@ -223,7 +224,9 @@ class WarpAndWarp {
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 272; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	xfer8x8(data, p, k) {

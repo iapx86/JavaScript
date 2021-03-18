@@ -32,7 +32,8 @@ class TankBattalion {
 	wport = new Uint8Array(0x100);
 
 	bg = new Uint8Array(0x4000).fill(15);
-	rgb = Uint32Array.from(seq(0x10), i => 0xff000000 | (i >> 3 & 1) * 255 << 16 | (i >> 2 & 1) * 255 << 8 | (i & 3) * 255 / 3);
+	rgb = Int32Array.from(seq(0x10), i => 0xff000000 | (i >> 3 & 1) * 255 << 16 | (i >> 2 & 1) * 255 << 8 | (i & 3) * 255 / 3);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 
 	se = [BANG, FIRE, ENG2, ENG1, BONUS, COIN].map(buf => ({freq: 22050, buf, loop: false, start: false, stop: false}));
 
@@ -204,32 +205,34 @@ class TankBattalion {
 		this.rport[4] = this.rport[4] & ~(1 << 7) | !fDown << 7;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		// bg描画
 		let p = 256 * 8 * 2 + 232;
 		for (let k = 0x0040, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
-				this.xfer8x8(data, p, k);
+				this.xfer8x8(this.bitmap, p, k);
 
 		// 弾描画
 		for (let k = 0, i = 0; i < 8; k += 2, i++) {
 			p = this.ram[k] | this.ram[k + 1] + 16 << 8;
-			!data[p] && (data[p] = 0xe);
-			!data[p + 0x001] && (data[p + 0x001] = 0xe);
-			!data[p + 0x002] && (data[p + 0x002] = 0xe);
-			!data[p + 0x100] && (data[p + 0x100] = 0xe);
-			!data[p + 0x101] && (data[p + 0x101] = 0xe);
-			!data[p + 0x102] && (data[p + 0x102] = 0xe);
-			!data[p + 0x200] && (data[p + 0x200] = 0xe);
-			!data[p + 0x201] && (data[p + 0x201] = 0xe);
-			!data[p + 0x202] && (data[p + 0x202] = 0xe);
+			!this.bitmap[p] && (this.bitmap[p] = 0xe);
+			!this.bitmap[p + 0x001] && (this.bitmap[p + 0x001] = 0xe);
+			!this.bitmap[p + 0x002] && (this.bitmap[p + 0x002] = 0xe);
+			!this.bitmap[p + 0x100] && (this.bitmap[p + 0x100] = 0xe);
+			!this.bitmap[p + 0x101] && (this.bitmap[p + 0x101] = 0xe);
+			!this.bitmap[p + 0x102] && (this.bitmap[p + 0x102] = 0xe);
+			!this.bitmap[p + 0x200] && (this.bitmap[p + 0x200] = 0xe);
+			!this.bitmap[p + 0x201] && (this.bitmap[p + 0x201] = 0xe);
+			!this.bitmap[p + 0x202] && (this.bitmap[p + 0x202] = 0xe);
 		}
 
 		// palette変換
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 256; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	xfer8x8(data, p, k) {

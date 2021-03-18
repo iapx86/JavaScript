@@ -44,7 +44,8 @@ class Salamander {
 	cpu2_irq = false;
 
 	chr = new Uint8Array(0x20000);
-	rgb = new Uint32Array(0x800);
+	rgb = new Int32Array(0x800);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 	flip = 0;
 
 	cpu = new MC68000(Math.floor(18432000 / 2));
@@ -253,7 +254,7 @@ class Salamander {
 		!(this.fTurbo = fDown) && (this.in[3] &= ~(1 << 4));
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		for (let i = 0; i < 0x800; i++) {
 			const e = this.ram[0x8000 | i << 1] << 8 | this.ram[0x8001 | i << 1];
 			this.rgb[i] = 0xff000000 | (e >> 10 & 31) * 255 / 31 << 16 | (e >> 5 & 31) * 255 / 31 << 8 | (e & 31) * 255 / 31;
@@ -262,21 +263,21 @@ class Salamander {
 		// 画面クリア
 		let p = 256 * 16 + 16;
 		for (let i = 0; i < 256; p += 256, i++)
-			data.fill(0, p, p + 224);
+			this.bitmap.fill(0, p, p + 224);
 
 		// bg描画
 		for (let k = 0x9000; k < 0xa000; k += 2)
 			if (!(this.ram[k] & 0x50) && this.ram[k] & 0xf8)
-				this.xfer8x8(data, k);
+				this.xfer8x8(this.bitmap, k);
 		for (let k = 0xa000; k < 0xb000; k += 2)
 			if (!(this.ram[k] & 0x50) && this.ram[k] & 0xf8)
-				this.xfer8x8(data, k);
+				this.xfer8x8(this.bitmap, k);
 		for (let k = 0x9000; k < 0xa000; k += 2)
 			if ((this.ram[k] & 0x50) === 0x40 && this.ram[k] & 0xf8)
-				this.xfer8x8(data, k);
+				this.xfer8x8(this.bitmap, k);
 		for (let k = 0xa000; k < 0xb000; k += 2)
 			if ((this.ram[k] & 0x50) === 0x40 && this.ram[k] & 0xf8)
-				this.xfer8x8(data, k);
+				this.xfer8x8(this.bitmap, k);
 
 		// obj描画
 		const size = [[32, 32], [16, 32], [32, 16], [64, 64], [8, 8], [16, 8], [8, 16], [16, 16]];
@@ -296,16 +297,16 @@ class Salamander {
 				const [h, w] = size[this.ram[k + 3] >> 3 & 7];
 				switch (this.ram[k + 9] >> 4 & 2 | this.ram[k + 3] & 1) {
 				case 0:
-					this.xferHxW(data, src, color, y, x, h, w, zoom);
+					this.xferHxW(this.bitmap, src, color, y, x, h, w, zoom);
 					break;
 				case 1:
-					this.xferHxW_V(data, src, color, y, x, h, w, zoom);
+					this.xferHxW_V(this.bitmap, src, color, y, x, h, w, zoom);
 					break;
 				case 2:
-					this.xferHxW_H(data, src, color, y, x, h, w, zoom);
+					this.xferHxW_H(this.bitmap, src, color, y, x, h, w, zoom);
 					break;
 				case 3:
-					this.xferHxW_HV(data, src, color, y, x, h, w, zoom);
+					this.xferHxW_HV(this.bitmap, src, color, y, x, h, w, zoom);
 					break;
 				}
 			}
@@ -313,16 +314,18 @@ class Salamander {
 		// bg描画
 		for (let k = 0x9000; k < 0xa000; k += 2)
 			if (this.ram[k] & 0x10 && this.ram[k] & 0xf8)
-				this.xfer8x8(data, k);
+				this.xfer8x8(this.bitmap, k);
 		for (let k = 0xa000; k < 0xb000; k += 2)
 			if (this.ram[k] & 0x10 && this.ram[k] & 0xf8)
-				this.xfer8x8(data, k);
+				this.xfer8x8(this.bitmap, k);
 
 		// palette変換
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 256; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	xfer8x8(data, k) {

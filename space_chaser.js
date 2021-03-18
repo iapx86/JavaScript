@@ -30,6 +30,7 @@ class SpaceChaser {
 	cpu_irq = false;
 	cpu_irq2 = false;
 
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 	shifter = {shift: 0, reg: 0};
 	background_disable = false;
 	background_select = false;
@@ -176,8 +177,8 @@ class SpaceChaser {
 		this.io[1] = this.io[1] & ~(1 << 4) | fDown << 4;
 	}
 
-	makeBitmap(data) {
-		const rgb = Uint32Array.of(
+	makeBitmap() {
+		const rgb = Int32Array.of(
 			0xff000000, // black
 			0xff0000ff, // red
 			0xffff0000, // blue
@@ -194,45 +195,47 @@ class SpaceChaser {
 				const map_data = MAP[k >> 3 & 0x3e0 | k & 0x1f] & 0x0c;
 				const back = rgb[this.background_disable ? 0 : this.background_select && map_data === 0x0c ? 4 : 2];
 				let a = this.ram[k];
-				data[p + 7 * 256] = a & 1 ? color : back;
-				data[p + 6 * 256] = a & 2 ? color : back;
-				data[p + 5 * 256] = a & 4 ? color : back;
-				data[p + 4 * 256] = a & 8 ? color : back;
-				data[p + 3 * 256] = a & 0x10 ? color : back;
-				data[p + 2 * 256] = a & 0x20 ? color : back;
-				data[p + 256] = a & 0x40 ? color : back;
-				data[p] = a & 0x80 ? color : back;
+				this.bitmap[p + 7 * 256] = a & 1 ? color : back;
+				this.bitmap[p + 6 * 256] = a & 2 ? color : back;
+				this.bitmap[p + 5 * 256] = a & 4 ? color : back;
+				this.bitmap[p + 4 * 256] = a & 8 ? color : back;
+				this.bitmap[p + 3 * 256] = a & 0x10 ? color : back;
+				this.bitmap[p + 2 * 256] = a & 0x20 ? color : back;
+				this.bitmap[p + 256] = a & 0x40 ? color : back;
+				this.bitmap[p] = a & 0x80 ? color : back;
 				a = this.ram[k + 0x20];
-				data[p + 1 + 7 * 256] = a & 1 ? color : back;
-				data[p + 1 + 6 * 256] = a & 2 ? color : back;
-				data[p + 1 + 5 * 256] = a & 4 ? color : back;
-				data[p + 1 + 4 * 256] = a & 8 ? color : back;
-				data[p + 1 + 3 * 256] = a & 0x10 ? color : back;
-				data[p + 1 + 2 * 256] = a & 0x20 ? color : back;
-				data[p + 1 + 256] = a & 0x40 ? color : back;
-				data[p + 1] = a & 0x80 ? color : back;
+				this.bitmap[p + 1 + 7 * 256] = a & 1 ? color : back;
+				this.bitmap[p + 1 + 6 * 256] = a & 2 ? color : back;
+				this.bitmap[p + 1 + 5 * 256] = a & 4 ? color : back;
+				this.bitmap[p + 1 + 4 * 256] = a & 8 ? color : back;
+				this.bitmap[p + 1 + 3 * 256] = a & 0x10 ? color : back;
+				this.bitmap[p + 1 + 2 * 256] = a & 0x20 ? color : back;
+				this.bitmap[p + 1 + 256] = a & 0x40 ? color : back;
+				this.bitmap[p + 1] = a & 0x80 ? color : back;
 				a = this.ram[k + 0x40];
-				data[p + 2 + 7 * 256] = a & 1 ? color : back;
-				data[p + 2 + 6 * 256] = a & 2 ? color : back;
-				data[p + 2 + 5 * 256] = a & 4 ? color : back;
-				data[p + 2 + 4 * 256] = a & 8 ? color : back;
-				data[p + 2 + 3 * 256] = a & 0x10 ? color : back;
-				data[p + 2 + 2 * 256] = a & 0x20 ? color : back;
-				data[p + 2 + 256] = a & 0x40 ? color : back;
-				data[p + 2] = a & 0x80 ? color : back;
+				this.bitmap[p + 2 + 7 * 256] = a & 1 ? color : back;
+				this.bitmap[p + 2 + 6 * 256] = a & 2 ? color : back;
+				this.bitmap[p + 2 + 5 * 256] = a & 4 ? color : back;
+				this.bitmap[p + 2 + 4 * 256] = a & 8 ? color : back;
+				this.bitmap[p + 2 + 3 * 256] = a & 0x10 ? color : back;
+				this.bitmap[p + 2 + 2 * 256] = a & 0x20 ? color : back;
+				this.bitmap[p + 2 + 256] = a & 0x40 ? color : back;
+				this.bitmap[p + 2] = a & 0x80 ? color : back;
 				a = this.ram[k + 0x60];
-				data[p + 3 + 7 * 256] = a & 1 ? color : back;
-				data[p + 3 + 6 * 256] = a & 2 ? color : back;
-				data[p + 3 + 5 * 256] = a & 4 ? color : back;
-				data[p + 3 + 4 * 256] = a & 8 ? color : back;
-				data[p + 3 + 3 * 256] = a & 0x10 ? color : back;
-				data[p + 3 + 2 * 256] = a & 0x20 ? color : back;
-				data[p + 3 + 256] = a & 0x40 ? color : back;
-				data[p + 3] = a & 0x80 ? color : back;
+				this.bitmap[p + 3 + 7 * 256] = a & 1 ? color : back;
+				this.bitmap[p + 3 + 6 * 256] = a & 2 ? color : back;
+				this.bitmap[p + 3 + 5 * 256] = a & 4 ? color : back;
+				this.bitmap[p + 3 + 4 * 256] = a & 8 ? color : back;
+				this.bitmap[p + 3 + 3 * 256] = a & 0x10 ? color : back;
+				this.bitmap[p + 3 + 2 * 256] = a & 0x20 ? color : back;
+				this.bitmap[p + 3 + 256] = a & 0x40 ? color : back;
+				this.bitmap[p + 3] = a & 0x80 ? color : back;
 			}
 			k -= 0x20 * 224 - 1;
 			p -= 224 + 256 * 8;
 		}
+
+		return this.bitmap;
 	}
 }
 

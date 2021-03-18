@@ -38,7 +38,8 @@ class TokiNoSenshi {
 	cpu2_irq = false;
 
 	bg = new Uint8Array(0x40000).fill(7);
-	rgb = Uint32Array.from(seq(0x100), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
+	rgb = Int32Array.from(seq(0x100), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 	layer = [];
 	mode = 0;
 	collision = new Uint8Array(0x442);
@@ -135,7 +136,7 @@ class TokiNoSenshi {
 		// Videoの初期化
 		convertGFX(this.bg, BG, 4096, rseq(8, 0, 8), seq(8), [0, Math.floor(BG.length / 3) * 8, Math.floor(BG.length / 3) * 16], 8);
 		for (let i = 0; i < 3; i++)
-			this.layer.push(new Uint32Array(this.width * this.height));
+			this.layer.push(new Int32Array(this.width * this.height));
 	}
 
 	execute(audio, rate_correction) {
@@ -243,13 +244,13 @@ class TokiNoSenshi {
 		!(this.fTurbo = fDown) && (this.in[0] |= 1 << 2);
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		// 画面クリア
 		if (this.mode & 0x10) {
 			let p = 256 * 16 + 16;
 			for (let i = 0; i < 256; p += 256, i++)
-				data.fill(0xff000000, p, p + 224);
-			return;
+				this.bitmap.fill(0xff000000, p, p + 224);
+			return this.bitmap;
 		}
 
 		// obj描画
@@ -277,8 +278,10 @@ class TokiNoSenshi {
 				const px0 = this.layer[0][p], px1 = this.layer[1][p], px2 = this.layer[2][p];
 				const pri = PRI[px2 >> 4 & 0x60 | !(px2 & 7) << 4 | px1 >> 7 & 0xc | !(px1 & 7) << 1 | !(px0 & 0xf)];
 				~pri & 4 && (this.collision[0x400 | pri << 2 & 0x20 | px0 >> 4] = this.collision[0x441] = 1);
-				data[p] = this.rgb[this.ram[(pri & 3) === 0 ? 0x1800 | px0 & 0x1ff : (pri & 3) === 1 ? 0x1a00 | px1 & 0x1ff : 0x1c00 | px2 & 0x1ff]];
+				this.bitmap[p] = this.rgb[this.ram[(pri & 3) === 0 ? 0x1800 | px0 & 0x1ff : (pri & 3) === 1 ? 0x1a00 | px1 & 0x1ff : 0x1c00 | px2 & 0x1ff]];
 			}
+
+		return this.bitmap;
 	}
 
 	drawObj(data) {

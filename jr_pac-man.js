@@ -38,7 +38,8 @@ class JrPacMan {
 	dwScroll = 0;
 	bg = new Uint8Array(0x8000).fill(3);
 	obj = new Uint8Array(0x8000).fill(3);
-	rgb = Uint32Array.from(seq(0x20).map(i => RGB_H[i] << 4 | RGB_L[i]), e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
+	rgb = Int32Array.from(seq(0x20).map(i => RGB_H[i] << 4 | RGB_L[i]), e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 
 	cpu = new Z80(Math.floor(18432000 / 6));
 
@@ -226,15 +227,15 @@ class JrPacMan {
 		JrPacMan.patched = true;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		// 画面クリア
 		let p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256, i++)
-			data.fill(0, p, p + 224);
+			this.bitmap.fill(0, p, p + 224);
 
 		// bg描画
 		if (!this.ram[0x1073])
-			this.drawBG(data);
+			this.drawBG(this.bitmap);
 
 		// obj描画
 		for (let k = 0x0ffe, i = 7; i !== 0; k -= 2, --i) {
@@ -243,29 +244,31 @@ class JrPacMan {
 			const src = this.ram[k] | this.ram[k + 1] << 8;
 			switch (this.ram[k] & 3) {
 			case 0: // ノーマル
-				this.xfer16x16(data, x | y << 8, src);
+				this.xfer16x16(this.bitmap, x | y << 8, src);
 				break;
 			case 1: // V反転
-				this.xfer16x16V(data, x | y << 8, src);
+				this.xfer16x16V(this.bitmap, x | y << 8, src);
 				break;
 			case 2: // H反転
-				this.xfer16x16H(data, x | y << 8, src);
+				this.xfer16x16H(this.bitmap, x | y << 8, src);
 				break;
 			case 3: // HV反転
-				this.xfer16x16HV(data, x | y << 8, src);
+				this.xfer16x16HV(this.bitmap, x | y << 8, src);
 				break;
 			}
 		}
 
 		// bg描画
 		if (this.ram[0x1073] !== 0)
-			this.drawBG(data);
+			this.drawBG(this.bitmap);
 
 		// palette変換
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p] | this.ram[0x1071] << 4];
+				this.bitmap[p] = this.rgb[this.bitmap[p] | this.ram[0x1071] << 4];
+
+		return this.bitmap;
 	}
 
 	drawBG(data) {

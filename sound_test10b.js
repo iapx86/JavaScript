@@ -5,7 +5,7 @@
  */
 
 import YM2151 from './ym2151.js';
-import {init, read} from './main.js';
+import {init, DoubleTimer, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -25,6 +25,9 @@ class SoundTest {
 	command = [];
 	addr = 0;
 	cpu2 = new Z80(3579545);
+
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+
 	timer = new DoubleTimer(32000000 / 8 / 512);
 
 	constructor() {
@@ -63,7 +66,7 @@ class SoundTest {
 			};
 		}
 
-		this.cpu2.check_interrupt = () => { return sound[0].status & 3 && this.cpu2.interrupt(0xef); };
+		this.cpu2.check_interrupt = () => { return sound[0].status & sound[0].reg[0x14] >> 2 & 3 && this.cpu2.interrupt(0xef); };
 	}
 
 	execute(audio, rate_correction) {
@@ -128,17 +131,19 @@ class SoundTest {
 		return this;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		for (let i = 0; i < 16; i++)
 			for (let j = 0; j < 8; j++)
-				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);
+				SoundTest.Xfer28x16(this.bitmap, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);
 
 		for (let i = 0; i < 8; i++) {
 			const kc = sound[0].reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3);
 			if (!sound[0].kon[i] || pitch < 0 || pitch >= 12 * 8)
 				continue;
-			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
+			SoundTest.Xfer28x16(this.bitmap, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
 		}
+
+		return this.bitmap;
 	}
 
 	static Xfer28x16(data, dst, src) {
@@ -164,7 +169,7 @@ read('rtype2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
-		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
+		key.push(new Int32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
 	game = new SoundTest();
 	sound = [

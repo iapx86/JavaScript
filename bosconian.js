@@ -48,7 +48,8 @@ class Bosconian {
 	bg = new Uint8Array(0x4000).fill(3);
 	obj = new Uint8Array(0x4000).fill(3);
 	bgcolor = Uint8Array.from(BGCOLOR, e => 0x10 | e);
-	rgb = new Uint32Array(0x80);
+	rgb = new Int32Array(0x80);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 
 	cpu = [new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6))];
 	mcu = [new MB8840(), new MB8840(), new MB8840()];
@@ -460,13 +461,13 @@ class Bosconian {
 		}
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		// bg描画
 		// スクロール部
 		let p = 256 * (8 * 2 + 3) + 232 + (this.mmi[0x120] & 7) - (this.mmi[0x110] & 7) * 256;
 		for (let k = 0xc00 + (this.mmi[0x120] + 0x10 << 2 & 0x3e0 | this.mmi[0x110] >> 3), i = 0; i < 29; k = k + 3 & 0x1f | k + 0x20 & 0x3e0 | 0xc00, p -= 256 * 8 * 29 + 8, i++)
 			for (let j = 0; j < 29; k = k + 1 & 0x1f | k & 0xfe0, p += 256 * 8, j++)
-				this.xfer8x8(data, p, k);
+				this.xfer8x8(this.bitmap, p, k);
 
 		// obj描画 : $83d4 - $83de
 		for (let k = 0xbde, i = 6; i !== 0; k -= 2, --i) {
@@ -477,16 +478,16 @@ class Bosconian {
 			const src = this.ram[k] | this.ram[k + 0x801] << 8;
 			switch (this.ram[k] & 3) {
 			case 0: // ノーマル
-				this.xfer16x16(data, x | y << 8, src);
+				this.xfer16x16(this.bitmap, x | y << 8, src);
 				break;
 			case 1: // V反転
-				this.xfer16x16V(data, x | y << 8, src);
+				this.xfer16x16V(this.bitmap, x | y << 8, src);
 				break;
 			case 2: // H反転
-				this.xfer16x16H(data, x | y << 8, src);
+				this.xfer16x16H(this.bitmap, x | y << 8, src);
 				break;
 			case 3: // HV反転
-				this.xfer16x16HV(data, x | y << 8, src);
+				this.xfer16x16HV(this.bitmap, x | y << 8, src);
 				break;
 			}
 		}
@@ -500,20 +501,20 @@ class Bosconian {
 				const k = this.stars[i].blk;
 				switch (this.mmi[0x174] << 1 & 2 | this.mmi[0x175] & 1) {
 				case 0:
-					if ((k === 0 || k === 2) && data[p + (223 - y | x + 3 << 8)] === 0x1f)
-						data[p + (223 - y | x + 3 << 8)] = 0x40 | px;
+					if ((k === 0 || k === 2) && this.bitmap[p + (223 - y | x + 3 << 8)] === 0x1f)
+						this.bitmap[p + (223 - y | x + 3 << 8)] = 0x40 | px;
 					break;
 				case 1:
-					if ((k === 1 || k === 2) && data[p + (223 - y | x + 3 << 8)] === 0x1f)
-						data[p + (223 - y | x + 3 << 8)] = 0x40 | px;
+					if ((k === 1 || k === 2) && this.bitmap[p + (223 - y | x + 3 << 8)] === 0x1f)
+						this.bitmap[p + (223 - y | x + 3 << 8)] = 0x40 | px;
 					break;
 				case 2:
-					if ((k === 0 || k === 3) && data[p + (223 - y | x + 3 << 8)] === 0x1f)
-						data[p + (223 - y | x + 3 << 8)] = 0x40 | px;
+					if ((k === 0 || k === 3) && this.bitmap[p + (223 - y | x + 3 << 8)] === 0x1f)
+						this.bitmap[p + (223 - y | x + 3 << 8)] = 0x40 | px;
 					break;
 				case 3:
-					if ((k === 1 || k === 3) && data[p + (223 - y | x + 3 << 8)] === 0x1f)
-						data[p + (223 - y | x + 3 << 8)] = 0x40 | px;
+					if ((k === 1 || k === 3) && this.bitmap[p + (223 - y | x + 3 << 8)] === 0x1f)
+						this.bitmap[p + (223 - y | x + 3 << 8)] = 0x40 | px;
 					break;
 				}
 			}
@@ -524,24 +525,26 @@ class Bosconian {
 		p = 256 * 8 * 34 + 232;
 		for (let k = 0x0840, i = 0; i < 28; k += 24, p -= 8, i++) {
 			for (let j = 0; j < 4; k++, p += 256 * 8, j++)
-				this.xfer8x8(data, p, k);
+				this.xfer8x8(this.bitmap, p, k);
 			p -= 256 * 8 * 8;
 			for (let j = 0; j < 4; k++, p += 256 * 8, j++)
-				this.xfer8x8(data, p, k);
+				this.xfer8x8(this.bitmap, p, k);
 		}
 
 		// レーダー描画
 		for (let k = 0xf, i = 12; i !== 0; --k, --i) {
 			const x = -1 + this.ram[k + 0x13f0] & 0xff;
 			const y = (this.mmi[k + 0x100] & 1 ^ 1) * 0x100 + this.ram[k + 0xbf0] + 16 & 0x1ff;
-			this.xfer4x4(data, x | y << 8, k);
+			this.xfer4x4(this.bitmap, x | y << 8, k);
 		}
 
 		// palette変換
 		p = 256 * 19 + 16;
 		for (let i = 0; i < 285; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	xfer4x4(data, p, k) {

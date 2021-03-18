@@ -40,7 +40,8 @@ class GoldenAxe {
 	cpu2_nmi = false;
 
 	bg = new Uint8Array(0x100000).fill(7);
-	rgb = new Uint32Array(0x800).fill(0xff000000);
+	rgb = new Int32Array(0x800).fill(0xff000000);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 	isspace;
 	mode = 0;
 	bgbank = new Int32Array(2);
@@ -327,33 +328,35 @@ class GoldenAxe {
 		!(this.fTurbo = fDown) && (this.in[1] |= 1 << 1);
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		// 画面クリア
 		if (~this.mode & 0x20) {
 			let p = 256 * 16 + 16;
 			for (let i = 0; i < 320; p += 256, i++)
-				data.fill(0xff000000, p, p + 224);
-			return;
+				this.bitmap.fill(0xff000000, p, p + 224);
+			return this.bitmap;
 		}
 
 		// bg/obj描画
-		this.drawBG(data, 2, 0);
-		this.drawObj(data, 0);
-		this.drawBG(data, 2, 1);
-		this.drawObj(data, 1);
-		this.drawBG(data, 2, 2);
-		this.drawBG(data, 0, 1);
-		this.drawObj(data, 2);
-		this.drawBG(data, 0, 2);
-		this.drawFG(data, 0x8000, 0);
-		this.drawObj(data, 3);
-		this.drawFG(data, 0x8000, 0x8000);
+		this.drawBG(this.bitmap, 2, 0);
+		this.drawObj(this.bitmap, 0);
+		this.drawBG(this.bitmap, 2, 1);
+		this.drawObj(this.bitmap, 1);
+		this.drawBG(this.bitmap, 2, 2);
+		this.drawBG(this.bitmap, 0, 1);
+		this.drawObj(this.bitmap, 2);
+		this.drawBG(this.bitmap, 0, 2);
+		this.drawFG(this.bitmap, 0x8000, 0);
+		this.drawObj(this.bitmap, 3);
+		this.drawFG(this.bitmap, 0x8000, 0x8000);
 
 		// palette変換
 		let p = 256 * 16 + 16;
 		for (let i = 0; i < 320; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	drawBG(data, disp, pri) {

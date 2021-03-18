@@ -49,7 +49,8 @@ class Xevious {
 	obj = new Uint8Array(0x20000).fill(7).fill(3, 0x10000);
 	bgcolor = Uint8Array.from(seq(0x200), i => BGCOLOR_H[i] << 4 & 0x70 | BGCOLOR_L[i]);
 	objcolor = Uint8Array.from(seq(0x200), i => OBJCOLOR_H[i] << 4 | OBJCOLOR_L[i]);
-	rgb = Uint32Array.from(seq(0x100), i => 0xff000000 | BLUE[i] * 255 / 15 << 16| GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
+	rgb = Int32Array.from(seq(0x100), i => 0xff000000 | BLUE[i] * 255 / 15 << 16| GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 	dwScroll = 0xff;
 
 	cpu = [new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6))];
@@ -350,12 +351,12 @@ class Xevious {
 		this.mmi[0] = this.mmi[0] & ~(1 << 0) | !fDown << 0;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		// bg4描画
 		let p = 256 * (16 - (this.dwScroll + 4 & 7)) + 232;
 		for (let k = 0x80 + ((this.dwScroll + 4 >> 3) + 2 & 0x3f), i = 0; i < 28; k = k + 27 & 0x3f | k + 0x40 & 0x7c0, p -= 256 * 8 * 37 + 8, i++)
 			for (let j = 0; j < 37; k = k + 1 & 0x3f | k & 0x7c0, p += 256 * 8, j++)
-				this.xfer8x8x2(data, p, k);
+				this.xfer8x8x2(this.bitmap, p, k);
 
 		// obj描画
 		for (let k = 0xf80, i = 64; i !== 0; k += 2, --i) {
@@ -364,72 +365,72 @@ class Xevious {
 			const src = this.ram[k + 0x1000] | this.ram[k + 0x800] << 1 & 0x100 | this.ram[k + 0x1001] << 9;
 			switch (this.ram[k + 0x800] & 0x0f) {
 			case 0x00: // ノーマル
-				this.xfer16x16(data, x | y << 8, src);
+				this.xfer16x16(this.bitmap, x | y << 8, src);
 				break;
 			case 0x04: // V反転
-				this.xfer16x16V(data, x | y << 8, src);
+				this.xfer16x16V(this.bitmap, x | y << 8, src);
 				break;
 			case 0x08: // H反転
-				this.xfer16x16H(data, x | y << 8, src);
+				this.xfer16x16H(this.bitmap, x | y << 8, src);
 				break;
 			case 0x0c: // HV反転
-				this.xfer16x16HV(data, x | y << 8, src);
+				this.xfer16x16HV(this.bitmap, x | y << 8, src);
 				break;
 			case 0x01: // ノーマル
-				this.xfer16x16(data, x | y << 8, src & ~1);
-				this.xfer16x16(data, x | (y + 16 & 0x1ff) << 8, src | 1);
+				this.xfer16x16(this.bitmap, x | y << 8, src & ~1);
+				this.xfer16x16(this.bitmap, x | (y + 16 & 0x1ff) << 8, src | 1);
 				break;
 			case 0x05: // V反転
-				this.xfer16x16V(data, x | y << 8, src | 1);
-				this.xfer16x16V(data, x | (y + 16 & 0x1ff) << 8, src & ~1);
+				this.xfer16x16V(this.bitmap, x | y << 8, src | 1);
+				this.xfer16x16V(this.bitmap, x | (y + 16 & 0x1ff) << 8, src & ~1);
 				break;
 			case 0x09: // H反転
-				this.xfer16x16H(data, x | y << 8, src & ~1);
-				this.xfer16x16H(data, x | (y + 16 & 0x1ff) << 8, src | 1);
+				this.xfer16x16H(this.bitmap, x | y << 8, src & ~1);
+				this.xfer16x16H(this.bitmap, x | (y + 16 & 0x1ff) << 8, src | 1);
 				break;
 			case 0x0d: // HV反転
-				this.xfer16x16HV(data, x | y << 8, src | 1);
-				this.xfer16x16HV(data, x | (y + 16 & 0x1ff) << 8, src & ~1);
+				this.xfer16x16HV(this.bitmap, x | y << 8, src | 1);
+				this.xfer16x16HV(this.bitmap, x | (y + 16 & 0x1ff) << 8, src & ~1);
 				break;
 			case 0x02: // ノーマル
-				this.xfer16x16(data, x | y << 8, src | 2);
-				this.xfer16x16(data, (x + 16 & 0xff) | y << 8, src & ~2);
+				this.xfer16x16(this.bitmap, x | y << 8, src | 2);
+				this.xfer16x16(this.bitmap, (x + 16 & 0xff) | y << 8, src & ~2);
 				break;
 			case 0x06: // V反転
-				this.xfer16x16V(data, x | y << 8, src | 2);
-				this.xfer16x16V(data, (x + 16 & 0xff) | y << 8, src & ~2);
+				this.xfer16x16V(this.bitmap, x | y << 8, src | 2);
+				this.xfer16x16V(this.bitmap, (x + 16 & 0xff) | y << 8, src & ~2);
 				break;
 			case 0x0a: // H反転
-				this.xfer16x16H(data, x | y << 8, src & ~2);
-				this.xfer16x16H(data, (x + 16 & 0xff) | y << 8, src | 2);
+				this.xfer16x16H(this.bitmap, x | y << 8, src & ~2);
+				this.xfer16x16H(this.bitmap, (x + 16 & 0xff) | y << 8, src | 2);
 				break;
 			case 0x0e: // HV反転
-				this.xfer16x16HV(data, x | y << 8, src & ~2);
-				this.xfer16x16HV(data, (x + 16 & 0xff) | y << 8, src | 2);
+				this.xfer16x16HV(this.bitmap, x | y << 8, src & ~2);
+				this.xfer16x16HV(this.bitmap, (x + 16 & 0xff) | y << 8, src | 2);
 				break;
 			case 0x03: // ノーマル
-				this.xfer16x16(data, x | y << 8, src & ~3 | 2);
-				this.xfer16x16(data, x | (y + 16 & 0x1ff) << 8, src | 3);
-				this.xfer16x16(data, (x + 16 & 0xff) | y << 8, src & ~3);
-				this.xfer16x16(data, (x + 16 & 0xff) | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
+				this.xfer16x16(this.bitmap, x | y << 8, src & ~3 | 2);
+				this.xfer16x16(this.bitmap, x | (y + 16 & 0x1ff) << 8, src | 3);
+				this.xfer16x16(this.bitmap, (x + 16 & 0xff) | y << 8, src & ~3);
+				this.xfer16x16(this.bitmap, (x + 16 & 0xff) | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
 				break;
 			case 0x07: // V反転
-				this.xfer16x16V(data, x | y << 8, src | 3);
-				this.xfer16x16V(data, x | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
-				this.xfer16x16V(data, (x + 16 & 0xff) | y << 8, src & ~3 | 1);
-				this.xfer16x16V(data, (x + 16 & 0xff) | (y + 16 & 0x1ff) << 8, src & ~3);
+				this.xfer16x16V(this.bitmap, x | y << 8, src | 3);
+				this.xfer16x16V(this.bitmap, x | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
+				this.xfer16x16V(this.bitmap, (x + 16 & 0xff) | y << 8, src & ~3 | 1);
+				this.xfer16x16V(this.bitmap, (x + 16 & 0xff) | (y + 16 & 0x1ff) << 8, src & ~3);
 				break;
 			case 0x0b: // H反転
-				this.xfer16x16H(data, x | y << 8, src & ~3);
-				this.xfer16x16H(data, x | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
-				this.xfer16x16H(data, (x + 16 & 0xff) | y << 8, src & ~3 | 2);
-				this.xfer16x16H(data, (x + 16 & 0xff) | (y + 16 & 0x1ff) << 8, src | 3);
+				this.xfer16x16H(this.bitmap, x | y << 8, src & ~3);
+				this.xfer16x16H(this.bitmap, x | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
+				this.xfer16x16H(this.bitmap, (x + 16 & 0xff) | y << 8, src & ~3 | 2);
+				this.xfer16x16H(this.bitmap, (x + 16 & 0xff) | (y + 16 & 0x1ff) << 8, src | 3);
 				break;
 			case 0x0f: // HV反転
-				this.xfer16x16HV(data, x | y << 8, src & ~3 | 1);
-				this.xfer16x16HV(data, x | (y + 16 & 0x1ff) << 8, src & ~3);
-				this.xfer16x16HV(data, (x + 16 & 0xff) | y << 8, src | 3);
-				this.xfer16x16HV(data, (x + 16 & 0xff) | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
+				this.xfer16x16HV(this.bitmap, x | y << 8, src & ~3 | 1);
+				this.xfer16x16HV(this.bitmap, x | (y + 16 & 0x1ff) << 8, src & ~3);
+				this.xfer16x16HV(this.bitmap, (x + 16 & 0xff) | y << 8, src | 3);
+				this.xfer16x16HV(this.bitmap, (x + 16 & 0xff) | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
 				break;
 			}
 		}
@@ -438,13 +439,15 @@ class Xevious {
 		p = 256 * 8 * 2 + 234;
 		for (let k = 0x2084, i = 0; i < 29; k += 28, p -= 256 * 8 * 36 + 8, i++)
 			for (let j = 0; j < 36; k++, p += 256 * 8, j++)
-				this.xfer8x8x1(data, p, k);
+				this.xfer8x8x1(this.bitmap, p, k);
 
 		// palette変換
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	xfer8x8x2(data, p, k) {

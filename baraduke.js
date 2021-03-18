@@ -42,7 +42,8 @@ class Baraduke {
 	fg = new Uint8Array(0x8000).fill(3);
 	bg = new Uint8Array(0x20000).fill(7);
 	obj = new Uint8Array(0x20000).fill(15);
-	rgb = Uint32Array.from(seq(0x800), i => 0xff000000 | (GREEN[i] >> 4) * 255 / 15 << 16 | (GREEN[i] & 15) * 255 / 15 << 8 | RED[i] * 255 / 15);
+	rgb = Int32Array.from(seq(0x800), i => 0xff000000 | (GREEN[i] >> 4) * 255 / 15 << 16 | (GREEN[i] & 15) * 255 / 15 << 8 | RED[i] * 255 / 15);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 	vScroll = [0, 0];
 	hScroll = [0, 0];
 
@@ -252,7 +253,7 @@ class Baraduke {
 		this.in[6] = this.in[6] & ~(1 << 4) | !fDown << 4;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		let p, k, back;
 
 		// bg描画
@@ -261,10 +262,10 @@ class Baraduke {
 		k = 0x2000 | back << 12 | 25 + this.hScroll[back] << 4 & 0xf80 | 25 - back * 2 + this.vScroll[back] >> 2 & 0x7e;
 		for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | k & 0x3000, p -= 256 * 8 * 37 + 8, i++)
 			for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
-				this.xfer8x8b0(data, p, k, back);
+				this.xfer8x8b0(this.bitmap, p, k, back);
 
 		// obj描画
-		this.drawObj(data, 0);
+		this.drawObj(this.bitmap, 0);
 
 		// bg描画
 		back ^= 1;
@@ -272,39 +273,41 @@ class Baraduke {
 		k = 0x2000 | back << 12 | 25 + this.hScroll[back] << 4 & 0xf80 | 25 - back * 2 + this.vScroll[back] >> 2 & 0x7e;
 		for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | k & 0x3000, p -= 256 * 8 * 37 + 8, i++)
 			for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
-				this.xfer8x8b1(data, p, k, back);
+				this.xfer8x8b1(this.bitmap, p, k, back);
 
 		// obj描画
-		this.drawObj(data, 1);
+		this.drawObj(this.bitmap, 1);
 
 		// fg描画
 		p = 256 * 8 * 4 + 232;
 		k = 0x4040;
 		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
-				this.xfer8x8f(data, p, k);
+				this.xfer8x8f(this.bitmap, p, k);
 		p = 256 * 8 * 36 + 232;
 		k = 0x4002;
 		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8f(data, p, k);
+			this.xfer8x8f(this.bitmap, p, k);
 		p = 256 * 8 * 37 + 232;
 		k = 0x4022;
 		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8f(data, p, k);
+			this.xfer8x8f(this.bitmap, p, k);
 		p = 256 * 8 * 2 + 232;
 		k = 0x43c2;
 		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8f(data, p, k);
+			this.xfer8x8f(this.bitmap, p, k);
 		p = 256 * 8 * 3 + 232;
 		k = 0x43e2;
 		for (let i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8f(data, p, k);
+			this.xfer8x8f(this.bitmap, p, k);
 
 		// palette変換
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	drawObj(data, pri) {

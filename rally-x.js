@@ -40,7 +40,8 @@ class RallyX {
 
 	bg = new Uint8Array(0x4000).fill(3);
 	obj = new Uint8Array(0x4000).fill(3);
-	rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
+	rgb = Int32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 
 	se = [{freq: 11025, buf: BANG, loop: false, start: false, stop: false}];
 
@@ -224,9 +225,9 @@ class RallyX {
 		this.mmi[0] = this.mmi[0] & ~(1 << 1) | !fDown << 1;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		// bg描画
-		this.drawBG(data, 0);
+		this.drawBG(this.bitmap, 0);
 
 		// obj描画
 		for (let k = 0x001e, i = 6; i !== 0; k -= 2, --i) {
@@ -237,22 +238,22 @@ class RallyX {
 			const src = this.ram[k] | this.ram[k + 0x801] << 8;
 			switch (this.ram[k] & 3) {
 			case 0: // ノーマル
-				this.xfer16x16(data, x | y << 8, src);
+				this.xfer16x16(this.bitmap, x | y << 8, src);
 				break;
 			case 1: // V反転
-				this.xfer16x16V(data, x | y << 8, src);
+				this.xfer16x16V(this.bitmap, x | y << 8, src);
 				break;
 			case 2: // H反転
-				this.xfer16x16H(data, x | y << 8, src);
+				this.xfer16x16H(this.bitmap, x | y << 8, src);
 				break;
 			case 3: // HV反転
-				this.xfer16x16HV(data, x | y << 8, src);
+				this.xfer16x16HV(this.bitmap, x | y << 8, src);
 				break;
 			}
 		}
 
 		// bg描画
-		this.drawBG(data, 1);
+		this.drawBG(this.bitmap, 1);
 
 		// レーダー描画
 		for (let k = 0x3c, i = 9; i !== 0; --k, --i) {
@@ -262,14 +263,16 @@ class RallyX {
 			const y = this.ram[k] + 32 & 0xff;
 			if (x <= 12 || x >= 240 || y >= 64)
 				continue;
-			this.xfer4x4(data, (x | y << 8) + 240 * 0x100, k);
+			this.xfer4x4(this.bitmap, (x | y << 8) + 240 * 0x100, k);
 		}
 
 		// palette変換
 		let p = 256 * 19 + 16;
 		for (let i = 0; i < 285; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	drawBG(data, pri) {

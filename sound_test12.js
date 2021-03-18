@@ -31,6 +31,9 @@ class SoundTest {
 	bank4 = 0x80;
 	cpu3_irq = false;
 	mcu_irq = false;
+
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+
 	cpu3 = new MC6809(Math.floor(49152000 / 32));
 	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
 	timer = new DoubleTimer(49152000 / 8 / 1024);
@@ -65,7 +68,7 @@ class SoundTest {
 		this.cpu3.memorymap[0xc0].write = (addr, data) => { this.bankswitch3(data << 2 & 0x1c0); };
 		this.cpu3.memorymap[0xe0].write = () => { this.cpu3_irq = false; };
 
-		this.cpu3.check_interrupt = () => { return this.cpu3_irq && this.cpu3.interrupt() || sound[0].status & 3 && this.cpu3.fast_interrupt(); };
+		this.cpu3.check_interrupt = () => { return this.cpu3_irq && this.cpu3.interrupt() || sound[0].status & sound[0].reg[0x14] >> 2 & 3 && this.cpu3.fast_interrupt(); };
 
 		this.mcu.memorymap[0].base = this.ram4.base[0];
 		this.mcu.memorymap[0].read = (addr) => {
@@ -223,16 +226,16 @@ class SoundTest {
 		return this;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		for (let i = 0; i < 16; i++)
 			for (let j = 0; j < 8; j++)
-				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[0]);
+				SoundTest.Xfer28x16(this.bitmap, 28 * j + 256 * 16 * i, key[0]);
 
 		for (let i = 0; i < 8; i++) {
 			const kc = sound[0].reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3);
 			if (!sound[0].kon[i] || pitch < 0 || pitch >= 12 * 8)
 				continue;
-			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
+			SoundTest.Xfer28x16(this.bitmap, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
 		}
 
 		const reg = [];
@@ -244,15 +247,17 @@ class SoundTest {
 			if (!vol)
 				continue;
 			if (i < 4 && reg[-4 + i * 8 & 0x3f] & 0x80)
-				SoundTest.Xfer28x16(data, 256 * 16 * (8 + i), key[1]);
+				SoundTest.Xfer28x16(this.bitmap, 256 * 16 * (8 + i), key[1]);
 			else {
 				const freq = reg[3 + i * 8] | reg[2 + i * 8] << 8 | reg[1 + i * 8] << 16 & 0xf0000;
 				const pitch = Math.floor(Math.log2(freq * 12000 / (1 << 20) / 440) * 12 + 45.5);
 				if (pitch < 0 || pitch >= 12 * 8)
 					continue;
-				SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * (8 + i), key[pitch % 12 + 1]);
+				SoundTest.Xfer28x16(this.bitmap, 28 * Math.floor(pitch / 12) + 256 * 16 * (8 + i), key[pitch % 12 + 1]);
 			}
 		}
+
+		return this.bitmap;
 	}
 
 	static Xfer28x16(data, dst, src) {
@@ -279,7 +284,7 @@ read('wldcourt.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
-		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
+		key.push(new Int32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
 	game = new SoundTest();
 	sound = [

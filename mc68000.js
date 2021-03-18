@@ -32,7 +32,7 @@ export default class MC68000 extends Cpu {
 		this.memorymap.splice(0);
 		for (let i = 0; i < 0x10000; i++)
 			this.memorymap.push({base: dummypage, read: null, read16: null, write: () => {}, write16: null});
-		this.breakpointmap = new Uint32Array(0x80000);
+		this.breakpointmap = new Int32Array(0x80000);
 	}
 
 	reset() {

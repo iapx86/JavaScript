@@ -43,7 +43,8 @@ class SkyKidDeluxe {
 	bg1 = new Uint8Array(0x20000).fill(3);
 	bg2 = new Uint8Array(0x20000).fill(3);
 	obj = new Uint8Array(0x20000).fill(15);
-	rgb = Uint32Array.from(seq(0x200), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | (RED[i] >> 4) * 255 / 15 << 8 | (RED[i] & 15) * 255 / 15);
+	rgb = Int32Array.from(seq(0x200), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | (RED[i] >> 4) * 255 / 15 << 8 | (RED[i] & 15) * 255 / 15);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 	isspace1 = new Uint8Array(0x800);
 	isspace2 = new Uint8Array(0x800);
 	vScroll = new Uint16Array(4);
@@ -314,13 +315,13 @@ class SkyKidDeluxe {
 		this.in[0] = this.in[0] & ~(1 << 1) | !fDown << 1;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		const ram = this.ram, flip = !!(ram[0x5ff6] & 1);
 
 		// 画面クリア
 		let p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256, i++)
-			data.fill(BGCOLOR[this.backcolor << 3 | 7], p, p + 224);
+			this.bitmap.fill(BGCOLOR[this.backcolor << 3 | 7], p, p + 224);
 
 		for (let pri = 0; pri < 8; pri++) {
 			// bg描画
@@ -329,28 +330,28 @@ class SkyKidDeluxe {
 				let k = flip ? 205 - this.vScroll[3] >> 2 & 0x7e | 7 - this.hScroll[3] << 4 & 0xf80 | 0x3000 : 19 + this.vScroll[3] >> 2 & 0x7e | 25 + this.hScroll[3] << 4 & 0xf80 | 0x3000;
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0x3000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
-						this.xfer8x8b2(data, p, k, 1);
+						this.xfer8x8b2(this.bitmap, p, k, 1);
 			}
 			if ((this.vScroll[2] >> 9 & 7) === pri) {
 				p = flip ? 256 * 8 * 2 + 232 - (203 - this.vScroll[2] & 7) * 256 + (7 - this.hScroll[2] & 7) : 256 * 8 * 2 + 232 - (21 + this.vScroll[2] & 7) * 256 + (25 + this.hScroll[2] & 7);
 				let k = flip ? 203 - this.vScroll[2] >> 2 & 0x7e | 7 - this.hScroll[2] << 4 & 0xf80 | 0x2000 : 21 + this.vScroll[2] >> 2 & 0x7e | 25 + this.hScroll[2] << 4 & 0xf80 | 0x2000;
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0x2000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
-						this.xfer8x8b2(data, p, k, 0);
+						this.xfer8x8b2(this.bitmap, p, k, 0);
 			}
 			if ((this.vScroll[1] >> 9 & 7) === pri) {
 				p = flip ? 256 * 8 * 2 + 232 - (206 - this.vScroll[1] & 7) * 256 + (7 - this.hScroll[1] & 7) : 256 * 8 * 2 + 232 - (18 + this.vScroll[1] & 7) * 256 + (25 + this.hScroll[1] & 7);
 				let k = flip ? 206 - this.vScroll[1] >> 2 & 0x7e | 7 - this.hScroll[1] << 4 & 0xf80 | 0x1000 : 18 + this.vScroll[1] >> 2 & 0x7e | 25 + this.hScroll[1] << 4 & 0xf80 | 0x1000;
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0x1000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
-						this.xfer8x8b1(data, p, k, 1);
+						this.xfer8x8b1(this.bitmap, p, k, 1);
 			}
 			if ((this.vScroll[0] >> 9 & 7) === pri) {
 				p = flip ? 256 * 8 * 2 + 232 - (204 - this.vScroll[0] & 7) * 256 + (7 - this.hScroll[0] & 7) : 256 * 8 * 2 + 232 - (20 + this.vScroll[0] & 7) * 256 + (25 + this.hScroll[0] & 7);
 				let k = flip ? 204 - this.vScroll[0] >> 2 & 0x7e | 7 - this.hScroll[0] << 4 & 0xf80 : 20 + this.vScroll[0] >> 2 & 0x7e | 25 + this.hScroll[0] << 4 & 0xf80;
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x3f80, p += 256 * 8, j++)
-						this.xfer8x8b1(data, p, k, 0);
+						this.xfer8x8b1(this.bitmap, p, k, 0);
 			}
 
 			// obj描画
@@ -364,16 +365,16 @@ class SkyKidDeluxe {
 				const color = ram[k + 6] << 3 & 0x7f0;
 				switch (ram[k + 8] & 1 | ram[k + 4] >> 4 & 2) {
 				case 0:
-					this.xferHxW(data, src, color, y, x, h, w);
+					this.xferHxW(this.bitmap, src, color, y, x, h, w);
 					break;
 				case 1:
-					this.xferHxW_H(data, src, color, y, x, h, w);
+					this.xferHxW_H(this.bitmap, src, color, y, x, h, w);
 					break;
 				case 2:
-					this.xferHxW_V(data, src, color, y, x, h, w);
+					this.xferHxW_V(this.bitmap, src, color, y, x, h, w);
 					break;
 				case 0x03:
-					this.xferHxW_HV(data, src, color, y, x, h, w);
+					this.xferHxW_HV(this.bitmap, src, color, y, x, h, w);
 					break;
 				}
 			}
@@ -383,7 +384,9 @@ class SkyKidDeluxe {
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	xfer8x8b1(data, p, k, back) {

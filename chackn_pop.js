@@ -39,7 +39,8 @@ class ChacknPop {
 
 	bg = new Uint8Array(0x10000).fill(3);
 	obj = new Uint8Array(0x10000).fill(3);
-	rgb = Uint32Array.from(seq(0x400).map(i => RGB_H[i] << 4 | RGB_L[i]), e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
+	rgb = Int32Array.from(seq(0x400).map(i => RGB_H[i] << 4 | RGB_L[i]), e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 	mode = 0;
 
 	cpu = new Z80(Math.floor(18000000 / 6));
@@ -249,12 +250,12 @@ class ChacknPop {
 		this.in[1] = this.in[1] & ~(1 << 5) | !fDown << 5;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		// bg描画
 		let p = 256 * 8 * 2 + 232;
 		for (let k = 0x840, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
-				this.xfer8x8(data, p, k);
+				this.xfer8x8(this.bitmap, p, k);
 
 		// obj描画
 		for (let k = 0xc40, i = 48; i !== 0; k += 4, --i) {
@@ -262,16 +263,16 @@ class ChacknPop {
 			const src = this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6;
 			switch (this.ram[k + 1] & 0xc0) {
 			case 0x00: // ノーマル
-				this.xfer16x16(data, x | y << 8, src);
+				this.xfer16x16(this.bitmap, x | y << 8, src);
 				break;
 			case 0x40: // V反転
-				this.xfer16x16V(data, x | y << 8, src);
+				this.xfer16x16V(this.bitmap, x | y << 8, src);
 				break;
 			case 0x80: // H反転
-				this.xfer16x16H(data, x | y << 8, src);
+				this.xfer16x16H(this.bitmap, x | y << 8, src);
 				break;
 			case 0xc0: // HV反転
-				this.xfer16x16HV(data, x | y << 8, src);
+				this.xfer16x16HV(this.bitmap, x | y << 8, src);
 				break;
 			}
 		}
@@ -281,45 +282,47 @@ class ChacknPop {
 		for (let k = 0x0200, i = 256 >> 3; i !== 0; --i) {
 			for (let j = 224 >> 2; j !== 0; k += 0x80, p += 4, --j) {
 				let p0 = this.vram[k], p1 = this.vram[0x2000 + k], p2 = this.vram[0x4000 + k], p3 = this.vram[0x6000 + k];
-				data[p + 7 * 256] = this.rgb[p0 << 9 & 0x200 | p2 << 8 & 0x100 | p1 << 7 & 0x80 | p3 << 6 & 0x40 | data[p + 7 * 256]];
-				data[p + 6 * 256] = this.rgb[p0 << 8 & 0x200 | p2 << 7 & 0x100 | p1 << 6 & 0x80 | p3 << 5 & 0x40 | data[p + 6 * 256]];
-				data[p + 5 * 256] = this.rgb[p0 << 7 & 0x200 | p2 << 6 & 0x100 | p1 << 5 & 0x80 | p3 << 4 & 0x40 | data[p + 5 * 256]];
-				data[p + 4 * 256] = this.rgb[p0 << 6 & 0x200 | p2 << 5 & 0x100 | p1 << 4 & 0x80 | p3 << 3 & 0x40 | data[p + 4 * 256]];
-				data[p + 3 * 256] = this.rgb[p0 << 5 & 0x200 | p2 << 4 & 0x100 | p1 << 3 & 0x80 | p3 << 2 & 0x40 | data[p + 3 * 256]];
-				data[p + 2 * 256] = this.rgb[p0 << 4 & 0x200 | p2 << 3 & 0x100 | p1 << 2 & 0x80 | p3 << 1 & 0x40 | data[p + 2 * 256]];
-				data[p + 256] = this.rgb[p0 << 3 & 0x200 | p2 << 2 & 0x100 | p1 << 1 & 0x80 | p3 << 0 & 0x40 | data[p + 256]];
-				data[p] = this.rgb[p0 << 2 & 0x200 | p2 << 1 & 0x100 | p1 << 0 & 0x80 | p3 >> 1 & 0x40 | data[p]];
+				this.bitmap[p + 7 * 256] = this.rgb[p0 << 9 & 0x200 | p2 << 8 & 0x100 | p1 << 7 & 0x80 | p3 << 6 & 0x40 | this.bitmap[p + 7 * 256]];
+				this.bitmap[p + 6 * 256] = this.rgb[p0 << 8 & 0x200 | p2 << 7 & 0x100 | p1 << 6 & 0x80 | p3 << 5 & 0x40 | this.bitmap[p + 6 * 256]];
+				this.bitmap[p + 5 * 256] = this.rgb[p0 << 7 & 0x200 | p2 << 6 & 0x100 | p1 << 5 & 0x80 | p3 << 4 & 0x40 | this.bitmap[p + 5 * 256]];
+				this.bitmap[p + 4 * 256] = this.rgb[p0 << 6 & 0x200 | p2 << 5 & 0x100 | p1 << 4 & 0x80 | p3 << 3 & 0x40 | this.bitmap[p + 4 * 256]];
+				this.bitmap[p + 3 * 256] = this.rgb[p0 << 5 & 0x200 | p2 << 4 & 0x100 | p1 << 3 & 0x80 | p3 << 2 & 0x40 | this.bitmap[p + 3 * 256]];
+				this.bitmap[p + 2 * 256] = this.rgb[p0 << 4 & 0x200 | p2 << 3 & 0x100 | p1 << 2 & 0x80 | p3 << 1 & 0x40 | this.bitmap[p + 2 * 256]];
+				this.bitmap[p + 256] = this.rgb[p0 << 3 & 0x200 | p2 << 2 & 0x100 | p1 << 1 & 0x80 | p3 << 0 & 0x40 | this.bitmap[p + 256]];
+				this.bitmap[p] = this.rgb[p0 << 2 & 0x200 | p2 << 1 & 0x100 | p1 << 0 & 0x80 | p3 >> 1 & 0x40 | this.bitmap[p]];
 				p0 = this.vram[0x20 + k], p1 = this.vram[0x2020 + k], p2 = this.vram[0x4020 + k], p3 = this.vram[0x6020 + k];
-				data[p + 1 + 7 * 256] = this.rgb[p0 << 9 & 0x200 | p2 << 8 & 0x100 | p1 << 7 & 0x80 | p3 << 6 & 0x40 | data[p + 1 + 7 * 256]];
-				data[p + 1 + 6 * 256] = this.rgb[p0 << 8 & 0x200 | p2 << 7 & 0x100 | p1 << 6 & 0x80 | p3 << 5 & 0x40 | data[p + 1 + 6 * 256]];
-				data[p + 1 + 5 * 256] = this.rgb[p0 << 7 & 0x200 | p2 << 6 & 0x100 | p1 << 5 & 0x80 | p3 << 4 & 0x40 | data[p + 1 + 5 * 256]];
-				data[p + 1 + 4 * 256] = this.rgb[p0 << 6 & 0x200 | p2 << 5 & 0x100 | p1 << 4 & 0x80 | p3 << 3 & 0x40 | data[p + 1 + 4 * 256]];
-				data[p + 1 + 3 * 256] = this.rgb[p0 << 5 & 0x200 | p2 << 4 & 0x100 | p1 << 3 & 0x80 | p3 << 2 & 0x40 | data[p + 1 + 3 * 256]];
-				data[p + 1 + 2 * 256] = this.rgb[p0 << 4 & 0x200 | p2 << 3 & 0x100 | p1 << 2 & 0x80 | p3 << 1 & 0x40 | data[p + 1 + 2 * 256]];
-				data[p + 1 + 256] = this.rgb[p0 << 3 & 0x200 | p2 << 2 & 0x100 | p1 << 1 & 0x80 | p3 << 0 & 0x40 | data[p + 1 + 256]];
-				data[p + 1] = this.rgb[p0 << 2 & 0x200 | p2 << 1 & 0x100 | p1 << 0 & 0x80 | p3 >> 1 & 0x40 | data[p + 1]];
+				this.bitmap[p + 1 + 7 * 256] = this.rgb[p0 << 9 & 0x200 | p2 << 8 & 0x100 | p1 << 7 & 0x80 | p3 << 6 & 0x40 | this.bitmap[p + 1 + 7 * 256]];
+				this.bitmap[p + 1 + 6 * 256] = this.rgb[p0 << 8 & 0x200 | p2 << 7 & 0x100 | p1 << 6 & 0x80 | p3 << 5 & 0x40 | this.bitmap[p + 1 + 6 * 256]];
+				this.bitmap[p + 1 + 5 * 256] = this.rgb[p0 << 7 & 0x200 | p2 << 6 & 0x100 | p1 << 5 & 0x80 | p3 << 4 & 0x40 | this.bitmap[p + 1 + 5 * 256]];
+				this.bitmap[p + 1 + 4 * 256] = this.rgb[p0 << 6 & 0x200 | p2 << 5 & 0x100 | p1 << 4 & 0x80 | p3 << 3 & 0x40 | this.bitmap[p + 1 + 4 * 256]];
+				this.bitmap[p + 1 + 3 * 256] = this.rgb[p0 << 5 & 0x200 | p2 << 4 & 0x100 | p1 << 3 & 0x80 | p3 << 2 & 0x40 | this.bitmap[p + 1 + 3 * 256]];
+				this.bitmap[p + 1 + 2 * 256] = this.rgb[p0 << 4 & 0x200 | p2 << 3 & 0x100 | p1 << 2 & 0x80 | p3 << 1 & 0x40 | this.bitmap[p + 1 + 2 * 256]];
+				this.bitmap[p + 1 + 256] = this.rgb[p0 << 3 & 0x200 | p2 << 2 & 0x100 | p1 << 1 & 0x80 | p3 << 0 & 0x40 | this.bitmap[p + 1 + 256]];
+				this.bitmap[p + 1] = this.rgb[p0 << 2 & 0x200 | p2 << 1 & 0x100 | p1 << 0 & 0x80 | p3 >> 1 & 0x40 | this.bitmap[p + 1]];
 				p0 = this.vram[0x40 + k], p1 = this.vram[0x2040 + k], p2 = this.vram[0x4040 + k], p3 = this.vram[0x6040 + k];
-				data[p + 2 + 7 * 256] = this.rgb[p0 << 9 & 0x200 | p2 << 8 & 0x100 | p1 << 7 & 0x80 | p3 << 6 & 0x40 | data[p + 2 + 7 * 256]];
-				data[p + 2 + 6 * 256] = this.rgb[p0 << 8 & 0x200 | p2 << 7 & 0x100 | p1 << 6 & 0x80 | p3 << 5 & 0x40 | data[p + 2 + 6 * 256]];
-				data[p + 2 + 5 * 256] = this.rgb[p0 << 7 & 0x200 | p2 << 6 & 0x100 | p1 << 5 & 0x80 | p3 << 4 & 0x40 | data[p + 2 + 5 * 256]];
-				data[p + 2 + 4 * 256] = this.rgb[p0 << 6 & 0x200 | p2 << 5 & 0x100 | p1 << 4 & 0x80 | p3 << 3 & 0x40 | data[p + 2 + 4 * 256]];
-				data[p + 2 + 3 * 256] = this.rgb[p0 << 5 & 0x200 | p2 << 4 & 0x100 | p1 << 3 & 0x80 | p3 << 2 & 0x40 | data[p + 2 + 3 * 256]];
-				data[p + 2 + 2 * 256] = this.rgb[p0 << 4 & 0x200 | p2 << 3 & 0x100 | p1 << 2 & 0x80 | p3 << 1 & 0x40 | data[p + 2 + 2 * 256]];
-				data[p + 2 + 256] = this.rgb[p0 << 3 & 0x200 | p2 << 2 & 0x100 | p1 << 1 & 0x80 | p3 << 0 & 0x40 | data[p + 2 + 256]];
-				data[p + 2] = this.rgb[p0 << 2 & 0x200 | p2 << 1 & 0x100 | p1 << 0 & 0x80 | p3 >> 1 & 0x40 | data[p + 2]];
+				this.bitmap[p + 2 + 7 * 256] = this.rgb[p0 << 9 & 0x200 | p2 << 8 & 0x100 | p1 << 7 & 0x80 | p3 << 6 & 0x40 | this.bitmap[p + 2 + 7 * 256]];
+				this.bitmap[p + 2 + 6 * 256] = this.rgb[p0 << 8 & 0x200 | p2 << 7 & 0x100 | p1 << 6 & 0x80 | p3 << 5 & 0x40 | this.bitmap[p + 2 + 6 * 256]];
+				this.bitmap[p + 2 + 5 * 256] = this.rgb[p0 << 7 & 0x200 | p2 << 6 & 0x100 | p1 << 5 & 0x80 | p3 << 4 & 0x40 | this.bitmap[p + 2 + 5 * 256]];
+				this.bitmap[p + 2 + 4 * 256] = this.rgb[p0 << 6 & 0x200 | p2 << 5 & 0x100 | p1 << 4 & 0x80 | p3 << 3 & 0x40 | this.bitmap[p + 2 + 4 * 256]];
+				this.bitmap[p + 2 + 3 * 256] = this.rgb[p0 << 5 & 0x200 | p2 << 4 & 0x100 | p1 << 3 & 0x80 | p3 << 2 & 0x40 | this.bitmap[p + 2 + 3 * 256]];
+				this.bitmap[p + 2 + 2 * 256] = this.rgb[p0 << 4 & 0x200 | p2 << 3 & 0x100 | p1 << 2 & 0x80 | p3 << 1 & 0x40 | this.bitmap[p + 2 + 2 * 256]];
+				this.bitmap[p + 2 + 256] = this.rgb[p0 << 3 & 0x200 | p2 << 2 & 0x100 | p1 << 1 & 0x80 | p3 << 0 & 0x40 | this.bitmap[p + 2 + 256]];
+				this.bitmap[p + 2] = this.rgb[p0 << 2 & 0x200 | p2 << 1 & 0x100 | p1 << 0 & 0x80 | p3 >> 1 & 0x40 | this.bitmap[p + 2]];
 				p0 = this.vram[0x60 + k], p1 = this.vram[0x2060 + k], p2 = this.vram[0x4060 + k], p3 = this.vram[0x6060 + k];
-				data[p + 3 + 7 * 256] = this.rgb[p0 << 9 & 0x200 | p2 << 8 & 0x100 | p1 << 7 & 0x80 | p3 << 6 & 0x40 | data[p + 3 + 7 * 256]];
-				data[p + 3 + 6 * 256] = this.rgb[p0 << 8 & 0x200 | p2 << 7 & 0x100 | p1 << 6 & 0x80 | p3 << 5 & 0x40 | data[p + 3 + 6 * 256]];
-				data[p + 3 + 5 * 256] = this.rgb[p0 << 7 & 0x200 | p2 << 6 & 0x100 | p1 << 5 & 0x80 | p3 << 4 & 0x40 | data[p + 3 + 5 * 256]];
-				data[p + 3 + 4 * 256] = this.rgb[p0 << 6 & 0x200 | p2 << 5 & 0x100 | p1 << 4 & 0x80 | p3 << 3 & 0x40 | data[p + 3 + 4 * 256]];
-				data[p + 3 + 3 * 256] = this.rgb[p0 << 5 & 0x200 | p2 << 4 & 0x100 | p1 << 3 & 0x80 | p3 << 2 & 0x40 | data[p + 3 + 3 * 256]];
-				data[p + 3 + 2 * 256] = this.rgb[p0 << 4 & 0x200 | p2 << 3 & 0x100 | p1 << 2 & 0x80 | p3 << 1 & 0x40 | data[p + 3 + 2 * 256]];
-				data[p + 3 + 256] = this.rgb[p0 << 3 & 0x200 | p2 << 2 & 0x100 | p1 << 1 & 0x80 | p3 << 0 & 0x40 | data[p + 3 + 256]];
-				data[p + 3] = this.rgb[p0 << 2 & 0x200 | p2 << 1 & 0x100 | p1 << 0 & 0x80 | p3 >> 1 & 0x40 | data[p + 3]];
+				this.bitmap[p + 3 + 7 * 256] = this.rgb[p0 << 9 & 0x200 | p2 << 8 & 0x100 | p1 << 7 & 0x80 | p3 << 6 & 0x40 | this.bitmap[p + 3 + 7 * 256]];
+				this.bitmap[p + 3 + 6 * 256] = this.rgb[p0 << 8 & 0x200 | p2 << 7 & 0x100 | p1 << 6 & 0x80 | p3 << 5 & 0x40 | this.bitmap[p + 3 + 6 * 256]];
+				this.bitmap[p + 3 + 5 * 256] = this.rgb[p0 << 7 & 0x200 | p2 << 6 & 0x100 | p1 << 5 & 0x80 | p3 << 4 & 0x40 | this.bitmap[p + 3 + 5 * 256]];
+				this.bitmap[p + 3 + 4 * 256] = this.rgb[p0 << 6 & 0x200 | p2 << 5 & 0x100 | p1 << 4 & 0x80 | p3 << 3 & 0x40 | this.bitmap[p + 3 + 4 * 256]];
+				this.bitmap[p + 3 + 3 * 256] = this.rgb[p0 << 5 & 0x200 | p2 << 4 & 0x100 | p1 << 3 & 0x80 | p3 << 2 & 0x40 | this.bitmap[p + 3 + 3 * 256]];
+				this.bitmap[p + 3 + 2 * 256] = this.rgb[p0 << 4 & 0x200 | p2 << 3 & 0x100 | p1 << 2 & 0x80 | p3 << 1 & 0x40 | this.bitmap[p + 3 + 2 * 256]];
+				this.bitmap[p + 3 + 256] = this.rgb[p0 << 3 & 0x200 | p2 << 2 & 0x100 | p1 << 1 & 0x80 | p3 << 0 & 0x40 | this.bitmap[p + 3 + 256]];
+				this.bitmap[p + 3] = this.rgb[p0 << 2 & 0x200 | p2 << 1 & 0x100 | p1 << 0 & 0x80 | p3 >> 1 & 0x40 | this.bitmap[p + 3]];
 			}
 			k -= 0x20 * 224 - 1;
 			p -= 224 + 256 * 8;
 		}
+
+		return this.bitmap;
 	}
 
 	xfer8x8(data, p, k) {

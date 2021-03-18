@@ -46,7 +46,7 @@ const fsSource = `
 		gl_FragColor = texture2D(uSampler, vTextureCoord);
 	}
 `;
-let game, sound, pixel, data;
+let game, sound;
 const cxScreen = canvas.width, cyScreen = canvas.height;
 const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl"), timestamps = [], samples = [];
 let source, worklet, scriptNode, button, state = '', toggle = 0;
@@ -95,8 +95,6 @@ function initShaderProgram(gl, vsSource, fsSource) {
 
 export function init({keydown, keyup, ...args} = {}) {
 	({game, sound} = args);
-	pixel = new Uint8Array(game.width * game.height * 4);
-	data = new Uint32Array(pixel.buffer);
 	const positions = new Float32Array(game.rotate ? [-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0] : [-1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, -1.0]);
 	const program = initShaderProgram(gl, vsSource, fsSource);
 	const aVertexPositionHandle = gl.getAttribLocation(program, 'aVertexPosition');
@@ -106,7 +104,7 @@ export function init({keydown, keyup, ...args} = {}) {
 	const textureCoordBuffer = gl.createBuffer();
 	const texture = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, texture);
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, game.width, game.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, game.width, game.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(game.width * game.height * 4).fill(0xff000000));
 	gl.useProgram(program);
 	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
@@ -188,9 +186,10 @@ export function init({keydown, keyup, ...args} = {}) {
 		for (!(toggle ^= 1) && timestamps.shift(), timestamps.push(timestamp); timestamps.length > 4096; timestamps.shift()) {}
 		const rate_correction = timestamps.length > 1 ? Math.max(0.8, Math.min(1.25, (timestamp - timestamps[0]) / (timestamps.length - 1) * 0.06)) : 1;
 		updateGamepad(game);
-		game.updateStatus().updateInput().execute(audio, rate_correction).makeBitmap(data);
+		const data = game.updateStatus().updateInput().execute(audio, rate_correction).makeBitmap();
 		audioCtx.state !== 'running' && samples.splice(0), worklet && samples.length && (worklet.port.postMessage({samples}), samples.splice(0));
-		gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, game.yOffset, game.width, game.cyScreen, gl.RGBA, gl.UNSIGNED_BYTE, pixel.subarray(game.yOffset * game.width * 4));
+		const pixel = new Uint8Array(data.buffer, game.yOffset * game.width * 4, game.width * game.cyScreen * 4);
+		gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, game.yOffset, game.width, game.cyScreen, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, game.cxScreen <= 384 && game.cyScreen <= 384 ? gl.NEAREST : gl.LINEAR);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, game.cxScreen <= 384 && game.cyScreen <= 384 ? gl.NEAREST : gl.LINEAR);
 		gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
@@ -385,7 +384,7 @@ export default class Cpu {
 	pc = 0;
 	memorymap = [];
 	check_interrupt = null;
-	breakpointmap = new Uint32Array(0x800);
+	breakpointmap = new Int32Array(0x800);
 	breakpoint = null;
 	undef = null;
 	undefsize = 0;

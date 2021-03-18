@@ -39,7 +39,8 @@ class Galaxian {
 	fStarMove = false;
 	bg = new Uint8Array(0x4000).fill(3);
 	obj = new Uint8Array(0x4000).fill(3);
-	rgb = new Uint32Array(0x80);
+	rgb = new Int32Array(0x80);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 
 	se;
 
@@ -245,13 +246,13 @@ class Galaxian {
 				}
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		// bg描画
 		let p = 256 * 32;
 		for (let k = 0x7e2, i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0x800 + i * 2];
 			for (let j = 0; j < 32; k -= 0x20, j++) {
-				this.xfer8x8(data, p + dwScroll, k, i);
+				this.xfer8x8(this.bitmap, p + dwScroll, k, i);
 				dwScroll = dwScroll + 8 & 0xff;
 			}
 		}
@@ -262,16 +263,16 @@ class Galaxian {
 			const src = this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6;
 			switch (this.ram[k + 1] & 0xc0) {
 			case 0x00: // ノーマル
-				this.xfer16x16(data, x | y << 8, src);
+				this.xfer16x16(this.bitmap, x | y << 8, src);
 				break;
 			case 0x40: // V反転
-				this.xfer16x16V(data, x | y << 8, src);
+				this.xfer16x16V(this.bitmap, x | y << 8, src);
 				break;
 			case 0x80: // H反転
-				this.xfer16x16H(data, x | y << 8, src);
+				this.xfer16x16H(this.bitmap, x | y << 8, src);
 				break;
 			case 0xc0: // HV反転
-				this.xfer16x16HV(data, x | y << 8, src);
+				this.xfer16x16HV(this.bitmap, x | y << 8, src);
 				break;
 			}
 		}
@@ -279,7 +280,7 @@ class Galaxian {
 		// bullets描画
 		for (let k = 0x860, i = 0; i < 8; k += 4, i++) {
 			p = this.ram[k + 1] | 267 - this.ram[k + 3] << 8;
-			data[p + 0x300] = data[p + 0x200] = data[p + 0x100] = data[p] = i > 6 ? 7 : 3;
+			this.bitmap[p + 0x300] = this.bitmap[p + 0x200] = this.bitmap[p + 0x100] = this.bitmap[p] = i > 6 ? 7 : 3;
 		}
 
 		// bg描画
@@ -287,7 +288,7 @@ class Galaxian {
 		for (let k = 0x7e0, i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0x800 + i * 2];
 			for (let j = 0; j < 32; k -= 0x20, j++) {
-				this.xfer8x8(data, p + dwScroll, k, i);
+				this.xfer8x8(this.bitmap, p + dwScroll, k, i);
 				dwScroll = dwScroll + 8 & 0xff;
 			}
 		}
@@ -300,10 +301,10 @@ class Galaxian {
 				if (!px)
 					break;
 				const x = this.stars[i].x, y = this.stars[i].y;
-				if (x & 1 && ~y & 8 && !(data[p + (x | y << 8)] & 3))
-					data[p + (x | y << 8)] = 0x40 | px;
-				else if (~x & 1 && y & 8 && !(data[p + (x | y << 8)] & 3))
-					data[p + (x | y << 8)] = 0x40 | px;
+				if (x & 1 && ~y & 8 && !(this.bitmap[p + (x | y << 8)] & 3))
+					this.bitmap[p + (x | y << 8)] = 0x40 | px;
+				else if (~x & 1 && y & 8 && !(this.bitmap[p + (x | y << 8)] & 3))
+					this.bitmap[p + (x | y << 8)] = 0x40 | px;
 			}
 		}
 
@@ -311,7 +312,9 @@ class Galaxian {
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 256; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	xfer8x8(data, p, k, i) {

@@ -40,7 +40,8 @@ class StrategyX {
 	fBackgroundRed = false;
 	bg = new Uint8Array(0x4000).fill(3);
 	obj = new Uint8Array(0x4000).fill(3);
-	rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
+	rgb = Int32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 
 	cpu = new Z80(Math.floor(18432000 / 6));
 	cpu2 = new Z80(Math.floor(14318000 / 8));
@@ -225,13 +226,13 @@ class StrategyX {
 		this.ppi0[0] = this.ppi0[0] & ~(1 << 1) | !fDown << 1;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		// bg描画
 		let p = 256 * 32;
 		for (let k = 0xbe2, i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0xc00 + i * 2];
 			for (let j = 0; j < 32; k -= 0x20, j++) {
-				this.xfer8x8(data, p + dwScroll, k, i);
+				this.xfer8x8(this.bitmap, p + dwScroll, k, i);
 				dwScroll = dwScroll + 8 & 0xff;
 			}
 		}
@@ -242,16 +243,16 @@ class StrategyX {
 			const src = this.ram[k + 1] & 0x3f | this.ram[k + 2] << 6;
 			switch (this.ram[k + 1] & 0xc0) {
 			case 0x00: // ノーマル
-				this.xfer16x16(data, x | y << 8, src);
+				this.xfer16x16(this.bitmap, x | y << 8, src);
 				break;
 			case 0x40: // V反転
-				this.xfer16x16V(data, x | y << 8, src);
+				this.xfer16x16V(this.bitmap, x | y << 8, src);
 				break;
 			case 0x80: // H反転
-				this.xfer16x16H(data, x | y << 8, src);
+				this.xfer16x16H(this.bitmap, x | y << 8, src);
 				break;
 			case 0xc0: // HV反転
-				this.xfer16x16HV(data, x | y << 8, src);
+				this.xfer16x16HV(this.bitmap, x | y << 8, src);
 				break;
 			}
 		}
@@ -259,7 +260,7 @@ class StrategyX {
 		// bullets描画
 		for (let k = 0xc60, i = 0; i < 8; k += 4, i++) {
 			p = this.ram[k + 1] | 264 - this.ram[k + 3] << 8;
-			data[p] = 7;
+			this.bitmap[p] = 7;
 		}
 
 		// bg描画
@@ -267,7 +268,7 @@ class StrategyX {
 		for (let k = 0xbe0, i = 0; i < 2; p += 256 * 8, k += 0x401, i++) {
 			let dwScroll = this.ram[0xc00 + i * 2];
 			for (let j = 0; j < 32; k -= 0x20, j++) {
-				this.xfer8x8(data, p + dwScroll, k, i);
+				this.xfer8x8(this.bitmap, p + dwScroll, k, i);
 				dwScroll = dwScroll + 8 & 0xff;
 			}
 		}
@@ -280,8 +281,10 @@ class StrategyX {
 						| (this.fBackgroundRed && ~MAP[i >> 3] & 2 ? 0x0000007c : 0)
 						| 0xff000000;
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = data[p] & 3 ? this.rgb[data[p]] : color;
+				this.bitmap[p] = this.bitmap[p] & 3 ? this.rgb[this.bitmap[p]] : color;
 		}
+
+		return this.bitmap;
 	}
 
 	xfer8x8(data, p, k, i) {

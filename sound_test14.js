@@ -25,6 +25,9 @@ class SoundTest {
 	ram2 = new Uint8Array(0x2000).addBase();
 	command = [];
 	bank = 0x80;
+
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+
 	cpu2 = new Z80(Math.floor(32000000 / 4));
 
 	constructor() {
@@ -130,17 +133,19 @@ class SoundTest {
 		return this;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		for (let i = 0; i < 16; i++)
 			for (let j = 0; j < 8; j++)
-				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);
+				SoundTest.Xfer28x16(this.bitmap, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);
 
 		for (let i = 0; i < 8; i++) {
 			const kc = sound[0].reg[0x28 + i], pitch = (kc >> 4 & 7) * 12 + (kc >> 2 & 3) * 3 + (kc & 3) + 2;
 			if (!sound[0].kon[i] || pitch < 0 || pitch >= 12 * 8)
 				continue;
-			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
+			SoundTest.Xfer28x16(this.bitmap, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
 		}
+
+		return this.bitmap;
 	}
 
 	static Xfer28x16(data, dst, src) {
@@ -166,7 +171,7 @@ read('xexex.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zi
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
-		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
+		key.push(new Int32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
 	game = new SoundTest();
 	sound = [

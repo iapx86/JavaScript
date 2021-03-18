@@ -39,7 +39,8 @@ class TimePilot {
 	bg = new Uint8Array(0x8000).fill(3);
 	obj = new Uint8Array(0x10000).fill(3);
 	bgcolor = Uint8Array.from(BGCOLOR, e => 0x10 | e);
-	rgb = Uint32Array.from(seq(0x20).map(i => RGB_H[i] << 8 | RGB_L[i]), e => 0xff000000 | (e >> 11) * 255 / 31 << 16 | (e >> 6 & 31) * 255 / 31 << 8 | (e >> 1 & 31) * 255 / 31);
+	rgb = Int32Array.from(seq(0x20).map(i => RGB_H[i] << 8 | RGB_L[i]), e => 0xff000000 | (e >> 11) * 255 / 31 << 16 | (e >> 6 & 31) * 255 / 31 << 8 | (e >> 1 & 31) * 255 / 31);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 	vpos = 0;
 
 	cpu = new Z80(Math.floor(18432000 / 6));
@@ -237,12 +238,12 @@ class TimePilot {
 		this.in[1] = this.in[1] & ~(1 << 4) | !fDown << 4;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		// bg描画
 		let p = 256 * 8 * 2 + 232;
 		for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
-				this.xfer8x8(data, p, k, 0);
+				this.xfer8x8(this.bitmap, p, k, 0);
 
 		// obj描画
 		for (let k = 0x103e; k >= 0x1010; k -= 2) {
@@ -250,16 +251,16 @@ class TimePilot {
 			const src0 = this.ram[k + 0x201] | this.ram[k + 0x300] << 8;
 			switch (src0 >> 14) {
 			case 0: // ノーマル
-				this.xfer16x16(data, dst0, src0);
+				this.xfer16x16(this.bitmap, dst0, src0);
 				break;
 			case 1: // V反転
-				this.xfer16x16V(data, dst0, src0);
+				this.xfer16x16V(this.bitmap, dst0, src0);
 				break;
 			case 2: // H反転
-				this.xfer16x16H(data, dst0, src0);
+				this.xfer16x16H(this.bitmap, dst0, src0);
 				break;
 			case 3: // HV反転
-				this.xfer16x16HV(data, dst0, src0);
+				this.xfer16x16HV(this.bitmap, dst0, src0);
 				break;
 			}
 			const dst1 = this.ram[k + 0x101] - 1 & 0xff | this.ram[k] + 16 << 8;
@@ -268,16 +269,16 @@ class TimePilot {
 				continue;
 			switch (src1 >> 14) {
 			case 0: // ノーマル
-				this.xfer16x16(data, dst1, src1);
+				this.xfer16x16(this.bitmap, dst1, src1);
 				break;
 			case 1: // V反転
-				this.xfer16x16V(data, dst1, src1);
+				this.xfer16x16V(this.bitmap, dst1, src1);
 				break;
 			case 2: // H反転
-				this.xfer16x16H(data, dst1, src1);
+				this.xfer16x16H(this.bitmap, dst1, src1);
 				break;
 			case 3: // HV反転
-				this.xfer16x16HV(data, dst1, src1);
+				this.xfer16x16HV(this.bitmap, dst1, src1);
 				break;
 			}
 		}
@@ -286,13 +287,15 @@ class TimePilot {
 		p = 256 * 8 * 2 + 232;
 		for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
-				this.xfer8x8(data, p, k, 1);
+				this.xfer8x8(this.bitmap, p, k, 1);
 
 		// palette変換
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 256; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	xfer8x8(data, p, k, pri) {

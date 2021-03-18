@@ -47,7 +47,8 @@ class Galaga {
 	bg = new Uint8Array(0x4000).fill(3);
 	obj = new Uint8Array(0x10000).fill(3);
 	bgcolor = Uint8Array.from(BGCOLOR, e => 0x10 | e);
-	rgb = new Uint32Array(0x80);
+	rgb = new Int32Array(0x80);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 
 	cpu = [new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6))];
 	mcu = new MB8840();
@@ -400,42 +401,42 @@ class Galaga {
 			}
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		// bg描画
 		if (!this.fFlip) {
 			let p = 256 * 8 * 4 + 232;
 			for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 				for (let j = 0; j < 32; k++, p += 256 * 8, j++)
-					this.xfer8x8(data, p, k);
+					this.xfer8x8(this.bitmap, p, k);
 			p = 256 * 8 * 36 + 232;
 			for (let k = 2, i = 0; i < 28; p -= 8, k++, i++)
-				this.xfer8x8(data, p, k);
+				this.xfer8x8(this.bitmap, p, k);
 			p = 256 * 8 * 37 + 232;
 			for (let k = 0x22, i = 0; i < 28; p -= 8, k++, i++)
-				this.xfer8x8(data, p, k);
+				this.xfer8x8(this.bitmap, p, k);
 			p = 256 * 8 * 2 + 232;
 			for (let k = 0x3c2, i = 0; i < 28; p -= 8, k++, i++)
-				this.xfer8x8(data, p, k);
+				this.xfer8x8(this.bitmap, p, k);
 			p = 256 * 8 * 3 + 232;
 			for (let k = 0x3e2, i = 0; i < 28; p -= 8, k++, i++)
-				this.xfer8x8(data, p, k);
+				this.xfer8x8(this.bitmap, p, k);
 		} else {
 			let p = 256 * 8 * 35 + 16;
 			for (let k = 0x40, i = 0; i < 28; p += 256 * 8 * 32 + 8, i++)
 				for (let j = 0; j < 32; k++, p -= 256 * 8, j++)
-					this.xfer8x8HV(data, p, k);
+					this.xfer8x8HV(this.bitmap, p, k);
 			p = 256 * 8 * 3 + 16;
 			for (let k = 2, i = 0; i < 28; p += 8, k++, i++)
-				this.xfer8x8HV(data, p, k);
+				this.xfer8x8HV(this.bitmap, p, k);
 			p = 256 * 8 * 2 + 16;
 			for (let k = 0x22, i = 0; i < 28; p += 8, k++, i++)
-				this.xfer8x8HV(data, p, k);
+				this.xfer8x8HV(this.bitmap, p, k);
 			p = 256 * 8 * 37 + 16;
 			for (let k = 0x3c2, i = 0; i < 28; p += 8, k++, i++)
-				this.xfer8x8HV(data, p, k);
+				this.xfer8x8HV(this.bitmap, p, k);
 			p = 256 * 8 * 36 + 16;
 			for (let k = 0x3e2, i = 0; i < 28; p += 8, k++, i++)
-				this.xfer8x8HV(data, p, k);
+				this.xfer8x8HV(this.bitmap, p, k);
 		}
 
 		// obj描画
@@ -446,72 +447,72 @@ class Galaga {
 				const src = this.ram[k] | this.ram[k + 1] << 8;
 				switch (this.ram[k + 0x800] & 0x0f) {
 				case 0x00: // ノーマル
-					this.xfer16x16(data, x | y << 8, src);
+					this.xfer16x16(this.bitmap, x | y << 8, src);
 					break;
 				case 0x01: // V反転
-					this.xfer16x16V(data, x | y << 8, src);
+					this.xfer16x16V(this.bitmap, x | y << 8, src);
 					break;
 				case 0x02: // H反転
-					this.xfer16x16H(data, x | y << 8, src);
+					this.xfer16x16H(this.bitmap, x | y << 8, src);
 					break;
 				case 0x03: // HV反転
-					this.xfer16x16HV(data, x | y << 8, src);
+					this.xfer16x16HV(this.bitmap, x | y << 8, src);
 					break;
 				case 0x04: // ノーマル
-					this.xfer16x16(data, x | y << 8, src & ~1);
-					this.xfer16x16(data, x | (y + 16 & 0x1ff) << 8, src | 1);
+					this.xfer16x16(this.bitmap, x | y << 8, src & ~1);
+					this.xfer16x16(this.bitmap, x | (y + 16 & 0x1ff) << 8, src | 1);
 					break;
 				case 0x05: // V反転
-					this.xfer16x16V(data, x | y << 8, src | 1);
-					this.xfer16x16V(data, x | (y + 16 & 0x1ff) << 8, src & ~1);
+					this.xfer16x16V(this.bitmap, x | y << 8, src | 1);
+					this.xfer16x16V(this.bitmap, x | (y + 16 & 0x1ff) << 8, src & ~1);
 					break;
 				case 0x06: // H反転
-					this.xfer16x16H(data, x | y << 8, src & ~1);
-					this.xfer16x16H(data, x | (y + 16 & 0x1ff) << 8, src | 1);
+					this.xfer16x16H(this.bitmap, x | y << 8, src & ~1);
+					this.xfer16x16H(this.bitmap, x | (y + 16 & 0x1ff) << 8, src | 1);
 					break;
 				case 0x07: // HV反転
-					this.xfer16x16HV(data, x | y << 8, src | 1);
-					this.xfer16x16HV(data, x | (y + 16 & 0x1ff) << 8, src & ~1);
+					this.xfer16x16HV(this.bitmap, x | y << 8, src | 1);
+					this.xfer16x16HV(this.bitmap, x | (y + 16 & 0x1ff) << 8, src & ~1);
 					break;
 				case 0x08: // ノーマル
-					this.xfer16x16(data, x | y << 8, src | 2);
-					this.xfer16x16(data, x + 16 & 0xff | y << 8, src & ~2);
+					this.xfer16x16(this.bitmap, x | y << 8, src | 2);
+					this.xfer16x16(this.bitmap, x + 16 & 0xff | y << 8, src & ~2);
 					break;
 				case 0x09: // V反転
-					this.xfer16x16V(data, x | y << 8, src | 2);
-					this.xfer16x16V(data, x + 16 & 0xff | y << 8, src & ~2);
+					this.xfer16x16V(this.bitmap, x | y << 8, src | 2);
+					this.xfer16x16V(this.bitmap, x + 16 & 0xff | y << 8, src & ~2);
 					break;
 				case 0x0a: // H反転
-					this.xfer16x16H(data, x | y << 8, src & ~2);
-					this.xfer16x16H(data, x + 16 & 0xff | y << 8, src | 2);
+					this.xfer16x16H(this.bitmap, x | y << 8, src & ~2);
+					this.xfer16x16H(this.bitmap, x + 16 & 0xff | y << 8, src | 2);
 					break;
 				case 0x0b: // HV反転
-					this.xfer16x16HV(data, x | y << 8, src & ~2);
-					this.xfer16x16HV(data, x + 16 & 0xff | y << 8, src | 2);
+					this.xfer16x16HV(this.bitmap, x | y << 8, src & ~2);
+					this.xfer16x16HV(this.bitmap, x + 16 & 0xff | y << 8, src | 2);
 					break;
 				case 0x0c: // ノーマル
-					this.xfer16x16(data, x | y << 8, src & ~3 | 2);
-					this.xfer16x16(data, x | (y + 16 & 0x1ff) << 8, src | 3);
-					this.xfer16x16(data, x + 16 & 0xff | y << 8, src & ~3);
-					this.xfer16x16(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
+					this.xfer16x16(this.bitmap, x | y << 8, src & ~3 | 2);
+					this.xfer16x16(this.bitmap, x | (y + 16 & 0x1ff) << 8, src | 3);
+					this.xfer16x16(this.bitmap, x + 16 & 0xff | y << 8, src & ~3);
+					this.xfer16x16(this.bitmap, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
 					break;
 				case 0x0d: // V反転
-					this.xfer16x16V(data, x | y << 8, src | 3);
-					this.xfer16x16V(data, x | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
-					this.xfer16x16V(data, x + 16 & 0xff | y << 8, src & ~3 | 1);
-					this.xfer16x16V(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3);
+					this.xfer16x16V(this.bitmap, x | y << 8, src | 3);
+					this.xfer16x16V(this.bitmap, x | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
+					this.xfer16x16V(this.bitmap, x + 16 & 0xff | y << 8, src & ~3 | 1);
+					this.xfer16x16V(this.bitmap, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3);
 					break;
 				case 0x0e: // H反転
-					this.xfer16x16H(data, x | y << 8, src & ~3);
-					this.xfer16x16H(data, x | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
-					this.xfer16x16H(data, x + 16 & 0xff | y << 8, src & ~3 | 2);
-					this.xfer16x16H(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src | 3);
+					this.xfer16x16H(this.bitmap, x | y << 8, src & ~3);
+					this.xfer16x16H(this.bitmap, x | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
+					this.xfer16x16H(this.bitmap, x + 16 & 0xff | y << 8, src & ~3 | 2);
+					this.xfer16x16H(this.bitmap, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src | 3);
 					break;
 				case 0x0f: // HV反転
-					this.xfer16x16HV(data, x | y << 8, src & ~3 | 1);
-					this.xfer16x16HV(data, x | (y + 16 & 0x1ff) << 8, src & ~3);
-					this.xfer16x16HV(data, x + 16 & 0xff | y << 8, src | 3);
-					this.xfer16x16HV(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
+					this.xfer16x16HV(this.bitmap, x | y << 8, src & ~3 | 1);
+					this.xfer16x16HV(this.bitmap, x | (y + 16 & 0x1ff) << 8, src & ~3);
+					this.xfer16x16HV(this.bitmap, x + 16 & 0xff | y << 8, src | 3);
+					this.xfer16x16HV(this.bitmap, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
 					break;
 				}
 			}
@@ -522,72 +523,72 @@ class Galaga {
 				const src = this.ram[k] | this.ram[k + 1] << 8;
 				switch (this.ram[k + 0x800] & 0x0f) {
 				case 0x00: // ノーマル
-					this.xfer16x16HV(data, x | y << 8, src);
+					this.xfer16x16HV(this.bitmap, x | y << 8, src);
 					break;
 				case 0x01: // V反転
-					this.xfer16x16H(data, x | y << 8, src);
+					this.xfer16x16H(this.bitmap, x | y << 8, src);
 					break;
 				case 0x02: // H反転
-					this.xfer16x16V(data, x | y << 8, src);
+					this.xfer16x16V(this.bitmap, x | y << 8, src);
 					break;
 				case 0x03: // HV反転
-					this.xfer16x16(data, x | y << 8, src);
+					this.xfer16x16(this.bitmap, x | y << 8, src);
 					break;
 				case 0x04: // ノーマル
-					this.xfer16x16HV(data, x | y << 8, src | 1);
-					this.xfer16x16HV(data, x | (y + 16 & 0x1ff) << 8, src & ~1);
+					this.xfer16x16HV(this.bitmap, x | y << 8, src | 1);
+					this.xfer16x16HV(this.bitmap, x | (y + 16 & 0x1ff) << 8, src & ~1);
 					break;
 				case 0x05: // V反転
-					this.xfer16x16H(data, x | y << 8, src & ~1);
-					this.xfer16x16H(data, x | (y + 16 & 0x1ff) << 8, src | 1);
+					this.xfer16x16H(this.bitmap, x | y << 8, src & ~1);
+					this.xfer16x16H(this.bitmap, x | (y + 16 & 0x1ff) << 8, src | 1);
 					break;
 				case 0x06: // H反転
-					this.xfer16x16V(data, x | y << 8, src | 1);
-					this.xfer16x16V(data, x | (y + 16 & 0x1ff) << 8, src & ~1);
+					this.xfer16x16V(this.bitmap, x | y << 8, src | 1);
+					this.xfer16x16V(this.bitmap, x | (y + 16 & 0x1ff) << 8, src & ~1);
 					break;
 				case 0x07: // HV反転
-					this.xfer16x16(data, x | y << 8, src & ~1);
-					this.xfer16x16(data, x | (y + 16 & 0x1ff) << 8, src | 1);
+					this.xfer16x16(this.bitmap, x | y << 8, src & ~1);
+					this.xfer16x16(this.bitmap, x | (y + 16 & 0x1ff) << 8, src | 1);
 					break;
 				case 0x08: // ノーマル
-					this.xfer16x16HV(data, x | y << 8, src & ~2);
-					this.xfer16x16HV(data, x + 16 & 0xff | y << 8, src | 2);
+					this.xfer16x16HV(this.bitmap, x | y << 8, src & ~2);
+					this.xfer16x16HV(this.bitmap, x + 16 & 0xff | y << 8, src | 2);
 					break;
 				case 0x09: // V反転
-					this.xfer16x16H(data, x | y << 8, src & ~2);
-					this.xfer16x16H(data, x + 16 & 0xff | y << 8, src | 2);
+					this.xfer16x16H(this.bitmap, x | y << 8, src & ~2);
+					this.xfer16x16H(this.bitmap, x + 16 & 0xff | y << 8, src | 2);
 					break;
 				case 0x0a: // H反転
-					this.xfer16x16V(data, x | y << 8, src | 2);
-					this.xfer16x16V(data, x + 16 & 0xff | y << 8, src & ~2);
+					this.xfer16x16V(this.bitmap, x | y << 8, src | 2);
+					this.xfer16x16V(this.bitmap, x + 16 & 0xff | y << 8, src & ~2);
 					break;
 				case 0x0b: // HV反転
-					this.xfer16x16(data, x | y << 8, src | 2);
-					this.xfer16x16(data, x + 16 & 0xff | y << 8, src & ~2);
+					this.xfer16x16(this.bitmap, x | y << 8, src | 2);
+					this.xfer16x16(this.bitmap, x + 16 & 0xff | y << 8, src & ~2);
 					break;
 				case 0x0c: // ノーマル
-					this.xfer16x16HV(data, x | y << 8, src & ~3 | 1);
-					this.xfer16x16HV(data, x | (y + 16 & 0x1ff) << 8, src & ~3);
-					this.xfer16x16HV(data, x + 16 & 0xff | y << 8, src | 3);
-					this.xfer16x16HV(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
+					this.xfer16x16HV(this.bitmap, x | y << 8, src & ~3 | 1);
+					this.xfer16x16HV(this.bitmap, x | (y + 16 & 0x1ff) << 8, src & ~3);
+					this.xfer16x16HV(this.bitmap, x + 16 & 0xff | y << 8, src | 3);
+					this.xfer16x16HV(this.bitmap, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
 					break;
 				case 0x0d: // V反転
-					this.xfer16x16H(data, x | y << 8, src & ~3);
-					this.xfer16x16H(data, x | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
-					this.xfer16x16H(data, x + 16 & 0xff | y << 8, src & ~3 | 2);
-					this.xfer16x16H(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src | 3);
+					this.xfer16x16H(this.bitmap, x | y << 8, src & ~3);
+					this.xfer16x16H(this.bitmap, x | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
+					this.xfer16x16H(this.bitmap, x + 16 & 0xff | y << 8, src & ~3 | 2);
+					this.xfer16x16H(this.bitmap, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src | 3);
 					break;
 				case 0x0e: // H反転
-					this.xfer16x16V(data, x | y << 8, src | 3);
-					this.xfer16x16V(data, x | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
-					this.xfer16x16V(data, x + 16 & 0xff | y << 8, src & ~3 | 1);
-					this.xfer16x16V(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3);
+					this.xfer16x16V(this.bitmap, x | y << 8, src | 3);
+					this.xfer16x16V(this.bitmap, x | (y + 16 & 0x1ff) << 8, src & ~3 | 2);
+					this.xfer16x16V(this.bitmap, x + 16 & 0xff | y << 8, src & ~3 | 1);
+					this.xfer16x16V(this.bitmap, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3);
 					break;
 				case 0x0f: // HV反転
-					this.xfer16x16(data, x | y << 8, src & ~3 | 2);
-					this.xfer16x16(data, x | (y + 16 & 0x1ff) << 8, src | 3);
-					this.xfer16x16(data, x + 16 & 0xff | y << 8, src & ~3);
-					this.xfer16x16(data, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
+					this.xfer16x16(this.bitmap, x | y << 8, src & ~3 | 2);
+					this.xfer16x16(this.bitmap, x | (y + 16 & 0x1ff) << 8, src | 3);
+					this.xfer16x16(this.bitmap, x + 16 & 0xff | y << 8, src & ~3);
+					this.xfer16x16(this.bitmap, x + 16 & 0xff | (y + 16 & 0x1ff) << 8, src & ~3 | 1);
 					break;
 				}
 			}
@@ -603,20 +604,20 @@ class Galaga {
 				const k = this.stars[i].blk;
 				switch (this.starport[0] >> 3 & 3) {
 				case 0:
-					if ((k === 0 || k === 2) && data[p + (x | y << 8)] === 0x1f)
-						data[p + (x | y << 8)] = 0x40 | px;
+					if ((k === 0 || k === 2) && this.bitmap[p + (x | y << 8)] === 0x1f)
+						this.bitmap[p + (x | y << 8)] = 0x40 | px;
 					break;
 				case 1:
-					if ((k === 1 || k === 2) && data[p + (x | y << 8)] === 0x1f)
-						data[p + (x | y << 8)] = 0x40 | px;
+					if ((k === 1 || k === 2) && this.bitmap[p + (x | y << 8)] === 0x1f)
+						this.bitmap[p + (x | y << 8)] = 0x40 | px;
 					break;
 				case 2:
-					if ((k === 0 || k === 3) && data[p + (x | y << 8)] === 0x1f)
-						data[p + (x | y << 8)] = 0x40 | px;
+					if ((k === 0 || k === 3) && this.bitmap[p + (x | y << 8)] === 0x1f)
+						this.bitmap[p + (x | y << 8)] = 0x40 | px;
 					break;
 				case 3:
-					if ((k === 1 || k === 3) && data[p + (x | y << 8)] === 0x1f)
-						data[p + (x | y << 8)] = 0x40 | px;
+					if ((k === 1 || k === 3) && this.bitmap[p + (x | y << 8)] === 0x1f)
+						this.bitmap[p + (x | y << 8)] = 0x40 | px;
 					break;
 				}
 			}
@@ -626,7 +627,9 @@ class Galaga {
 		let p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	xfer8x8(data, p, k) {

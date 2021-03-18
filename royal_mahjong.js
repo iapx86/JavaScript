@@ -32,7 +32,8 @@ class RoyalMahjong {
 	in = Uint8Array.of(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0x3f);
 	psg = {addr: 0};
 
-	rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
+	rgb = Int32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 	palette = 0;
 
 	cpu = new Z80(Math.floor(18432000 / 6));
@@ -202,15 +203,17 @@ class RoyalMahjong {
 		this.fStart2P = 2;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		for (let p = 252 * 256, k = 0x200, i = 240; i !== 0; p += 256 * 256 + 1, --i)
 			for (let j = 256 >> 2; j !== 0; k++, p -= 4 * 256, --j) {
 				const p0 = this.vram[k], p1 = this.vram[0x4000 + k];
-				data[p] = this.rgb[p0 >> 3 & 1 | p0 >> 6 & 2 | p1 >> 1 & 4 | p1 >> 4 & 8 | this.palette];
-				data[p + 256] = this.rgb[p0 >> 2 & 1 | p0 >> 5 & 2 | p1 & 4 | p1 >> 3 & 8 | this.palette];
-				data[p + 2 * 256] = this.rgb[p0 >> 1 & 1 | p0 >> 4 & 2 | p1 << 1 & 4 | p1 >> 2 & 8 | this.palette];
-				data[p + 3 * 256] = this.rgb[p0 & 1 | p0 >> 3 & 2 | p1 << 2 & 4 | p1 >> 1 & 8 | this.palette];
+				this.bitmap[p] = this.rgb[p0 >> 3 & 1 | p0 >> 6 & 2 | p1 >> 1 & 4 | p1 >> 4 & 8 | this.palette];
+				this.bitmap[p + 256] = this.rgb[p0 >> 2 & 1 | p0 >> 5 & 2 | p1 & 4 | p1 >> 3 & 8 | this.palette];
+				this.bitmap[p + 2 * 256] = this.rgb[p0 >> 1 & 1 | p0 >> 4 & 2 | p1 << 1 & 4 | p1 >> 2 & 8 | this.palette];
+				this.bitmap[p + 3 * 256] = this.rgb[p0 & 1 | p0 >> 3 & 2 | p1 << 2 & 4 | p1 >> 1 & 8 | this.palette];
 			}
+
+		return this.bitmap;
 	}
 }
 

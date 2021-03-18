@@ -40,7 +40,8 @@ class Phozon {
 	bg = new Uint8Array(0x8000).fill(3);
 	obj = new Uint8Array(0x8000).fill(3);
 	objcolor = Uint8Array.from(OBJCOLOR, e => 0x10 | e);
-	rgb = Uint32Array.from(seq(0x40), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
+	rgb = Int32Array.from(seq(0x40), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 
 	cpu = new MC6809(Math.floor(18432000 / 12));
 	cpu2 = new MC6809(Math.floor(18432000 / 12));
@@ -287,14 +288,14 @@ class Phozon {
 		this.in[3] = this.in[3] & ~(1 << 0) | fDown << 0;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		// 画面クリア
 		let p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256, i++)
-			data.fill(0xf, p, p + 224);
+			this.bitmap.fill(0xf, p, p + 224);
 
 		// bg描画
-		this.drawBG(data, 0);
+		this.drawBG(this.bitmap, 0);
 
 		// obj描画
 		for (let k = 0x0f80, i = 64; i !== 0; k += 2, --i) {
@@ -307,42 +308,44 @@ class Phozon {
 				case 0x10:
 					switch (this.ram[k + 0x1000] & 0xc0) {
 					case 0x00:
-						this.xfer8x8_0(data, x | y << 8, src);
+						this.xfer8x8_0(this.bitmap, x | y << 8, src);
 						break;
 					case 0x40:
-						this.xfer8x8_1(data, x | y << 8, src);
+						this.xfer8x8_1(this.bitmap, x | y << 8, src);
 						break;
 					case 0x80:
-						this.xfer8x8_2(data, x | y << 8, src);
+						this.xfer8x8_2(this.bitmap, x | y << 8, src);
 						break;
 					case 0xc0:
-						this.xfer8x8_3(data, x | y << 8, src);
+						this.xfer8x8_3(this.bitmap, x | y << 8, src);
 						break;
 					}
 					break;
 				// 32x8
 				case 0x20:
 					if (this.ram[k + 0x1000] & 0x40) {
-						this.xfer16x8_1(data, x | y << 8, src + 2);
-						this.xfer16x8_1(data, x + 16 | y << 8, src);
+						this.xfer16x8_1(this.bitmap, x | y << 8, src + 2);
+						this.xfer16x8_1(this.bitmap, x + 16 | y << 8, src);
 					} else {
-						this.xfer16x8_0(data, x | y << 8, src + 2);
-						this.xfer16x8_0(data, x + 16 | y << 8, src);
+						this.xfer16x8_0(this.bitmap, x | y << 8, src + 2);
+						this.xfer16x8_0(this.bitmap, x + 16 | y << 8, src);
 					}
 					break;
 				}
 			else
-				this.xfer16x16(data, x | y << 8, src);
+				this.xfer16x16(this.bitmap, x | y << 8, src);
 		}
 
 		// bg描画
-		this.drawBG(data, 1);
+		this.drawBG(this.bitmap, 1);
 
 		// palette変換
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	drawBG(data, pri) {

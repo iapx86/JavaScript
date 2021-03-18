@@ -24,6 +24,9 @@ class SoundTest {
 	fInterruptEnable = false;
 	ram = new Uint8Array(0x2300).addBase();
 	count = 0;
+
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+
 	cpu = new Z80(Math.floor(24576000 / 8));
 	timer = new IntTimer(120);
 
@@ -136,10 +139,10 @@ class SoundTest {
 		return this;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		for (let i = 0; i < 16; i++)
 			for (let j = 0; j < 8; j++)
-				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);
+				SoundTest.Xfer28x16(this.bitmap, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);
 
 		const reg = [];
 		for (let i = 0; i < 0x40; i++)
@@ -151,8 +154,10 @@ class SoundTest {
 			const pitch = Math.floor(Math.log2(freq * 48000 / (1 << 21) / 440) * 12 + 45.5);
 			if (!vol || pitch < 0 || pitch >= 12 * 8)
 				continue;
-			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
+			SoundTest.Xfer28x16(this.bitmap, 28 * Math.floor(pitch / 12) + 256 * 16 * i, key[pitch % 12 + 1]);
 		}
+
+		return this.bitmap;
 	}
 
 	static Xfer28x16(data, dst, src) {
@@ -178,7 +183,7 @@ read('polepos2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
-		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
+		key.push(new Int32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
 	game = new SoundTest();
 	sound = new PolePositionSound({SND});

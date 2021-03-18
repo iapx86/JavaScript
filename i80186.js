@@ -23,21 +23,21 @@ export default class I80186 extends Cpu {
 	es = 0;
 	iomap = [];
 	intmask = false;
-	parity = new Uint32Array(8);
+	parity = new Int32Array(8);
 
 	constructor() {
 		super();
 		this.memorymap.splice(0);
 		for (let i = 0; i < 0x1000; i++)
 			this.memorymap.push({base: dummypage, read: null, read16: null, write: () => {}, write16: null});
-		this.breakpointmap = new Uint32Array(0x8000);
+		this.breakpointmap = new Int32Array(0x8000);
 		for (let i = 0; i < 0x100; i++)
 			this.iomap.push({base: dummypage, read: null, write: () => {}});
 		for (let i = 0; i < 256; i++) {
-			let p = i ^ i >>> 4;
-			p ^= p >>> 2;
-			p ^= p >>> 1;
-			~p & 1 && (this.parity[i >>> 5] |= 1 << (i & 31));
+			let p = i ^ i >> 4;
+			p ^= p >> 2;
+			p ^= p >> 1;
+			~p & 1 && (this.parity[i >> 5] |= 1 << (i & 31));
 		}
 	}
 

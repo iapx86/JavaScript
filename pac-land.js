@@ -43,7 +43,8 @@ class PacLand {
 	fg = new Uint8Array(0x8000).fill(3);
 	bg = new Uint8Array(0x8000).fill(3);
 	obj = new Uint8Array(0x20000).fill(15);
-	rgb = Uint32Array.from(seq(0x400), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | (RED[i] >> 4) * 255 / 15 << 8 | (RED[i] & 15) * 255 / 15);
+	rgb = Int32Array.from(seq(0x400), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | (RED[i] >> 4) * 255 / 15 << 8 | (RED[i] & 15) * 255 / 15);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 	opaque = [new Uint8Array(0x100), new Uint8Array(0x100), new Uint8Array(0x100)];
 	dwScroll0 = 0;
 	dwScroll1 = 0;
@@ -257,23 +258,23 @@ class PacLand {
 		this.in[4] = this.in[4] & ~(1 << 3) | !fDown << 3;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		const ram = this.ram;
 
 		// 画面クリア
 		let p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256, i++)
-			data.fill(0, p, p + 224);
+			this.bitmap.fill(0, p, p + 224);
 
 		// obj描画
-		this.drawObj(data, 0);
+		this.drawObj(this.bitmap, 0);
 
 		// bg描画
 		p = 256 * 8 * 2 + 232 - (this.fFlip ? 4 + this.dwScroll1 & 7 : 5 + this.dwScroll1 & 7) * 256;
 		let k = 0x1100 | (this.fFlip ? (4 + this.dwScroll1 >> 2) + 0x30 : (5 + this.dwScroll1 >> 2) + 4) & 0x7e;
 		for (let i = 0; i < 28; k = k + 54 & 0x7e | k + 0x80 & 0x1f80, p -= 256 * 8 * 37 + 8, i++)
 			for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x1f80, p += 256 * 8, j++)
-				this.xfer8x8(data, BGCOLOR, this.bg, ram[k + 1] << 1 & 0x7c | ram[k] << 1 & 0x180 | ram[k + 1] << 9 & 0x200, p, k);
+				this.xfer8x8(this.bitmap, BGCOLOR, this.bg, ram[k + 1] << 1 & 0x7c | ram[k] << 1 & 0x180 | ram[k + 1] << 9 & 0x200, p, k);
 
 		// fg描画
 		p = 256 * 8 * 2 + 208 - (this.fFlip ? 1 + this.dwScroll0 & 7 : this.dwScroll0 & 7) * 256;
@@ -281,21 +282,21 @@ class PacLand {
 		for (let i = 0; i < 24; k = k + 54 & 0x7e | k + 0x80 & 0x1f80, p -= 256 * 8 * 37 + 8, i++)
 			for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x1f80, p += 256 * 8, j++)
 				if (~ram[k + 1] & 0x20)
-					this.xfer8x8(data, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
+					this.xfer8x8(this.bitmap, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
 		p = 256 * 8 * 2 + 232;
 		k = this.fFlip ? 0x132 : 0x106;
 		for (let i = 0; i < 3; p -= 256 * 8 * 36 + 8, k += 56, i++)
 			for (let j = 0; j < 36; p += 256 * 8, k += 2, j++)
 				if (~ram[k + 1] & 0x20)
-					this.xfer8x8(data, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
+					this.xfer8x8(this.bitmap, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
 		p = 256 * 8 * 2 + 16;
 		k = this.fFlip ? 0xeb2 : 0xe86;
 		for (let i = 0; i < 36; p += 256 * 8, k += 2, i++)
 			if (~ram[k + 1] & 0x20)
-				this.xfer8x8(data, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
+				this.xfer8x8(this.bitmap, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
 
 		// obj描画
-		this.drawObj(data, 1);
+		this.drawObj(this.bitmap, 1);
 
 		// fg描画
 		p = 256 * 8 * 2 + 208 - (this.fFlip ? 1 + this.dwScroll0 & 7 : this.dwScroll0 & 7) * 256;
@@ -303,27 +304,29 @@ class PacLand {
 		for (let i = 0; i < 24; k = k + 54 & 0x7e | k + 0x80 & 0x1f80, p -= 256 * 8 * 37 + 8, i++)
 			for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0x1f80, p += 256 * 8, j++)
 				if (ram[k + 1] & 0x20)
-					this.xfer8x8(data, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
+					this.xfer8x8(this.bitmap, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
 		p = 256 * 8 * 2 + 232;
 		k = this.fFlip ? 0x132 : 0x106;
 		for (let i = 0; i < 3; p -= 256 * 8 * 36 + 8, k += 56, i++)
 			for (let j = 0; j < 36; p += 256 * 8, k += 2, j++)
 				if (ram[k + 1] & 0x20)
-					this.xfer8x8(data, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
+					this.xfer8x8(this.bitmap, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
 		p = 256 * 8 * 2 + 16;
 		k = this.fFlip ? 0xeb2 : 0xe86;
 		for (let i = 0; i < 36; p += 256 * 8, k += 2, i++)
 			if (ram[k + 1] & 0x20)
-				this.xfer8x8(data, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
+				this.xfer8x8(this.bitmap, FGCOLOR, this.fg, ram[k + 1] << 1 & 0x3c | ram[k] << 1 & 0x1c0 | ram[k + 1] << 9 & 0x200, p, k);
 
 		// obj描画
-		this.drawObj(data, 2);
+		this.drawObj(this.bitmap, 2);
 
 		// palette変換
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[this.palette | data[p]];
+				this.bitmap[p] = this.rgb[this.palette | this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	drawObj(data, cat) {

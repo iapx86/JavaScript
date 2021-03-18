@@ -44,7 +44,8 @@ class StarForce {
 	bg2 = new Uint8Array(0x10000).fill(7);
 	bg3 = new Uint8Array(0x8000).fill(7);
 	obj = new Uint8Array(0x20000).fill(7);
-	rgb = new Uint32Array(0x200);
+	rgb = new Int32Array(0x200);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 
 	cpu = new Z80(4000000);
 	cpu2 = new Z80(2000000);
@@ -267,7 +268,7 @@ class StarForce {
 		!(this.fTurbo = fDown) && (this.in[0] &= ~(1 << 4));
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		for (let j = 0; j < 0x200; j++) {
 			const e = this.ram[0x1c00 + j], i = e >> 6 & 3, r = e << 2 & 12, g = e & 12, b = e >> 2 & 12;
 			this.rgb[j] = 0xff000000 | (b ? b | i : 0) * 255 / 15 << 16 | (g ? g | i : 0) * 255 / 15 << 8 | (r ? r | i : 0) * 255 / 15;
@@ -276,10 +277,10 @@ class StarForce {
 		// 画面クリア
 		let p = 256 * 16 + 16;
 		for (let i = 0; i < 256; p += 256, i++)
-			data.fill(0, p, p + 224);
+			this.bitmap.fill(0, p, p + 224);
 
 		// obj描画
-		this.drawObj(data, 0);
+		this.drawObj(this.bitmap, 0);
 
 		// bg描画
 		let hScroll = (this.ram[0x1e20] | this.ram[0x1e21] << 8) + 15;
@@ -288,10 +289,10 @@ class StarForce {
 		let k = vScroll + 15 >> 4 & 0x0f | hScroll & 0x7f0 | 0x2000;
 		for (let i = 0; i < 15; k = k + 0x10 & 0x7ff | k & 0xf800, p -= 256 * 16 * 16 + 16, i++)
 			for (let j = 0; j < 16; k = k + 1 & 0x0f | k & 0xfff0, p += 256 * 16, j++)
-				this.xfer16x16_3(data, p, this.ram[k]);
+				this.xfer16x16_3(this.bitmap, p, this.ram[k]);
 
 		// obj描画
-		this.drawObj(data, 1);
+		this.drawObj(this.bitmap, 1);
 
 		// bg描画
 		hScroll = (this.ram[0x1e30] | this.ram[0x1e31] << 8) + 15;
@@ -300,10 +301,10 @@ class StarForce {
 		k = vScroll + 15 >> 4 & 0x0f | hScroll & 0x7f0 | 0x2800;
 		for (let i = 0; i < 15; k = k + 0x10 & 0x7ff | k & 0xf800, p -= 256 * 16 * 16 + 16, i++)
 			for (let j = 0; j < 16; k = k + 1 & 0x0f | k & 0xfff0, p += 256 * 16, j++)
-				this.xfer16x16_2(data, p, this.ram[k]);
+				this.xfer16x16_2(this.bitmap, p, this.ram[k]);
 
 		// obj描画
-		this.drawObj(data, 2);
+		this.drawObj(this.bitmap, 2);
 
 		// bg描画
 		hScroll = (this.ram[0x1e30] | this.ram[0x1e31] << 8) + 15;
@@ -312,23 +313,25 @@ class StarForce {
 		k = vScroll + 15 >> 4 & 0x0f | hScroll & 0x7f0 | 0x3000;
 		for (let i = 0; i < 15; k = k + 0x10 & 0x7ff | k & 0xf800, p -= 256 * 16 * 16 + 16, i++)
 			for (let j = 0; j < 16; k = k + 1 & 0x0f | k & 0xfff0, p += 256 * 16, j++)
-				this.xfer16x16_1(data, p, this.ram[k]);
+				this.xfer16x16_1(this.bitmap, p, this.ram[k]);
 
 		// obj描画
-		this.drawObj(data, 3);
+		this.drawObj(this.bitmap, 3);
 
 		// fg描画
 		p = 256 * 8 * 2 + 232;
 		k = 0x1040;
 		for (let i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
-				this.xfer8x8(data, p, k);
+				this.xfer8x8(this.bitmap, p, k);
 
 		// palette変換
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 256; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	drawObj(data, pri) {

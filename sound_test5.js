@@ -29,6 +29,9 @@ class SoundTest {
 	scc = {freq0: 0, freq1: 0, reg0: 0, reg1: 0};
 	vlm_latch = 0;
 	command = [];
+
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+
 	cpu2 = new Z80(Math.floor(14318180 / 8));
 	timer = {rate: 14318180 / 4096, frac: 0, count: 0, execute(rate, rate_correction, fn) {
 		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
@@ -160,10 +163,10 @@ class SoundTest {
 		return this;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		for (let i = 0; i < 16; i++)
 			for (let j = 0; j < 8; j++)
-				SoundTest.Xfer28x16(data, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);
+				SoundTest.Xfer28x16(this.bitmap, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);
 
 		const reg = [];
 		for (let i = 0; i < 0x20; i++)
@@ -172,12 +175,12 @@ class SoundTest {
 		if (this.scc.freq0 && (this.scc.reg0 & 0xf)) {
 			const pitch = Math.floor(Math.log2(14318180 / 4 / 32 / this.scc.freq0 / 440) * 12 + 45.5);
 			if (pitch > 0 && pitch < 12 * 8)
-				SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12), key[pitch % 12 + 1]);
+				SoundTest.Xfer28x16(this.bitmap, 28 * Math.floor(pitch / 12), key[pitch % 12 + 1]);
 		}
 		if (this.scc.freq1 && (this.scc.reg1 & 0xf)) {
 			const pitch = Math.floor(Math.log2(14318180 / 4 / 32 / this.scc.freq1 / 440) * 12 + 45.5);
 			if (pitch > 0 && pitch < 12 * 8)
-				SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16, key[pitch % 12 + 1]);
+				SoundTest.Xfer28x16(this.bitmap, 28 * Math.floor(pitch / 12) + 256 * 16, key[pitch % 12 + 1]);
 		}
 		for (let i = 0; i < 6; i++) {
 			const vol = reg[[8, 9, 0xa, 0x18, 0x19, 0x1a][i]] & 0x1f;
@@ -188,8 +191,10 @@ class SoundTest {
 			const pitch = Math.floor(Math.log2(14318180 / 8 / 16 / (freq ? freq : 1) / 440) * 12 + 45.5);
 			if (pitch < 0 || pitch >= 12 * 8)
 				continue;
-			SoundTest.Xfer28x16(data, 28 * Math.floor(pitch / 12) + 256 * 16 * (i + 2), key[pitch % 12 + 1]);
+			SoundTest.Xfer28x16(this.bitmap, 28 * Math.floor(pitch / 12) + 256 * 16 * (i + 2), key[pitch % 12 + 1]);
 		}
+
+		return this.bitmap;
 	}
 
 	static Xfer28x16(data, dst, src) {
@@ -220,7 +225,7 @@ read('twinbee.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
 		tmp.getContext('2d').drawImage(img['key' + i], 0, 0);
-		key.push(new Uint32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
+		key.push(new Int32Array(tmp.getContext('2d').getImageData(0, 0, 28, 16).data.buffer));
 	}
 	game = new SoundTest();
 	sound = [

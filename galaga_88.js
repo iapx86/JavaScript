@@ -47,7 +47,8 @@ class Galaga88 {
 
 	chr = new Uint8Array(0x100000).fill(0xff);
 	obj = new Uint8Array(0x200000).fill(0xf);
-	rgb = new Uint32Array(0x2000).fill(0xff000000);
+	rgb = new Int32Array(0x2000).fill(0xff000000);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 	isspace = new Uint8Array(0x4000);
 
 	cpu = new MC6809(Math.floor(49152000 / 32));
@@ -187,7 +188,7 @@ class Galaga88 {
 		this.cpu3.memorymap[0xc0].write = (addr, data) => { this.bankswitch3(data << 2 & 0x1c0); };
 		this.cpu3.memorymap[0xe0].write = () => { this.cpu3_irq = false; };
 
-		this.cpu3.check_interrupt = () => { return this.cpu3_irq && this.cpu3.interrupt() || sound[0].status & 3 && this.cpu3.fast_interrupt(); };
+		this.cpu3.check_interrupt = () => { return this.cpu3_irq && this.cpu3.interrupt() || sound[0].status & sound[0].reg[0x14] >> 2 & 3 && this.cpu3.fast_interrupt(); };
 
 		this.mcu.memorymap[0].base = this.ram4.base[0];
 		this.mcu.memorymap[0].read = (addr) => {
@@ -389,13 +390,13 @@ class Galaga88 {
 		!(this.fTurbo = fDown) && (this.in[0] |= 1 << 4);
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		const ram = this.ram, black = 0x1800, flip = !!(ram[0x5ff6] & 1);
 
 		// 画面クリア
 		let p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256, i++)
-			data.fill(black, p, p + 224);
+			this.bitmap.fill(black, p, p + 224);
 
 		for (let pri = 0; pri < 8; pri++) {
 			// bg描画
@@ -405,7 +406,7 @@ class Galaga88 {
 				let k = flip ? 176 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0x8000 : 48 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0x8000;
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0x1f80 | 0x8000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0xff80, p += 256 * 8, j++)
-						this.xfer8x8(data, p, k, color);
+						this.xfer8x8(this.bitmap, p, k, color);
 			}
 			if (ram[0x4011] === pri) {
 				const vScroll = ram[0x4005] | ram[0x4004] << 8, hScroll = ram[0x4007] | ram[0x4006] << 8, color = ram[0x4019] << 8 & 0x700 | 0x800;
@@ -413,7 +414,7 @@ class Galaga88 {
 				let k = flip ? 178 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0xa000 : 46 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0xa000;
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0x1f80 | 0xa000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0xff80, p += 256 * 8, j++)
-						this.xfer8x8(data, p, k, color);
+						this.xfer8x8(this.bitmap, p, k, color);
 			}
 			if (ram[0x4012] === pri) {
 				const vScroll = ram[0x4009] | ram[0x4008] << 8, hScroll = ram[0x400b] | ram[0x400a] << 8, color = ram[0x401a] << 8 & 0x700 | 0x800;
@@ -421,7 +422,7 @@ class Galaga88 {
 				let k = flip ? 179 - vScroll >> 2 & 0x7e | 264 - hScroll << 4 & 0x1f80 | 0xc000 : 45 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0x1f80 | 0xc000;
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0x1f80 | 0xc000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0xff80, p += 256 * 8, j++)
-						this.xfer8x8(data, p, k, color);
+						this.xfer8x8(this.bitmap, p, k, color);
 			}
 			if (ram[0x4013] === pri) {
 				const vScroll = ram[0x400d] | ram[0x400c] << 8, hScroll = ram[0x400f], color = ram[0x401b] << 8 & 0x700 | 0x800;
@@ -429,21 +430,21 @@ class Galaga88 {
 				let k = flip ? 180 - vScroll >> 2 & 0x7e | 8 - hScroll << 4 & 0xf80 | 0xe000 : 44 + vScroll >> 2 & 0x7e | 24 + hScroll << 4 & 0xf80 | 0xe000;
 				for (let i = 0; i < 29; k = k + 54 & 0x7e | k + 0x80 & 0xf80 | 0xe000, p -= 256 * 8 * 37 + 8, i++)
 					for (let j = 0; j < 37; k = k + 2 & 0x7e | k & 0xff80, p += 256 * 8, j++)
-						this.xfer8x8(data, p, k, color);
+						this.xfer8x8(this.bitmap, p, k, color);
 			}
 			if (ram[0x4014] === pri) {
 				const color = ram[0x401c] << 8 & 0x700 | 0x800;
 				p = 256 * 8 * 2 + 232;
 				for (let k = 0xf010, i = 0; i < 28; p -= 256 * 8 * 36 + 8, i++)
 					for (let j = 0; j < 36; k = k + 2, p += 256 * 8, j++)
-						this.xfer8x8(data, p, k, color);
+						this.xfer8x8(this.bitmap, p, k, color);
 			}
 			if (ram[0x4015] === pri) {
 				const color = ram[0x401d] << 8 & 0x700 | 0x800;
 				p = 256 * 8 * 2 + 232;
 				for (let k = 0xf810, i = 0; i < 28; p -= 256 * 8 * 36 + 8, i++)
 					for (let j = 0; j < 36; k = k + 2, p += 256 * 8, j++)
-						this.xfer8x8(data, p, k, color);
+						this.xfer8x8(this.bitmap, p, k, color);
 			}
 
 			// obj描画
@@ -458,31 +459,31 @@ class Galaga88 {
 				if (color === 0x7f0)
 					switch (ram[k + 8] & 1 | ram[k + 4] >> 4 & 2) {
 					case 0:
-						this.shadowHxW(data, src, y, x, h, w);
+						this.shadowHxW(this.bitmap, src, y, x, h, w);
 						break;
 					case 1:
-						this.shadowHxW_H(data, src, y, x, h, w);
+						this.shadowHxW_H(this.bitmap, src, y, x, h, w);
 						break;
 					case 2:
-						this.shadowHxW_V(data, src, y, x, h, w);
+						this.shadowHxW_V(this.bitmap, src, y, x, h, w);
 						break;
 					case 0x03:
-						this.shadowHxW_HV(data, src, y, x, h, w);
+						this.shadowHxW_HV(this.bitmap, src, y, x, h, w);
 						break;
 					}
 				else
 					switch (ram[k + 8] & 1 | ram[k + 4] >> 4 & 2) {
 					case 0:
-						this.xferHxW(data, src, color, y, x, h, w);
+						this.xferHxW(this.bitmap, src, color, y, x, h, w);
 						break;
 					case 1:
-						this.xferHxW_H(data, src, color, y, x, h, w);
+						this.xferHxW_H(this.bitmap, src, color, y, x, h, w);
 						break;
 					case 2:
-						this.xferHxW_V(data, src, color, y, x, h, w);
+						this.xferHxW_V(this.bitmap, src, color, y, x, h, w);
 						break;
 					case 0x03:
-						this.xferHxW_HV(data, src, color, y, x, h, w);
+						this.xferHxW_HV(this.bitmap, src, color, y, x, h, w);
 						break;
 					}
 			}
@@ -494,19 +495,21 @@ class Galaga88 {
 		if (t > 16 || b < 288 + 16 || l > 16 || r < 224 + 16)
 			for (let y = 16; y < 288 + 16; y++) {
 				if (y < t || y >= b) {
-					data.fill(black, 16 | y << 8, 224 + 16 | y << 8);
+					this.bitmap.fill(black, 16 | y << 8, 224 + 16 | y << 8);
 					continue;
 				}
 				for (let x = 16; x < 224 + 16; x++)
 					if (x < l || x >= r)
-						data[x | y << 8] = black;
+						this.bitmap[x | y << 8] = black;
 			}
 
 		// palette変換
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	xfer8x8(data, p, k, color) {

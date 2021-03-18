@@ -40,7 +40,8 @@ class Vulgus {
 	obj = new Uint8Array(0x10000).fill(15);
 	fgcolor = Uint8Array.from(FGCOLOR, e => 0x20 | e);
 	objcolor = Uint8Array.from(OBJCOLOR, e => 0x10 | e);
-	rgb = Uint32Array.from(seq(0x100), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
+	rgb = Int32Array.from(seq(0x100), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 	hScroll = 0;
 	vScroll = 0;
 	palette = 0;
@@ -238,14 +239,14 @@ class Vulgus {
 		!(this.fTurbo = fDown) && (this.in[1] |= 1 << 4);
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		this.frame++;
 
 		// bg描画
 		let p = 256 * 256 + 16 - (16 + this.hScroll & 0x0f) + (this.vScroll & 0x0f) * 256;
 		for (let k = 16 + this.hScroll >> 4 & 0x1f | this.vScroll << 1 & 0x3e0, i = 0; i < 17; k = k + 0x11 & 0x1f | k + 0x20 & 0x3e0, p -= 15 * 16 + 256 * 16, i++)
 			for (let j = 0; j < 15; k = k + 1 & 0x1f | k & 0x3e0, p += 16, j++)
-				this.xfer16x16x3(data, p, 0x900 + k);
+				this.xfer16x16x3(this.bitmap, p, 0x900 + k);
 
 		// obj描画
 		for (let k = 0x7c, i = 32; i !== 0; k -= 4, --i) {
@@ -254,18 +255,18 @@ class Vulgus {
 			const src = this.ram[k] | this.ram[k + 1] << 8;
 			switch (this.ram[k + 1] >> 6) {
 			case 0:
-				this.xfer16x16x4(data, x | y << 8, src);
+				this.xfer16x16x4(this.bitmap, x | y << 8, src);
 				break;
 			case 1:
-				this.xfer16x16x4(data, x | y << 8, src);
-				this.xfer16x16x4(data, x + 16 & 0xff | y << 8, src + 1);
+				this.xfer16x16x4(this.bitmap, x | y << 8, src);
+				this.xfer16x16x4(this.bitmap, x + 16 & 0xff | y << 8, src + 1);
 				break;
 			case 2:
 			case 3:
-				this.xfer16x16x4(data, x | y << 8, src);
-				this.xfer16x16x4(data, x + 16 & 0xff | y << 8, src + 1);
-				this.xfer16x16x4(data, x + 32 & 0xff | y << 8, src + 2);
-				this.xfer16x16x4(data, x + 48 & 0xff | y << 8, src + 3);
+				this.xfer16x16x4(this.bitmap, x | y << 8, src);
+				this.xfer16x16x4(this.bitmap, x + 16 & 0xff | y << 8, src + 1);
+				this.xfer16x16x4(this.bitmap, x + 32 & 0xff | y << 8, src + 2);
+				this.xfer16x16x4(this.bitmap, x + 48 & 0xff | y << 8, src + 3);
 				break;
 			}
 		}
@@ -274,13 +275,15 @@ class Vulgus {
 		p = 256 * 8 * 33 + 16;
 		for (let k = 0x140, i = 0; i < 28; p += 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p -= 256 * 8, j++)
-				this.xfer8x8(data, p, k);
+				this.xfer8x8(this.bitmap, p, k);
 
 		// palette変換
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 256; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	xfer8x8(data, p, k) {

@@ -35,7 +35,8 @@ class CrushRoller {
 
 	bg = new Uint8Array(0x4000).fill(3);
 	obj = new Uint8Array(0x4000).fill(3);
-	rgb = Uint32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
+	rgb = Int32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 
 	cpu = new Z80(Math.floor(18432000 / 6));
 
@@ -210,24 +211,24 @@ class CrushRoller {
 		this.in[1] = this.in[1] & ~(1 << 1) | fDown << 2 | !fDown << 1;
 	}
 
-	makeBitmap(data) {
+	makeBitmap() {
 		// bg描画
 		let p = 256 * 8 * 4 + 232;
 		for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
 			for (let j = 0; j < 32; k++, p += 256 * 8, j++)
-				this.xfer8x8(data, p, k);
+				this.xfer8x8(this.bitmap, p, k);
 		p = 256 * 8 * 36 + 232;
 		for (let k = 2, i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8(data, p, k);
+			this.xfer8x8(this.bitmap, p, k);
 		p = 256 * 8 * 37 + 232;
 		for (let k = 0x22, i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8(data, p, k);
+			this.xfer8x8(this.bitmap, p, k);
 		p = 256 * 8 * 2 + 232;
 		for (let k = 0x3c2, i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8(data, p, k);
+			this.xfer8x8(this.bitmap, p, k);
 		p = 256 * 8 * 3 + 232;
 		for (let k = 0x3e2, i = 0; i < 28; p -= 8, k++, i++)
-			this.xfer8x8(data, p, k);
+			this.xfer8x8(this.bitmap, p, k);
 
 		// obj描画
 		for (let k = 0x0bfe, i = 7; i !== 0; k -= 2, --i) {
@@ -236,16 +237,16 @@ class CrushRoller {
 			const src = this.ram[k] | this.ram[k + 1] << 8;
 			switch (this.ram[k] & 3) {
 			case 0: // ノーマル
-				this.xfer16x16(data, x | y << 8, src);
+				this.xfer16x16(this.bitmap, x | y << 8, src);
 				break;
 			case 1: // V反転
-				this.xfer16x16V(data, x | y << 8, src);
+				this.xfer16x16V(this.bitmap, x | y << 8, src);
 				break;
 			case 2: // H反転
-				this.xfer16x16H(data, x | y << 8, src);
+				this.xfer16x16H(this.bitmap, x | y << 8, src);
 				break;
 			case 3: // HV反転
-				this.xfer16x16HV(data, x | y << 8, src);
+				this.xfer16x16HV(this.bitmap, x | y << 8, src);
 				break;
 			}
 		}
@@ -254,7 +255,9 @@ class CrushRoller {
 		p = 256 * 16 + 16;
 		for (let i = 0; i < 288; p += 256 - 224, i++)
 			for (let j = 0; j < 224; p++, j++)
-				data[p] = this.rgb[data[p]];
+				this.bitmap[p] = this.rgb[this.bitmap[p]];
+
+		return this.bitmap;
 	}
 
 	xfer8x8(data, p, k) {
