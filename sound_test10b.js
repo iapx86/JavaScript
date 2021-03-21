@@ -66,7 +66,7 @@ class SoundTest {
 			};
 		}
 
-		this.cpu2.check_interrupt = () => { return sound[0].status & sound[0].reg[0x14] >> 2 & 3 && this.cpu2.interrupt(0xef); };
+		this.cpu2.check_interrupt = () => { return sound[0].irq && this.cpu2.interrupt(0xef); };
 	}
 
 	execute(audio, rate_correction) {

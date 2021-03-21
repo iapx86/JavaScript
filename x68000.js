@@ -245,8 +245,15 @@ class X68000 {
 			case 0xe90001:
 				return void(sound[0].addr = data);
 			case 0xe90003:
-				sound[0].addr === 0x1b && (sound[1].clock = data & 0x80 ? 16000000 / 4 : 16000000 / 2);
-				return sound[0].write(data);
+				sound[0].write(data);
+				switch (sound[0].addr) {
+				case 0x14:
+					sound[0].irq && this.ram[0xe88001] & 8 && (this.ram[0xe8800d] |= this.ram[0xe88009] & 8);
+					return void(this.ram[0xe88001] = this.ram[0xe88001] & ~8 | !sound[0].irq << 3);
+				case 0x1b:
+					return void(sound[1].clock = data & 0x80 ? 16000000 / 4 : 16000000 / 2);
+				}
+				return;
 			default:
 				return void(this.ram[addr] = data);
 			}
@@ -452,9 +459,7 @@ class X68000 {
 				!--this.ram[0xe88025] && (this.ram[0xe88025] = this.timer_d.reload, this.ram[0xe8800d] |= this.ram[0xe88009] & 0x10);
 			});
 			this.fdc.execute(tick_rate, () => this.fdc.drq && (this.fdc.drq = false, this.dma(0)));
-			sound[0].execute(tick_rate);
-			sound[0].status & sound[0].reg[0x14] >> 2 & 3 && this.ram[0xe88001] & 8 && (this.ram[0xe88001] &= ~8, this.ram[0xe8800d] |= this.ram[0xe88009] & 8);
-			!(sound[0].status & sound[0].reg[0x14] >> 2 & 3) && ~this.ram[0xe88001] & 8 && (this.ram[0xe88001] |= 8);
+			sound[0].execute(tick_rate) && this.ram[0xe88001] & 8 && (this.ram[0xe88001] &= ~8, this.ram[0xe8800d] |= this.ram[0xe88009] & 8);
 			sound[1].execute(tick_rate, rate_correction, () => this.dma(3));
 			audio.execute(tick_rate, rate_correction);
 			this.dmac.execute(tick_rate, () => {

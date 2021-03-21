@@ -11,6 +11,7 @@ export default class YM2151 {
 	reg = new Uint8Array(0x100);
 	kon = new Uint8Array(8);
 	status = 0;
+	irq = false;
 	timera = {rate: 0, frac: 0, count: 0};
 	timerb = {rate: 0, frac: 0, count: 0};
 	opm = new OPM();
@@ -28,7 +29,7 @@ export default class YM2151 {
 			this.kon[data & 7] = Number((data & 0x78) !== 0);
 			break;
 		case 0x14: // CSM/F RESET/IRQEN/LOAD
-			this.status &= ~(data >> 4 & 3);
+			this.status &= ~(data >> 4 & 3), this.irq = (this.status & data >> 2 & 3) !== 0;
 			data & ~this.reg[0x14] & 1 && (this.timera.count = this.reg[0x10] << 2 | this.reg[0x11] & 3);
 			data & ~this.reg[0x14] & 2 && (this.timerb.count = this.reg[0x12]);
 			break;
@@ -42,6 +43,7 @@ export default class YM2151 {
 			this.reg[0x14] & 1 && ++this.timera.count >= 0x400 && (this.status |= 1, this.timera.count = this.reg[0x10] << 2 | this.reg[0x11] & 3);
 		for (this.timerb.frac += this.timerb.rate * rate_correction; this.timerb.frac >= rate; this.timerb.frac -= rate)
 			this.reg[0x14] & 2 && ++this.timerb.count >= 0x100 && (this.status |= 2, this.timerb.count = this.reg[0x12]);
+		return this.irq = (this.status & this.reg[0x14] >> 2 & 3) !== 0;
 	}
 
 	update() {
