@@ -20,6 +20,7 @@ class X68000 {
 	rotate = false;
 
 	fReset = true;
+	fSwapAB = false;
 	fTurboA = false;
 	fTurboB = false;
 
@@ -46,11 +47,14 @@ class X68000 {
 	bitmap1 = new Int32Array(this.width * this.height).fill(0xff000000);
 	bitmap2 = new Int32Array(this.width * this.height).fill(0xff000000);
 	bitmap;
+	pri_h = new Uint8Array(0x40);
+	pri_l = new Uint8Array(0x100);
+	memmode_c = 0;
+	memmode_v = 0;
+	spri = 0x1200;
+	gpri = 0xe4;
 
 	cpu = new MC68000(Math.floor(40000000 / 4));
-	dmac = {rate: Math.floor(40000000 / 4), frac: 0, cycle: 0, execute(rate, fn) {
-		this.cycle += Math.floor((this.frac += this.rate) / rate), this.frac %= rate, fn();
-	}};
 	scanline = {rate: 31500 * 138, frac: 0, h_count: 0, v_count: 0, execute(rate, fn) {
 		this.h_count += Math.floor((this.frac += this.rate) / rate), this.frac %= rate, fn();
 	}};
@@ -64,11 +68,82 @@ class X68000 {
 			fn();
 	}};
 
-	constructor() {
+	constructor({swapAB} = {}) {
+		swapAB !== undefined && (this.fSwapAB = swapAB);
+
 		// CPU周りの初期化
 		for (let i = 0; i < 0xf000; i++) {
 			this.cpu.memorymap[i].base = this.ram.base[i];
 			this.cpu.memorymap[i].write = null;
+		}
+		for (let i = 0; i < 0x800; i++) {
+			this.cpu.memorymap[0xc000 + i].read = (addr) => { // GRAPHIC VRAM
+				switch (this.memmode_c) {
+				case 0: // 512x512 16色
+					return this.ram[addr & 0xdfffff];
+				case 1: // 512x512 256色
+					return this.ram[addr & 0xc7ffff | 0x80000] << 4 | this.ram[addr & 0xc7ffff];
+				case 2: case 4: // 512x512 65536色
+					return addr = addr & 0xc7ffff | ~addr << 20 & 0x100000 | 1, this.ram[addr | 0x80000] << 4 | this.ram[addr];
+				case 3: // 1024x1024 16色
+					return this.ram[addr & 0xd003ff | addr << 9 & 0x80000 | addr >> 1 & 0x7fc00];
+				}
+				return 0;
+			};
+			this.cpu.memorymap[0xc000 + i].write = (addr, data) => { // GRAPHIC VRAM
+				switch (this.memmode_c) {
+				case 0: // 512x512 16色
+					return void(addr & 1 && (this.ram[addr & 0xdfffff] = data & 15));
+				case 1: // 512x512 256色
+					return void(addr & 1 && (this.ram[addr & 0xc7ffff] = data & 15, this.ram[addr & 0xc7ffff | 0x80000] = data >> 4));
+				case 2: case 4: // 512x512 65536色
+					return addr = addr & 0xc7ffff | ~addr << 20 & 0x100000 | 1, this.ram[addr] = data & 15, void(this.ram[addr | 0x80000] = data >> 4);
+				case 3: // 1024x1024 16色
+					return void(addr & 1 && (this.ram[addr & 0xd003ff | addr << 9 & 0x80000 | addr >> 1 & 0x7fc00] = data & 15));
+				}
+			};
+		}
+		for (let i = 0; i < 0x800; i++) {
+			this.cpu.memorymap[0xc800 + i].read = (addr) => { // GRAPHIC VRAM
+				switch (this.memmode_c) {
+				case 0: // 512x512 16色
+					return this.ram[addr & 0xdfffff];
+				case 1: // 512x512 256色
+					return this.ram[addr & 0xc7ffff | 0x180000] << 4 | this.ram[addr & 0xc7ffff | 0x100000];
+				case 3: // 1024x1024 16色
+					return this.ram[addr & 0xd003ff | addr << 9 & 0x80000 | addr >> 1 & 0x7fc00];
+				}
+				return 0;
+			};
+			this.cpu.memorymap[0xc800 + i].write = (addr, data) => { // GRAPHIC VRAM
+				switch (this.memmode_c) {
+				case 0: // 512x512 16色
+					return void(addr & 1 && (this.ram[addr & 0xdfffff] = data & 15));
+				case 1: // 512x512 256色
+					return void(addr & 1 && (this.ram[addr & 0xc7ffff | 0x100000] = data & 15, this.ram[addr & 0xc7ffff | 0x180000] = data >> 4));
+				case 3: // 1024x1024 16色
+					return void(addr & 1 && (this.ram[addr & 0xd003ff | addr << 9 & 0x80000 | addr >> 1 & 0x7fc00] = data & 15));
+				}
+			};
+		}
+		for (let i = 0; i < 0x1000; i++) {
+			this.cpu.memorymap[0xd000 + i].read = (addr) => { // GRAPHIC VRAM
+				switch (this.memmode_c) {
+				case 0: // 512x512 16色
+					return this.ram[addr & 0xdfffff];
+				case 3: // 1024x1024 16色
+					return this.ram[addr & 0xd003ff | addr << 9 & 0x80000 | addr >> 1 & 0x7fc00];
+				}
+				return 0;
+			};
+			this.cpu.memorymap[0xd000 + i].write = (addr, data) => { // GRAPHIC VRAM
+				switch (this.memmode_c) {
+				case 0: // 512x512 16色
+					return void(addr & 1 && (this.ram[addr & 0xdfffff] = data & 15));
+				case 3: // 1024x1024 16色
+					return void(addr & 1 && (this.ram[addr & 0xd003ff | addr << 9 & 0x80000 | addr >> 1 & 0x7fc00] = data & 15));
+				}
+			};
 		}
 		for (let i = 0; i < 0x800; i++)
 			this.cpu.memorymap[0xe000 + i].write = (addr, data) => { // TEXT VRAM
@@ -88,9 +163,7 @@ class X68000 {
 				this.text[p + 7] = t0 & 1 | t1 << 1 & 2 | t2 << 2 & 4 | t3 << 3 & 8;
 			};
 		this.cpu.memorymap[0xe800].write = (addr, data) => { // CRTC
-			(addr &= ~0xff000000) === 0xe80028 && (data ^ this.ram[addr]) & 4 && this.ram.fill(0, 0xc00000, 0xe00000);
-			this.ram[addr] = data;
-			(addr & ~1) === 0xe80012 && (this.ram[0xe88001] |= 0x40);
+			this.ram[addr &= ~0xff000000] = data, addr === 0xe80028 && (this.memmode_c = 32 - Math.clz32(data & 15));
 			if ((addr & ~0xb) === 0xe80004 || addr === 0xe80029) {
 				this.cxScreen = Math.max(1, (this.ram[0xe80007] - this.ram[0xe80005]) * 8);
 				const r06 = this.view.getUint16(0xe8000c) & 0x3ff, r07 = this.view.getUint16(0xe8000e) & 0x3ff, r20 = this.view.getUint16(0xe80028);
@@ -117,14 +190,18 @@ class X68000 {
 		};
 		for (let i = 0; i < 2; i++)
 			this.cpu.memorymap[0xe820 + i].write = (addr, data) => { // GRAPHIC PALETTE
-				this.ram[addr &= ~0xff000000] = data;
-				this.palette1[addr >> 1 & 0xff] = this.view.getUint16(addr & ~1);
+				this.ram[addr &= ~0xff000000] = data, this.palette1[addr >> 1 & 0xff] = this.view.getUint16(addr & ~1);
 			};
 		for (let i = 0; i < 2; i++)
 			this.cpu.memorymap[0xe822 + i].write = (addr, data) => { // TEXT PALETTE
-				this.ram[addr &= ~0xff000000] = data;
-				this.palette2[addr >> 1 & 0xff] = this.view.getUint16(addr & ~1);
+				this.ram[addr &= ~0xff000000] = data, this.palette2[addr >> 1 & 0xff] = this.view.getUint16(addr & ~1);
 			};
+		this.cpu.memorymap[0xe824].write = (addr, data) => { // VIDEO CONTROL
+			this.ram[addr &= ~0xff000000] = data, addr === 0xe82401 && (this.memmode_v = 32 - Math.clz32(data & 7));
+		};
+		this.cpu.memorymap[0xe825].write = (addr, data) => { // VIDEO CONTROL
+			this.ram[addr &= ~0xff000000] = data, addr === 0xe82500 ? (this.spri = this.pri_h[data & 63] << 8) : addr === 0xe82501 && (this.gpri = this.pri_l[data]);
+		};
 		this.cpu.memorymap[0xe840].write = (addr, data) => { // DMAC
 			const base = (addr &= ~0xff000000) & ~0x3f;
 			switch (addr & ~0xc0) {
@@ -312,7 +389,7 @@ class X68000 {
 					this.scc.b.rr[0] &= ~1;
 				return data;
 			case 0xe98005:
-				return reg = this.scc.b.wr[0], this.scc.b.wr[0] = 0, reg = ((reg & 0x38) === 8 ? 8 : 0) | reg & 7, this.scc.b.rr[reg];
+				return reg = this.scc.a.wr[0], this.scc.a.wr[0] = 0, reg = ((reg & 0x38) === 8 ? 8 : 0) | reg & 7, this.scc.a.rr[reg];
 			case 0xe98007:
 				return this.scc.a.rr[8];
 			default:
@@ -324,7 +401,7 @@ class X68000 {
 			switch (addr &= ~0xff000000) {
 			case 0xe98001:
 				reg = this.scc.b.wr[0], reg = ((reg & 0x38) === 8 ? 8 : 0) | reg & 7;
-				if (reg ===5 && ~data & this.scc.b.wr[reg] & 2) {
+				if (reg === 5 && ~data & this.scc.b.wr[reg] & 2) {
 					const dx = Math.min(127, Math.max(-128, this.mouse.x)), dy = Math.min(127, Math.max(-128, this.mouse.y));
 					this.mouse.x -= dx, this.mouse.y -= dy;
 					if (~this.scc.b.rr[0] & 1) {
@@ -367,6 +444,8 @@ class X68000 {
 			this.cpu.memorymap[0xfe00 + i].base = ROM.base[0xc00 + i];
 
 		this.cpu.check_interrupt = () => {
+			if (this.ram[0xe84080] & 8)
+				return this.dma(2), true;
 			let cause = 31 - Math.clz32(this.ram[0xe8800b] << 8 & this.ram[0xe88013] << 8 | this.ram[0xe8800d] & this.ram[0xe88015]);
 			if (cause >= 0 && this.cpu.interrupt(6, this.ram[0xe88017] & ~15 | cause))
 				return cause >= 8 ? (this.ram[0xe8800b] &= ~(1 << cause - 8)) : (this.ram[0xe8800d] &= ~(1 << cause)), true;
@@ -380,6 +459,21 @@ class X68000 {
 				return this.fdc.irq = false, true;
 			return (this.ram[0xe9c001] & 0x42) === 0x42 && this.cpu.interrupt(1, this.ram[0xe9c003] & ~3 | 1);
 		};
+
+		// Videoの初期化
+		const buf = [];
+		for (let i = 0; i < 64; i++) {
+			for (let n = 0, j = 0; j < 3; j++)
+				for (let k = 0; k < 3; k++)
+					[0, 1, 2, 2][i >> [2, 4, 0][k] & 3] === j && (buf[k] = n++);
+			this.pri_h[i] = buf[1] << 4 | buf[0] << 2 | buf[2];
+		}
+		for (let i = 0; i < 256; i++) {
+			for (let n = 0, j = 0; j < 4; j++)
+				for (let k = 0; k < 4; k++)
+					(i >> k * 2 & 3) === j && (buf[k] = n++);
+			this.pri_l[i] = buf[3] << 6 | buf[2] << 4 | buf[1] << 2 | buf[0];
+		}
 	}
 
 	dma(ch) {
@@ -391,14 +485,14 @@ class X68000 {
 		--mtc, ch === 0 && (this.fdc.tc = !mtc);
 		switch (cr >> 20 & 3) {
 		case 2:
-			this.dmac.cycle -= 4, this.cpu.cycle -= 4, cr & 0x800000 ? this.cpu.write16(this.cpu.read16(dar), mar) : this.cpu.write16(this.cpu.read16(mar), dar);
+			this.cpu.cycle -= 4, cr & 0x800000 ? this.cpu.write16(this.cpu.read16(dar), mar) : this.cpu.write16(this.cpu.read16(mar), dar);
 			cr & 0x100 && (dar += 2), cr & 0x200 && (dar -= 2), cr & 0x400 && (mar += 2), cr & 0x800 && (mar -= 2); // fallthrough
 		case 1:
-			this.dmac.cycle -= 4, this.cpu.cycle -= 4, cr & 0x800000 ? this.cpu.write16(this.cpu.read16(dar), mar) : this.cpu.write16(this.cpu.read16(mar), dar);
+			this.cpu.cycle -= 4, cr & 0x800000 ? this.cpu.write16(this.cpu.read16(dar), mar) : this.cpu.write16(this.cpu.read16(mar), dar);
 			cr & 0x100 && (dar += 2), cr & 0x200 && (dar -= 2), cr & 0x400 && (mar += 2), cr & 0x800 && (mar -= 2);
 			break;
 		case 0: case 3:
-			this.dmac.cycle -= 4, this.cpu.cycle -= 4, cr & 0x800000 ? this.cpu.write8(this.cpu.read8(dar), mar) : this.cpu.write8(this.cpu.read8(mar), dar);
+			this.cpu.cycle -= 4, cr & 0x800000 ? this.cpu.write8(this.cpu.read8(dar), mar) : this.cpu.write8(this.cpu.read8(mar), dar);
 			cr & 0x100 && ++dar, cr & 0x200 && --dar, cr & 0x400 && ++mar, cr & 0x800 && --mar;
 			break;
 		}
@@ -443,11 +537,11 @@ class X68000 {
 						v_count === r07 - r04 && (this.ram[0xe8800d] |= ierb & 0x40), v_count === r04 && timer_a_tick();
 					else
 						v_count === r04 && (this.ram[0xe8800d] |= ierb & 0x40), v_count === r07 + 1 && timer_a_tick();
-					v_count === r06 + 1 && this.ram[0xe80481] & 2 && (this.ram.fill(0, 0xc00000, 0xe00000), this.ram[0xe80481] &= ~2);
+					v_count === r06 + 1 && this.ram[0xe80481] & 2 && (this.fastClear(), this.ram[0xe80481] &= ~2);
 					v_count === r07 + 1 && this.bitmap && (this.bitmap = this.bitmap === this.bitmap1 ? this.bitmap2 : this.bitmap1);
 					if (vdisp && this.bitmap) {
 						const y = v_count - r06 - 1, mode = r20 >> 2 & 7;
-						mode === 1 ? (this.drawLine(y << 1), this.drawLine(y << 1 | 1)) : mode !== 4 ? this.drawLine(y) : ~y & 1 && this.drawLine(y >> 1);
+						mode === 1 ? (this.drawLine(y << 1), this.drawLine(y << 1 | 1)) : mode !== 4 ? this.drawLine(y) : y & 1 && this.drawLine(y >> 1);
 					}
 				}
 				this.ram[0xe88001] = this.ram[0xe88001] & ~0x80 | (this.scanline.h_count > r01) << 7;
@@ -462,11 +556,6 @@ class X68000 {
 			sound[0].execute(tick_rate) && this.ram[0xe88001] & 8 && (this.ram[0xe88001] &= ~8, this.ram[0xe8800d] |= this.ram[0xe88009] & 8);
 			sound[1].execute(tick_rate, rate_correction, () => this.dma(3));
 			audio.execute(tick_rate, rate_correction);
-			this.dmac.execute(tick_rate, () => {
-				while (this.dmac.cycle > 0 && this.ram[0xe84080] & 8)
-					this.dma(2);
-				this.dmac.cycle > 0 && (this.dmac.cycle = 0);
-			});
 		}
 		return this;
 	}
@@ -483,6 +572,7 @@ class X68000 {
 			this.ram.fill(0).set(SRAM, 0xed0000);
 			this.view.setUint32(0xbffffc, 0xffce14);
 			this.scc.a.wr.fill(0), this.scc.a.rr.fill(0), this.scc.b.wr.fill(0), this.scc.b.rr.fill(0);
+			this.scc.a.rr[0] = this.scc.b.rr[0] = 4, this.scc.a.rr[1] = this.scc.b.rr[1] = 1;
 			this.keyboard.fifo.splice(0), this.mouse.fifo.splice(0);
 			this.cpu.memorymap[0].base = ROM.base[0xd00];
 			this.cpu.reset();
@@ -503,8 +593,8 @@ class X68000 {
 	updateInput() {
 		if (this.keyboard.fifo.length && (this.ram[0xe8802b] & 0x81) === 1)
 			this.ram[0xe8802f] = this.keyboard.fifo.shift(), this.ram[0xe8802b] |= 0x80, this.ram[0xe8800b] |= this.ram[0xe88007] & 0x10;
-		this.fTurboA && (this.ram[0xe9a001] ^= 1 << 5);
-		this.fTurboB && (this.ram[0xe9a001] ^= 1 << 6);
+		this.fTurboA && (this.ram[0xe9a001] ^= 1 << (this.fSwapAB ? 6 : 5));
+		this.fTurboB && (this.ram[0xe9a001] ^= 1 << (this.fSwapAB ? 5 : 6));
 		return this;
 	}
 
@@ -524,20 +614,44 @@ class X68000 {
 		this.ram[0xe9a001] = this.ram[0xe9a001] & ~(1 << 2) | fDown << 2;
 	}
 
+	up2(fDown) {
+		this.ram[0xe9a003] = this.ram[0xe9a003] & ~(1 << 0) | fDown << 0;
+	}
+
+	right2(fDown) {
+		this.ram[0xe9a003] = this.ram[0xe9a003] & ~(1 << 3) | fDown << 3;
+	}
+
+	down2(fDown) {
+		this.ram[0xe9a003] = this.ram[0xe9a003] & ~(1 << 1) | fDown << 1;
+	}
+
+	left2(fDown) {
+		this.ram[0xe9a003] = this.ram[0xe9a003] & ~(1 << 2) | fDown << 2;
+	}
+
 	triggerA(fDown) {
-		this.ram[0xe9a001] = this.ram[0xe9a001] & ~(1 << 5) | fDown << 5;
+		this.fSwapAB ? (this.ram[0xe9a001] = this.ram[0xe9a001] & ~(1 << 6) | fDown << 6) : (this.ram[0xe9a001] = this.ram[0xe9a001] & ~(1 << 5) | fDown << 5);
 	}
 
 	triggerB(fDown) {
-		this.ram[0xe9a001] = this.ram[0xe9a001] & ~(1 << 6) | fDown << 6;
+		this.fSwapAB ? (this.ram[0xe9a001] = this.ram[0xe9a001] & ~(1 << 5) | fDown << 5) : (this.ram[0xe9a001] = this.ram[0xe9a001] & ~(1 << 6) | fDown << 6);
 	}
 
 	triggerX(fDown) {
-		!(this.fTurboA = fDown) && (this.ram[0xe9a001] &= ~(1 << 5));
+		!(this.fTurboA = fDown) && (this.ram[0xe9a001] &= ~(1 << (this.fSwapAB ? 6 : 5)));
 	}
 
 	triggerY(fDown) {
-		!(this.fTurboB = fDown) && (this.ram[0xe9a001] &= ~(1 << 6));
+		!(this.fTurboB = fDown) && (this.ram[0xe9a001] &= ~(1 << (this.fSwapAB ? 5 : 6)));
+	}
+
+	triggerL1(fDown) {
+		this.ram[0xe9a003] = this.ram[0xe9a003] & ~(1 << 5) | fDown << 5;
+	}
+
+	triggerR1(fDown) {
+		this.ram[0xe9a003] = this.ram[0xe9a003] & ~(1 << 6) | fDown << 6;
 	}
 
 	makeBitmap() {
@@ -553,117 +667,208 @@ class X68000 {
 	drawLine(y) {
 		const cx = this.cxScreen, p = 1024 * (16 + y) + 16;
 		this.bitmap.fill(0, p, p + cx);
-		for (let r1 = this.view.getUint16(0xe82500), s = r1 >> 12 & 3, t = r1 >> 10 & 3, g = r1 >> 8 & 3, pri = 2; pri >= 0; --pri)
-			pri === g && this.drawGraphic(this.bitmap, y), pri === s && this.drawSprite(this.bitmap, y), pri === t && this.drawText(this.bitmap, y);
-		(this.ram[0xe82600] & 0x5c) === 0x14 && this.ram[0xe82500] & 3 && this.specialPriority(this.bitmap, y);
+		for (let r1 = this.spri, s = r1 >> 12 & 3, t = r1 >> 10 & 3, g = r1 >> 8 & 3, pri = 2; pri >= 0; --pri)
+			pri === g ? this.drawGraphic(this.bitmap, y) : pri === s ? this.drawSprite(this.bitmap, y) : pri === t && this.drawText(this.bitmap, y);
+		(this.ram[0xe82600] & 0x5c) === 0x14 && this.spri & 0x300 && this.specialPriority(this.bitmap, y);
 		for (let i = 0; i < cx; ++i)
 			this.bitmap[p + i] = this.rgb[this.bitmap[p + i]];
 	}
 
 	drawGraphic(data, y) {
-		const cx = this.cxScreen, r2 = this.view.getUint16(0xe82600), r12 = this.view.getUint16(0xe80018), r13 = this.view.getUint16(0xe8001a);
-		switch (this.ram[0xe82401] & 7) {
-		case 0: // 512x512 16色
-			if (!(r2 & 15))
+		const half = (a, b) => (a & 0xf800) + (b & 0xf800) >> 1 & 0xf800 | (a & 0x7c0) + (b & 0x7c0) >> 1 & 0x7c0 | (a & 0x3e) + (b & 0x3e) >> 1 & 0x3e | b & 1;
+		const cx = this.cxScreen, r1 = this.gpri, r2 = this.view.getUint16(0xe82600);
+		if (this.memmode_v < 3) {
+			const sc = new Uint8Array(4), sx = new Uint16Array(4), sy = new Uint16Array(4);
+			for (let i = 0; i < 4; i++)
+				sc[i] = r1 >> i * 2 & 3, sx[i] = this.view.getUint16(0xe80018 + sc[i] * 4) << 1, sy[i] = this.view.getUint16(0xe8001a + sc[i] * 4);
+			const k = 0xc00001 | sc[0] << 19 | y + sy[0] << 10 & 0x7fc00, l = 0xc00001 | sc[1] << 19 | y + sy[1] << 10 & 0x7fc00;
+			const m = 0xc00001 | sc[2] << 19 | y + sy[2] << 10 & 0x7fc00, n = 0xc00001 | sc[3] << 19 | y + sy[3] << 10 & 0x7fc00;
+			switch (this.memmode_v) {
+			case 0: // 512x512 16色
+				if (r2 & 15) {
+					const temp = new Uint8Array(1024);
+					if (r2 & 8)
+						for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
+							(px = this.ram[n | x + sx[3] & 0x3fe]) && (temp[p] = px);
+					if (r2 & 4)
+						for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
+							(px = this.ram[m | x + sx[2] & 0x3fe]) && (temp[p] = px);
+					if (r2 & 2)
+						for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
+							(px = this.ram[l | x + sx[1] & 0x3fe]) && (temp[p] = px);
+					if ((r2 & 0x5400) === 0x1400) // 特殊プライオリティ/半透明
+						for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
+							(px = this.ram[k | x + sx[0] & 0x3fe] & 14) && (temp[p] = px);
+					else if (r2 & 1)
+						for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
+							(px = this.ram[k | x + sx[0] & 0x3fe]) && (temp[p] = px);
+					if ((r2 & 0x4400) === 0x4400) // 半透明
+						for (let p = 1024 * (y + 16) + 16, q = 16, x = 0; x < cx; ++p, ++x)
+							data[p] = half(this.palette1[temp[q++]], this.palette2[0]);
+					else
+						for (let px, p = 1024 * (y + 16) + 16, q = 16, x = 0; x < cx; ++p, ++x)
+							(px = this.palette1[temp[q++]]) && (data[p] = px);
+				}
+				if ((r2 & 0x5c00) === 0x1c00) // 半透明
+					for (let px, sel, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2) {
+						px = this.ram[k | x + sx[0] & 0x3fe], sel = px & 1, px = this.palette1[px & 14];
+						sel && r2 & 0x200 && (px = half(px, this.palette1[this.ram[l | x + sx[1] & 0x3fe]]));
+						sel && (r2 & 0x100 && (px = half(px, this.palette2[this.temp[x + 16]])), data[p] = px);
+					}
 				return;
-			this.temp.fill(0, 16, 16 + cx);
-			for (let i = 3; i >= 0; --i) {
-				if (!(r2 & 1 << i))
-					continue;
-				const sc = this.ram[0xe82501] >> i * 2 & 3, hs = this.view.getUint16(0xe80018 + sc * 4), vs = this.view.getUint16(0xe8001a + sc * 4);
-				for (let px, p = 16, k = 0xc00001 | sc << 19 | y + vs << 10 & 0x7fc00 | hs << 1 & 0x3fe, i = cx; i > 0; k = k & 0xfffc01 | k + 2 & 0x3fe, ++p, --i)
-					(px = this.ram[k] & 15) && (this.temp[p] = px);
+			case 1: // 512x512 256色
+				if (r2 & 15) {
+					const temp = new Uint8Array(1024);
+					if (r2 & 12)
+						for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
+							(px = this.ram[n | x + sx[3] & 0x3fe] << 4 | this.ram[m | x + sx[2] & 0x3fe]) && (temp[p] = px);
+					if ((r2 & 0x5400) === 0x1400) // 特殊プライオリティ/半透明
+						for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
+							(px = this.ram[l | x + sx[1] & 0x3fe] << 4 | this.ram[k | x + sx[0] & 0x3fe] & 14) && (temp[p] = px);
+					else if (r2 & 3)
+						for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
+							(px = this.ram[l | x + sx[1] & 0x3fe] << 4 | this.ram[k | x + sx[0] & 0x3fe]) && (temp[p] = px);
+					if ((r2 & 0x4400) === 0x4400) // 半透明
+						for (let p = 1024 * (y + 16) + 16, q = 16, x = 0; x < cx; ++p, ++x)
+							data[p] = half(this.palette1[temp[q++]], this.palette2[0]);
+					else
+						for (let px, p = 1024 * (y + 16) + 16, q = 16, x = 0; x < cx; ++p, ++x)
+							(px = this.palette1[temp[q++]]) && (data[p] = px);
+				}
+				if ((r2 & 0x5c00) === 0x1c00) // 半透明
+					for (let px, sel, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2) {
+						px = this.ram[l | x + sx[1] & 0x3fe] << 4 | this.ram[k | x + sx[0] & 0x3fe], sel = px & 1, px = this.palette1[px & 254];
+						sel && r2 & 0x200 && (px = half(px, this.palette1[this.ram[n | x + sx[3] & 0x3fe] << 4 | this.ram[m | x + sx[2] & 0x3fe]]));
+						sel && (r2 & 0x100 && (px = half(px, this.palette2[this.temp[x + 16]])), data[p] = px);
+					}
+				return;
+			case 2: // 512x512 65536色
+				if ((r2 & 0x5c00) === 0x1400) // 特殊プライオリティ
+					for (let px0, px1, px, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2) {
+						px0 = this.ram[n | x + sx[3] & 0x3fe] << 4 | this.ram[m | x + sx[2] & 0x3fe];
+						px1 = this.ram[l | x + sx[1] & 0x3fe] << 4 | this.ram[k | x + sx[0] & 0x3fe];
+						(px = this.ram[0xe82002 | px0 << 1 & 0x1fc | px0 & 1] << 8 | this.ram[0xe82000 | px1 << 1 & 0x1fc]) && (data[p] = px);
+					}
+				else if ((r2 & 0x5c00) === 0x1c00) // 半透明
+					for (let px0, px1, px, sel, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2) {
+						px0 = this.ram[n | x + sx[3] & 0x3fe] << 4 | this.ram[m | x + sx[2] & 0x3fe];
+						px1 = this.ram[l | x + sx[1] & 0x3fe] << 4 | this.ram[k | x + sx[0] & 0x3fe];
+						sel = px1 & 1, px = this.ram[0xe82002 | px0 << 1 & 0x1fc | px0 & 1] << 8 | this.ram[0xe82000 | px1 << 1 & 0x1fc];
+						sel && r2 & 0x100 && (px = half(px, this.palette2[this.temp[x + 16]])), (sel || px) && (data[p] = px);
+					}
+				else if ((r2 & 0x4400) === 0x4400) // 半透明
+					for (let px0, px1, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2) {
+						px0 = this.ram[n | x + sx[3] & 0x3fe] << 4 | this.ram[m | x + sx[2] & 0x3fe];
+						px1 = this.ram[l | x + sx[1] & 0x3fe] << 4 | this.ram[k | x + sx[0] & 0x3fe];
+						data[p] = half(this.ram[0xe82002 | px0 << 1 & 0x1fc | px0 & 1] << 8 | this.ram[0xe82000 | px1 << 1 & 0x1fc | px1 & 1], this.palette2[0]);
+					}
+				else if (r2 & 15)
+					for (let px0, px1, px, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2) {
+						px0 = this.ram[n | x + sx[3] & 0x3fe] << 4 | this.ram[m | x + sx[2] & 0x3fe];
+						px1 = this.ram[l | x + sx[1] & 0x3fe] << 4 | this.ram[k | x + sx[0] & 0x3fe];
+						(px = this.ram[0xe82002 | px0 << 1 & 0x1fc | px0 & 1] << 8 | this.ram[0xe82000 | px1 << 1 & 0x1fc | px1 & 1]) && (data[p] = px);
+					}
+				return;
 			}
-			for (let px, p = 1024 * (y + 16) + 16, q = 16, i = cx; i > 0; ++p, --i)
-				(px = this.palette1[this.temp[q++]]) && (data[p] = px);
-			return;
-		case 1: // 512x512 256色
-			if (!(r2 & 15))
-				return;
-			this.temp.fill(0, 16, 16 + cx);
-			for (let i = 2; i >= 0; i -= 2) {
-				if (!(r2 & 3 << i))
-					continue;
-				const sc = this.ram[0xe82501] >> i * 2 & 2, hs = this.view.getUint16(0xe80018 + sc * 4), vs = this.view.getUint16(0xe8001a + sc * 4);
-				for (let px, p = 16, k = 0xc00001 | sc << 18 | y + vs << 10 & 0x7fc00 | hs << 1 & 0x3fe, i = cx; i > 0; k = k & 0xfffc01 | k + 2 & 0x3fe, ++p, --i)
-					(px = this.ram[k]) && (this.temp[p] = px);
-			}
-			for (let px, p = 1024 * (y + 16) + 16, q = 16, i = cx; i > 0; ++p, --i)
-				(px = this.palette1[this.temp[q++]]) && (data[p] = px);
-			return;
-		case 3: // 512x512 65536色
-			if (!(r2 & 15))
-				return;
-			for (let px, p = 1024 * (y + 16) + 16, k = 0xc00000 | y + r13 << 10 & 0x7fc00 | r12 << 1 & 0x3fe, i = cx; i > 0; k = k & 0xfffc00 | k + 2 & 0x3fe, ++p, --i) {
-				const px0 = this.ram[k], px1 = this.ram[k + 1];
-				(px = this.ram[0xe82002 | px0 << 1 & 0x1fc | px0 & 1] << 8 | this.ram[0xe82000 | px1 << 1 & 0x1fc | px1 & 1]) && (data[p] = px);
-			}
-			return;
-		case 4: // 1024x1024 16色
-			if (!(r2 & 16))
-				return;
-			for (let px, p = 1024 * (y + 16) + 16, k = 0xc00001 | y + r13 << 11 & 0x1ff800 | r12 << 1 & 0x7fe, i = cx; i > 0; k = k & 0xfff801 | k + 2 & 0x7fe, ++p, --i)
-				(px = this.palette1[this.ram[k] & 15]) && (data[p] = px);
-			return;
+		} else if (r2 & 16) { // 1024x1024 16色
+			const sx = this.view.getUint16(0xe80018) << 1, sy = this.view.getUint16(0xe8001a), k = 0xc00001 | y + sy << 10 & 0x7fc00;
+			const sc = [r1 << (y + sy & 0x200 ? 15 : 19) & 0x180000, r1 << (y + sy & 0x200 ? 13 : 17) & 0x180000];
+			if ((r2 & 0x5c00) === 0x1400) // 特殊プライオリティ
+				for (let px, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2)
+					(px = this.palette1[this.ram[k | sc[x + sx >> 10 & 1] | x + sx & 0x3fe] & 14]) && (data[p] = px);
+			else if ((r2 & 0x5c00) === 0x1c00) // 半透明
+				for (let px, sel, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2) {
+					px = this.ram[k | sc[x + sx >> 10 & 1] | x + sx & 0x3fe], sel = px & 1, px = this.palette1[px & 14];
+					sel && r2 & 0x100 && (px = half(px, this.palette2[this.temp[x + 16]])), (sel || px) && (data[p] = px);
+				}
+			else if ((r2 & 0x4400) === 0x4400) // 半透明
+				for (let p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2)
+					data[p] = half(this.palette1[this.ram[k | sc[x + sx >> 10 & 1] | x + sx & 0x3fe]], this.palette2[0]);
+			else
+				for (let px, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2)
+					(px = this.palette1[this.ram[k | sc[x + sx >> 10 & 1] | x + sx & 0x3fe]]) && (data[p] = px);
 		}
 	}
 
 	specialPriority(data, y) {
-		const cx = this.cxScreen, r2 = this.view.getUint16(0xe82600), r12 = this.view.getUint16(0xe80018), r13 = this.view.getUint16(0xe8001a);
-		let p = 1024 * (y + 16) + 16, sc, hs, vs, px;
-		switch (this.ram[0xe82401] & 7) {
-		case 0: // 512x512 16色
-			if (!(r2 & 1))
+		const cx = this.cxScreen, r1 = this.gpri, r2 = this.view.getUint16(0xe82600);
+		if (this.memmode_v < 3) {
+			const sc = [], sx = [], sy = [];
+			for (let i = 0; i < 4; i++)
+				sc[i] = r1 >> i * 2 & 3, sx[i] = this.view.getUint16(0xe80018 + sc[i] * 4) << 1, sy[i] = this.view.getUint16(0xe8001a + sc[i] * 4);
+			const k = 0xc00001 | sc[0] << 19 | y + sy[0] << 10 & 0x7fc00, l = 0xc00001 | sc[1] << 19 | y + sy[1] << 10 & 0x7fc00;
+			const m = 0xc00001 | sc[2] << 19 | y + sy[2] << 10 & 0x7fc00, n = 0xc00001 | sc[3] << 19 | y + sy[3] << 10 & 0x7fc00;
+			switch (this.memmode_v) {
+			case 0: // 512x512 16色
+				if (r2 & 1)
+					for (let px, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2)
+						(px = this.ram[k | x + sx[0] & 0x3fe]) & 1 && (px &= 14) && (data[p] = this.palette1[px]);
 				return;
-			sc = this.ram[0xe82501] & 3, hs = this.view.getUint16(0xe80018 + sc * 4), vs = this.view.getUint16(0xe8001a + sc * 4);
-			for (let k = 0xc00001 | sc << 19 | y + vs << 10 & 0x7fc00 | hs << 1 & 0x3fe, i = cx; i > 0; k = k & 0xfffc01 | k + 2 & 0x3fe, ++p, --i)
-				(px = this.ram[k]) & 1 && (data[p] = this.palette1[px & 14]);
-			return;
-		case 1: // 512x512 256色
-			if (!(r2 & 3))
+			case 1: // 512x512 256色
+				if (r2 & 3)
+					for (let px, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2)
+						(px = this.ram[l | x + sx[1] & 0x3fe] << 4 | this.ram[k | x + sx[0] & 0x3fe]) & 1 && (px &= 254) && (data[p] = this.palette1[px]);
 				return;
-			sc = this.ram[0xe82501] & 2, hs = this.view.getUint16(0xe80018 + sc * 4), vs = this.view.getUint16(0xe8001a + sc * 4);
-			for (let k = 0xc00001 | sc << 18 | y + vs << 10 & 0x7fc00 | hs << 1 & 0x3fe, i = cx; i > 0; k = k & 0xfffc01 | k + 2 & 0x3fe, ++p, --i)
-				(px = this.ram[k]) & 1 && (data[p] = this.palette1[px & 254]);
-			return;
-		case 3: // 512x512 65536色
-			if (!(r2 & 15))
+			case 2: // 512x512 65536色
+				if (r2 & 15)
+					for (let px0, px1, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2) {
+						px0 = this.ram[n | x + sx[3] & 0x3fe] << 4 | this.ram[m | x + sx[2] & 0x3fe];
+						px1 = this.ram[l | x + sx[2] & 0x3fe] << 4 | this.ram[k | x + sx[0] & 0x3fe];
+						px1 & 1 && ((px1 &= 254) | px0) && (data[p] = this.ram[0xe82002 | px0 << 1 & 0x1fc | px0 & 1] << 8 | this.ram[0xe82000 | px1 << 1]);
+					}
 				return;
-			for (let k = 0xc00000 | y + r13 << 10 & 0x7fc00 | r12 << 1 & 0x3fe, i = cx; i > 0; k = k & 0xfffc00 | k + 2 & 0x3fe, ++p, --i) {
-				const px0 = this.ram[k], px1 = this.ram[k + 1];
-				px1 & 1 && (data[p] = this.ram[0xe82002 | px0 << 1 & 0x1fc | px0 & 1] << 8 | this.ram[0xe82000 | px1 << 1 & 0x1fc]);
 			}
+		} else if (r2 & 16) { // 1024x1024 16色
+			const sx = this.view.getUint16(0xe80018) << 1, sy = this.view.getUint16(0xe8001a), k = 0xc00001 | y + sy << 10 & 0x7fc00;
+			const sc = [r1 << (y + sy & 0x200 ? 15 : 19) & 0x180000, r1 << (y + sy & 0x200 ? 13 : 17) & 0x180000];
+			for (let px, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2)
+				(px = this.ram[k | sc[x + sx >> 10 & 1] | x + sx & 0x3fe]) & 1 && (px &= 14) && (data[p] = this.palette1[px]);
+		}
+	}
+
+	fastClear() {
+		const cy = this.cyScreen, r21 = this.view.getUint16(0xe8002a);
+		const sy = [this.view.getUint16(0xe8001a), this.view.getUint16(0xe8001e), this.view.getUint16(0xe80022), this.view.getUint16(0xe80026)];
+		switch (this.memmode_c) {
+		default: // 512x512
+			if (r21 & 1)
+				for (let k, y = 0; y < cy; ++y)
+					k = 0xc00000 | y + sy[0] << 10 & 0x7fc00, this.ram.fill(0, k, k + 0x400);
+			if (r21 & 2)
+				for (let k, y = 0; y < cy; ++y)
+					k = 0xc80000 | y + sy[1] << 10 & 0x7fc00, this.ram.fill(0, k, k + 0x400);
+			if (r21 & 4)
+				for (let k, y = 0; y < cy; ++y)
+					k = 0xd00000 | y + sy[2] << 10 & 0x7fc00, this.ram.fill(0, k, k + 0x400);
+			if (r21 & 8)
+				for (let k, y = 0; y < cy; ++y)
+					k = 0xd80000 | y + sy[3] << 10 & 0x7fc00, this.ram.fill(0, k, k + 0x400);
 			return;
-		case 4: // 1024x1024 16色
-			if (!(r2 & 16))
-				return;
-			for (let k = 0xc00001 | y + r13 << 11 & 0x1ff800 | r12 << 1 & 0x7fe, i = cx; i > 0; k = k & 0xfff801 | k + 2 & 0x7fe, ++p, --i)
-				(px = this.ram[k]) & 1 && (data[p] = this.palette1[px & 14]);
+		case 3: // 1024x1024 16色
+			for (let k, y = 0; y < cy; ++y)
+				k = 0xc00000 | y + sy[0] << 11 & 0x100000 | y + sy[0] << 10 & 0x7fc00, this.ram.fill(0, k, k + 0x400), this.ram.fill(0, k + 0x80000, k + 0x80400);
 			return;
 		}
 	}
 
 	drawText(data, y) {
-		const cx = this.cxScreen, r1 = this.view.getUint16(0xe82500), r2 = this.view.getUint16(0xe82600), diff = (r1 >> 12 & 3) - (r1 >> 10 & 3);
-		const hs = this.view.getUint16(0xe80014), vs = this.view.getUint16(0xe80016);
+		const cx = this.cxScreen, r1 = this.spri, r2 = this.view.getUint16(0xe82600), diff = (r1 >> 12 & 3) - (r1 >> 10 & 3);
+		const sx = this.view.getUint16(0xe80014), sy = this.view.getUint16(0xe80016);
 		if (~r2 & 0x20)
 			return;
-		if (diff === 1 && r2 & 0x40) {
-			for (let px, p = 16, q = y + vs << 10 & 0xffc00 | hs & 0x3ff, i = cx; i > 0; q = q & 0xffc00 | q + 1 & 0x3ff, ++p, --i)
-				(px = this.text[q]) && (this.temp[p] = px);
-			for (let px, p = 1024 * (y + 16) + 16, q = 16, i = cx; i > 0; ++p, --i)
+		if (diff === 1 && r2 & 0x40)
+			for (let px, p = 16, q = y + sy << 10 & 0xffc00, x = 0; x < cx; ++p, ++x)
+				(px = this.text[q | x + sx & 0x3ff]) && (this.temp[p] = px);
+		else
+			for (let p = 16, q = y + sy << 10 & 0xffc00, x = 0; x < cx; ++p, ++x)
+				this.temp[p] = this.text[q | x + sx & 0x3ff];
+		if (diff !== -1 || ~r2 & 0x40)
+			for (let px, p = 1024 * (y + 16) + 16, q = 16, x = 0; x < cx; ++p, ++x)
 				(px = this.palette2[this.temp[q++]]) && (data[p] = px);
-		} else if (diff === -1 && r2 & 0x40) {
-			for (let p = 16, q = y + vs << 10 & 0xffc00 | hs & 0x3ff, i = cx; i > 0; q = q & 0xffc00 | q + 1 & 0x3ff, ++p, --i)
-				this.temp[p] = this.text[q];
-		} else {
-			for (let px, p = 1024 * (y + 16) + 16, q = y + vs << 10 & 0xffc00 | hs & 0x3ff, i = cx; i > 0; q = q & 0xffc00 | q + 1 & 0x3ff, ++p, --i)
-				(px = this.palette2[this.text[q]]) && (data[p] = px);
-		}
 	}
 
 	drawSprite(data, y) {
-		const cx = this.cxScreen, r1 = this.view.getUint16(0xe82500), r2 = this.view.getUint16(0xe82600), diff = (r1 >> 12 & 3) - (r1 >> 10 & 3);
+		const cx = this.cxScreen, r1 = this.spri, r2 = this.view.getUint16(0xe82600), diff = (r1 >> 12 & 3) - (r1 >> 10 & 3);
 		if (~r2 & 0x40)
 			return;
 		if (diff !== -1 || ~r2 & 0x20)
@@ -681,7 +886,7 @@ class X68000 {
 			const hs = this.view.getUint16(0xeb0804), vs = this.view.getUint16(0xeb0806), base = this.ram[0xeb0809] & 0x10 ? 0xebe000 : 0xebc000;
 			for (let i = y + vs >> 3 & 63, j = 0; j < 64; j++) {
 				const x = 16 + j * 8 - hs & 0x1ff;
-				x > 8 && x < cx + 16 && this.xfer8(x, base + i * 128 + j * 2, y + vs & 7);
+				x > 8 && x < cx + 16 && this.xfer8(x, base + i * 128 + j * 2, y + vs & 7, diff >= 0);
 			}
 		}
 		for (let i = spr.length - 1; i >= 0; --i)
@@ -690,70 +895,105 @@ class X68000 {
 			const hs = this.view.getUint16(0xeb0800), vs = this.view.getUint16(0xeb0802), base = this.ram[0xeb0809] & 0x2 ? 0xebe000 : 0xebc000;
 			for (let i = y + vs >> 4 & 63, j = 0; j < 64; j++) {
 				const x = 16 + j * 16 - hs & 0x3ff;
-				x > 0 && x < cx + 16 && this.xfer16(x, base + i * 128 + j * 2, y + vs & 15);
+				x > 0 && x < cx + 16 && this.xfer16(x, base + i * 128 + j * 2, y + vs & 15, diff >= 0);
 			}
 		} else if (~this.ram[0xeb0811] & 1 && this.ram[0xeb0809] & 1) {
 			const hs = this.view.getUint16(0xeb0800), vs = this.view.getUint16(0xeb0802), base = this.ram[0xeb0809] & 0x2 ? 0xebe000 : 0xebc000;
 			for (let i = y + vs >> 3 & 63, j = 0; j < 64; j++) {
 				const x = 16 + j * 8 - hs & 0x1ff;
-				x > 8 && x < cx + 16 && this.xfer8(x, base + i * 128 + j * 2, y + vs & 7);
+				x > 8 && x < cx + 16 && this.xfer8(x, base + i * 128 + j * 2, y + vs & 7, diff >= 0);
 			}
 		}
 		for (let i = spr.length - 1; i >= 0; --i)
 			spr[i].prw === 3 && this.xfer16sp(spr[i].x, 0xeb0004 | spr[i].n << 3, y + 16 - spr[i].y, spr[i].n);
-		if (diff !== 1 || ~r2 & 0x20)
+		if (diff === -2)
+			for (let px, p = 1024 * (y + 16) + 16, q = 16, i = cx; i > 0; ++p, --i)
+				(px = this.temp[q++]) && (px = this.palette2[px]) && (data[p] = px);
+		else if (diff !== 1 || ~r2 & 0x20)
 			for (let px, p = 1024 * (y + 16) + 16, q = 16, i = cx; i > 0; ++p, --i)
 				(px = this.palette2[this.temp[q++]]) && (data[p] = px);
 	}
 
-	xfer8(p, k, l) {
+	xfer8(p, k, l, gd) {
 		let q = this.ram[k + 1] << 6, idx = this.ram[k] << 4 & 0xf0;
 		switch (this.ram[k] >> 6) {
 		case 0: // ノーマル
 			q += l << 3;
-			for (let px, i = 8; i !== 0; ++p, --i)
-				(px = this.pcg8[q++]) && (this.temp[p] = idx | px);
+			if (gd)
+				for (let px, i = 8; i !== 0; ++p, --i)
+					((px = this.pcg8[q++]) || idx && !this.temp[p]) && (this.temp[p] = idx | px);
+			else
+				for (let px, i = 8; i !== 0; ++p, --i)
+					(px = this.pcg8[q++]) && (this.temp[p] = idx | px);
 			return;
 		case 1: // H反転
 			q += l + 1 << 3;
-			for (let px, i = 8; i !== 0; ++p, --i)
-				(px = this.pcg8[--q]) && (this.temp[p] = idx | px);
+			if (gd)
+				for (let px, i = 8; i !== 0; ++p, --i)
+					((px = this.pcg8[--q]) || idx && !this.temp[p]) && (this.temp[p] = idx | px);
+			else
+				for (let px, i = 8; i !== 0; ++p, --i)
+					(px = this.pcg8[--q]) && (this.temp[p] = idx | px);
 			return;
 		case 2: // V反転
 			q += 7 - l << 3;
-			for (let px, i = 8; i !== 0; ++p, --i)
-				(px = this.pcg8[q++]) && (this.temp[p] = idx | px);
+			if (gd)
+				for (let px, i = 8; i !== 0; ++p, --i)
+					((px = this.pcg8[q++]) || idx && !this.temp[p]) && (this.temp[p] = idx | px);
+			else
+				for (let px, i = 8; i !== 0; ++p, --i)
+					(px = this.pcg8[q++]) && (this.temp[p] = idx | px);
 			return;
 		case 3: // HV反転
 			q += 8 - l << 3;
-			for (let px, i = 8; i !== 0; ++p, --i)
-				(px = this.pcg8[--q]) && (this.temp[p] = idx | px);
+			if (gd)
+				for (let px, i = 8; i !== 0; ++p, --i)
+					((px = this.pcg8[--q]) || idx && !this.temp[p]) && (this.temp[p] = idx | px);
+			else
+				for (let px, i = 8; i !== 0; ++p, --i)
+					(px = this.pcg8[--q]) && (this.temp[p] = idx | px);
 			return;
 		}
 	}
 
-	xfer16(p, k, l) {
+	xfer16(p, k, l, gd) {
 		let q = this.ram[k + 1] << 8, idx = this.ram[k] << 4 & 0xf0;
 		switch (this.ram[k] >> 6) {
 		case 0: // ノーマル
 			q += l << 4;
-			for (let px, i = 16; i !== 0; ++p, --i)
-				(px = this.pcg16[q++]) && (this.temp[p] = idx | px);
+			if (gd)
+				for (let px, i = 16; i !== 0; ++p, --i)
+					((px = this.pcg16[q++]) || idx && !this.temp[p]) && (this.temp[p] = idx | px);
+			else
+				for (let px, i = 16; i !== 0; ++p, --i)
+					(px = this.pcg16[q++]) && (this.temp[p] = idx | px);
 			return;
 		case 1: // H反転
 			q += l + 1 << 4;
-			for (let px, i = 16; i !== 0; ++p, --i)
-				(px = this.pcg16[--q]) && (this.temp[p] = idx | px);
+			if (gd)
+				for (let px, i = 16; i !== 0; ++p, --i)
+					((px = this.pcg16[--q]) || idx && !this.temp[p]) && (this.temp[p] = idx | px);
+			else
+				for (let px, i = 16; i !== 0; ++p, --i)
+					(px = this.pcg16[--q]) && (this.temp[p] = idx | px);
 			return;
 		case 2: // V反転
 			q += 15 - l << 4;
-			for (let px, i = 16; i !== 0; ++p, --i)
-				(px = this.pcg16[q++]) && (this.temp[p] = idx | px);
+			if (gd)
+				for (let px, i = 16; i !== 0; ++p, --i)
+					((px = this.pcg16[q++]) || idx && !this.temp[p]) && (this.temp[p] = idx | px);
+			else
+				for (let px, i = 16; i !== 0; ++p, --i)
+					(px = this.pcg16[q++]) && (this.temp[p] = idx | px);
 			return;
 		case 3: // HV反転
 			q += 16 - l << 4;
-			for (let px, i = 16; i !== 0; ++p, --i)
-				(px = this.pcg16[--q]) && (this.temp[p] = idx | px);
+			if (gd)
+				for (let px, i = 16; i !== 0; ++p, --i)
+					((px = this.pcg16[--q]) || idx && !this.temp[p]) && (this.temp[p] = idx | px);
+			else
+				for (let px, i = 16; i !== 0; ++p, --i)
+					(px = this.pcg16[--q]) && (this.temp[p] = idx | px);
 			return;
 		}
 	}
@@ -1163,10 +1403,10 @@ const SRAM = Uint8Array.from(window.atob('\
 gnc2ODAwMFcAwAAAAL///ADtAQD/////kHBuBwAQAAAAAP//AAAHAQ4ADQAAAAAA+D7/wP/+zahAIgMCAAgAAAAAAAAAAAAAAP/cAAQAAQEAAAAgAAn5AQAA\
 AADgAOAA4ADgAAAAAAAAAAAAAAAAVg8=\
 ').split(''), c => c.charCodeAt(0));
-let FDD = [], ROM;
+let DISK1, ROM, FDD = [];
 
 read(`human302.xdf`).then(buffer => {
-	FDD[0] = new Uint8Array(buffer);
+	DISK1 = new Uint8Array(buffer);
 }).then(() => read('x68000.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	ROM = Uint8Array.concat(...['cgrom.dat', 'iplrom.dat'].map(e => zip.decompress(e))).addBase();
 	game = new X68000();
@@ -1174,6 +1414,7 @@ read(`human302.xdf`).then(buffer => {
 		new YM2151({clock: 16000000 / 4}),
 		new MSM6258(),
 	];
+	game.fdd.command.push({unit: 0, disk: DISK1});
 	game.touch = {x: null, y: null};
 	canvas.addEventListener('mousedown', e => game.mouse.button |= e.button === 0 ? 1 : e.button === 2 ? 2 : 0);
 	canvas.addEventListener('mouseup', e => game.mouse.button &= ~(e.button === 0 ? 1 : e.button === 2 ? 2 : 0));
