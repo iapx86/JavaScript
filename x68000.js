@@ -31,7 +31,7 @@ class X68000 {
 			fn();
 	}};
 	g = generator(this.fdc);
-	fdd = {control: 0, select: 0, command: []};
+	fdd = {control: 0, select: 0, command: [], eject: () => {}};
 	scc = {a: {wr: new Uint8Array(16), rr: new Uint8Array(16)}, b: {wr: new Uint8Array(16), rr: new Uint8Array(16)}};
 	keyboard = {fifo: []};
 	mouse = {button: 0, x: 0, y: 0, fifo: []};
@@ -366,7 +366,8 @@ class X68000 {
 			case 0xe94003:
 				return this.fdc.data = data, void this.g.next();
 			case 0xe94005:
-				return this.ram[addr] = FDD[31 - Math.clz32(data & 15)] ? 0x80 : 0, void(this.fdd.control = data);
+				this.ram[addr] = FDD[31 - Math.clz32(data & 15)] ? 0x80 : 0, data & ~this.fdd.control & 0x20 && this.fdd.eject(31 - Math.clz32(data & 15));
+				return void(this.fdd.control = data);
 			case 0xe94007:
 				return void(this.fdd.select = this.ram[addr] = data);
 			default:
@@ -527,20 +528,15 @@ class X68000 {
 				const aer = this.ram[0xe88003], iera = this.ram[0xe88007], ierb = this.ram[0xe88009], tacr = this.ram[0xe88019];
 				const timer_a_tick = () => tacr & 8 && !--this.ram[0xe8801f] && (this.ram[0xe8801f] = this.timer_a.reload, this.ram[0xe8800b] |= iera & 0x20);
 				for (; this.scanline.h_count > r00; this.scanline.h_count -= r00 + 1) {
-					this.ram[0xe8800b] |= iera & 0x80, ++this.scanline.v_count > r04 && (this.scanline.v_count = 0);
-					const v_count = this.scanline.v_count, cirq = v_count === r09, vdisp = v_count > r06 && v_count <= r07;
-					this.ram[0xe88001] = this.ram[0xe88001] & ~0x50 | !cirq << 6 | vdisp << 4;
-					~aer & 0x40 && cirq && (this.ram[0xe8800b] |= iera & 0x40);
-					if (aer & 0x10)
-						v_count === r06 + 1 && (this.ram[0xe8800d] |= ierb & 0x40, timer_a_tick());
-					else if (r07 >= r04)
-						v_count === r07 - r04 && (this.ram[0xe8800d] |= ierb & 0x40), v_count === r04 && timer_a_tick();
-					else
-						v_count === r04 && (this.ram[0xe8800d] |= ierb & 0x40), v_count === r07 + 1 && timer_a_tick();
+					this.ram[0xe8800b] |= iera & 0x80;
+					++this.scanline.v_count > r04 && (this.scanline.v_count = 0, this.bitmap && (this.bitmap = this.bitmap === this.bitmap1 ? this.bitmap2 : this.bitmap1));
+					const v_count = this.scanline.v_count, cirq = v_count === r09, vdisp = v_count > r06 && v_count <= r07 || r07 >= r04 && v_count < r07 - r04;
+					this.ram[0xe88001] = this.ram[0xe88001] & ~0x50 | !cirq << 6 | vdisp << 4, ~aer & 0x40 && cirq && (this.ram[0xe8800b] |= iera & 0x40);
+					if (aer & 0x10 ? v_count === r06 + 1 : r07 >= r04 ? v_count === r07 - r04 : v_count === r07 + 1)
+						this.ram[0xe8800d] |= ierb & 0x40, timer_a_tick();
 					v_count === r06 + 1 && this.ram[0xe80481] & 2 && (this.fastClear(), this.ram[0xe80481] &= ~2);
-					v_count === r07 + 1 && this.bitmap && (this.bitmap = this.bitmap === this.bitmap1 ? this.bitmap2 : this.bitmap1);
 					if (vdisp && this.bitmap) {
-						const y = v_count - r06 - 1, mode = r20 >> 2 & 7;
+						const y = v_count - r06 + (v_count > r06 ? -1 : r04), mode = r20 >> 2 & 7;
 						mode === 1 ? (this.drawLine(y << 1), this.drawLine(y << 1 | 1)) : mode !== 4 ? this.drawLine(y) : y & 1 && this.drawLine(y >> 1);
 					}
 				}
@@ -696,12 +692,14 @@ class X68000 {
 					if (r2 & 2)
 						for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
 							(px = this.ram[l | x + sx[1] & 0x3fe]) && (temp[p] = px);
-					if ((r2 & 0x5400) === 0x1400) // 特殊プライオリティ/半透明
-						for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
-							(px = this.ram[k | x + sx[0] & 0x3fe] & 14) && (temp[p] = px);
-					else if (r2 & 1)
-						for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
-							(px = this.ram[k | x + sx[0] & 0x3fe]) && (temp[p] = px);
+					if (r2 & 1) {
+						if ((r2 & 0x5400) === 0x1400) // 特殊プライオリティ/半透明
+							for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
+								(px = this.ram[k | x + sx[0] & 0x3fe] & 14) && (temp[p] = px);
+						else
+							for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
+								(px = this.ram[k | x + sx[0] & 0x3fe]) && (temp[p] = px);
+					}
 					if ((r2 & 0x4400) === 0x4400) // 半透明
 						for (let p = 1024 * (y + 16) + 16, q = 16, x = 0; x < cx; ++p, ++x)
 							data[p] = half(this.palette1[temp[q++]], this.palette2[0]);
@@ -709,11 +707,11 @@ class X68000 {
 						for (let px, p = 1024 * (y + 16) + 16, q = 16, x = 0; x < cx; ++p, ++x)
 							(px = this.palette1[temp[q++]]) && (data[p] = px);
 				}
-				if ((r2 & 0x5c00) === 0x1c00) // 半透明
+				if ((r2 & 0x5c00) === 0x1c00 && r2 & 1) // 半透明
 					for (let px, sel, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2) {
 						px = this.ram[k | x + sx[0] & 0x3fe], sel = px & 1, px = this.palette1[px & 14];
 						sel && r2 & 0x200 && (px = half(px, this.palette1[this.ram[l | x + sx[1] & 0x3fe]]));
-						sel && (r2 & 0x100 && (px = half(px, this.palette2[this.temp[x + 16]])), data[p] = px);
+						sel && (r2 & 0x100 && (px = half(px, this.palette2[this.temp[x + 32 >> 1]])), data[p] = px);
 					}
 				return;
 			case 1: // 512x512 256色
@@ -722,12 +720,14 @@ class X68000 {
 					if (r2 & 12)
 						for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
 							(px = this.ram[n | x + sx[3] & 0x3fe] << 4 | this.ram[m | x + sx[2] & 0x3fe]) && (temp[p] = px);
-					if ((r2 & 0x5400) === 0x1400) // 特殊プライオリティ/半透明
-						for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
-							(px = this.ram[l | x + sx[1] & 0x3fe] << 4 | this.ram[k | x + sx[0] & 0x3fe] & 14) && (temp[p] = px);
-					else if (r2 & 3)
-						for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
-							(px = this.ram[l | x + sx[1] & 0x3fe] << 4 | this.ram[k | x + sx[0] & 0x3fe]) && (temp[p] = px);
+					if (r2 & 3) {
+						if ((r2 & 0x5400) === 0x1400 && r2 & 3) // 特殊プライオリティ/半透明
+							for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
+								(px = this.ram[l | x + sx[1] & 0x3fe] << 4 | this.ram[k | x + sx[0] & 0x3fe] & 14) && (temp[p] = px);
+						else
+							for (let px, p = 16, x = 0; x < cx << 1; ++p, x += 2)
+								(px = this.ram[l | x + sx[1] & 0x3fe] << 4 | this.ram[k | x + sx[0] & 0x3fe]) && (temp[p] = px);
+					}
 					if ((r2 & 0x4400) === 0x4400) // 半透明
 						for (let p = 1024 * (y + 16) + 16, q = 16, x = 0; x < cx; ++p, ++x)
 							data[p] = half(this.palette1[temp[q++]], this.palette2[0]);
@@ -735,14 +735,16 @@ class X68000 {
 						for (let px, p = 1024 * (y + 16) + 16, q = 16, x = 0; x < cx; ++p, ++x)
 							(px = this.palette1[temp[q++]]) && (data[p] = px);
 				}
-				if ((r2 & 0x5c00) === 0x1c00) // 半透明
+				if ((r2 & 0x5c00) === 0x1c00 && r2 & 3) // 半透明
 					for (let px, sel, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2) {
 						px = this.ram[l | x + sx[1] & 0x3fe] << 4 | this.ram[k | x + sx[0] & 0x3fe], sel = px & 1, px = this.palette1[px & 254];
 						sel && r2 & 0x200 && (px = half(px, this.palette1[this.ram[n | x + sx[3] & 0x3fe] << 4 | this.ram[m | x + sx[2] & 0x3fe]]));
-						sel && (r2 & 0x100 && (px = half(px, this.palette2[this.temp[x + 16]])), data[p] = px);
+						sel && (r2 & 0x100 && (px = half(px, this.palette2[this.temp[x + 32 >> 1]])), data[p] = px);
 					}
 				return;
 			case 2: // 512x512 65536色
+				if (!(r2 & 15))
+					return;
 				if ((r2 & 0x5c00) === 0x1400) // 特殊プライオリティ
 					for (let px0, px1, px, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2) {
 						px0 = this.ram[n | x + sx[3] & 0x3fe] << 4 | this.ram[m | x + sx[2] & 0x3fe];
@@ -754,7 +756,7 @@ class X68000 {
 						px0 = this.ram[n | x + sx[3] & 0x3fe] << 4 | this.ram[m | x + sx[2] & 0x3fe];
 						px1 = this.ram[l | x + sx[1] & 0x3fe] << 4 | this.ram[k | x + sx[0] & 0x3fe];
 						sel = px1 & 1, px = this.ram[0xe82002 | px0 << 1 & 0x1fc | px0 & 1] << 8 | this.ram[0xe82000 | px1 << 1 & 0x1fc];
-						sel && r2 & 0x100 && (px = half(px, this.palette2[this.temp[x + 16]])), (sel || px) && (data[p] = px);
+						sel && r2 & 0x100 && (px = half(px, this.palette2[this.temp[x + 32 >> 1]])), (sel || px) && (data[p] = px);
 					}
 				else if ((r2 & 0x4400) === 0x4400) // 半透明
 					for (let px0, px1, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2) {
@@ -762,7 +764,7 @@ class X68000 {
 						px1 = this.ram[l | x + sx[1] & 0x3fe] << 4 | this.ram[k | x + sx[0] & 0x3fe];
 						data[p] = half(this.ram[0xe82002 | px0 << 1 & 0x1fc | px0 & 1] << 8 | this.ram[0xe82000 | px1 << 1 & 0x1fc | px1 & 1], this.palette2[0]);
 					}
-				else if (r2 & 15)
+				else
 					for (let px0, px1, px, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2) {
 						px0 = this.ram[n | x + sx[3] & 0x3fe] << 4 | this.ram[m | x + sx[2] & 0x3fe];
 						px1 = this.ram[l | x + sx[1] & 0x3fe] << 4 | this.ram[k | x + sx[0] & 0x3fe];
@@ -779,7 +781,7 @@ class X68000 {
 			else if ((r2 & 0x5c00) === 0x1c00) // 半透明
 				for (let px, sel, p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2) {
 					px = this.ram[k | sc[x + sx >> 10 & 1] | x + sx & 0x3fe], sel = px & 1, px = this.palette1[px & 14];
-					sel && r2 & 0x100 && (px = half(px, this.palette2[this.temp[x + 16]])), (sel || px) && (data[p] = px);
+					sel && r2 & 0x100 && (px = half(px, this.palette2[this.temp[x + 32 >> 1]])), (sel || px) && (data[p] = px);
 				}
 			else if ((r2 & 0x4400) === 0x4400) // 半透明
 				for (let p = 1024 * (y + 16) + 16, x = 0; x < cx << 1; ++p, x += 2)
