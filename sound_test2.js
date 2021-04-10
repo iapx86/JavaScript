@@ -5,7 +5,8 @@
  */
 
 import C30 from './c30.js';
-import {init, IntTimer, read} from './main.js';
+import {Timer} from './utils.js';
+import {init, read} from './main.js';
 import MC6801 from './mc6801.js';
 let game, sound;
 
@@ -28,7 +29,7 @@ class SoundTest {
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 
 	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
-	timer = new IntTimer(60);
+	timer = new Timer(60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -60,16 +61,15 @@ class SoundTest {
 		this.mcu.check_interrupt = () => { return this.mcu_irq && this.mcu.interrupt() ? (this.mcu_irq = false, true) : (this.ram2[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf'); };
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.mcu_irq = this.fInterruptEnable1;
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.mcu.execute(tick_rate);
-			this.timer.execute(tick_rate, () => this.ram2[8] |= this.ram2[8] << 3 & 0x40);
-			sound.execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			this.timer.execute(tick_rate, () => (update(), this.mcu_irq = this.fInterruptEnable1, this.ram2[8] |= this.ram2[8] << 3 & 0x40));
+			sound.execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -121,7 +121,10 @@ class SoundTest {
 		return this;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		for (let i = 0; i < 16; i++)
 			for (let j = 0; j < 8; j++)
 				SoundTest.Xfer28x16(this.bitmap, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);

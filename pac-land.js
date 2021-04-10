@@ -5,7 +5,8 @@
  */
 
 import C30 from './c30.js';
-import {init, seq, rseq, convertGFX, IntTimer, read} from './main.js';
+import {seq, rseq, convertGFX} from './utils.js';
+import {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -53,7 +54,10 @@ class PacLand {
 
 	cpu = new MC6809(Math.floor(49152000 / 32));
 	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
-	timer = new IntTimer(60);
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -129,17 +133,18 @@ class PacLand {
 		this.opaque[0].fill(0).fill(1, 0, 0x80), this.opaque[1].fill(0).fill(1, 0, 0x7f).fill(1, 0x80, 0xff), this.opaque[2].fill(0).fill(1, 0xf0, 0xff);
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.cpu_irq = this.fInterruptEnable0, this.mcu_irq = this.fInterruptEnable1;
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.mcu.execute(tick_rate);
-			this.timer.execute(tick_rate, () => this.ram2[8] |= this.ram2[8] << 3 & 0x40);
-			sound.execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			this.scanline.execute(tick_rate, (vpos) => {
+				!vpos && (update(), this.cpu_irq = this.fInterruptEnable0, this.mcu_irq = this.fInterruptEnable1, this.ram2[8] |= this.ram2[8] << 3 & 0x40);
+			});
+			sound.execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -258,7 +263,10 @@ class PacLand {
 		this.in[4] = this.in[4] & ~(1 << 3) | !fDown << 3;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		const ram = this.ram;
 
 		// 画面クリア

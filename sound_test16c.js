@@ -5,7 +5,8 @@
  */
 
 import SN76489 from './sn76489.js';
-import {init, IntTimer, read} from './main.js';
+import {Timer} from './utils.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -28,7 +29,8 @@ class SoundTest {
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 
 	cpu2 = new Z80(Math.floor(8000000 / 2));
-	timer = new IntTimer(4 * 60);
+	timer = new Timer(60);
+	timer2 = new Timer(4 * 60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -50,17 +52,17 @@ class SoundTest {
 		this.cpu2.check_interrupt = () => { return this.cpu2_irq && this.cpu2.interrupt() ? (this.cpu2_irq = false, true) : false; };
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.command.length && this.cpu2.non_maskable_interrupt();
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu2.execute(tick_rate);
-			this.timer.execute(tick_rate, () => this.cpu2_irq = true);
-			sound[0].execute(tick_rate, rate_correction);
-			sound[1].execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			this.timer.execute(tick_rate, () => { update(), this.command.length && this.cpu2.non_maskable_interrupt(); });
+			this.timer2.execute(tick_rate, () => this.cpu2_irq = true);
+			sound[0].execute(tick_rate);
+			sound[1].execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -114,7 +116,10 @@ class SoundTest {
 		return this;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		for (let i = 0; i < 16; i++)
 			for (let j = 0; j < 8; j++)
 				SoundTest.Xfer28x16(this.bitmap, 28 * j + 256 * 16 * i, key[i < 6 ? 0 : 13]);
@@ -163,8 +168,8 @@ read('ufosensi.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	}
 	game = new SoundTest();
 	sound = [
-		new SN76489({clock: 8000000 / 4}),
-		new SN76489({clock: 8000000 / 2}),
+		new SN76489({clock: Math.floor(8000000 / 4)}),
+		new SN76489({clock: Math.floor(8000000 / 2)}),
 	];
 	game.initial = true;
 	canvas.addEventListener('click', e => {

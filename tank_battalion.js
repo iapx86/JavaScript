@@ -5,7 +5,8 @@
  */
 
 import SoundEffect from './sound_effect.js';
-import {init, seq, rseq, convertGFX, read} from './main.js';
+import {seq, rseq, convertGFX} from './utils.js';
+import {init, read} from './main.js';
 import MCS6502 from './mcs6502.js';
 let game, sound;
 
@@ -103,18 +104,17 @@ class TankBattalion {
 		this.se[2].loop = this.se[3].loop = true;
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
-			this.scanline.execute(tick_rate, (cnt) => {
-				const vpos = cnt + 224 & 0xff;
+			this.scanline.execute(tick_rate, (vpos) => {
 				vpos === 16 && this.cpu.interrupt();
-				vpos === 224 && this.wport[0x0f] && this.cpu.non_maskable_interrupt();
+				vpos === 224 && (update(), this.wport[0x0f] && this.cpu.non_maskable_interrupt());
 			});
-			audio.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -205,7 +205,10 @@ class TankBattalion {
 		this.rport[4] = this.rport[4] & ~(1 << 7) | !fDown << 7;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		// bg描画
 		let p = 256 * 8 * 2 + 232;
 		for (let k = 0x0040, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)

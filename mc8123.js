@@ -5,7 +5,7 @@
  */
 
 import Z80 from './z80.js';
-import {bitswap} from './main.js';
+import {bitswap} from './utils.js';
 
 export default class MC8123 extends Z80 {
 	code_key = new Uint8Array(0x10000);

@@ -27,8 +27,8 @@ export default class PacManSound {
 		this.reg[addr & 0x1f] = data & 15;
 	}
 
-	execute(rate, rate_correction = 1) {
-		for (this.frac += this.clock * rate_correction; this.frac >= rate; this.frac -= rate) {
+	execute(rate) {
+		for (this.frac += this.clock; this.frac >= rate; this.frac -= rate) {
 			const r = this.reg;
 			for (let ch = 0; ch < 15; ch += 5) {
 				let ph = r[ch + 4] << 16 | r[ch + 3] << 12 | r[ch + 2] << 8 | r[ch + 1] << 4 | (ch ? 0 : r[0]);

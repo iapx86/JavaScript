@@ -6,7 +6,8 @@
 
 import SN76489 from './sn76489.js';
 import SenjyoSound from './senjyo_sound.js';
-import {init, seq, rseq, convertGFX, IntTimer, read} from './main.js';
+import {seq, rseq, convertGFX, Timer} from './utils.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -49,7 +50,11 @@ class StarForce {
 
 	cpu = new Z80(4000000);
 	cpu2 = new Z80(2000000);
-	timer = new IntTimer(2000000 / 2048 / 11);
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
+	timer = new Timer(2000000 / 2048 / 11);
 
 	constructor() {
 		// CPU周りの初期化
@@ -120,18 +125,18 @@ class StarForce {
 			[0, Math.floor(OBJ.length / 3) * 8, Math.floor(OBJ.length / 3) * 16], 32);
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.cpu_irq = true;
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
+			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.cpu_irq = true));
 			this.timer.execute(tick_rate, () => { this.ctc.irq = this.ctc.fInterruptEnable; });
-			for (let j = 0; j < 4; j++)
-				sound[j].execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			for (let i = 0; i < 4; i++)
+				sound[i].execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -268,7 +273,10 @@ class StarForce {
 		!(this.fTurbo = fDown) && (this.in[0] &= ~(1 << 4));
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		for (let j = 0; j < 0x200; j++) {
 			const e = this.ram[0x1c00 + j], i = e >> 6 & 3, r = e << 2 & 12, g = e & 12, b = e >> 2 & 12;
 			this.rgb[j] = 0xff000000 | (b ? b | i : 0) * 255 / 15 << 16 | (g ? g | i : 0) * 255 / 15 << 8 | (r ? r | i : 0) * 255 / 15;

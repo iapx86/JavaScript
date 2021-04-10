@@ -5,6 +5,7 @@
  */
 
 import YM2151 from './ym2151.js';
+import {Timer} from './utils.js';
 import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -27,6 +28,7 @@ class SoundTest {
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 
 	cpu2 = new Z80(3579545);
+	timer = new Timer(60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -57,15 +59,15 @@ class SoundTest {
 		this.cpu2.check_interrupt = () => { return sound.irq && this.cpu2.interrupt(0xef); };
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.command.length && this.cpu2.interrupt(0xdf);
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu2.execute(tick_rate);
+			this.timer.execute(tick_rate, () => { update(), this.command.length && this.cpu2.interrupt(0xdf); });
 			sound.execute(tick_rate);
-			audio.execute(tick_rate, rate_correction);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -120,7 +122,10 @@ class SoundTest {
 		return this;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		for (let i = 0; i < 16; i++)
 			for (let j = 0; j < 8; j++)
 				SoundTest.Xfer28x16(this.bitmap, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);

@@ -6,7 +6,8 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import SoundEffect from './sound_effect.js';
-import {init, seq, rseq, convertGFX, read} from './main.js';
+import {seq, rseq, convertGFX} from './utils.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -47,6 +48,10 @@ class JumpBug {
 	se = [BOMB, SHOT].map(buf => ({freq: 11025, buf, loop: false, start: false, stop: false}));
 
 	cpu = new Z80(Math.floor(18432000 / 6));
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -117,16 +122,15 @@ class JumpBug {
 		this.initializeStar();
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.fInterruptEnable && this.cpu.non_maskable_interrupt();
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
-			sound[0].execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			this.scanline.execute(tick_rate, (vpos) => !vpos && (this.moveStars(), update(), this.fInterruptEnable && this.cpu.non_maskable_interrupt()));
+			sound[0].execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		this.moveStars();
-		return this;
 	}
 
 	reset() {
@@ -238,7 +242,10 @@ class JumpBug {
 				}
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		// bg描画
 		let p = 256 * 32;
 		for (let k = 0xbe2, i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
@@ -1569,7 +1576,7 @@ AP8A/wD/AP8A/wD/AP8A/wD/\
  *
  */
 
-let BG, RGB, PRG;
+let PRG, BG, RGB;
 
 read('jumpbug.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG = Uint8Array.concat(...['jb1', 'jb2', 'jb3', 'jb4', 'jb5', 'jb6', 'jb7'].map(e => zip.decompress(e))).addBase();
@@ -1577,7 +1584,7 @@ read('jumpbug.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	RGB = zip.decompress('l06_prom.bin');
 	game = new JumpBug();
 	sound = [
-		new AY_3_8910({clock: 18432000 / 12}),
+		new AY_3_8910({clock: Math.floor(18432000 / 12)}),
 		new SoundEffect({se: game.se, gain: 0.3}),
 	];
 	canvas.addEventListener('click', () => game.coin());

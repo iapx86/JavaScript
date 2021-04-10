@@ -37,6 +37,10 @@ class RoyalMahjong {
 	palette = 0;
 
 	cpu = new Z80(Math.floor(18432000 / 6));
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -85,15 +89,15 @@ class RoyalMahjong {
 		}
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.cpu.interrupt();
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
-			sound.execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.cpu.interrupt()));
+			sound.execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -203,7 +207,10 @@ class RoyalMahjong {
 		this.fStart2P = 2;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		for (let p = 252 * 256, k = 0x200, i = 240; i !== 0; p += 256 * 256 + 1, --i)
 			for (let j = 256 >> 2; j !== 0; k++, p -= 4 * 256, --j) {
 				const p0 = this.vram[k], p1 = this.vram[0x4000 + k];
@@ -268,7 +275,7 @@ const keydown = e => {
 	case 'KeyN':
 		return void(game.in[1] &= ~(1 << 3));
 	case 'KeyR':
-		return void game.reset();
+		return game.reset();
 	case 'KeyS': // SERVICE
 		return void(game.in[10] ^= 1 << 2);
 	case 'KeyT':
@@ -365,7 +372,7 @@ read('royalmj.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	PRG = Uint8Array.concat(...['1.p1', '2.p2', '3.p3', '4.p4', '5.p5', '6.p6'].map(e => zip.decompress(e))).addBase();
 	RGB = zip.decompress('18s030n.6k');
 	game = new RoyalMahjong();
-	sound = new AY_3_8910({clock: 18432000 / 12, gain: 0.2});
+	sound = new AY_3_8910({clock: Math.floor(18432000 / 12), gain: 0.2});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound, keydown, keyup});
 });

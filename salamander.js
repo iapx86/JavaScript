@@ -50,6 +50,10 @@ class Salamander {
 
 	cpu = new MC68000(Math.floor(18432000 / 2));
 	cpu2 = new Z80(3579545);
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -139,17 +143,17 @@ class Salamander {
 		this.cpu2.check_interrupt = () => { return this.cpu2_irq && this.cpu2.interrupt() && (this.cpu2_irq = false, true); };
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.fInterruptEnable && this.cpu.interrupt(1);
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
+			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.fInterruptEnable && this.cpu.interrupt(1)));
 			sound[0].execute(tick_rate);
-			sound[1].execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			sound[1].execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -254,7 +258,10 @@ class Salamander {
 		!(this.fTurbo = fDown) && (this.in[3] &= ~(1 << 4));
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		for (let i = 0; i < 0x800; i++) {
 			const e = this.ram[0x8000 | i << 1] << 8 | this.ram[0x8001 | i << 1];
 			this.rgb[i] = 0xff000000 | (e >> 10 & 31) * 255 / 31 << 16 | (e >> 5 & 31) * 255 / 31 << 8 | (e & 31) * 255 / 31;

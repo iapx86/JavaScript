@@ -17,10 +17,10 @@ export default class SN76496 {
 	rng = 0x10000;
 
 	constructor({clock, gain = 0.1}) {
-		this.rate = clock / 16;
+		this.rate = Math.floor(clock / 16);
 		this.gain = gain;
 		for (let i = 0; i < 3; i++)
-			this.channel.push({freq: 0, count: 0, output: 0});
+			this.channel.push({count: 0, output: 0});
 	}
 
 	control(flag) {
@@ -35,12 +35,10 @@ export default class SN76496 {
 		this.addr === 6 && (this.rng = 0x10000);
 	}
 
-	execute(rate, rate_correction) {
-		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate) {
-			const reg = this.reg;
-			this.channel.forEach((ch, i) => ch.freq = reg[i * 2]);
-			const nfreq = (reg[6] & 3) === 3 ? this.channel[2].freq << 1 : 4 << (reg[6] & 3);
-			this.channel.forEach(ch => !(--ch.count & 0x3ff) && (ch.output = ~ch.output, ch.count = ch.freq));
+	execute(rate) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate) {
+			const reg = this.reg, nfreq = (reg[6] & 3) === 3 ? reg[4] << 1 : 4 << (reg[6] & 3);
+			this.channel.forEach((ch, i) => !(--ch.count & 0x3ff) && (ch.output = ~ch.output, ch.count = reg[i * 2]));
 			!(--this.ncount & 0x7ff) && (this.rng = this.rng >> 1 | (this.rng << 14 ^ this.rng << 13 & reg[6] << 14) & 0x10000, this.ncount = nfreq);
 		}
 	}

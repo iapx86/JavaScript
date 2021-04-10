@@ -18,7 +18,7 @@ export default class UPD7751 {
 
 	constructor({MCU, VOI, clock = 6000000, gain = 0.5}) {
 		this.base = VOI;
-		this.clock = clock / 15;
+		this.clock = Math.floor(clock / 15);
 		this.gain = gain;
 		this.mcu.rom.set(MCU);
 	}
@@ -43,9 +43,9 @@ export default class UPD7751 {
 		this.mcu.p2 = data >> 1 & 0x70;
 	}
 
-	execute(rate, rate_correction) {
+	execute(rate) {
 		if (this.signal & 1)
-			for (this.mcu.cycle += Math.floor((this.frac += this.clock * rate_correction) / rate), this.frac %= rate; this.mcu.cycle > 0;) {
+			for (this.mcu.cycle += Math.floor((this.frac += this.clock) / rate), this.frac %= rate; this.mcu.cycle > 0;) {
 				const op = this.mcu.execute();
 				if (op >= 0x3c && op < 0x40)
 					this.mcu.bus = this.base[this.bank | this.mcu.p7 << 12 & 0x3000 | this.mcu.p6 << 8 | this.mcu.p5 << 4 | this.mcu.p4];

@@ -6,7 +6,8 @@
 
 import PacManSound from './pac-man_sound.js';
 import SoundEffect from './sound_effect.js';
-import {init, seq, rseq, convertGFX, read} from './main.js';
+import {seq, rseq, convertGFX} from './utils.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -46,6 +47,10 @@ class RallyX {
 	se = [{freq: 11025, buf: BANG, loop: false, start: false, stop: false}];
 
 	cpu = new Z80(Math.floor(18432000 / 6));
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -97,15 +102,15 @@ class RallyX {
 		convertGFX(this.obj, BGOBJ, 64, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4, 64).concat(seq(4, 128), seq(4, 192), seq(4)), [0, 4], 64);
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.cpu_irq = this.fInterruptEnable;
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
-			sound[0].execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.cpu_irq = this.fInterruptEnable));
+			sound[0].execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -225,7 +230,10 @@ class RallyX {
 		this.mmi[0] = this.mmi[0] & ~(1 << 1) | !fDown << 1;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		// bg描画
 		this.drawBG(this.bitmap, 0);
 
@@ -1195,7 +1203,7 @@ z//f//3/9f///w==\
  *
  */
 
-let SND, BGOBJ, COLOR, RGB, PRG;
+let PRG, BGOBJ, RGB, COLOR, SND;
 
 read('rallyx.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG = Uint8Array.concat(...['1b', 'rallyxn.1e', 'rallyxn.1h', 'rallyxn.1k'].map(e => zip.decompress(e))).addBase();

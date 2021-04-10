@@ -5,7 +5,7 @@
  */
 
 import Z80 from './z80.js';
-import {seq, bitswap} from './main.js';
+import {seq, bitswap} from './utils.js';
 
 export default class SegaZ80 extends Z80 {
 	code_table = Uint8Array.from(seq(0x1100), i => i & 0xff);

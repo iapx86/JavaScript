@@ -22,8 +22,8 @@ export default class K005289 {
 		this.reg[addr] = data;
 	}
 
-	execute(rate, rate_correction = 1) {
-		for (this.frac += this.clock * rate_correction; this.frac >= rate; this.frac -= rate)
+	execute(rate) {
+		for (this.frac += this.clock; this.frac >= rate; this.frac -= rate)
 			for (let i = 0; i < 2; i++)
 				++this.reg[i + 4] >= this.reg[i + 2] && (++this.reg[i + 6], this.reg[i + 4] = 0);
 	}

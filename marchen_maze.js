@@ -6,7 +6,9 @@
 
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
-import {dummypage, init, seq, rseq, convertGFX, DoubleTimer, read} from './main.js';
+import {seq, rseq, convertGFX, Timer} from './utils.js';
+import {init, read} from './main.js';
+import {dummypage} from './cpu.js'
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -56,7 +58,11 @@ class MarchenMaze {
 	cpu2 = new MC6809(Math.floor(49152000 / 32));
 	cpu3 = new MC6809(Math.floor(49152000 / 32));
 	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
-	timer = new DoubleTimer(49152000 / 8 / 1024);
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
+	timer = new Timer(Math.floor(49152000 / 8 / 1024));
 
 	constructor() {
 		// CPU周りの初期化
@@ -286,20 +292,20 @@ class MarchenMaze {
 		this.bank4 = bank;
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.cpu_irq = this.cpu2_irq = this.cpu3_irq = this.mcu_irq = true;
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
 			this.cpu3.execute(tick_rate);
 			this.mcu.execute(tick_rate);
-			this.timer.execute(tick_rate, rate_correction, () => this.ram4[8] |= this.ram4[8] << 3 & 0x40);
+			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.cpu_irq = this.cpu2_irq = this.cpu3_irq = this.mcu_irq = true));
+			this.timer.execute(tick_rate, () => this.ram4[8] |= this.ram4[8] << 3 & 0x40);
 			sound[0].execute(tick_rate);
-			sound[1].execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			sound[1].execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -392,7 +398,10 @@ class MarchenMaze {
 		!(this.fTurbo = fDown) && (this.in[0] |= 1 << 4);
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		const ram = this.ram, black = 0x1800, flip = !!(ram[0x5ff6] & 1);
 
 		// 画面クリア
@@ -698,7 +707,7 @@ read('mmaze.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zi
 	game = new MarchenMaze();
 	sound = [
 		new YM2151({clock: 3579580, gain: 1.4}),
-		new C30({clock: 49152000 / 2048}),
+		new C30({clock: Math.floor(49152000 / 2048)}),
 		{output: 0, gain: 0.5, d1: 0, d2: 0, v1: 0, v2: 0, update() { this.output = (this.d1 * this.v1 + this.d2 * this.v2) * this.gain; }}, // DAC
 	];
 	canvas.addEventListener('click', () => game.coin());

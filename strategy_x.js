@@ -5,7 +5,8 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init, seq, rseq, convertGFX, read} from './main.js';
+import {seq, rseq, convertGFX} from './utils.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -45,8 +46,12 @@ class StrategyX {
 
 	cpu = new Z80(Math.floor(18432000 / 6));
 	cpu2 = new Z80(Math.floor(14318000 / 8));
-	timer = {rate: 14318000 / 2048, frac: 0, count: 0, execute(rate, rate_correction, fn) {
-		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
+	timer = {rate: 14318000 / 2048, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
 			fn(this.count = (this.count + 1) % 20);
 	}};
 
@@ -128,18 +133,18 @@ class StrategyX {
 		convertGFX(this.obj, BG, 64, rseq(8, 128, 8).concat(rseq(8, 0, 8)), seq(8).concat(seq(8, 64)), [0, BG.length * 4], 32);
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.fInterruptEnable && this.cpu.non_maskable_interrupt();
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
-			this.timer.execute(tick_rate, rate_correction, (cnt) => sound[0].write(0xf, (cnt >= 10) << 7 | [0x0e, 0x1e, 0x0e, 0x1e, 0x2e, 0x3e, 0x2e, 0x3e, 0x4e, 0x5e][cnt % 10]));
-			sound[0].execute(tick_rate, rate_correction);
-			sound[1].execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.fInterruptEnable && this.cpu.non_maskable_interrupt()));
+			this.timer.execute(tick_rate, (cnt) => sound[0].write(0xf, (cnt >= 10) << 7 | [0x0e, 0x1e, 0x0e, 0x1e, 0x2e, 0x3e, 0x2e, 0x3e, 0x4e, 0x5e][cnt % 10]));
+			sound[0].execute(tick_rate);
+			sound[1].execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -226,7 +231,10 @@ class StrategyX {
 		this.ppi0[0] = this.ppi0[0] & ~(1 << 1) | !fDown << 1;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		// bg描画
 		let p = 256 * 32;
 		for (let k = 0xbe2, i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
@@ -434,7 +442,7 @@ const keydown = e => {
 			audioCtx.suspend().catch();
 		return;
 	case 'KeyR':
-		return void game.reset();
+		return game.reset();
 	case 'KeyT':
 		if ((game.fTest = !game.fTest) === true)
 			game.fReset = true;
@@ -475,7 +483,7 @@ const keyup = e => {
  *
  */
 
-let BG, RGB, PRG1, PRG2, MAP;
+let PRG1, PRG2, BG, RGB, MAP;
 
 read('stratgyx.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG1 = Uint8Array.concat(...['2c_1.bin', '2e_2.bin', '2f_3.bin', '2h_4.bin', '2j_5.bin', '2l_6.bin'].map(e => zip.decompress(e))).addBase();
@@ -485,8 +493,8 @@ read('stratgyx.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	MAP = zip.decompress('strategy.10k');
 	game = new StrategyX();
 	sound = [
-		new AY_3_8910({clock: 14318000 / 8, gain: 0.2}),
-		new AY_3_8910({clock: 14318000 / 8, gain: 0.2}),
+		new AY_3_8910({clock: Math.floor(14318000 / 8), gain: 0.2}),
+		new AY_3_8910({clock: Math.floor(14318000 / 8), gain: 0.2}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound, keydown, keyup});

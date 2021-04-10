@@ -4,7 +4,7 @@
  *
  */
 
-import Cpu from './main.js';
+import Cpu from './cpu.js';
 
 export default class MC6809 extends Cpu {
 	a = 0;
@@ -154,8 +154,7 @@ export default class MC6809 extends Cpu {
 				return this.write16(this.mov16(this.s), this.fetch16());
 			default:
 				this.undefsize = 2;
-				if (this.undef)
-					this.undef();
+				this.undef();
 				return;
 			}
 		case 0x11:
@@ -181,8 +180,7 @@ export default class MC6809 extends Cpu {
 				return void(this.sub16(this.read16(this.fetch16()), this.s));
 			default:
 				this.undefsize = 2;
-				if (this.undef)
-					this.undef();
+				this.undef();
 				return;
 			}
 		case 0x12: // NOP
@@ -279,8 +277,7 @@ export default class MC6809 extends Cpu {
 				return void([this.ccr, this.dp] = [this.dp, this.ccr]);
 			default:
 				this.undefsize = 2;
-				if (this.undef)
-					this.undef();
+				this.undef();
 				return;
 			}
 		case 0x1f: // TFR
@@ -382,8 +379,7 @@ export default class MC6809 extends Cpu {
 				return void(this.ccr = this.dp);
 			default:
 				this.undefsize = 2;
-				if (this.undef)
-					this.undef();
+				this.undef();
 				return;
 			}
 		case 0x20: // BRA
@@ -800,8 +796,7 @@ export default class MC6809 extends Cpu {
 			return this.write16(this.mov16(this.u), this.fetch16());
 		default:
 			this.undefsize = 1;
-			if (this.undef)
-				this.undef();
+			this.undef();
 			return;
 		}
 	}

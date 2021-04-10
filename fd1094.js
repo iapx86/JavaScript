@@ -5,7 +5,7 @@
  */
 
 import MC68000 from './mc68000.js';
-import {seq, bitswap} from './main.js';
+import {seq, bitswap} from './utils.js';
 
 export default class FD1094 extends MC68000 {
 	key = new Uint8Array(0x2000);

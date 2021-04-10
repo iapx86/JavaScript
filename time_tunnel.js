@@ -5,7 +5,8 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init, IntTimer, read} from './main.js';
+import {Timer} from './utils.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -55,7 +56,11 @@ class TimeTunnel {
 
 	cpu = new Z80(Math.floor(8000000 / 2));
 	cpu2 = new Z80(Math.floor(6000000 / 2));
-	timer = new IntTimer(6000000 / 163840);
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
+	timer = new Timer(6000000 / 163840);
 
 	constructor() {
 		// CPU周りの初期化
@@ -222,18 +227,18 @@ class TimeTunnel {
 				this.pri[i][j] = PRI[i << 4 & 0xf0 | mask] >> 2 & 3;
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.cpu.interrupt();
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
+			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.cpu.interrupt()));
 			this.timer.execute(tick_rate, () => this.cpu2_irq = true);
 			for (let j = 0; j < 4; j++)
-				sound[j].execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+				sound[j].execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -321,7 +326,10 @@ class TimeTunnel {
 		this.in[0] = this.in[0] & ~(1 << 5) | !fDown << 5;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		// 画像データ変換
 		const convertBG = (dst, src, n) => {
 			for (let p = 0, q = 0, i = 0; i < n; q += 8, i++)
@@ -652,10 +660,10 @@ read('timetunl.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	PRI = zip.decompress('eb16.22');
 	game = new TimeTunnel();
 	sound = [
-		new AY_3_8910({clock: 6000000 / 4}),
-		new AY_3_8910({clock: 6000000 / 4}),
-		new AY_3_8910({clock: 6000000 / 4}),
-		new AY_3_8910({clock: 6000000 / 4}),
+		new AY_3_8910({clock: Math.floor(6000000 / 4)}),
+		new AY_3_8910({clock: Math.floor(6000000 / 4)}),
+		new AY_3_8910({clock: Math.floor(6000000 / 4)}),
+		new AY_3_8910({clock: Math.floor(6000000 / 4)}),
 		{output: 0, gain: 0.2, update() { this.output = (sound[1].reg[0xe] - 128) * (sound[1].reg[0xf] ^ 255) / 32385 * this.gain; }},
 	];
 	canvas.addEventListener('click', () => game.coin());

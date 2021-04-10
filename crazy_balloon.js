@@ -4,9 +4,10 @@
  *
  */
 
-import {init, seq, convertGFX, read} from './main.js';
+import {seq, convertGFX} from './utils.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
-let game;
+let game, sound;
 
 class CrazyBalloon {
 	cxScreen = 224;
@@ -42,6 +43,10 @@ class CrazyBalloon {
 	objctrl = new Uint8Array(3);
 
 	cpu = new Z80(Math.floor(9987000 / 3));
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -77,22 +82,21 @@ class CrazyBalloon {
 		}
 
 		// DIPSW SETUP
-		this.io[0] = 0x87;
-		this.io[1] = 0xff;
-		this.io[2] = 0xf7;
-		this.io[3] = 0x3f;
+		this.io.set([0x87, 0xff, 0xf7, 0x3f]);
 
 		// Videoの初期化
 		convertGFX(this.bg, BG, 256, seq(8, 0, 8), seq(8), [0], 8);
 		convertGFX(this.obj, OBJ, 16, seq(32, 0, 8), seq(8, 768).concat(seq(8, 512), seq(8, 256), seq(8)), [0], 128);
 	}
 
-	execute() {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.fInterruptEnable && this.cpu.interrupt();
-		for (let i = 0; i < tick_max; i++)
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
-		return this;
+			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.fInterruptEnable && this.cpu.interrupt()));
+			audio.execute(tick_rate);
+		}
 	}
 
 	reset() {
@@ -132,7 +136,7 @@ class CrazyBalloon {
 		if (this.fReset) {
 			this.fReset = false;
 			this.fInterruptEnable = false;
-			this.ram.fill(0);
+			this.ram.fill(0), this.io.fill(0).set([0x87, 0xff, 0xf7, 0x3f]);
 			this.cpu.reset();
 		}
 		return this;
@@ -175,7 +179,10 @@ class CrazyBalloon {
 		this.io[1] = this.io[1] & ~(1 << 2) | fDown << 3 | !fDown << 2;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		// bg描画
 		let p = 256 * 8 * 31;
 		for (let k = 0x0080, i = 0; i < 28; p += 256 * 8 * 32 + 8, i++)
@@ -295,7 +302,8 @@ read('crbaloon.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	BG = zip.decompress('cl07.bin');
 	OBJ = zip.decompress('cl08.bin');
 	game = new CrazyBalloon();
+	sound = [];
 	canvas.addEventListener('click', () => game.coin());
-	init({game});
+	init({game, sound});
 });
 

@@ -18,7 +18,7 @@ export default class AY_3_8910 {
 	step = 0;
 
 	constructor({clock, gain = 0.1}) {
-		this.rate = clock / 8;
+		this.rate = Math.floor(clock / 8);
 		this.gain = gain;
 		for (let i = 0; i < 3; i++)
 			this.channel.push({freq: 0, count: 0, output: 0});
@@ -36,11 +36,10 @@ export default class AY_3_8910 {
 		this.reg[addr &= 15] = data, addr === 13 && (this.step = 0);
 	}
 
-	execute(rate, rate_correction = 1) {
-		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate) {
+	execute(rate) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate) {
 			const reg = this.reg, nfreq = reg[6] & 0x1f, efreq = reg[11] | reg[12] << 8, etype = reg[13];
-			this.channel.forEach((ch, i) => ch.freq = reg[1 + i * 2] << 8 & 0xf00 | reg[i * 2]);
-			this.channel.forEach(ch => ++ch.count >= ch.freq && (ch.output = ~ch.output, ch.count = 0));
+			this.channel.forEach((ch, i) => { ch.freq = reg[1 + i * 2] << 8 & 0xf00 | reg[i * 2], ++ch.count >= ch.freq && (ch.output = ~ch.output, ch.count = 0); });
 			++this.ncount >= nfreq << 1 && (this.rng = (this.rng >> 16 ^ this.rng >> 13 ^ 1) & 1 | this.rng << 1, this.ncount = 0);
 			++this.ecount >= efreq && (this.step += ((this.step < 16) | etype >> 3 & ~etype & 1) - (this.step >= 47) * 32, this.ecount = 0);
 		}

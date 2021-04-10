@@ -7,7 +7,7 @@
 export default class K007232 {
 	snd;
 	limit;
-	rate;
+	clock;
 	gain;
 	output = 0;
 	reg = new Uint8Array(14);
@@ -17,7 +17,7 @@ export default class K007232 {
 	constructor({SND, clock, gain = 0.1}) {
 		this.snd = SND;
 		this.limit = Math.min(SND.length, 0x20000);
-		this.rate = clock / 128;
+		this.clock = clock;
 		this.gain = gain;
 		for (let i = 0; i < 2; i++)
 			this.channel.push({play: false, addr: 0, bank: 0, vol: 0});
@@ -54,8 +54,8 @@ export default class K007232 {
 		this.channel[0].bank = bank0 << 17, this.channel[1].bank = bank1 << 17;
 	}
 
-	execute(rate, rate_correction = 1) {
-		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate) {
+	execute(rate) {
+		for (this.frac += this.clock; this.frac >= rate * 128; this.frac -= rate * 128) {
 			const reg = this.reg;
 			this.channel.forEach((ch, i) => {
 				if (!ch.play)

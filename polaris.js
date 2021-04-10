@@ -6,7 +6,7 @@
 
 import {init, read} from './main.js';
 import I8080 from './i8080.js';
-let game;
+let game, sound;
 
 class Polaris {
 	cxScreen = 224;
@@ -78,17 +78,17 @@ class Polaris {
 		this.io[1] = 1;
 	}
 
-	execute() {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
-			this.scanline.execute(tick_rate, (cnt) => {
-				const vpos = cnt + 224 & 0xff;
+			this.scanline.execute(tick_rate, (vpos) => {
 				vpos === 96 && (this.cpu_irq2 = true);
-				vpos === 224 && (this.cpu_irq = true);
+				vpos === 224 && (update(), this.cpu_irq = true);
 			});
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -164,7 +164,10 @@ class Polaris {
 		this.io[1] = this.io[1] & ~(1 << 3) | fDown << 3;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		const rgb = Int32Array.of(
 			0xff000000, // black
 			0xff0000ff, // red
@@ -231,15 +234,16 @@ class Polaris {
  *
  */
 
-let PRG1, PRG2, MAP, OBJ;
+let PRG1, PRG2, MAP /* , OBJ */;
 
 read('polaris.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG1 = Uint8Array.concat(...['ps01-1.30', 'ps09.36', 'ps03-1.31', 'ps04.37'].map(e => zip.decompress(e))).addBase();
 	PRG2 = Uint8Array.concat(...['ps05.32', 'ps10.38', 'ps26'].map(e => zip.decompress(e))).addBase();
 	MAP = zip.decompress('ps08.1b');
-	OBJ = zip.decompress('ps07.2c');
+//	OBJ = zip.decompress('ps07.2c');
 	game = new Polaris();
+	sound = [];
 	canvas.addEventListener('click', () => game.coin());
-	init({game});
+	init({game, sound});
 });
 

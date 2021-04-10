@@ -5,7 +5,8 @@
  */
 
 import SoundEffect from './sound_effect.js';
-import {init, seq, rseq, convertGFX, read} from './main.js';
+import {seq, rseq, convertGFX} from './utils.js';
+import {init, read} from './main.js';
 import I8080 from './i8080.js';
 let game, sound;
 
@@ -37,6 +38,10 @@ class WarpAndWarp {
 	se = [WAVE02, WAVE10, WAVE11, WAVE14, WAVE16].map(buf => ({freq: 22050, buf, loop: false, start: false, stop: false}));
 
 	cpu = new I8080(Math.floor(18432000 / 9));
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -92,14 +97,14 @@ class WarpAndWarp {
 		convertGFX(this.bg, BG, 256, rseq(8, 0, 8), seq(8), seq(8, 0, 0), 8);
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.cpu.interrupt();
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
-			audio.execute(tick_rate, rate_correction);
+			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.cpu.interrupt()));
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -198,7 +203,10 @@ class WarpAndWarp {
 //		this.ram[0xc01] = ~(1 << 0) | !fDown << 0; //2P
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		// bg描画
 		let p = 256 * 8 * 3 + 232;
 		for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)

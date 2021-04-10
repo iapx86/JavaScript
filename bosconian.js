@@ -7,7 +7,8 @@
 import PacManSound from './pac-man_sound.js';
 import Namco54XX from './namco_54xx.js';
 import Namco52XX from './namco_52xx.js';
-import {init, seq, rseq, convertGFX, read} from './main.js';
+import {seq, rseq, convertGFX, Timer} from './utils.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 import MB8840 from './mb8840.js';
 let game, sound;
@@ -53,10 +54,11 @@ class Bosconian {
 
 	cpu = [new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6))];
 	mcu = [new MB8840(), new MB8840(), new MB8840()];
-	timer = {rate: Math.floor(18432000 / 384), frac: 0, count: 0, execute(rate, fn) {
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
 		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			fn(this.count = (this.count + 1) % this.rate);
+			fn(this.count = this.count + 1 & 255);
 	}};
+	timer = new Timer(Math.floor(18432000 / 384));
 
 	constructor() {
 		// CPU周りの初期化
@@ -195,27 +197,28 @@ class Bosconian {
 		this.initializeStar();
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.fInterruptEnable0 && this.cpu[0].interrupt(), this.fInterruptEnable1 && this.cpu[1].interrupt();
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			for (let j = 0; j < 3; j++)
 				this.cpu[j].execute(tick_rate);
-			this.timer.execute(tick_rate, (cnt) => {
+			this.scanline.execute(tick_rate, (vpos) => {
+				!(vpos & 0x7f) && this.fInterruptEnable2 && this.cpu[2].non_maskable_interrupt();
+				!vpos && (this.moveStars(), update(), this.fInterruptEnable0 && this.cpu[0].interrupt(), this.fInterruptEnable1 && this.cpu[1].interrupt());
+			});
+			this.timer.execute(tick_rate, () => {
 				this.fNmiEnable0 && !--this.fNmiEnable0 && (this.fNmiEnable0 = 2 << (this.dmactrl0 >> 5), this.cpu[0].non_maskable_interrupt());
 				this.fNmiEnable1 && !--this.fNmiEnable1 && (this.fNmiEnable1 = 2 << (this.dmactrl1 >> 5), this.cpu[1].non_maskable_interrupt());
-				!(cnt % Math.floor(this.timer.rate / 120)) && this.fInterruptEnable2 && this.cpu[2].non_maskable_interrupt();
 			});
-			sound[0].execute(tick_rate, rate_correction);
-			sound[1].execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			sound[0].execute(tick_rate);
+			sound[1].execute(tick_rate);
+			audio.execute(tick_rate);
 		}
 		if (this.mcu[1].mask & 4)
 			for (this.mcu[1].execute(); this.mcu[1].pc !== 0x4c; this.mcu[1].execute()) {}
 		if (this.mcu[2].mask & 4)
 			for (this.mcu[2].execute(); this.mcu[2].pc !== 0x4c; this.mcu[2].execute()) {}
-		this.moveStars();
-		return this;
 	}
 
 	reset() {
@@ -305,9 +308,10 @@ class Bosconian {
 			this.cpu[0].reset();
 			this.cpu[1].disable();
 			this.cpu[2].disable();
-			for (this.mcu[0].reset(); ~this.mcu[0].mask & 4; this.mcu[0].execute()) {}
-			for (this.mcu[1].reset(); ~this.mcu[1].mask & 4; this.mcu[1].execute()) {}
-			for (this.mcu[2].reset(); ~this.mcu[2].mask & 4; this.mcu[2].execute()) {}
+			this.mcu.forEach(mcu => mcu.reset());
+			for (; ~this.mcu[0].mask & 4; this.mcu[0].execute()) {}
+			for (; ~this.mcu[1].mask & 4; this.mcu[1].execute()) {}
+			for (; ~this.mcu[2].mask & 4; this.mcu[2].execute()) {}
 			this.mmi[0x140] |= 1;
 		}
 		return this;
@@ -461,7 +465,10 @@ class Bosconian {
 		}
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		// bg描画
 		// スクロール部
 		let p = 256 * (8 * 2 + 3) + 232 + (this.mmi[0x120] & 7) - (this.mmi[0x110] & 7) * 256;
@@ -941,9 +948,9 @@ read('bosco.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zi
 	PRG = zip.decompress('54xx.bin');
 	game = new Bosconian();
 	sound = [
-		new PacManSound({SND, resolution: 2}),
-		new Namco54XX({PRG, clock: 18432000 / 12}),
-		new Namco52XX({VOI, clock: 18432000 / 12}),
+		new PacManSound({SND}),
+		new Namco54XX({PRG, clock: Math.floor(18432000 / 12)}),
+		new Namco52XX({VOI, clock: Math.floor(18432000 / 12)}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

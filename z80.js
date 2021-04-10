@@ -4,7 +4,7 @@
  *
  */
 
-import Cpu, {dummypage} from './main.js';
+import Cpu, {dummypage} from './cpu.js';
 
 export default class Z80 extends Cpu {
 	b = 0;
@@ -1113,8 +1113,7 @@ export default class Z80 extends Cpu {
 			return void(this.a = this.set8(7, this.a));
 		default:
 			this.undefsize = 2;
-			if (this.undef)
-				this.undef();
+			this.undef();
 			return;
 		}
 	}
@@ -1342,8 +1341,7 @@ export default class Z80 extends Cpu {
 				return this.write(v, this.set8(7, this.read(v)));
 			default:
 				this.undefsize = 4;
-				if (this.undef)
-					this.undef();
+				this.undef();
 				return;
 			}
 		case 0xe1: // POP IX
@@ -1358,8 +1356,7 @@ export default class Z80 extends Cpu {
 			return void(this.sp = this.ixl | this.ixh << 8);
 		default:
 			this.undefsize = 2;
-			if (this.undef)
-				this.undef();
+			this.undef();
 			return;
 		}
 	}
@@ -1482,8 +1479,7 @@ export default class Z80 extends Cpu {
 			return this.outd(), void(~this.f & 0x40 && (this.cycle -= cc_ex[0xbb], this.pc = this.pc - 2 & 0xffff));
 		default:
 			this.undefsize = 2;
-			if (this.undef)
-				this.undef();
+			this.undef();
 			return;
 		}
 	}
@@ -1711,8 +1707,7 @@ export default class Z80 extends Cpu {
 				return this.write(v, this.set8(7, this.read(v)));
 			default:
 				this.undefsize = 4;
-				if (this.undef)
-					this.undef();
+				this.undef();
 				return;
 			}
 		case 0xe1: // POP IY
@@ -1727,8 +1722,7 @@ export default class Z80 extends Cpu {
 			return void(this.sp = this.iyl | this.iyh << 8);
 		default:
 			this.undefsize = 2;
-			if (this.undef)
-				this.undef();
+			this.undef();
 			return;
 		}
 	}

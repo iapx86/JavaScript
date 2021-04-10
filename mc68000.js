@@ -4,7 +4,7 @@
  *
  */
 
-import Cpu, {dummypage} from './main.js';
+import Cpu, {dummypage} from './cpu.js';
 
 export default class MC68000 extends Cpu {
 	d0 = 0;

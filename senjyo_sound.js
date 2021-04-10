@@ -29,7 +29,7 @@ class BiquadFilter {
 
 export default class SenjyoSound {
 	snd;
-	rate;
+	clock;
 	gain;
 	output = 0;
 	frac = 0;
@@ -38,7 +38,7 @@ export default class SenjyoSound {
 
 	constructor({SND, clock, gain = 0.7}) {
 		this.snd = SND;
-		this.rate = clock / 16;
+		this.clock = clock;
 		this.gain = gain;
 		this.bq.bandpass(200, 5);
 	}
@@ -47,9 +47,9 @@ export default class SenjyoSound {
 		addr ? (this.channel.vol = data / 15) : (this.channel.count = this.channel.freq = data);
 	}
 
-	execute(rate, rate_correction) {
+	execute(rate) {
 		const ch = this.channel;
-		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
+		for (this.frac += this.clock; this.frac >= rate * 16; this.frac -= rate * 16)
 			--ch.count <= 0 && (ch.count = ch.freq, ch.phase = ch.phase + 1 & 15);
 	}
 

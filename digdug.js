@@ -5,7 +5,8 @@
  */
 
 import PacManSound from './pac-man_sound.js';
-import {init, seq, rseq, convertGFX, read} from './main.js';
+import {seq, rseq, convertGFX, Timer} from './utils.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 import MB8840 from './mb8840.js';
 let game, sound;
@@ -55,10 +56,11 @@ class DigDug {
 
 	cpu = [new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6))];
 	mcu = new MB8840();
-	timer = {rate: Math.floor(18432000 / 384), frac: 0, count: 0, execute(rate, fn) {
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
 		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			fn(this.count = (this.count + 1) % this.rate);
+			fn(this.count = this.count + 1 & 255);
 	}};
+	timer = new Timer(Math.floor(18432000 / 384));
 
 	constructor() {
 		// CPU周りの初期化
@@ -110,7 +112,7 @@ class DigDug {
 							for (this.mcu.execute(); this.mcu.pc !== 0x182; this.mcu.execute()) {}
 						return this.mcu.t = this.mcu.t + 1 & 0xff, this.mcu.k |= 8, interrupt(this.mcu);
 					case 0xd2:
-						return void(this.ioport.set(this.mmi.subarray(0, 2)));
+						return this.ioport.set(this.mmi.subarray(0, 2));
 					}
 				};
 			} else if (range(page, 0x80, 0x87)) {
@@ -169,20 +171,22 @@ class DigDug {
 		convertGFX(this.obj, OBJ, 256, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0, 4], 64);
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.fInterruptEnable0 && this.cpu[0].interrupt(), this.fInterruptEnable1 && this.cpu[1].interrupt();
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			for (let j = 0; j < 3; j++)
 				this.cpu[j].execute(tick_rate);
-			this.timer.execute(tick_rate, (cnt) => {
-				this.fNmiEnable && !--this.fNmiEnable && (this.fNmiEnable = 2 << (this.dmactrl >> 5), this.cpu[0].non_maskable_interrupt());
-				!(cnt % Math.floor(this.timer.rate / 120)) && this.fInterruptEnable2 && this.cpu[2].non_maskable_interrupt();
+			this.scanline.execute(tick_rate, (vpos) => {
+				!(vpos & 0x7f) && this.fInterruptEnable2 && this.cpu[2].non_maskable_interrupt();
+				!vpos && (update(), this.fInterruptEnable0 && this.cpu[0].interrupt(), this.fInterruptEnable1 && this.cpu[1].interrupt());
 			});
-			sound.execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			this.timer.execute(tick_rate, () => {
+				this.fNmiEnable && !--this.fNmiEnable && (this.fNmiEnable = 2 << (this.dmactrl >> 5), this.cpu[0].non_maskable_interrupt());
+			});
+			sound.execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -269,7 +273,8 @@ class DigDug {
 			this.cpu[0].reset();
 			this.cpu[1].disable();
 			this.cpu[2].disable();
-			for (this.mcu.reset(); ~this.mcu.mask & 4; this.mcu.execute()) {}
+			this.mcu.reset();
+			for (; ~this.mcu.mask & 4; this.mcu.execute()) {}
 		}
 		return this;
 	}
@@ -312,7 +317,10 @@ class DigDug {
 		this.mcu.r = this.mcu.r & ~(1 << 8) | !fDown << 8;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		// bg描画
 		if (!this.fFlip) {
 			let p = 256 * 8 * 4 + 232;
@@ -1011,7 +1019,7 @@ P2Y=\
  *
  */
 
-let PRG1, PRG2, PRG3, BG2, MAPDATA, BG4, OBJ, SND, BGCOLOR, OBJCOLOR, RGB, IO;
+let PRG1, PRG2, PRG3, BG2, OBJ, BG4, MAPDATA, RGB, OBJCOLOR, BGCOLOR, SND, IO;
 
 read('digdug.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG1 = Uint8Array.concat(...['dd1a.1', 'dd1a.2', 'dd1a.3', 'dd1a.4'].map(e => zip.decompress(e))).addBase();

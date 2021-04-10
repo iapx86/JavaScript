@@ -6,7 +6,9 @@
 
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
-import {dummypage, init, DoubleTimer, read} from './main.js';
+import {Timer} from './utils.js';
+import {init, read} from './main.js';
+import {dummypage} from './cpu.js'
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -36,7 +38,8 @@ class SoundTest {
 
 	cpu3 = new MC6809(Math.floor(49152000 / 32));
 	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
-	timer = new DoubleTimer(49152000 / 8 / 1024);
+	timer = new Timer(60);
+	timer2 = new Timer(Math.floor(49152000 / 8 / 1024));
 
 	constructor() {
 		// CPU周りの初期化
@@ -136,18 +139,18 @@ class SoundTest {
 		this.bank4 = bank;
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.cpu3_irq = this.mcu_irq = true;
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu3.execute(tick_rate);
 			this.mcu.execute(tick_rate);
-			this.timer.execute(tick_rate, rate_correction, () => this.ram4[8] |= this.ram4[8] << 3 & 0x40);
+			this.timer.execute(tick_rate, () => { update(), this.cpu3_irq = this.mcu_irq = true; });
+			this.timer2.execute(tick_rate, () => { this.ram4[8] |= this.ram4[8] << 3 & 0x40; });
 			sound[0].execute(tick_rate);
-			sound[1].execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			sound[1].execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -226,7 +229,10 @@ class SoundTest {
 		return this;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		for (let i = 0; i < 16; i++)
 			for (let j = 0; j < 8; j++)
 				SoundTest.Xfer28x16(this.bitmap, 28 * j + 256 * 16 * i, key[0]);
@@ -289,7 +295,7 @@ read('dspirit.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	game = new SoundTest();
 	sound = [
 		new YM2151({clock: 3579580, gain: 1.4}),
-		new C30({clock: 49152000 / 2048}),
+		new C30({clock: Math.floor(49152000 / 2048)}),
 		{output: 0, gain: 0.5, d1: 0, d2: 0, v1: 0, v2: 0, update() { this.output = (this.d1 * this.v1 + this.d2 * this.v2) * this.gain; }}, // DAC
 	];
 	game.initial = true;

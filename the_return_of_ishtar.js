@@ -6,7 +6,8 @@
 
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
-import {init, seq, rseq, convertGFX, IntTimer, read} from './main.js';
+import {seq, rseq, convertGFX} from './utils.js';
+import {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -52,7 +53,10 @@ class TheReturnOfIshtar {
 	cpu = new MC6809(Math.floor(49152000 / 32));
 	cpu2 = new MC6809(Math.floor(49152000 / 32));
 	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
-	timer = new IntTimer(60);
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -200,19 +204,20 @@ class TheReturnOfIshtar {
 			this.isspace2[p++] = Number(this.bg2.subarray(q, q + 64).every(e => e === 7));
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.cpu_irq = this.cpu2_irq = this.mcu_irq = true;
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
 			this.mcu.execute(tick_rate);
-			this.timer.execute(tick_rate, () => this.ram3[8] |= this.ram3[8] << 3 & 0x40);
+			this.scanline.execute(tick_rate, (vpos) => {
+				!vpos && (update(), this.cpu_irq = this.cpu2_irq = this.mcu_irq = true, this.ram3[8] |= this.ram3[8] << 3 & 0x40);
+			});
 			sound[0].execute(tick_rate);
-			sound[1].execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			sound[1].execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -310,7 +315,10 @@ class TheReturnOfIshtar {
 		this.in[0] = this.in[0] & ~(1 << 1) | !fDown << 1;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		const ram = this.ram, flip = !!(ram[0x5ff6] & 1);
 
 		// 画面クリア

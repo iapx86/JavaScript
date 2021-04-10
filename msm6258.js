@@ -6,7 +6,7 @@
 
 export default class MSM6258 {
 	clock;
-	rate;
+	div;
 	gain;
 	output = 0;
 	mute = false;
@@ -15,12 +15,12 @@ export default class MSM6258 {
 
 	constructor({clock = 8000000, gain = 0.2} = {}) {
 		this.clock = clock;
-		this.rate = clock / 1024;
+		this.div = 1024;
 		this.gain = gain;
 	}
 
 	control(data) {
-		this.mute = (data & 3) === 3, this.rate = this.clock / [1024, 768, 512, 512][data >> 2 & 3];
+		this.mute = (data & 3) === 3, this.div = [1024, 768, 512, 512][data >> 2 & 3];
 	}
 
 	command(data) {
@@ -36,9 +36,9 @@ export default class MSM6258 {
 		this.m.port = data;
 	}
 
-	execute(rate, rate_correction, fn) {
+	execute(rate, fn) {
 		if (this.m.play)
-			for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate) {
+			for (this.frac += this.clock; this.frac >= rate * this.div; this.frac -= rate * this.div) {
 				!this.m.shift && fn(), this.m.output = Math.min(Math.max(this.m.output + step[this.m.state][this.m.port >> this.m.shift & 15], -512), 511);
 				this.m.state = Math.min(Math.max(this.m.state + state_table[this.m.port >> this.m.shift & 7], 0), 48), this.m.shift ^= 4;
 			}

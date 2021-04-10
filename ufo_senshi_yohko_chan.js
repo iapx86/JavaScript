@@ -5,7 +5,8 @@
  */
 
 import SN76489 from './sn76489.js';
-import {init, seq, rseq, convertGFX, IntTimer, read} from './main.js';
+import {seq, rseq, convertGFX} from './utils.js';
+import {init, read} from './main.js';
 import MC8123 from './mc8123.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -48,7 +49,10 @@ class UfoSenshiYohkoChan {
 
 	cpu = new MC8123(KEY, 4000000);
 	cpu2 = new Z80(Math.floor(8000000 / 2));
-	timer = new IntTimer(4 * 60);
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -140,18 +144,20 @@ class UfoSenshiYohkoChan {
 			this.layer.push(new Int32Array(this.width * this.height));
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.cpu.interrupt();
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
-			this.timer.execute(tick_rate, () => this.cpu2_irq = true);
-			sound[0].execute(tick_rate, rate_correction);
-			sound[1].execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			this.scanline.execute(tick_rate, (vpos) => {
+				!(vpos & 0x3f) && (this.cpu2_irq = true);
+				!vpos && (update(), this.cpu.interrupt());
+			});
+			sound[0].execute(tick_rate);
+			sound[1].execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -259,7 +265,10 @@ class UfoSenshiYohkoChan {
 		!(this.fTurbo = fDown) && (this.in[0] |= 1 << 2);
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		// 画面クリア
 		if (this.mode & 0x10) {
 			let p = 256 * 16 + 16;
@@ -443,7 +452,7 @@ const keydown = e => {
 			audioCtx.suspend().catch();
 		return;
 	case 'KeyR':
-		return void game.reset();
+		return game.reset();
 	case 'Space':
 	case 'KeyX':
 		return void game.triggerA(true);
@@ -492,8 +501,8 @@ read('ufosensi.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	PRI = zip.decompress('pr5317.28');
 	game = new UfoSenshiYohkoChan();
 	sound = [
-		new SN76489({clock: 8000000 / 4}),
-		new SN76489({clock: 8000000 / 2}),
+		new SN76489({clock: Math.floor(8000000 / 4)}),
+		new SN76489({clock: Math.floor(8000000 / 2)}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound, keydown, keyup});

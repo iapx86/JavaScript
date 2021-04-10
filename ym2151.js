@@ -5,6 +5,7 @@
  */
 
 export default class YM2151 {
+	clock;
 	gain;
 	output = 0;
 	addr = 0;
@@ -12,14 +13,13 @@ export default class YM2151 {
 	kon = new Uint8Array(8);
 	status = 0;
 	irq = false;
-	timera = {rate: 0, frac: 0, count: 0};
-	timerb = {rate: 0, frac: 0, count: 0};
+	timera = {frac: 0, count: 0};
+	timerb = {frac: 0, count: 0};
 	opm = new OPM();
 
 	constructor({clock, gain = 1}) {
+		this.clock = clock;
 		this.gain = gain;
-		this.timera.rate = clock / 64;
-		this.timerb.rate = clock / 1024;
 		this.opm.Init(Math.floor(clock), Math.floor(audioCtx.sampleRate));
 	}
 
@@ -38,10 +38,10 @@ export default class YM2151 {
 		this.opm.SetReg(this.addr, data);
 	}
 
-	execute(rate, rate_correction = 1) {
-		for (this.timera.frac += this.timera.rate * rate_correction; this.timera.frac >= rate; this.timera.frac -= rate)
+	execute(rate) {
+		for (this.timera.frac += this.clock; this.timera.frac >= rate * 64; this.timera.frac -= rate * 64)
 			this.reg[0x14] & 1 && ++this.timera.count >= 0x400 && (this.status |= 1, this.timera.count = this.reg[0x10] << 2 | this.reg[0x11] & 3);
-		for (this.timerb.frac += this.timerb.rate * rate_correction; this.timerb.frac >= rate; this.timerb.frac -= rate)
+		for (this.timerb.frac += this.clock; this.timerb.frac >= rate * 1024; this.timerb.frac -= rate * 1024)
 			this.reg[0x14] & 2 && ++this.timerb.count >= 0x100 && (this.status |= 2, this.timerb.count = this.reg[0x12]);
 		return this.irq = (this.status & this.reg[0x14] >> 2 & 3) !== 0;
 	}

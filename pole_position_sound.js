@@ -26,8 +26,8 @@ export default class PolePositionSound {
 		this.ram[addr & 0x3ff] = data;
 	}
 
-	execute(rate, rate_correction = 1) {
-		for (this.frac += this.clock * rate_correction; this.frac >= rate; this.frac -= rate) {
+	execute(rate) {
+		for (this.frac += this.clock; this.frac >= rate; this.frac -= rate) {
 			const reg = this.ram;
 			for (let ch = 0x3c8; ch < 0x3e0; ch += 4) {
 				const phase = (reg[ch | 0x22] << 16 | reg[ch | 0x21] << 8 | reg[ch | 0x20]) + (reg[ch | 1] << 8 | reg[ch | 0]);

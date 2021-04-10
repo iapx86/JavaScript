@@ -5,7 +5,8 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init, seq, rseq, convertGFX, read} from './main.js';
+import {seq, rseq, convertGFX} from './utils.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -49,8 +50,8 @@ class TimePilot {
 		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
 			fn(this.count = this.count + 1 & 255);
 	}};
-	timer = {rate: 14318181 / 4096, frac: 0, count: 0, execute(rate, rate_correction, fn) {
-		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
+	timer = {rate: 14318181 / 4096, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
 			fn(this.count = (this.count + 1) % 10);
 	}};
 
@@ -111,22 +112,22 @@ class TimePilot {
 		convertGFX(this.obj, OBJ, 256, rseq(8, 256, 8).concat(rseq(8, 0, 8)), rseq(4, 192).concat(rseq(4, 128), rseq(4, 64), rseq(4)), [4, 0], 64);
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
 			this.scanline.execute(tick_rate, (cnt) => {
 				this.vpos = cnt + 240 & 0xff;
 				!this.vpos && this.ram.copyWithin(0x1200, 0x1000, 0x1200);
-				this.vpos === 240 && this.fInterruptEnable && this.cpu.non_maskable_interrupt();
+				this.vpos === 240 && (update(), this.fInterruptEnable && this.cpu.non_maskable_interrupt());
 			});
-			this.timer.execute(tick_rate, rate_correction, (cnt) => sound[0].write(0xf, [0x00, 0x10, 0x20, 0x30, 0x40, 0x90, 0xa0, 0xb0, 0xa0, 0xd0][cnt]));
-			sound[0].execute(tick_rate, rate_correction);
-			sound[1].execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			this.timer.execute(tick_rate, (cnt) => sound[0].write(0xf, [0x00, 0x10, 0x20, 0x30, 0x40, 0x90, 0xa0, 0xb0, 0xa0, 0xd0][cnt]));
+			sound[0].execute(tick_rate);
+			sound[1].execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -238,7 +239,10 @@ class TimePilot {
 		this.in[1] = this.in[1] & ~(1 << 4) | !fDown << 4;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		// bg描画
 		let p = 256 * 8 * 2 + 232;
 		for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)

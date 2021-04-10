@@ -38,14 +38,15 @@ export default class Namco54XX {
 	bq = [new BiquadFilter(), new BiquadFilter(), new BiquadFilter()];
 
 	constructor({PRG, clock, gain = 0.5}) {
-		this.clock = clock / 6;
+		this.clock = Math.floor(clock / 6);
 		this.gain = gain;
 		this.mcu.rom.set(PRG);
 		[[200, 1], [200, 1], [2200, 1]].forEach((e, i) => this.bq[i].bandpass(...e));
 	}
 
 	reset() {
-		for (this.mcu.reset(); ~this.mcu.mask & 4; this.mcu.execute()) {}
+		this.mcu.reset();
+		for (; ~this.mcu.mask & 4; this.mcu.execute()) {}
 	}
 
 	write(data) {
@@ -54,8 +55,8 @@ export default class Namco54XX {
 			op === 0x25 && (this.mcu.cause &= ~4);
 	}
 
-	execute(rate, rate_correction) {
-		for (this.mcu.cycle += Math.floor((this.frac += this.clock * rate_correction) / rate), this.frac %= rate; this.mcu.cycle > 0 && this.mcu.mask & 4;)
+	execute(rate) {
+		for (this.mcu.cycle += Math.floor((this.frac += this.clock) / rate), this.frac %= rate; this.mcu.cycle > 0 && this.mcu.mask & 4;)
 			this.mcu.execute();
 	}
 

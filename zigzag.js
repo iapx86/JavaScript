@@ -5,7 +5,8 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init, seq, rseq, convertGFX, read} from './main.js';
+import {seq, rseq, convertGFX} from './utils.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -43,6 +44,10 @@ class ZigZag {
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 
 	cpu = new Z80(Math.floor(18432000 / 6));
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -111,16 +116,15 @@ class ZigZag {
 		this.initializeStar();
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.fInterruptEnable && this.cpu.non_maskable_interrupt();
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
-			sound.execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			this.scanline.execute(tick_rate, (vpos) => !vpos && (this.moveStars(), update(), this.fInterruptEnable && this.cpu.non_maskable_interrupt()));
+			sound.execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		this.moveStars();
-		return this;
 	}
 
 	reset() {
@@ -232,7 +236,10 @@ class ZigZag {
 				}
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		// bg描画
 		let p = 256 * 32;
 		for (let k = 0x7e2, i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
@@ -433,7 +440,7 @@ read('zigzagb.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	OBJ = Uint8Array.concat(...['zz_6.1h', 'zz_5.1k'].map(e => zip.decompress(e).subarray(0x800)));
 	RGB = zip.decompress('zzbpr_e9.bin');
 	game = new ZigZag();
-	sound = new AY_3_8910({clock: 18432000 / 6});
+	sound = new AY_3_8910({clock: Math.floor(18432000 / 6)});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});
 });

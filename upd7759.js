@@ -41,9 +41,9 @@ export default class UPD7759 {
 		this.m.port = data, this.m.drq = true;
 	}
 
-	execute(rate, rate_correction, fn) {
+	execute(rate, fn) {
 		if (!this.voi)
-			for (this.m.cycle += Math.floor((this.frac += this.clock * rate_correction) / rate), this.frac %= rate; !this.done && this.m.cycle > 0 && this.m.drq;)
+			for (this.m.cycle += Math.floor((this.frac += this.clock) / rate), this.frac %= rate; !this.done && this.m.cycle > 0 && this.m.drq;)
 				this.done = this.g.next().done, !this.m.drq && fn();
 	}
 

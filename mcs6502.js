@@ -4,7 +4,7 @@
  *
  */
 
-import Cpu from './main.js';
+import Cpu from './cpu.js';
 
 export default class MCS6502 extends Cpu {
 	a = 0;
@@ -344,8 +344,7 @@ export default class MCS6502 extends Cpu {
 			return ea = this.fetch16() + this.ix & 0xffff, this.write(ea, this.mov8(this.read(ea) + 1 & 0xff));
 		default:
 			this.undefsize = 1;
-			if (this.undef)
-				this.undef();
+			this.undef();
 			return;
 		}
 	}

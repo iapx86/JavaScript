@@ -39,6 +39,10 @@ class TTMahjong {
 	palette2 = 0;
 
 	cpu = [new Z80(Math.floor(10000000 / 4)), new Z80(Math.floor(10000000 / 4))];
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -69,16 +73,16 @@ class TTMahjong {
 			this.cpu[1].memorymap[0x80 + i].write = (addr, data) => { this.vram2[addr & 0x3fff] = data; };
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.cpu[0].interrupt();
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu[0].execute(tick_rate);
 			this.cpu[1].execute(tick_rate);
-			sound.execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.cpu[0].interrupt()));
+			sound.execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -135,7 +139,10 @@ class TTMahjong {
 		this.fStart2P = 2;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		for (let p = 252 * 256, k = 0x200, i = 240; i !== 0; p += 256 * 256 + 1, --i)
 			for (let j = 256 >> 2; j !== 0; k++, p -= 4 * 256, --j) {
 				const p1 = this.vram1[k], p2 = this.vram2[k];
@@ -198,7 +205,7 @@ const keydown = e => {
 	case 'KeyN':
 		return void(game.in[1] |= 1 << 3);
 	case 'KeyR':
-		return void game.reset();
+		return game.reset();
 	case 'KeyV': // MUTE
 		if (audioCtx.state === 'suspended')
 			audioCtx.resume().catch();
@@ -265,7 +272,7 @@ read('ttmahjng.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	COLOR1 = zip.decompress('ju03');
 	COLOR2 = zip.decompress('ju09');
 	game = new TTMahjong();
-	sound = new AY_3_8910({clock: 10000000 / 8, gain: 0.2});
+	sound = new AY_3_8910({clock: Math.floor(10000000 / 8), gain: 0.2});
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound, keydown, keyup});
 });

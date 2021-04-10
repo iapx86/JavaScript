@@ -14,22 +14,6 @@ iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAC4jAAAuIwF4pT92AAAAfklE
 iQEgOlcY4HaAt1oAQAIs+zLEofRmiEMBzhAH+TYkgL9i7/2zrwozAGAA1IrTU6gECOYUDGAAA4ydA9uTsHIUS16gmlGaG+7acVkeOAkk6YlIiWQtoXRuLPfP\
 aAbAA72UT2ikWgrdAAAAAElFTkSuQmCC\
 ';
-const stream_out = `
-registerProcessor('StreamOut', class extends AudioWorkletProcessor {
-	samples = [];
-	constructor (options) {
-		super(options);
-		this.port.onmessage = ({data: {samples}}) => { samples && (this.samples = this.samples.concat(samples)); };
-		this.port.start();
-	}
-	process (inputs, outputs) {
-		const buffer = outputs[0][0].fill(0), length = buffer.length;
-		this.samples.length >= length && buffer.set(this.samples.splice(0, length));
-		this.samples.length >= sampleRate / 60 * 2 && this.samples.every(e => !e) && this.samples.splice(0);
-		return true;
-	}
-});
-`;
 const vsSource = `
 	attribute vec4 aVertexPosition;
 	attribute vec2 aTextureCoord;
@@ -46,18 +30,16 @@ const fsSource = `
 		gl_FragColor = texture2D(uSampler, vTextureCoord);
 	}
 `;
-let game, sound;
+let sound;
 const cxScreen = canvas.width, cyScreen = canvas.height;
-const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl"), timestamps = [], samples = [];
-let source, worklet, scriptNode, button, state = '', toggle = 0;
-const addStreamOut = audioCtx.audioWorklet ? audioCtx.audioWorklet.addModule('data:text/javascript,' + stream_out) : new Promise((resolve, reject) => reject());
-const audio = {rate: audioCtx.sampleRate, frac: 0, execute(rate, rate_correction = 1) {
+const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+const audio = {rate: audioCtx.sampleRate, frac: 0, samples: [], maxLength: 800, timestamp: 0, execute(rate) {
 	if (Array.isArray(sound))
-		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
-			audioCtx && samples.push(sound.reduce((a, e) => a + e.output, 0)), sound.forEach(e => e.update());
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			audioCtx && this.samples.push(sound.reduce((a, e) => a + e.output, 0)), sound.forEach(e => e.update());
 	else
-		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
-			audioCtx && samples.push(sound.output), sound.update();
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			audioCtx && this.samples.push(sound.output), sound.update();
 }};
 
 (window.onresize = () => {
@@ -93,8 +75,10 @@ function initShaderProgram(gl, vsSource, fsSource) {
 	return shaderProgram;
 }
 
-export function init({keydown, keyup, ...args} = {}) {
-	({game, sound} = args);
+export function init({game, keydown, keyup, ...args} = {}) {
+	({sound} = args);
+	let {cxScreen, cyScreen, width, height} = game, images = [];
+	let state = '', lastFrame = {timestamp: 0, array: new Uint8Array(new Int32Array(cxScreen * cyScreen).fill(0xff000000).buffer), cxScreen, cyScreen};
 	const positions = new Float32Array(game.rotate ? [-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0] : [-1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, -1.0]);
 	const program = initShaderProgram(gl, vsSource, fsSource);
 	const aVertexPositionHandle = gl.getAttribLocation(program, 'aVertexPosition');
@@ -104,30 +88,26 @@ export function init({keydown, keyup, ...args} = {}) {
 	const textureCoordBuffer = gl.createBuffer();
 	const texture = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, texture);
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, game.width, game.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(game.width * game.height * 4).fill(0xff000000));
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(new Int32Array(width * height).fill(0xff000000).buffer));
 	gl.useProgram(program);
 	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
 	gl.vertexAttribPointer(aVertexPositionHandle, 2, gl.FLOAT, false, 0, 0);
 	gl.enableVertexAttribArray(aVertexPositionHandle);
-	source = audioCtx.createBufferSource();
-	addStreamOut.then(() => {
-		worklet = new AudioWorkletNode(audioCtx, 'StreamOut'), worklet.port.start(), source.connect(worklet).connect(audioCtx.destination), source.start();
-	}).catch(() => {
-		scriptNode = audioCtx.createScriptProcessor(1024, 1, 1);
-		scriptNode.onaudioprocess = ({outputBuffer}) => {
-			const buffer = outputBuffer.getChannelData(0).fill(0), length = buffer.length;
-			samples.length >= length && buffer.set(samples.splice(0, length)), samples.length >= length && samples.every(e => !e) && samples.splice(0);
-		};
-		source.connect(scriptNode).connect(audioCtx.destination), source.start();
-	});
-	button = new Image();
+	const source = audioCtx.createBufferSource(), scriptNode = audioCtx.createScriptProcessor(2048, 1, 1);
+	audio.maxLength = scriptNode.bufferSize;
+	scriptNode.onaudioprocess = ({playbackTime, outputBuffer}) => {
+		const buffer = outputBuffer.getChannelData(0).fill(0), length = buffer.length;
+		buffer.set(audio.samples.slice(0, length)), audio.samples.splice(0), audio.timestamp = playbackTime + length / audioCtx.sampleRate;
+	};
+	source.connect(scriptNode).connect(audioCtx.destination), source.start();
+	const button = new Image();
 	(button.update = () => { button.src = audioCtx.state === 'suspended' ? volume0 : volume1, button.alt = 'audio state: ' + audioCtx.state; })();
 	audioCtx.onstatechange = button.update;
 	document.body.appendChild(button);
 	button.addEventListener('click', () => { audioCtx.state === 'suspended' ? audioCtx.resume().catch() : audioCtx.state === 'running' && audioCtx.suspend().catch(); });
 	window.addEventListener('blur', () => { state = audioCtx.state, audioCtx.suspend().catch(); });
-	window.addEventListener('focus', () => { state === 'running' && audioCtx.resume().catch(), timestamps.splice(0); });
+	window.addEventListener('focus', () => { state === 'running' && audioCtx.resume().catch(); });
 	document.addEventListener('keydown', keydown ? keydown : e => {
 		if (e.repeat)
 			return;
@@ -176,22 +156,27 @@ export function init({keydown, keyup, ...args} = {}) {
 			return void('triggerB' in game && game.triggerB(false));
 		}
 	});
-	requestAnimationFrame(function loop(timestamp) {
-		const textureCoordinates = new Float32Array([
-			game.xOffset / game.width, game.yOffset / game.height,
-			game.xOffset / game.width, (game.yOffset + game.cyScreen) / game.height,
-			(game.xOffset + game.cxScreen) / game.width, game.yOffset / game.height,
-			(game.xOffset + game.cxScreen) / game.width, (game.yOffset + game.cyScreen) / game.height
-		]);
-		for (!(toggle ^= 1) && timestamps.shift(), timestamps.push(timestamp); timestamps.length > 4096; timestamps.shift()) {}
-		const rate_correction = timestamps.length > 1 ? Math.max(0.8, Math.min(1.25, (timestamp - timestamps[0]) / (timestamps.length - 1) * 0.06)) : 1;
-		updateGamepad(game);
-		const data = game.updateStatus().updateInput().execute(audio, rate_correction).makeBitmap();
-		audioCtx.state !== 'running' && samples.splice(0), worklet && samples.length && (worklet.port.postMessage({samples}), samples.splice(0));
-		const pixel = new Uint8Array(data.buffer, game.yOffset * game.width * 4, game.width * game.cyScreen * 4);
-		gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, game.yOffset, game.width, game.cyScreen, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, game.cxScreen <= 384 && game.cyScreen <= 384 ? gl.NEAREST : gl.LINEAR);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, game.cxScreen <= 384 && game.cyScreen <= 384 ? gl.NEAREST : gl.LINEAR);
+	game.updateStatus().updateInput();
+	requestAnimationFrame(function loop() {
+		function ent({buffer}) {
+			const {cxScreen, cyScreen, width, xOffset, yOffset} = game, array = new Uint8Array(cxScreen * cyScreen * 4);
+			for (let y = 0; y < game.cyScreen; ++y)
+				array.set(new Uint8Array(buffer, (xOffset + (y + yOffset) * width) * 4, cxScreen * 4), y * cxScreen * 4);
+			const timestamp = audio.timestamp + audio.samples.length / audio.rate;
+			images.push({timestamp, array, cxScreen, cyScreen});
+		}
+		if (audioCtx && audioCtx.state === 'running') {
+			updateGamepad(game), game.execute(audio, audio.maxLength, ent);
+			for (; images.length && images[0].timestamp < audioCtx.currentTime; lastFrame = images.shift()) {}
+		} else {
+			updateGamepad(game), game.execute(audio, Math.floor(audio.rate / 60), ent), audio.samples.splice(0);
+			for (; images.length; lastFrame = images.shift()) {}
+		}
+		const {array, cxScreen, cyScreen} = images.length ? images[0] : lastFrame;
+		const textureCoordinates = new Float32Array([0, 0, 0, cyScreen / height, cxScreen / width, 0, cxScreen / width, cyScreen / height]);
+		gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, cxScreen, cyScreen, gl.RGBA, gl.UNSIGNED_BYTE, array);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, cxScreen <= 384 && cyScreen <= 384 ? gl.NEAREST : gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, cxScreen <= 384 && cyScreen <= 384 ? gl.NEAREST : gl.LINEAR);
 		gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, textureCoordinates, gl.STATIC_DRAW);
 		gl.vertexAttribPointer(aTextureCoordHandle, 2, gl.FLOAT, false, 0, 0);
@@ -207,68 +192,34 @@ export function init({keydown, keyup, ...args} = {}) {
  *
  */
 
-Uint8Array.prototype.addBase = function () {
-	this.base = [];
-	for (let begin = 0; begin < this.length; begin += 0x100) {
-		const end = Math.min(begin + 0x100, this.length);
-		this.base.push(this.subarray(begin, end));
-	}
-	return this;
-};
+if (!Array.prototype.addBase)
+	Object.defineProperty(Uint8Array.prototype, 'addBase', {
+		value: function () {
+			this.base = [];
+			for (let begin = 0; begin < this.length; begin += 0x100) {
+				const end = Math.min(begin + 0x100, this.length);
+				this.base.push(this.subarray(begin, end));
+			}
+			return this;
+		},
+		writable: true,
+		configurable: true,
+	});
 
-Uint8Array.concat = function (...args) {
-	const typed_array = new this(args.reduce((a, b) => a + b.length, 0));
-	for (let offset = 0, i = 0; i < args.length; offset += args[i++].length)
-		typed_array.set(args[i], offset);
-	return typed_array;
-};
+void function () {
+	Uint8Array.__proto__.concat = function (...args) {
+		const typed_array = new this(args.reduce((a, b) => a + b.length, 0));
+		for (let offset = 0, i = 0; i < args.length; offset += args[i++].length)
+			typed_array.set(args[i], offset);
+		return typed_array;
+	};
+}();
 
 /*
  *
  *	Utilities
  *
  */
-
-export const seq = (n, s = 0, d = 1) => new Array(n).fill(0).map((e, i) => s + i * d), rseq = (...args) => seq(...args).reverse();
-export const bitswap = (val, ...args) => args.map((e, i, a) => (val >> e & 1) << a.length - i - 1).reduce((a, b) => a | b);
-
-export function convertGFX(dst, src, n, x, y, z, d) {
-	for (let p = 0, q = 0, i = 0; i < n; q += d, i++)
-		for (let j = 0; j < y.length; j++)
-			for (let k = 0; k < x.length; p++, k++)
-				for (let l = 0; l < z.length; l++)
-					z[l] >= 0 && (dst[p] ^= (~src[q + (x[k] + y[j] + z[l] >> 3)] >> (x[k] + y[j] + z[l] & 7 ^ 7) & 1) << z.length - l - 1);
-}
-
-export class IntTimer {
-	rate = 0;
-	frac = 0;
-	fn = () => {};
-
-	constructor(rate = 0) {
-		this.rate = rate;
-	}
-
-	execute(rate, fn = this.fn) {
-		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			fn();
-	}
-}
-
-export class DoubleTimer {
-	rate = 0;
-	frac = 0;
-	fn = () => {};
-
-	constructor(rate = 0) {
-		this.rate = rate;
-	}
-
-	execute(rate, rate_correction, fn = this.fn) {
-		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
-			fn();
-	}
-}
 
 export function read(url) {
 	return fetch(url).then(response => {
@@ -368,125 +319,5 @@ function updateGamepad(game) {
 		game.down2(gamepadStatus.down2 = pressed);
 	if ('left2' in game && (pressed = controller.axes[2] < -0.5) !== gamepadStatus.left2)
 		game.left2(gamepadStatus.left2 = pressed);
-}
-
-/*
- *
- *	CPU Common Module
- *
- */
-
-export const dummypage = new Uint8Array(0x100).fill(0xff);
-
-export default class Cpu {
-	fActive = false;
-	fSuspend = false;
-	pc = 0;
-	memorymap = [];
-	check_interrupt = null;
-	breakpointmap = new Int32Array(0x800);
-	breakpoint = null;
-	undef = null;
-	undefsize = 0;
-	clock = 0;
-	frac = 0;
-	cycle = 0;
-
-	constructor(clock = 0) {
-		for (let i = 0; i < 0x100; i++)
-			this.memorymap.push({base: dummypage, read: null, write: () => {}, fetch: null});
-		this.clock = clock;
-	}
-
-	set_breakpoint(addr) {
-		this.breakpointmap[addr >> 5] |= 1 << (addr & 0x1f);
-	}
-
-	clear_breakpoint(addr) {
-		this.breakpointmap[addr >> 5] &= ~(1 << (addr & 0x1f));
-	}
-
-	clear_all_breakpoint() {
-		this.breakpointmap.fill(0);
-	}
-
-	reset() {
-		this.fActive = true;
-		this.fSuspend = false;
-		this.frac = 0;
-		this.cycle = 0;
-	}
-
-	enable() {
-		if (this.fActive)
-			return;
-		this.reset();
-	}
-
-	disable() {
-		this.fActive = false;
-	}
-
-	suspend() {
-		if (!this.fActive || this.fSuspend)
-			return;
-		this.fSuspend = true;
-	}
-
-	resume() {
-		if (!this.fActive || !this.fSuspend)
-			return;
-		this.fSuspend = false;
-	}
-
-	interrupt() {
-		if (!this.fActive)
-			return false;
-		this.resume();
-		return true;
-	}
-
-	execute(rate) {
-		if (!this.fActive)
-			return;
-		for (this.cycle += Math.floor((this.frac += this.clock) / rate), this.frac %= rate; this.cycle > 0;) {
-			if (this.check_interrupt && this.check_interrupt())
-				continue;
-			if (this.fSuspend)
-				return void(this.cycle = 0);
-			if (this.breakpoint && this.breakpointmap[this.pc >>> 5] >> (this.pc & 31) & 1)
-				this.breakpoint(this.pc);
-			this._execute();
-		}
-	}
-
-	execute1() {
-		if (!this.fActive || this.check_interrupt && this.check_interrupt() || this.fSuspend)
-			return;
-		if (this.breakpoint && this.breakpointmap[this.pc >>> 5] >> (this.pc & 31) & 1)
-			this.breakpoint(this.pc);
-		this._execute();
-	}
-
-	_execute() {
-	}
-
-	fetch() {
-//		const page = this.memorymap[this.pc >> 8];
-//		const data = !page.fetch ? page.base[this.pc & 0xff] : page.fetch(this.pc);
-		const data = this.memorymap[this.pc >> 8].base[this.pc & 0xff];
-		this.pc = this.pc + 1 & 0xffff;
-		return data;
-	}
-
-	read(addr) {
-		const page = this.memorymap[addr >> 8];
-		return !page.read ? page.base[addr & 0xff] : page.read(addr);
-	}
-
-	write(addr, data) {
-		const page = this.memorymap[addr >> 8];
-		!page.write ? void(page.base[addr & 0xff] = data) : page.write(addr, data);
-	}
 }
 

@@ -4,7 +4,7 @@
  *
  */
 
-import Cpu, {dummypage} from './main.js';
+import Cpu, {dummypage} from './cpu.js';
 
 export default class I8080 extends Cpu {
 	b = 0;
@@ -549,8 +549,7 @@ export default class I8080 extends Cpu {
 			return this.rst(0x38);
 		default:
 			this.undefsize = 1;
-			if (this.undef)
-				this.undef();
+			this.undef();
 			return;
 		}
 	}

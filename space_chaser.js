@@ -6,7 +6,7 @@
 
 import {init, read} from './main.js';
 import I8080 from './i8080.js';
-let game;
+let game, sound;
 
 class SpaceChaser {
 	cxScreen = 224;
@@ -83,17 +83,17 @@ class SpaceChaser {
 		};
 	}
 
-	execute() {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
-			this.scanline.execute(tick_rate, (cnt) => {
-				const vpos = cnt + 224 & 0xff;
+			this.scanline.execute(tick_rate, (vpos) => {
 				vpos === 96 && (this.cpu_irq2 = true);
-				vpos === 224 && (this.cpu_irq = true);
+				vpos === 224 && (update(), this.cpu_irq = true);
 			});
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -177,7 +177,10 @@ class SpaceChaser {
 		this.io[1] = this.io[1] & ~(1 << 4) | fDown << 4;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		const rgb = Int32Array.of(
 			0xff000000, // black
 			0xff0000ff, // red
@@ -253,7 +256,8 @@ read('schaser.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	PRG2 = Uint8Array.concat(...['rt21.bin', 'rt22.bin'].map(e => zip.decompress(e))).addBase();
 	MAP = zip.decompress('rt06.ic2');
 	game = new SpaceChaser();
+	sound = [];
 	canvas.addEventListener('click', () => game.coin());
-	init({game});
+	init({game, sound});
 });
 

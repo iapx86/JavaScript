@@ -6,7 +6,8 @@
 
 import GalaxianSound from './galaxian_sound.js';
 import SoundEffect from './sound_effect.js';
-import {init, seq, rseq, convertGFX, read} from './main.js';
+import {seq, rseq, convertGFX} from './utils.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -42,6 +43,10 @@ class KingAndBalloon {
 	se = [BOMB, SHOT, WAVE1111, HELP, THANKYOU, BYEBYE].map(buf => ({freq: 11025, buf, loop: false, start: false, stop: false}));
 
 	cpu = new Z80(Math.floor(18432000 / 6));
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		this.ioport[0x10] = 0x40;
@@ -127,14 +132,14 @@ class KingAndBalloon {
 		this.se[2].loop = this.se[3].loop = true;
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.fInterruptEnable && this.cpu.non_maskable_interrupt();
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
-			audio.execute(tick_rate, rate_correction);
+			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.fInterruptEnable && this.cpu.non_maskable_interrupt()));
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -243,7 +248,10 @@ class KingAndBalloon {
 		}
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		// bg描画
 		let p = 256 * 32;
 		for (let k = 0x7e2, i = 2; i < 32; p += 256 * 8, k += 0x401, i++) {
@@ -1709,7 +1717,7 @@ Lfkm+t/50vr8+j37Evz9+/n7t/wd/eP8Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkA
 const HELP = new Int16Array(0x700 * 2 + 0x1200);
 const THANKYOU = new Int16Array(0x800 * 2);
 const BYEBYE = new Int16Array(0x800 * 2);
-let BG, RGB, PRG, VOICE;
+let VOICE, PRG, BG, RGB;
 
 read('kingball.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	VOICE = Uint8Array.concat(...['kingballj/kbj1.ic4', 'kingballj/kbj2.ic5', 'kingballj/kbj3.ic6'].map(e => zip.decompress(e)));

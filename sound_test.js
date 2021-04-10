@@ -5,6 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
+import {Timer} from './utils.js';
 import {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
@@ -24,6 +25,7 @@ class SoundTest {
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 
 	cpu2 = new MC6809(Math.floor(6144000 / 4));
+	timer = new Timer(60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -35,15 +37,15 @@ class SoundTest {
 			this.cpu2.memorymap[0xe0 + i].base = PRG2.base[i];
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.cpu2.interrupt();
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu2.execute(tick_rate);
-			sound.execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			this.timer.execute(tick_rate, () => { update(), this.cpu2.interrupt(); });
+			sound.execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -94,7 +96,10 @@ class SoundTest {
 		return this;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		for (let i = 0; i < 16; i++)
 			for (let j = 0; j < 8; j++)
 				SoundTest.Xfer28x16(this.bitmap, 28 * j + 256 * 16 * i, key[i < 8 ? 0 : 13]);

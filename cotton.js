@@ -6,7 +6,9 @@
 
 import YM2151 from './ym2151.js';
 import UPD7759 from './upd7759.js';
-import {dummypage, init, seq, rseq, convertGFX, read} from './main.js';
+import {seq, rseq, convertGFX} from './utils.js';
+import {init, read} from './main.js';
+import {dummypage} from './cpu.js'
 import FD1094 from './fd1094.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -49,6 +51,10 @@ class Cotton {
 
 	cpu = new FD1094(KEY, Math.floor(20000000 / 2));
 	cpu2 = new Z80(Math.floor(20000000 / 4));
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -207,17 +213,17 @@ class Cotton {
 				}, write16: null};
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.cpu.interrupt(4);
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
+			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.cpu.interrupt(4)));
 			sound[0].execute(tick_rate);
-			sound[1].execute(tick_rate, rate_correction, () => this.cpu2_nmi = true);
-			audio.execute(tick_rate, rate_correction);
+			sound[1].execute(tick_rate, () => this.cpu2_nmi = true);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -331,7 +337,10 @@ class Cotton {
 		!(this.fTurbo = fDown) && (this.in[1] |= 1 << 1);
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		// 画面クリア
 		if (~this.mode & 0x20) {
 			let p = 256 * 16 + 16;
@@ -551,7 +560,7 @@ const keydown = e => {
 			audioCtx.suspend().catch();
 		return;
 	case 'KeyR':
-		return void game.reset();
+		return game.reset();
 	case 'KeyT':
 		return void(game.fTest = true);
 	case 'Space':
@@ -620,7 +629,7 @@ read('cotton.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	PRG2 = Uint8Array.concat(...['cottonj/epr-13860.a10', 'cottonj/opr-13061.a11'].map(e => zip.decompress(e))).addBase();
 	game = new Cotton();
 	sound = [
-		new YM2151({clock: 8000000 / 2}),
+		new YM2151({clock: Math.floor(8000000 / 2)}),
 		new UPD7759(),
 	];
 	canvas.addEventListener('click', () => game.coin());

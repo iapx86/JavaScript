@@ -5,7 +5,8 @@
  */
 
 import PacManSound from './pac-man_sound.js';
-import {init, seq, rseq, convertGFX, read} from './main.js';
+import {seq, rseq, convertGFX} from './utils.js';
+import {init, read} from './main.js';
 import SegaZ80 from './sega_z80.js';
 let game, sound;
 
@@ -46,6 +47,10 @@ class Pengo {
 		[0x08, 0x00, 0x88, 0x80], [0x88, 0x80, 0x08, 0x00], [0x00, 0x08, 0x20, 0x28], [0x88, 0x80, 0x08, 0x00],
 		[0x08, 0x28, 0x88, 0xa8], [0x08, 0x28, 0x88, 0xa8], [0x08, 0x00, 0x88, 0x80], [0xa0, 0x80, 0x20, 0x00],
 	], Math.floor(18432000 / 6));
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -80,15 +85,15 @@ class Pengo {
 		convertGFX(this.obj, OBJ, 128, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4, 64).concat(seq(4, 128), seq(4, 192), seq(4)), [0, 4], 64);
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.fInterruptEnable && this.cpu.interrupt();
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
-			sound.execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.fInterruptEnable && this.cpu.interrupt()));
+			sound.execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -190,7 +195,10 @@ class Pengo {
 		this.in[2] = this.in[2] & ~(1 << 7) | !fDown << 7;
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		// bg描画
 		let p = 256 * 8 * 4 + 232;
 		for (let k = 0x40, i = 0; i < 28; p -= 256 * 8 * 32 + 8, i++)
@@ -419,7 +427,7 @@ class Pengo {
  *
  */
 
-let BG, COLOR, OBJ, RGB, PRG, SND;
+let PRG, BG, OBJ, RGB, COLOR, SND;
 
 read('pengo.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
 	PRG = Uint8Array.concat(...['ep1689c.8', 'ep1690b.7', 'ep1691b.15', 'ep1692b.14'].map(e => zip.decompress(e)));

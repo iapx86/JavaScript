@@ -58,8 +58,8 @@ class TwinBee {
 		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
 			fn(this.count = this.count + 1 & 255);
 	}};
-	timer = {rate: 14318180 / 4096, frac: 0, count: 0, execute(rate, rate_correction, fn) {
-		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
+	timer = {rate: 14318180 / 4096, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
 			fn(this.count = this.count + 1 & 255)
 	}};
 
@@ -187,23 +187,21 @@ class TwinBee {
 		this.intensity.set(_intensity.map(e => (e - black) * white + 0.5));
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
-			this.scanline.execute(tick_rate, (cnt) => {
-				const vpos = cnt + 240 & 0xff;
-				vpos === 0 && this.fInterrupt2Enable && this.cpu.interrupt(2);
+			this.scanline.execute(tick_rate, (vpos) => {
 				vpos === 120 && this.fInterrupt4Enable && this.cpu.interrupt(4);
+				!vpos && (update(), this.fInterrupt2Enable && this.cpu.interrupt(2), this.cpu2.non_maskable_interrupt());
 			});
-			this.timer.execute(tick_rate, rate_correction, (cnt) => { sound[0].write(0xe, cnt & 0x2f | sound[3].BSY << 5 | 0xd0); });
+			this.timer.execute(tick_rate, (cnt) => { sound[0].write(0xe, cnt & 0x2f | sound[3].BSY << 5 | 0xd0); });
 			for (let j = 0; j < 3; j++)
-				sound[j].execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+				sound[j].execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		this.cpu2.non_maskable_interrupt();
-		return this;
 	}
 
 	reset() {
@@ -323,7 +321,10 @@ class TwinBee {
 		!(this.fTurbo = fDown) && (this.in[4] |= 1 << 4);
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		// 画面クリア
 		let p = 256 * 16 + 16;
 		for (let i = 0; i < 256; p += 256, i++)
@@ -601,10 +602,10 @@ read('twinbee.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	SND = Uint8Array.concat(...['400-a01.fse', '400-a02.fse'].map(e => zip.decompress(e)));
 	game = new TwinBee();
 	sound = [
-		new AY_3_8910({clock: 14318180 / 8, gain: 0.3}),
-		new AY_3_8910({clock: 14318180 / 8, gain: 0.3}),
-		new K005289({SND, clock: 14318180 / 4, gain: 0.3}),
-		new VLM5030({VLM: game.vlm, clock: 14318180 / 4, gain: 5}),
+		new AY_3_8910({clock: Math.floor(14318180 / 8), gain: 0.3}),
+		new AY_3_8910({clock: Math.floor(14318180 / 8), gain: 0.3}),
+		new K005289({SND, clock: Math.floor(14318180 / 4), gain: 0.3}),
+		new VLM5030({VLM: game.vlm, clock: Math.floor(14318180 / 4), gain: 5}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

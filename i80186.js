@@ -4,7 +4,7 @@
  *
  */
 
-import Cpu, {dummypage} from './main.js';
+import Cpu, {dummypage} from './cpu.js';
 
 export default class I80186 extends Cpu {
 	ax = 0;

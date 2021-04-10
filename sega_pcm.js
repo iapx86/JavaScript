@@ -6,7 +6,7 @@
 
 export default class SegaPCM {
 	pcm;
-	rate;
+	clock;
 	gain;
 	output = 0;
 	ram = new Uint8Array(0x800);
@@ -15,7 +15,7 @@ export default class SegaPCM {
 
 	constructor({PCM, clock, gain = 1}) {
 		this.pcm = PCM;
-		this.rate = clock / 128;
+		this.clock = clock;
 		this.gain = gain;
 	}
 
@@ -27,8 +27,8 @@ export default class SegaPCM {
 		this.ram[addr & 0x7ff] = data;
 	}
 
-	execute(rate, rate_correction) {
-		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate) {
+	execute(rate) {
+		for (this.frac += this.clock; this.frac >= rate * 128; this.frac -= rate * 128) {
 			const reg = this.ram;
 			for (let i = 0; i < 0x80; i += 8)
 				if (~reg[0x86 | i] & 1) {

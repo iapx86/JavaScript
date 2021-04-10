@@ -31,8 +31,8 @@ export default class MappySound {
 		this.ram[addr & 0x3ff] = data;
 	}
 
-	execute(rate, rate_correction = 1) {
-		for (this.frac += this.clock * rate_correction; this.frac >= rate; this.frac -= rate) {
+	execute(rate) {
+		for (this.frac += this.clock; this.frac >= rate; this.frac -= rate) {
 			const r = this.ram;
 			for (let ch = 0; ch < 0x40; ch += 8) {
 				const ph = (r[ch | 2] << 16 | r[ch | 1] << 8 | r[ch | 0]) + (r[ch | 6] << 16 & 0xf0000 | r[ch | 5] << 8 | r[ch | 4]);

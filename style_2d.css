@@ -20,3 +20,6 @@ img {
 	right: 1vw;
 	bottom: 1vh;
 }
+img.data {
+	display: none;
+}

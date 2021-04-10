@@ -29,8 +29,8 @@ export default class C30 {
 		addr < 0x100 && (this.snd[addr * 2] = (data >> 4) * 2 / 15 - 1, this.snd[1 + addr * 2] = (data & 15) * 2 / 15 - 1);
 	}
 
-	execute(rate, rate_correction = 1) {
-		for (this.frac += this.clock * rate_correction; this.frac >= rate; this.frac -= rate) {
+	execute(rate) {
+		for (this.frac += this.clock; this.frac >= rate; this.frac -= rate) {
 			const r = this.ram;
 			for (let ch = 0x100; ch < 0x140; ch += 8)
 				if (ch >= 0x120 || ~r[0x104 | ch - 8 & 0x38] & 0x80) {

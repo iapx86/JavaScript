@@ -5,7 +5,8 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {init, seq, rseq, convertGFX, IntTimer, read} from './main.js';
+import {seq, rseq, convertGFX} from './utils.js';
+import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -49,7 +50,10 @@ class Vulgus {
 
 	cpu = new Z80(Math.floor(12000000 / 4));
 	cpu2 = new Z80(Math.floor(12000000 / 4));
-	timer = new IntTimer(8 * 60);
+	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
+		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+			fn(this.count = this.count + 1 & 255);
+	}};
 
 	constructor() {
 		// CPU周りの初期化
@@ -117,18 +121,20 @@ class Vulgus {
 		convertGFX(this.obj, OBJ, 256, seq(16, 0, 16), rseq(4, 264).concat(rseq(4, 256), rseq(4, 8), rseq(4)), [OBJ.length * 4 + 4, OBJ.length * 4, 4, 0], 64);
 	}
 
-	execute(audio, rate_correction) {
-		const tick_rate = 384000, tick_max = Math.floor(tick_rate / 60);
-		this.cpu_irq = true;
+	execute(audio, length, fn) {
+		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
+		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
-			this.timer.execute(tick_rate, () => { this.cpu2.interrupt(); });
-			sound[0].execute(tick_rate, rate_correction);
-			sound[1].execute(tick_rate, rate_correction);
-			audio.execute(tick_rate, rate_correction);
+			this.scanline.execute(tick_rate, (vpos) => {
+				!(vpos & 0x1f) && this.cpu2.interrupt();
+				!vpos && (update(), this.cpu_irq = true);
+			});
+			sound[0].execute(tick_rate);
+			sound[1].execute(tick_rate);
+			audio.execute(tick_rate);
 		}
-		return this;
 	}
 
 	reset() {
@@ -239,7 +245,10 @@ class Vulgus {
 		!(this.fTurbo = fDown) && (this.in[1] |= 1 << 4);
 	}
 
-	makeBitmap() {
+	makeBitmap(flag) {
+		if (!flag)
+			return this.bitmap;
+
 		this.frame++;
 
 		// bg描画
@@ -419,8 +428,8 @@ read('vulgus.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	OBJCOLOR = zip.decompress('j2.bin');
 	game = new Vulgus();
 	sound = [
-		new AY_3_8910({clock: 12000000 / 8}),
-		new AY_3_8910({clock: 12000000 / 8}),
+		new AY_3_8910({clock: Math.floor(12000000 / 8)}),
+		new AY_3_8910({clock: Math.floor(12000000 / 8)}),
 	];
 	canvas.addEventListener('click', () => game.coin());
 	init({game, sound});

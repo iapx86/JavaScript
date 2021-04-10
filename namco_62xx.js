@@ -39,14 +39,15 @@ export default class Namco62XX {
 	bq = new BiquadFilter();
 
 	constructor({PRG, clock, gain = 0.75}) {
-		this.clock = clock / 6;
+		this.clock = Math.floor(clock / 6);
 		this.gain = gain;
 		this.mcu.rom.set(PRG);
 		this.bq.bandpass(200, 1);
 	}
 
 	reset() {
-		for (this.mcu.reset(); ~this.mcu.mask & 4; this.mcu.execute()) {}
+		this.mcu.reset();
+		for (; ~this.mcu.mask & 4; this.mcu.execute()) {}
 	}
 
 	param(port) {
@@ -61,8 +62,8 @@ export default class Namco62XX {
 			}
 	}
 
-	execute(rate, rate_correction) {
-		for (this.mcu.cycle += Math.floor((this.frac += this.clock * rate_correction) / rate), this.frac %= rate; this.mcu.cycle > 0; this.mcu.execute()) {}
+	execute(rate) {
+		for (this.mcu.cycle += Math.floor((this.frac += this.clock) / rate), this.frac %= rate; this.mcu.cycle > 0; this.mcu.execute()) {}
 	}
 
 	update() {

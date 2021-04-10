@@ -6,7 +6,7 @@
 
 export default class K054539 {
 	pcm;
-	rate;
+	clock;
 	gain;
 	output = 0;
 	reg = new Uint8Array(0x400);
@@ -15,7 +15,7 @@ export default class K054539 {
 
 	constructor({PCM, clock, gain = 1}) {
 		this.pcm = PCM;
-		this.rate = clock / 384;
+		this.clock = clock;
 		this.gain = gain;
 		for (let i = 0; i < 8; i++)
 			this.channel.push({play: false, output: 0, addr: 0, frac: 0});
@@ -56,11 +56,11 @@ export default class K054539 {
 		reg[addr] = data;
 	}
 
-	execute(rate, rate_correction = 1) {
+	execute(rate) {
 		const reg = this.reg;
 		if (~reg[0x22f] & 1)
 			return;
-		for (this.frac += this.rate * rate_correction; this.frac >= rate; this.frac -= rate)
+		for (this.frac += this.clock; this.frac >= rate * 384; this.frac -= rate * 384)
 			this.channel.forEach((ch, i) => {
 				if (!ch.play)
 					return;
