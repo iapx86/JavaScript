@@ -6,7 +6,7 @@
 
 import MappySound from './mappy_sound.js';
 import Namco62XX from './namco_62xx.js';
-import {seq, rseq, convertGFX} from './utils.js';
+import {seq, rseq, convertGFX, Timer} from './utils.js';
 import {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
@@ -51,15 +51,13 @@ class Gaplus {
 	objcolor = Uint8Array.from(OBJCOLOR_H, (e, i) => OBJCOLOR_H[i] << 4 | OBJCOLOR_L[i]);
 	rgb = new Int32Array(0x140);
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 	dwCount = 0;
 
 	cpu = new MC6809(Math.floor(24576000 / 16));
 	cpu2 = new MC6809(Math.floor(24576000 / 16));
 	cpu3 = new MC6809(Math.floor(24576000 / 16));
-	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
-		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			fn(this.count = this.count + 1 & 255);
-	}};
+	timer = new Timer(60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -136,20 +134,16 @@ class Gaplus {
 		this.initializeStar();
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
 			this.cpu3.execute(tick_rate);
-			this.scanline.execute(tick_rate, (vpos) => {
-				if (!vpos) {
-					this.moveStars(), update();
-					this.fInterruptEnable0 && this.cpu.interrupt();
-					this.fInterruptEnable1 && this.cpu2.interrupt();
-					this.fInterruptEnable2 && this.cpu3.interrupt();
-				}
+			this.timer.execute(tick_rate, () => {
+				this.moveStars(), update(), this.fInterruptEnable0 && this.cpu.interrupt();
+				this.fInterruptEnable1 && this.cpu2.interrupt(), this.fInterruptEnable2 && this.cpu3.interrupt();
 			});
 			sound[0].execute(tick_rate);
 			sound[1].execute(tick_rate);
@@ -286,16 +280,16 @@ class Gaplus {
 		return this.edge = this.in[3] ^ 0xf, this;
 	}
 
-	coin() {
-		this.fCoin = 2;
+	coin(fDown) {
+		fDown && (this.fCoin = 2);
 	}
 
-	start1P() {
-		this.fStart1P = 2;
+	start1P(fDown) {
+		fDown && (this.fStart1P = 2);
 	}
 
-	start2P() {
-		this.fStart2P = 2;
+	start2P(fDown) {
+		fDown && (this.fStart2P = 2);
 	}
 
 	up(fDown) {
@@ -419,7 +413,7 @@ class Gaplus {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		// 画面クリア
@@ -784,7 +778,7 @@ read('gaplus.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 		new MappySound({SND}),
 		new Namco62XX({PRG, clock: Math.floor(24576000 / 16)}),
 	];
-	canvas.addEventListener('click', () => game.coin());
+	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
 });
 

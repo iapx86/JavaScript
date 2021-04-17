@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
-import {seq, rseq, convertGFX} from './utils.js';
+import {seq, rseq, convertGFX, Timer} from './utils.js';
 import {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
@@ -47,6 +47,7 @@ class HoppingMappy {
 	obj = new Uint8Array(0x10000).fill(15);
 	rgb = Int32Array.from(seq(0x200), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | (RED[i] >> 4) * 255 / 15 << 8 | (RED[i] & 15) * 255 / 15);
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 	isspace1 = new Uint8Array(0x400);
 	isspace2 = new Uint8Array(0x400);
 	vScroll = new Uint16Array(4);
@@ -57,10 +58,7 @@ class HoppingMappy {
 	cpu = new MC6809(Math.floor(49152000 / 32));
 	cpu2 = new MC6809(Math.floor(49152000 / 32));
 	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
-	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
-		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			fn(this.count = this.count + 1 & 255);
-	}};
+	timer = new Timer(60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -190,16 +188,14 @@ class HoppingMappy {
 			this.isspace2[p++] = Number(this.bg2.subarray(q, q + 64).every(e => e === 7));
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
 			this.mcu.execute(tick_rate);
-			this.scanline.execute(tick_rate, (vpos) => {
-				!vpos && (update(), this.cpu_irq = this.cpu2_irq = this.mcu_irq = true, this.ram3[8] |= this.ram3[8] << 3 & 0x40);
-			});
+			this.timer.execute(tick_rate, () => { update(), this.cpu_irq = this.cpu2_irq = this.mcu_irq = true, this.ram3[8] |= this.ram3[8] << 3 & 0x40; });
 			sound[0].execute(tick_rate);
 			sound[1].execute(tick_rate);
 			audio.execute(tick_rate);
@@ -279,16 +275,16 @@ class HoppingMappy {
 		return this;
 	}
 
-	coin() {
-		this.fCoin = 2;
+	coin(fDown) {
+		fDown && (this.fCoin = 2);
 	}
 
-	start1P() {
-		this.fStart1P = 2;
+	start1P(fDown) {
+		fDown && (this.fStart1P = 2);
 	}
 
-	start2P() {
-		this.fStart2P = 2;
+	start2P(fDown) {
+		fDown && (this.fStart2P = 2);
 	}
 
 	up(fDown) {
@@ -316,7 +312,7 @@ class HoppingMappy {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		const ram = this.ram, flip = !!(ram[0x5ff6] & 1);
@@ -613,7 +609,7 @@ read('hopmappy.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		new YM2151({clock: 3579580}),
 		new C30(),
 	];
-	canvas.addEventListener('click', () => game.coin());
+	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
 });
 

@@ -5,6 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
+import {Timer} from './utils.js';
 import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -34,13 +35,11 @@ class RoyalMahjong {
 
 	rgb = Int32Array.from(RGB, e => 0xff000000 | (e >> 6) * 255 / 3 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e & 7) * 255 / 7);
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 	palette = 0;
 
 	cpu = new Z80(Math.floor(18432000 / 6));
-	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
-		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			fn(this.count = this.count + 1 & 255);
-	}};
+	timer = new Timer(60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -89,12 +88,12 @@ class RoyalMahjong {
 		}
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
-			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.cpu.interrupt()));
+			this.timer.execute(tick_rate, () => { update(), this.cpu.interrupt(); });
 			sound.execute(tick_rate);
 			audio.execute(tick_rate);
 		}
@@ -195,20 +194,20 @@ class RoyalMahjong {
 		return this;
 	}
 
-	coin() {
-		this.fCoin = 2;
+	coin(fDown) {
+		fDown && (this.fCoin = 2);
 	}
 
-	start1P() {
-		this.fStart1P = 2;
+	start1P(fDown) {
+		fDown && (this.fStart1P = 2);
 	}
 
-	start2P() {
-		this.fStart2P = 2;
+	start2P(fDown) {
+		fDown && (this.fStart2P = 2);
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		for (let p = 252 * 256, k = 0x200, i = 240; i !== 0; p += 256 * 256 + 1, --i)
@@ -229,11 +228,11 @@ const keydown = e => {
 		return;
 	switch (e.code) {
 	case 'Digit0':
-		return void game.coin();
+		return void game.coin(true);
 	case 'Digit1':
-		return void game.start1P();
+		return void game.start1P(true);
 	case 'Digit2':
-		return void game.start2P();
+		return void game.start2P(true);
 	case 'Digit3': // BET
 		return void(game.in[1] &= ~(1 << 5));
 	case 'Digit5': // KAN
@@ -283,11 +282,7 @@ const keydown = e => {
 			game.fReset = true;
 		return;
 	case 'KeyV': // MUTE
-		if (audioCtx.state === 'suspended')
-			audioCtx.resume().catch();
-		else if (audioCtx.state === 'running')
-			audioCtx.suspend().catch();
-		return;
+		return audioCtx.state === 'suspended' ? audioCtx.resume().catch() : audioCtx.state === 'running' && audioCtx.suspend().catch();
 	case 'F7': // FLIP FLOP
 		return void(game.in[4] &= ~(1 << 3));
 	case 'F8': // TAKE SCORE
@@ -373,7 +368,7 @@ read('royalmj.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	RGB = zip.decompress('18s030n.6k');
 	game = new RoyalMahjong();
 	sound = new AY_3_8910({clock: Math.floor(18432000 / 12), gain: 0.2});
-	canvas.addEventListener('click', () => game.coin());
+	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
 });
 

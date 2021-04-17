@@ -7,7 +7,8 @@
 import AY_3_8910 from './ay-3-8910.js';
 import K005289 from './k005289.js';
 import VLM5030 from './vlm5030.js';
-import {init, read} from './main.js';
+import {Timer} from './utils.js';
+import {init, read} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -31,13 +32,11 @@ class SoundTest {
 	command = [];
 
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 
 	cpu2 = new Z80(Math.floor(14318180 / 8));
-	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
-		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			fn(this.count = this.count + 1 & 255);
-	}};
-	timer = {rate: 14318180 / 4096, frac: 0, count: 0, execute(rate, fn) {
+	timer = new Timer(60);
+	timer2 = {rate: 14318180 / 4096, frac: 0, count: 0, execute(rate, fn) {
 		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
 			fn(this.count = this.count + 1 & 255)
 	}};
@@ -104,13 +103,13 @@ class SoundTest {
 		this.cpu2.set_breakpoint(0x220);
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu2.execute(tick_rate);
-			this.scanline.execute(tick_rate, (vpos) => { !vpos && (update(), this.cpu2.non_maskable_interrupt()); });
-			this.timer.execute(tick_rate, (cnt) => { sound[0].write(0xe, cnt & 0x2f | sound[3].BSY << 5 | 0xd0); });
+			this.timer.execute(tick_rate, () => { update(), this.cpu2.non_maskable_interrupt(); });
+			this.timer2.execute(tick_rate, (cnt) => { sound[0].write(0xe, cnt & 0x2f | sound[3].BSY << 5 | 0xd0); });
 			for (let j = 0; j < 3; j++)
 				sound[j].execute(tick_rate);
 			audio.execute(tick_rate);
@@ -168,7 +167,7 @@ class SoundTest {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		for (let i = 0; i < 16; i++)
@@ -241,16 +240,6 @@ read('twinbee.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 		new K005289({SND, clock: Math.floor(14318180 / 4), gain: 0.3}),
 		new VLM5030({VLM: game.vlm, clock: Math.floor(14318180 / 4), gain: 5}),
 	];
-	game.initial = true;
-	canvas.addEventListener('click', e => {
-		if (game.initial)
-			game.initial = false;
-		else if (e.offsetX < canvas.width / 2)
-			game.left();
-		else
-			game.right();
-		game.triggerA();
-	});
 	init({game, sound});
 });
 

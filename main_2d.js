@@ -14,17 +14,8 @@ iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAC4jAAAuIwF4pT92AAAAfklE
 iQEgOlcY4HaAt1oAQAIs+zLEofRmiEMBzhAH+TYkgL9i7/2zrwozAGAA1IrTU6gECOYUDGAAA4ydA9uTsHIUS16gmlGaG+7acVkeOAkk6YlIiWQtoXRuLPfP\
 aAbAA72UT2ikWgrdAAAAAElFTkSuQmCC\
 ';
-let sound;
 const cxScreen = canvas.width, cyScreen = canvas.height;
 const ctx = canvas.getContext('2d');
-const audio = {rate: audioCtx.sampleRate, frac: 0, samples: [], maxLength: 800, timestamp: 0, execute(rate) {
-	if (Array.isArray(sound))
-		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			audioCtx && this.samples.push(sound.reduce((a, e) => a + e.output, 0)), sound.forEach(e => e.update());
-	else
-		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			audioCtx && this.samples.push(sound.output), sound.update();
-}};
 
 (window.onresize = () => {
 	const zoom = Math.max(1, Math.min(Math.floor(window.innerWidth / cxScreen), Math.floor(window.innerHeight / cyScreen)));
@@ -32,24 +23,17 @@ const audio = {rate: audioCtx.sampleRate, frac: 0, samples: [], maxLength: 800, 
 	canvas.style.height = cyScreen * zoom + 'px';
 })();
 
-export function init({game, keydown, keyup, ...args} = {}) {
-	({sound} = args);
-	let {cxScreen, cyScreen} = game, images = [];
-	let state = '', lastFrame = {timestamp: 0, array: new Uint8ClampedArray(new Int32Array(cxScreen * cyScreen).fill(0xff000000).buffer), cxScreen, cyScreen};
-	const source = audioCtx.createBufferSource(), scriptNode = audioCtx.createScriptProcessor(2048, 1, 1);
-	audio.maxLength = scriptNode.bufferSize;
-	scriptNode.onaudioprocess = ({playbackTime, outputBuffer}) => {
-		const buffer = outputBuffer.getChannelData(0).fill(0), length = buffer.length;
-		buffer.set(audio.samples.slice(0, length)), audio.samples.splice(0), audio.timestamp = playbackTime + length / audioCtx.sampleRate;
+export function init({game, sound, keydown, keyup} = {}) {
+	let {cxScreen, cyScreen} = game, images = [], silence, samples0, maxLength, source, node;
+	let lastFrame = {timestamp: 0, array: new Uint8ClampedArray(new Int32Array(cxScreen * cyScreen).fill(0xff000000).buffer), cxScreen, cyScreen};
+	node = audioCtx.createScriptProcessor(2048, 1, 1), samples0 = silence = new Float32Array(maxLength = node.bufferSize);
+	node.onaudioprocess = ({playbackTime, outputBuffer}) => {
+		const buffer = outputBuffer.getChannelData(0);
+		buffer.set(samples0), samples0 !== silence && (samples0 = silence, postMessage({timestamp: playbackTime + maxLength / audioCtx.sampleRate}, '*'));
 	};
-	source.connect(scriptNode).connect(audioCtx.destination), source.start();
 	const button = new Image();
-	(button.update = () => { button.src = audioCtx.state === 'suspended' ? volume0 : volume1, button.alt = 'audio state: ' + audioCtx.state; })();
-	audioCtx.onstatechange = button.update;
 	document.body.appendChild(button);
 	button.addEventListener('click', () => { audioCtx.state === 'suspended' ? audioCtx.resume().catch() : audioCtx.state === 'running' && audioCtx.suspend().catch(); });
-	window.addEventListener('blur', () => { state = audioCtx.state, audioCtx.suspend().catch(); });
-	window.addEventListener('focus', () => { state === 'running' && audioCtx.resume().catch(); });
 	document.addEventListener('keydown', keydown ? keydown : e => {
 		if (e.repeat)
 			return;
@@ -63,11 +47,11 @@ export function init({game, keydown, keyup, ...args} = {}) {
 		case 'ArrowDown':
 			return void('down' in game && game.down(true));
 		case 'Digit0':
-			return void('coin' in game && game.coin());
+			return void('coin' in game && game.coin(true));
 		case 'Digit1':
-			return void('start1P' in game && game.start1P());
+			return void('start1P' in game && game.start1P(true));
 		case 'Digit2':
-			return void('start2P' in game && game.start2P());
+			return void('start2P' in game && game.start2P(true));
 		case 'KeyM': // MUTE
 			return void(audioCtx.state === 'suspended' ? audioCtx.resume().catch() : audioCtx.state === 'running' && audioCtx.suspend().catch());
 		case 'KeyR':
@@ -98,22 +82,37 @@ export function init({game, keydown, keyup, ...args} = {}) {
 			return void('triggerB' in game && game.triggerB(false));
 		}
 	});
-	game.updateStatus().updateInput();
-	requestAnimationFrame(function loop() {
-		function ent({buffer}) {
-			const {cxScreen, cyScreen, width, xOffset, yOffset} = game, array = new Uint8ClampedArray(cxScreen * cyScreen * 4);
-			for (let y = 0; y < game.cyScreen; ++y)
-				array.set(new Uint8ClampedArray(buffer, (xOffset + (y + yOffset) * width) * 4, cxScreen * 4), y * cxScreen * 4);
-			const timestamp = audio.timestamp + audio.samples.length / audio.rate;
-			images.push({timestamp, array, cxScreen, cyScreen});
-		}
-		if (audioCtx && audioCtx.state === 'running') {
-			updateGamepad(game), game.execute(audio, audio.maxLength, ent);
-			for (; images.length && images[0].timestamp < audioCtx.currentTime; lastFrame = images.shift()) {}
+	const audio = {rate: audioCtx.sampleRate, frac: 0, samples: [], execute(rate) {
+		if (Array.isArray(sound))
+			for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+				audioCtx && this.samples.push(sound.reduce((a, e) => a + e.output, 0)), sound.forEach(e => e.update());
+		else
+			for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
+				audioCtx && this.samples.push(sound.output), sound.update();
+	}};
+	addEventListener('message', ({data: {timestamp}}) => {
+		if (!timestamp)
+			return;
+		if (game.execute(audio, maxLength), audio.samples.length >= maxLength)
+			return samples0 = new Float32Array(audio.samples.slice(0, maxLength)), void audio.samples.splice(0);
+		const {buffer} = game.makeBitmap(false), {cxScreen, cyScreen, width, xOffset, yOffset} = game, array = new Uint8ClampedArray(cxScreen * cyScreen * 4);
+		for (let y = 0; y < cyScreen; ++y)
+			array.set(new Uint8ClampedArray(buffer, (xOffset + (y + yOffset) * width) * 4, cxScreen * 4), y * cxScreen * 4);
+		images.push({timestamp: timestamp + audio.samples.length / audio.rate, array, cxScreen, cyScreen}), postMessage({timestamp}, '*');
+	});
+	game.updateStatus().updateInput(), postMessage({timestamp: maxLength * 2 / audioCtx.sampleRate}, '*');
+	(audioCtx.onstatechange = () => {
+		if (audioCtx.state === 'running') {
+			button.src = volume1, button.alt = 'audio state: running';
+			source = audioCtx.createBufferSource(), source.connect(node).connect(audioCtx.destination), source.start();
 		} else {
-			updateGamepad(game), game.execute(audio, Math.floor(audio.rate / 60), ent), audio.samples.splice(0);
-			for (; images.length; lastFrame = images.shift()) {}
+			button.src = volume0, button.alt = 'audio state: ' + audioCtx.state;
+			source && source.stop();
 		}
+	})();
+	requestAnimationFrame(function loop() {
+		updateGamepad(game);
+		for (; images.length && images[0].timestamp < audioCtx.currentTime; lastFrame = images.shift()) {}
 		const {array, cxScreen, cyScreen} = images.length ? images[0] : lastFrame;
 		ctx.putImageData(new ImageData(array, cxScreen, cyScreen), 0, 0);
 		requestAnimationFrame(loop);
@@ -173,6 +172,7 @@ export function read(url) {
 const haveEvents = 'ongamepadconnected' in window;
 const controllers = [];
 const gamepadStatus = {up: false, right: false, down: false, left: false, up2: false, right2: false, down2: false, left2: false, buttons: new Array(16).fill(false)};
+const buttons = ['triggerA', 'triggerB', 'triggerX', 'triggerY', 'triggerL1', 'triggerR1', 'triggerL2', 'triggerR2', 'coin', 'start1P', 'triggerL3', 'triggerR3', 'up', 'down', 'left', 'right'];
 
 window.addEventListener('gamepadconnected', e => controllers[e.gamepad.index] = e.gamepad);
 window.addEventListener('gamepaddisconnected', e => delete controllers[e.gamepad.index]);
@@ -188,70 +188,17 @@ function updateGamepad(game) {
 	const controller = controllers.find(() => true);
 	if (!controller)
 		return;
-	let val, pressed;
-	val = controller.buttons[0];
-	if ('triggerA' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[0])
-		game.triggerA(gamepadStatus.buttons[0] = pressed);
-	val = controller.buttons[1];
-	if ('triggerB' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[1])
-		game.triggerB(gamepadStatus.buttons[1] = pressed);
-	val = controller.buttons[2];
-	if ('triggerX' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[2])
-		game.triggerX(gamepadStatus.buttons[2] = pressed);
-	val = controller.buttons[3];
-	if ('triggerY' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[3])
-		game.triggerY(gamepadStatus.buttons[3] = pressed);
-	val = controller.buttons[4];
-	if ('triggerL1' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[4])
-		game.triggerL1(gamepadStatus.buttons[4] = pressed);
-	val = controller.buttons[5];
-	if ('triggerR1' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[5])
-		game.triggerR1(gamepadStatus.buttons[5] = pressed);
-	val = controller.buttons[6];
-	if ('triggerL2' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[6])
-		game.triggerL2(gamepadStatus.buttons[6] = pressed);
-	val = controller.buttons[7];
-	if ('triggerR2' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[7])
-		game.triggerR2(gamepadStatus.buttons[7] = pressed);
-	val = controller.buttons[8];
-	if ('coin' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[8] && (gamepadStatus.buttons[8] = pressed))
-		game.coin();
-	val = controller.buttons[9];
-	if ('start1P' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[9] && (gamepadStatus.buttons[9] = pressed))
-		game.start1P();
-	val = controller.buttons[10];
-	if ('triggerL3' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[10])
-		game.triggerL3(gamepadStatus.buttons[4] = pressed);
-	val = controller.buttons[11];
-	if ('triggerR3' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[11])
-		game.triggerR3(gamepadStatus.buttons[5] = pressed);
-	val = controller.buttons[12];
-	if ('up' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[12])
-		game.up(gamepadStatus.buttons[12] = pressed);
-	val = controller.buttons[13];
-	if ('down' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[13])
-		game.down(gamepadStatus.buttons[13] = pressed);
-	val = controller.buttons[14];
-	if ('left' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[14])
-		game.left(gamepadStatus.buttons[14] = pressed);
-	val = controller.buttons[15];
-	if ('right' in game && (pressed = typeof val === 'object' ? val.pressed : val === 1.0) !== gamepadStatus.buttons[15])
-		game.right(gamepadStatus.buttons[15] = pressed);
-	if ('up' in game && (pressed = controller.axes[1] < -0.5) !== gamepadStatus.up)
-		game.up(gamepadStatus.up = pressed);
-	if ('right' in game && (pressed = controller.axes[0] > 0.5) !== gamepadStatus.right)
-		game.right(gamepadStatus.right = pressed);
-	if ('down' in game && (pressed = controller.axes[1] > 0.5) !== gamepadStatus.down)
-		game.down(gamepadStatus.down = pressed);
-	if ('left' in game && (pressed = controller.axes[0] < -0.5) !== gamepadStatus.left)
-		game.left(gamepadStatus.left = pressed);
-	if ('up2' in game && (pressed = controller.axes[3] < -0.5) !== gamepadStatus.up2)
-		game.up2(gamepadStatus.up2 = pressed);
-	if ('right2' in game && (pressed = controller.axes[2] > 0.5) !== gamepadStatus.right2)
-		game.right2(gamepadStatus.right2 = pressed);
-	if ('down2' in game && (pressed = controller.axes[3] > 0.5) !== gamepadStatus.down2)
-		game.down2(gamepadStatus.down2 = pressed);
-	if ('left2' in game && (pressed = controller.axes[2] < -0.5) !== gamepadStatus.left2)
-		game.left2(gamepadStatus.left2 = pressed);
+	buttons.forEach((button, i) => {
+		const val = controller.buttons[i], pressed = typeof val === 'object' ? val.pressed : val === 1.0;
+		pressed !== gamepadStatus.buttons[i] && (gamepadStatus.buttons[i] = pressed, button in game && game[button](pressed));
+	});
+	let pressed;
+	(pressed = controller.axes[1] < -0.5) !== gamepadStatus.up && (gamepadStatus.up = pressed, 'up' in game && game.up(pressed));
+	(pressed = controller.axes[0] > 0.5) !== gamepadStatus.right && (gamepadStatus.right = pressed, 'right' in game && game.right(pressed));
+	(pressed = controller.axes[1] > 0.5) !== gamepadStatus.down && (gamepadStatus.down = pressed, 'down' in game && game.down(pressed));
+	(pressed = controller.axes[0] < -0.5) !== gamepadStatus.left && (gamepadStatus.left = pressed, 'left' in game && game.left(pressed));
+	(pressed = controller.axes[3] < -0.5) !== gamepadStatus.up2 && (gamepadStatus.up2 = pressed, 'up2' in game && game.up2(pressed));
+	(pressed = controller.axes[2] > 0.5) !== gamepadStatus.right2 && (gamepadStatus.right2 = pressed, 'right2' in game && game.right2(pressed));
+	(pressed = controller.axes[3] > 0.5) !== gamepadStatus.down2 && (gamepadStatus.down2 = pressed, 'down2' in game && game.down2(pressed));
+	(pressed = controller.axes[2] < -0.5) !== gamepadStatus.left2 && (gamepadStatus.left2 = pressed, 'left2' in game && game.left2(pressed));
 }
-

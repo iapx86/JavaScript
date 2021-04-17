@@ -7,6 +7,7 @@
 import YM2151 from './ym2151.js';
 import K007232 from './k007232.js';
 import VLM5030 from './vlm5030.js';
+import {Timer} from './utils.js';
 import {init, read} from './main.js';
 import MC68000 from './mc68000.js';
 import Z80 from './z80.js';
@@ -46,14 +47,12 @@ class Salamander {
 	chr = new Uint8Array(0x20000);
 	rgb = new Int32Array(0x800);
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 	flip = 0;
 
 	cpu = new MC68000(Math.floor(18432000 / 2));
 	cpu2 = new Z80(3579545);
-	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
-		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			fn(this.count = this.count + 1 & 255);
-	}};
+	timer = new Timer(60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -143,13 +142,13 @@ class Salamander {
 		this.cpu2.check_interrupt = () => { return this.cpu2_irq && this.cpu2.interrupt() && (this.cpu2_irq = false, true); };
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
-			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.fInterruptEnable && this.cpu.interrupt(1)));
+			this.timer.execute(tick_rate, () => { update(), this.fInterruptEnable && this.cpu.interrupt(1); });
 			sound[0].execute(tick_rate);
 			sound[1].execute(tick_rate);
 			audio.execute(tick_rate);
@@ -218,16 +217,16 @@ class Salamander {
 		return this;
 	}
 
-	coin() {
-		this.fCoin = 2;
+	coin(fDown) {
+		fDown && (this.fCoin = 2);
 	}
 
-	start1P() {
-		this.fStart1P = 2;
+	start1P(fDown) {
+		fDown && (this.fStart1P = 2);
 	}
 
-	start2P() {
-		this.fStart2P = 2;
+	start2P(fDown) {
+		fDown && (this.fStart2P = 2);
 	}
 
 	up(fDown) {
@@ -259,7 +258,7 @@ class Salamander {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		for (let i = 0; i < 0x800; i++) {
@@ -549,7 +548,7 @@ read('salamand.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		new K007232({SND, clock: 3579545, gain: 0.2}),
 		new VLM5030({VLM, clock: 3579545, gain: 5}),
 	];
-	canvas.addEventListener('click', () => game.coin());
+	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
 });
 

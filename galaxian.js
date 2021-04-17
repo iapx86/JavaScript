@@ -6,7 +6,7 @@
 
 import GalaxianSound from './galaxian_sound.js';
 import SoundEffect from './sound_effect.js';
-import {seq, rseq, convertGFX} from './utils.js';
+import {seq, rseq, convertGFX, Timer} from './utils.js';
 import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -42,14 +42,12 @@ class Galaxian {
 	obj = new Uint8Array(0x4000).fill(3);
 	rgb = new Int32Array(0x80);
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 
 	se;
 
 	cpu = new Z80(Math.floor(18432000 / 6));
-	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
-		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			fn(this.count = this.count + 1 & 255);
-	}};
+	timer = new Timer(60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -123,12 +121,12 @@ class Galaxian {
 		this.se[0].loop = this.se[1].loop = false;
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
-			this.scanline.execute(tick_rate, (vpos) => !vpos && (this.moveStars(), update(), this.fInterruptEnable && this.cpu.non_maskable_interrupt()));
+			this.timer.execute(tick_rate, () => { this.moveStars(), update(), this.fInterruptEnable && this.cpu.non_maskable_interrupt(); });
 			audio.execute(tick_rate);
 		}
 	}
@@ -199,16 +197,16 @@ class Galaxian {
 		return this;
 	}
 
-	coin() {
-		this.fCoin = 2;
+	coin(fDown) {
+		fDown && (this.fCoin = 2);
 	}
 
-	start1P() {
-		this.fStart1P = 2;
+	start1P(fDown) {
+		fDown && (this.fStart1P = 2);
 	}
 
-	start2P() {
-		this.fStart2P = 2;
+	start2P(fDown) {
+		fDown && (this.fStart2P = 2);
 	}
 
 	right(fDown) {
@@ -251,7 +249,7 @@ class Galaxian {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		// bg描画
@@ -2687,7 +2685,7 @@ read('galaxian.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		new GalaxianSound({SND}),
 		new SoundEffect({se: game.se, gain: 0.5}),
 	];
-	canvas.addEventListener('click', () => game.coin());
+	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
 });
 

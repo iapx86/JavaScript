@@ -5,7 +5,7 @@
  */
 
 import C30 from './c30.js';
-import {seq, rseq, convertGFX} from './utils.js';
+import {seq, rseq, convertGFX, Timer} from './utils.js';
 import {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
@@ -43,15 +43,13 @@ class MetroCross {
 	obj = new Uint8Array(0x20000).fill(15);
 	rgb = Int32Array.from(seq(0x800), i => 0xff000000 | (GREEN[i] >> 4) * 255 / 15 << 16 | (GREEN[i] & 15) * 255 / 15 << 8 | RED[i] * 255 / 15);
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 	vScroll = [0, 0];
 	hScroll = [0, 0];
 
 	cpu = new MC6809(Math.floor(49152000 / 32));
 	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
-	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
-		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			fn(this.count = this.count + 1 & 255);
-	}};
+	timer = new Timer(60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -123,13 +121,13 @@ class MetroCross {
 		convertGFX(this.obj, OBJ, 256, rseq(16, 0, 64), seq(16, 0, 4), seq(4), 128);
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.mcu.execute(tick_rate);
-			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.cpu_irq = this.mcu_irq = true, this.ram2[8] |= this.ram2[8] << 3 & 0x40));
+			this.timer.execute(tick_rate, () => { update(), this.cpu_irq = this.mcu_irq = true, this.ram2[8] |= this.ram2[8] << 3 & 0x40; });
 			sound.execute(tick_rate);
 			audio.execute(tick_rate);
 		}
@@ -194,16 +192,16 @@ class MetroCross {
 		return this;
 	}
 
-	coin() {
-		this.fCoin = 2;
+	coin(fDown) {
+		fDown && (this.fCoin = 2);
 	}
 
-	start1P() {
-		this.fStart1P = 2;
+	start1P(fDown) {
+		fDown && (this.fStart1P = 2);
 	}
 
-	start2P() {
-		this.fStart2P = 2;
+	start2P(fDown) {
+		fDown && (this.fStart2P = 2);
 	}
 
 	up(fDown) {
@@ -227,7 +225,7 @@ class MetroCross {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		let p, k, back;
@@ -651,7 +649,7 @@ read('metrocrs.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	RED = zip.decompress('mc1-2.2m');
 	game = new MetroCross();
 	sound = new C30({clock: Math.floor(49152000 / 1024)});
-	canvas.addEventListener('click', () => game.coin());
+	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
 });
 

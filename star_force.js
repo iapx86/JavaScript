@@ -47,14 +47,12 @@ class StarForce {
 	obj = new Uint8Array(0x20000).fill(7);
 	rgb = new Int32Array(0x200);
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 
 	cpu = new Z80(4000000);
 	cpu2 = new Z80(2000000);
-	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
-		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			fn(this.count = this.count + 1 & 255);
-	}};
-	timer = new Timer(2000000 / 2048 / 11);
+	timer = new Timer(60);
+	timer2 = new Timer(2000000 / 2048 / 11);
 
 	constructor() {
 		// CPU周りの初期化
@@ -125,14 +123,14 @@ class StarForce {
 			[0, Math.floor(OBJ.length / 3) * 8, Math.floor(OBJ.length / 3) * 16], 32);
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
-			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.cpu_irq = true));
-			this.timer.execute(tick_rate, () => { this.ctc.irq = this.ctc.fInterruptEnable; });
+			this.timer.execute(tick_rate, () => { update(), this.cpu_irq = true; });
+			this.timer2.execute(tick_rate, () => { this.ctc.irq = this.ctc.fInterruptEnable; });
 			for (let i = 0; i < 4; i++)
 				sound[i].execute(tick_rate);
 			audio.execute(tick_rate);
@@ -237,16 +235,16 @@ class StarForce {
 		return this;
 	}
 
-	coin() {
-		this.fCoin = 2;
+	coin(fDown) {
+		fDown && (this.fCoin = 2);
 	}
 
-	start1P() {
-		this.fStart1P = 2;
+	start1P(fDown) {
+		fDown && (this.fStart1P = 2);
 	}
 
-	start2P() {
-		this.fStart2P = 2;
+	start2P(fDown) {
+		fDown && (this.fStart2P = 2);
 	}
 
 	up(fDown) {
@@ -274,7 +272,7 @@ class StarForce {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		for (let j = 0; j < 0x200; j++) {
@@ -576,7 +574,7 @@ read('starforc.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		new SN76489({clock: 2000000}),
 		new SenjyoSound({SND, clock: 2000000}),
 	];
-	canvas.addEventListener('click', () => game.coin());
+	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
 });
 

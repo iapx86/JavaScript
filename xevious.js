@@ -52,6 +52,7 @@ class Xevious {
 	objcolor = Uint8Array.from(seq(0x200), i => OBJCOLOR_H[i] << 4 | OBJCOLOR_L[i]);
 	rgb = Int32Array.from(seq(0x100), i => 0xff000000 | BLUE[i] * 255 / 15 << 16| GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 	dwScroll = 0xff;
 
 	cpu = [new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6)), new Z80(Math.floor(18432000 / 6))];
@@ -209,10 +210,10 @@ class Xevious {
 			seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0, 4], 64);
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			for (let j = 0; j < 3; j++)
 				this.cpu[j].execute(tick_rate);
 			this.scanline.execute(tick_rate, (vpos) => {
@@ -320,16 +321,16 @@ class Xevious {
 		return this;
 	}
 
-	coin() {
-		this.fCoin = 2;
+	coin(fDown) {
+		fDown && (this.fCoin = 2);
 	}
 
-	start1P() {
-		this.fStart1P = 2;
+	start1P(fDown) {
+		fDown && (this.fStart1P = 2);
 	}
 
-	start2P() {
-		this.fStart2P = 2;
+	start2P(fDown) {
+		fDown && (this.fStart2P = 2);
 	}
 
 	up(fDown) {
@@ -357,7 +358,7 @@ class Xevious {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		// bg4描画
@@ -959,7 +960,7 @@ read('xevious.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 		new PacManSound({SND}),
 		new Namco54XX({PRG, clock: Math.floor(18432000 / 12)}),
 	];
-	canvas.addEventListener('click', () => game.coin());
+	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
 });
 

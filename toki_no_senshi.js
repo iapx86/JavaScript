@@ -41,6 +41,7 @@ class TokiNoSenshi {
 	bg = new Uint8Array(0x40000).fill(7);
 	rgb = Int32Array.from(seq(0x100), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 	layer = [];
 	mode = 0;
 	collision = new Uint8Array(0x442);
@@ -143,16 +144,13 @@ class TokiNoSenshi {
 			this.layer.push(new Int32Array(this.width * this.height));
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
-			this.scanline.execute(tick_rate, (vpos) => {
-				!(vpos & 0x3f) && (this.cpu2_irq = true);
-				!vpos && (update(), this.cpu.interrupt());
-			});
+			this.scanline.execute(tick_rate, (vpos) => { !(vpos & 0x3f) && (this.cpu2_irq = true), !vpos && (update(), this.cpu.interrupt()); });
 			sound[0].execute(tick_rate);
 			sound[1].execute(tick_rate);
 			audio.execute(tick_rate);
@@ -210,16 +208,16 @@ class TokiNoSenshi {
 		return this;
 	}
 
-	coin() {
-		this.fCoin = 2;
+	coin(fDown) {
+		fDown && (this.fCoin = 2);
 	}
 
-	start1P() {
-		this.fStart1P = 2;
+	start1P(fDown) {
+		fDown && (this.fStart1P = 2);
 	}
 
-	start2P() {
-		this.fStart2P = 2;
+	start2P(fDown) {
+		fDown && (this.fStart2P = 2);
 	}
 
 	up(fDown) {
@@ -251,7 +249,7 @@ class TokiNoSenshi {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		// 画面クリア
@@ -422,17 +420,13 @@ const keydown = e => {
 	case 'ArrowDown':
 		return void game.down(true);
 	case 'Digit0':
-		return void game.coin();
+		return void game.coin(true);
 	case 'Digit1':
-		return void game.start1P();
+		return void game.start1P(true);
 	case 'Digit2':
-		return void game.start2P();
+		return void game.start2P(true);
 	case 'KeyM': // MUTE
-		if (audioCtx.state === 'suspended')
-			audioCtx.resume().catch();
-		else if (audioCtx.state === 'running')
-			audioCtx.suspend().catch();
-		return;
+		return audioCtx.state === 'suspended' ? audioCtx.resume().catch() : audioCtx.state === 'running' && audioCtx.suspend().catch();
 	case 'KeyR':
 		return game.reset();
 	case 'KeyT':
@@ -488,7 +482,7 @@ read('tokisens.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		new SN76489({clock: Math.floor(8000000 / 4)}),
 		new SN76489({clock: Math.floor(8000000 / 2)}),
 	];
-	canvas.addEventListener('click', () => game.coin());
+	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
 });
 

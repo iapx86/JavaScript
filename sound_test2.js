@@ -6,7 +6,7 @@
 
 import C30 from './c30.js';
 import {Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, read} from './sound_test_main.js';
 import MC6801 from './mc6801.js';
 let game, sound;
 
@@ -27,6 +27,7 @@ class SoundTest {
 	mcu_irq = false;
 
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 
 	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
 	timer = new Timer(60);
@@ -61,10 +62,10 @@ class SoundTest {
 		this.mcu.check_interrupt = () => { return this.mcu_irq && this.mcu.interrupt() ? (this.mcu_irq = false, true) : (this.ram2[8] & 0x48) === 0x48 && this.mcu.interrupt('ocf'); };
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.mcu.execute(tick_rate);
 			this.timer.execute(tick_rate, () => (update(), this.mcu_irq = this.fInterruptEnable1, this.ram2[8] |= this.ram2[8] << 3 & 0x40));
 			sound.execute(tick_rate);
@@ -122,7 +123,7 @@ class SoundTest {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		for (let i = 0; i < 16; i++)
@@ -178,16 +179,6 @@ read('pacland.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	}
 	game = new SoundTest();
 	sound = new C30();
-	game.initial = true;
-	canvas.addEventListener('click', e => {
-		if (game.initial)
-			game.initial = false;
-		else if (e.offsetX < canvas.width / 2)
-			game.left();
-		else
-			game.right();
-		game.triggerA();
-	});
 	init({game, sound});
 });
 

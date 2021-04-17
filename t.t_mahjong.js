@@ -35,14 +35,12 @@ class TTMahjong {
 
 	rgb = Int32Array.of(0xff000000, 0xffff0000, 0xff00ff00, 0xffffff00, 0xff0000ff, 0xffff00ff, 0xff00ffff, 0xffffffff);
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 	palette1 = 0;
 	palette2 = 0;
 
 	cpu = [new Z80(Math.floor(10000000 / 4)), new Z80(Math.floor(10000000 / 4))];
-	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
-		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			fn(this.count = this.count + 1 & 255);
-	}};
+	timer = new Timer(60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -73,13 +71,13 @@ class TTMahjong {
 			this.cpu[1].memorymap[0x80 + i].write = (addr, data) => { this.vram2[addr & 0x3fff] = data; };
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu[0].execute(tick_rate);
 			this.cpu[1].execute(tick_rate);
-			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.cpu[0].interrupt()));
+			this.timer.execute(tick_rate, () => { update(), this.cpu[0].interrupt(); });
 			sound.execute(tick_rate);
 			audio.execute(tick_rate);
 		}
@@ -127,20 +125,20 @@ class TTMahjong {
 		return this;
 	}
 
-	coin() {
-		this.fCoin = 2;
+	coin(fDown) {
+		fDown && (this.fCoin = 2);
 	}
 
-	start1P() {
-		this.fStart1P = 2;
+	start1P(fDown) {
+		fDown && (this.fStart1P = 2);
 	}
 
-	start2P() {
-		this.fStart2P = 2;
+	start2P(fDown) {
+		fDown && (this.fStart2P = 2);
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		for (let p = 252 * 256, k = 0x200, i = 240; i !== 0; p += 256 * 256 + 1, --i)
@@ -161,11 +159,11 @@ const keydown = e => {
 		return;
 	switch (e.code) {
 	case 'Digit0':
-		return void game.coin();
+		return void game.coin(true);
 	case 'Digit1':
-		return void game.start1P();
+		return void game.start1P(true);
 	case 'Digit2':
-		return void game.start2P();
+		return void game.start2P(true);
 	case 'Digit5': // KAN
 		return void(game.in[0] |= 1 << 4);
 	case 'Digit6': // PON
@@ -207,11 +205,7 @@ const keydown = e => {
 	case 'KeyR':
 		return game.reset();
 	case 'KeyV': // MUTE
-		if (audioCtx.state === 'suspended')
-			audioCtx.resume().catch();
-		else if (audioCtx.state === 'running')
-			audioCtx.suspend().catch();
-		return;
+		return audioCtx.state === 'suspended' ? audioCtx.resume().catch() : audioCtx.state === 'running' && audioCtx.suspend().catch();
 	}
 };
 
@@ -273,7 +267,7 @@ read('ttmahjng.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	COLOR2 = zip.decompress('ju09');
 	game = new TTMahjong();
 	sound = new AY_3_8910({clock: Math.floor(10000000 / 8), gain: 0.2});
-	canvas.addEventListener('click', () => game.coin());
+	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
 });
 

@@ -12,7 +12,7 @@ export default class PolePositionSound {
 	ram = new Uint8Array(0x400);
 	frac = 0;
 
-	constructor({SND, clock = 48000, gain = 0.1}) {
+	constructor({SND, clock = 96000, gain = 0.1}) {
 		this.snd = SND;
 		this.clock = clock;
 		this.gain = gain;
@@ -41,7 +41,7 @@ export default class PolePositionSound {
 		this.output = 0;
 		for (let ch = 0x3c8; ch < 0x3e0; ch += 4) {
 			const vol = reg[ch | 2] >> 4 || reg[ch | 3] >> 4 || reg[ch | 3] & 0xf || reg[ch | 0x23] >> 4;
-			this.output += (this.snd[reg[ch | 0x23] << 5 & 0xe0 | reg[ch | 0x22] << 1 & 0x1e | reg[ch | 0x21] >> 7] * 2 / 15 - 1) * vol / 15 * this.gain;
+			this.output += (this.snd[reg[ch | 0x23] << 5 & 0xe0 | reg[ch | 0x22] & 0x1f] * 2 / 15 - 1) * vol / 15 * this.gain;
 		}
 	}
 }

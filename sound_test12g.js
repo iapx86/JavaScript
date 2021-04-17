@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import {Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, read} from './sound_test_main.js';
 import {dummypage} from './cpu.js'
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
@@ -35,6 +35,7 @@ class SoundTest {
 	mcu_irq = false;
 
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 
 	cpu3 = new MC6809(Math.floor(49152000 / 32));
 	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
@@ -139,10 +140,10 @@ class SoundTest {
 		this.bank4 = bank;
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu3.execute(tick_rate);
 			this.mcu.execute(tick_rate);
 			this.timer.execute(tick_rate, () => { update(), this.cpu3_irq = this.mcu_irq = true; });
@@ -225,7 +226,7 @@ class SoundTest {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		for (let i = 0; i < 16; i++)
@@ -293,16 +294,6 @@ read('berabohm.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		new C30({clock: Math.floor(49152000 / 2048)}),
 		{output: 0, gain: 0.5, d1: 0, d2: 0, v1: 0, v2: 0, update() { this.output = (this.d1 * this.v1 + this.d2 * this.v2) * this.gain; }}, // DAC
 	];
-	game.initial = true;
-	canvas.addEventListener('click', e => {
-		if (game.initial)
-			game.initial = false;
-		else if (e.offsetX < canvas.width / 2)
-			game.left();
-		else
-			game.right();
-		game.triggerA();
-	});
 	init({game, sound});
 });
 

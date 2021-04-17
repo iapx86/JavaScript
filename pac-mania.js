@@ -50,17 +50,15 @@ class PacMania {
 	obj = new Uint8Array(0x200000).fill(0xf);
 	rgb = new Int32Array(0x2000).fill(0xff000000);
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 	isspace = new Uint8Array(0x4000);
 
 	cpu = new MC6809(Math.floor(49152000 / 32));
 	cpu2 = new MC6809(Math.floor(49152000 / 32));
 	cpu3 = new MC6809(Math.floor(49152000 / 32));
 	mcu = new MC6801(Math.floor(49152000 / 8 / 4));
-	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
-		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			fn(this.count = this.count + 1 & 255);
-	}};
-	timer = new Timer(Math.floor(49152000 / 8 / 1024));
+	timer = new Timer(60);
+	timer2 = new Timer(Math.floor(49152000 / 8 / 1024));
 
 	constructor() {
 		// CPU周りの初期化
@@ -289,16 +287,16 @@ class PacMania {
 		this.bank4 = bank;
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
 			this.cpu3.execute(tick_rate);
 			this.mcu.execute(tick_rate);
-			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.cpu_irq = this.cpu2_irq = this.cpu3_irq = this.mcu_irq = true));
-			this.timer.execute(tick_rate, () => this.ram4[8] |= this.ram4[8] << 3 & 0x40);
+			this.timer.execute(tick_rate, () => { update(), this.cpu_irq = this.cpu2_irq = this.cpu3_irq = this.mcu_irq = true; });
+			this.timer2.execute(tick_rate, () => { this.ram4[8] |= this.ram4[8] << 3 & 0x40; });
 			sound[0].execute(tick_rate);
 			sound[1].execute(tick_rate);
 			audio.execute(tick_rate);
@@ -350,16 +348,16 @@ class PacMania {
 		return this;
 	}
 
-	coin() {
-		this.fCoin = 2;
+	coin(fDown) {
+		fDown && (this.fCoin = 2);
 	}
 
-	start1P() {
-		this.fStart1P = 2;
+	start1P(fDown) {
+		fDown && (this.fStart1P = 2);
 	}
 
-	start2P() {
-		this.fStart2P = 2;
+	start2P(fDown) {
+		fDown && (this.fStart2P = 2);
 	}
 
 	up(fDown) {
@@ -387,7 +385,7 @@ class PacMania {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		const ram = this.ram, black = 0x1800, flip = !!(ram[0x5ff6] & 1);
@@ -697,7 +695,7 @@ read('pacmania.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		new C30({clock: Math.floor(49152000 / 2048)}),
 		{output: 0, gain: 0.5, d1: 0, d2: 0, v1: 0, v2: 0, update() { this.output = (this.d1 * this.v1 + this.d2 * this.v2) * this.gain; }}, // DAC
 	];
-	canvas.addEventListener('click', () => game.coin());
+	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
 });
 

@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import UPD7751 from './upd7751.js';
-import {seq, rseq, convertGFX} from './utils.js';
+import {seq, rseq, convertGFX, Timer} from './utils.js';
 import {init, read} from './main.js';
 import FD1089B from './fd1089b.js';
 import Z80 from './z80.js';
@@ -38,17 +38,15 @@ class SukebanJansiRyuko {
 	cpu2_nmi = false;
 
 	bg = new Uint8Array(0x40000).fill(7);
+	isspace;
 	rgb = new Int32Array(0x800).fill(0xff000000);
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
-	isspace;
+	updated = false;
 	mode = new Uint8Array(2);
 
 	cpu = new FD1089B(KEY, 10000000);
 	cpu2 = new Z80(4000000);
-	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
-		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			fn(this.count = this.count + 1 & 255);
-	}};
+	timer = new Timer(60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -150,13 +148,13 @@ class SukebanJansiRyuko {
 		this.isspace = Uint8Array.from(seq(4096), i => Number(this.bg.subarray(i << 6, i + 1 << 6).every(e => !e)));
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
-			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.cpu.interrupt(4)));
+			this.timer.execute(tick_rate, () => { update(), this.cpu.interrupt(4); });
 			sound[0].execute(tick_rate);
 			sound[1].execute(tick_rate);
 			audio.execute(tick_rate);
@@ -213,16 +211,16 @@ class SukebanJansiRyuko {
 		return this;
 	}
 
-	coin() {
-		this.fCoin = 2;
+	coin(fDown) {
+		fDown && (this.fCoin = 2);
 	}
 
-	start1P() {
-		this.fStart1P = 2;
+	start1P(fDown) {
+		fDown && (this.fStart1P = 2);
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		// 画面クリア
@@ -414,9 +412,9 @@ const keydown = e => {
 		return;
 	switch (e.code) {
 	case 'Digit0':
-		return void game.coin();
+		return void game.coin(true);
 	case 'Digit1':
-		return void game.start1P();
+		return void game.start1P(true);
 	case 'Digit2': // FLIP FLOP
 		return void(game.in[3] &= ~(1 << 4));
 	case 'Digit3': // BET
@@ -469,11 +467,7 @@ const keydown = e => {
 	case 'KeyT':
 		return void(game.fTest = true);
 	case 'KeyV': // MUTE
-		if (audioCtx.state === 'suspended')
-			audioCtx.resume().catch();
-		else if (audioCtx.state === 'running')
-			audioCtx.suspend().catch();
-		return;
+		return audioCtx.state === 'suspended' ? audioCtx.resume().catch() : audioCtx.state === 'running' && audioCtx.suspend().catch();
 	case 'KeyZ':
 		return void(game.fTurbo = true);
 	}
@@ -575,7 +569,7 @@ read('sjryuko.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 		new YM2151({clock: 4000000}),
 		new UPD7751({MCU, VOI}),
 	];
-	canvas.addEventListener('click', () => game.coin());
+	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
 });
 

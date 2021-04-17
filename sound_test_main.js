@@ -1,6 +1,6 @@
 /*
  *
- *	Main Module
+ *	Sound Test Main Module
  *
  */
 
@@ -67,7 +67,7 @@ function initShaderProgram(gl, vsSource, fsSource) {
 }
 
 export function init({game, sound, keydown, keyup} = {}) {
-	let {cxScreen, cyScreen, width, height, rotate} = game, images = [], silence, samples0, maxLength, source, node;
+	let {cxScreen, cyScreen, width, height, rotate} = game, images = [], silence, samples0, maxLength, source, node, initial = true;
 	let lastFrame = {timestamp: 0, array: new Uint8Array(new Int32Array(cxScreen * cyScreen).fill(0xff000000).buffer), cxScreen, cyScreen};
 	const positions = new Float32Array(rotate ? [-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0] : [-1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, -1.0]);
 	const program = initShaderProgram(gl, vsSource, fsSource);
@@ -84,7 +84,7 @@ export function init({game, sound, keydown, keyup} = {}) {
 	gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
 	gl.vertexAttribPointer(aVertexPositionHandle, 2, gl.FLOAT, false, 0, 0);
 	gl.enableVertexAttribArray(aVertexPositionHandle);
-	node = audioCtx.createScriptProcessor(2048, 1, 1), samples0 = silence = new Float32Array(maxLength = node.bufferSize);
+	node = audioCtx.createScriptProcessor(16384, 1, 1), samples0 = silence = new Float32Array(maxLength = node.bufferSize);
 	node.onaudioprocess = ({playbackTime, outputBuffer}) => {
 		const buffer = outputBuffer.getChannelData(0);
 		buffer.set(samples0), samples0 !== silence && (samples0 = silence, postMessage({timestamp: playbackTime + maxLength / audioCtx.sampleRate}, '*'));
@@ -98,24 +98,12 @@ export function init({game, sound, keydown, keyup} = {}) {
 		switch (e.code) {
 		case 'ArrowLeft':
 			return void('left' in game && game.left(true));
-		case 'ArrowUp':
-			return void('up' in game && game.up(true));
 		case 'ArrowRight':
 			return void('right' in game && game.right(true));
-		case 'ArrowDown':
-			return void('down' in game && game.down(true));
-		case 'Digit0':
-			return void('coin' in game && game.coin(true));
-		case 'Digit1':
-			return void('start1P' in game && game.start1P(true));
-		case 'Digit2':
-			return void('start2P' in game && game.start2P(true));
 		case 'KeyM': // MUTE
 			return void(audioCtx.state === 'suspended' ? audioCtx.resume().catch() : audioCtx.state === 'running' && audioCtx.suspend().catch());
 		case 'KeyR':
 			return game.reset();
-		case 'KeyT':
-			return void('fTest' in game && (game.fTest = !game.fTest) === true && (game.fReset = true));
 		case 'Space':
 		case 'KeyX':
 			return void('triggerA' in game && game.triggerA(true));
@@ -127,18 +115,23 @@ export function init({game, sound, keydown, keyup} = {}) {
 		switch (e.code) {
 		case 'ArrowLeft':
 			return void('left' in game && game.left(false));
-		case 'ArrowUp':
-			return void('up' in game && game.up(false));
 		case 'ArrowRight':
 			return void('right' in game && game.right(false));
-		case 'ArrowDown':
-			return void('down' in game && game.down(false));
 		case 'Space':
 		case 'KeyX':
 			return void('triggerA' in game && game.triggerA(false));
 		case 'KeyZ':
 			return void('triggerB' in game && game.triggerB(false));
 		}
+	});
+	canvas.addEventListener('click', e => {
+		if (initial)
+			initial = false;
+		else if (e.offsetX < canvas.width / 2)
+			game.left();
+		else
+			game.right();
+		game.triggerA();
 	});
 	const audio = {rate: audioCtx.sampleRate, frac: 0, samples: [], execute(rate) {
 		if (Array.isArray(sound))

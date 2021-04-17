@@ -46,6 +46,7 @@ class _1942 {
 	objcolor = Uint8Array.from(OBJCOLOR, e => 0x40 | e);
 	rgb = Int32Array.from(seq(0x100), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 	dwScroll = 0;
 	palette = 0;
 	frame = 0;
@@ -132,10 +133,10 @@ class _1942 {
 		convertGFX(this.obj, OBJ, 512, seq(16, 0, 16), rseq(4, 264).concat(rseq(4, 256), rseq(4, 8), rseq(4)), [OBJ.length * 4 + 4, OBJ.length * 4, 4, 0], 64);
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
 			this.scanline.execute(tick_rate, (vpos) => {
@@ -219,16 +220,16 @@ class _1942 {
 		return this;
 	}
 
-	coin() {
-		this.fCoin = 2;
+	coin(fDown) {
+		fDown && (this.fCoin = 2);
 	}
 
-	start1P() {
-		this.fStart1P = 2;
+	start1P(fDown) {
+		fDown && (this.fStart1P = 2);
 	}
 
-	start2P() {
-		this.fStart2P = 2;
+	start2P(fDown) {
+		fDown && (this.fStart2P = 2);
 	}
 
 	up(fDown) {
@@ -260,7 +261,7 @@ class _1942 {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		this.frame++;
@@ -446,7 +447,7 @@ read('1942.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip
 		new AY_3_8910({clock: Math.floor(12000000 / 8)}),
 		new AY_3_8910({clock: Math.floor(12000000 / 8)}),
 	];
-	canvas.addEventListener('click', () => game.coin());
+	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
 });
 

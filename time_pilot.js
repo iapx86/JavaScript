@@ -42,6 +42,7 @@ class TimePilot {
 	bgcolor = Uint8Array.from(BGCOLOR, e => 0x10 | e);
 	rgb = Int32Array.from(seq(0x20).map(i => RGB_H[i] << 8 | RGB_L[i]), e => 0xff000000 | (e >> 11) * 255 / 31 << 16 | (e >> 6 & 31) * 255 / 31 << 8 | (e >> 1 & 31) * 255 / 31);
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 	vpos = 0;
 
 	cpu = new Z80(Math.floor(18432000 / 6));
@@ -112,10 +113,10 @@ class TimePilot {
 		convertGFX(this.obj, OBJ, 256, rseq(8, 256, 8).concat(rseq(8, 0, 8)), rseq(4, 192).concat(rseq(4, 128), rseq(4, 64), rseq(4)), [4, 0], 64);
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
 			this.scanline.execute(tick_rate, (cnt) => {
@@ -207,16 +208,16 @@ class TimePilot {
 		return this;
 	}
 
-	coin() {
-		this.fCoin = 2;
+	coin(fDown) {
+		fDown && (this.fCoin = 2);
 	}
 
-	start1P() {
-		this.fStart1P = 2;
+	start1P(fDown) {
+		fDown && (this.fStart1P = 2);
 	}
 
-	start2P() {
-		this.fStart2P = 2;
+	start2P(fDown) {
+		fDown && (this.fStart2P = 2);
 	}
 
 	up(fDown) {
@@ -240,7 +241,7 @@ class TimePilot {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		// bg描画
@@ -647,10 +648,10 @@ read('timeplt.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	BGCOLOR = zip.decompress('timeplt.e12');
 	game = new TimePilot();
 	sound = [
-		new AY_3_8910({clock: 14318181 / 8, gain: 0.2}),
-		new AY_3_8910({clock: 14318181 / 8, gain: 0.2}),
+		new AY_3_8910({clock: Math.floor(14318181 / 8), gain: 0.2}),
+		new AY_3_8910({clock: Math.floor(14318181 / 8), gain: 0.2}),
 	];
-	canvas.addEventListener('click', () => game.coin());
+	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
 });
 

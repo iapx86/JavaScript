@@ -5,7 +5,7 @@
  */
 
 import SoundEffect from './sound_effect.js';
-import {seq, rseq, convertGFX} from './utils.js';
+import {seq, rseq, convertGFX, Timer} from './utils.js';
 import {init, read} from './main.js';
 import I8080 from './i8080.js';
 let game, sound;
@@ -34,14 +34,12 @@ class WarpAndWarp {
 	bg = new Uint8Array(0x4000).fill(255);
 	rgb = Int32Array.from(seq(0x100), i => 0xff000000 | (i >> 6) * 255 / 3 << 16 | (i >> 3 & 7) * 255 / 7 << 8 | (i & 7) * 255 / 7);
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 
 	se = [WAVE02, WAVE10, WAVE11, WAVE14, WAVE16].map(buf => ({freq: 22050, buf, loop: false, start: false, stop: false}));
 
 	cpu = new I8080(Math.floor(18432000 / 9));
-	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
-		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			fn(this.count = this.count + 1 & 255);
-	}};
+	timer = new Timer(60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -97,12 +95,12 @@ class WarpAndWarp {
 		convertGFX(this.bg, BG, 256, rseq(8, 0, 8), seq(8), seq(8, 0, 0), 8);
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
-			this.scanline.execute(tick_rate, (vpos) => !vpos && (update(), this.cpu.interrupt()));
+			this.timer.execute(tick_rate, () => { update(), this.cpu.interrupt(); });
 			audio.execute(tick_rate);
 		}
 	}
@@ -170,16 +168,16 @@ class WarpAndWarp {
 		return this;
 	}
 
-	coin() {
-		this.fCoin = 2;
+	coin(fDown) {
+		fDown && (this.fCoin = 2);
 	}
 
-	start1P() {
-		this.fStart1P = 2;
+	start1P(fDown) {
+		fDown && (this.fStart1P = 2);
 	}
 
-	start2P() {
-		this.fStart2P = 2;
+	start2P(fDown) {
+		fDown && (this.fStart2P = 2);
 	}
 
 	up(fDown) {
@@ -204,7 +202,7 @@ class WarpAndWarp {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		// bg描画
@@ -3529,7 +3527,7 @@ read('warpwarp.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		new WarpAndWarpSound(),
 		new SoundEffect({se: game.se, gain:0.5}),
 	];
-	canvas.addEventListener('click', () => game.coin());
+	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
 });
 

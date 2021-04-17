@@ -6,7 +6,7 @@
 
 import MappySound from './mappy_sound.js';
 import {Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, read} from './sound_test_main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -23,6 +23,7 @@ class SoundTest {
 	nSound = 0;
 
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 
 	cpu2 = new MC6809(Math.floor(6144000 / 4));
 	timer = new Timer(60);
@@ -37,10 +38,10 @@ class SoundTest {
 			this.cpu2.memorymap[0xe0 + i].base = PRG2.base[i];
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu2.execute(tick_rate);
 			this.timer.execute(tick_rate, () => { update(), this.cpu2.interrupt(); });
 			sound.execute(tick_rate);
@@ -97,7 +98,7 @@ class SoundTest {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		for (let i = 0; i < 16; i++)
@@ -147,16 +148,6 @@ read('liblrabl.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	}
 	game = new SoundTest();
 	sound = new MappySound({SND});
-	game.initial = true;
-	canvas.addEventListener('click', e => {
-		if (game.initial)
-			game.initial = false;
-		else if (e.offsetX < canvas.width / 2)
-			game.left();
-		else
-			game.right();
-		game.triggerA();
-	});
 	init({game, sound});
 });
 

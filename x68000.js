@@ -44,8 +44,9 @@ class X68000 {
 	palette1 = new Uint16Array(0x100);
 	palette2 = new Uint16Array(0x100);
 	rgb = new Int32Array(0x10000).fill(0xff000000);
-	bitmap0 = new Int32Array(this.width * this.height).fill(0xff000000);
-	bitmap;
+	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	ready = false;
+	updated = false;
 	pri_h = new Uint8Array(0x40);
 	pri_l = new Uint8Array(0x100);
 	memmode_c = 0;
@@ -517,11 +518,11 @@ class X68000 {
 		this.view.setUint16(base + 0xa, mtc), this.view.setUint32(base + 0xc, mar), this.view.setUint32(base + 0x14, dar);
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		!this.bitmap && new Uint16Array(this.ram.buffer, 0xe80000, 9).every(e => e) && (this.bitmap = this.bitmap0);
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		!this.ready && (this.ready = new Uint16Array(this.ram.buffer, 0xe80000, 9).every(e => e));
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.scanline.execute(tick_rate, () => {
 				const r00 = this.ram[0xe80001], r01 = this.ram[0xe80003], r04 = this.view.getUint16(0xe80008) & 0x3ff, r06 = this.view.getUint16(0xe8000c) & 0x3ff;
@@ -530,13 +531,13 @@ class X68000 {
 				const timer_a_tick = () => tacr & 8 && !--this.ram[0xe8801f] && (this.ram[0xe8801f] = this.timer_a.reload, this.ram[0xe8800b] |= iera & 0x20);
 				for (; this.scanline.h_count > r00; this.scanline.h_count -= r00 + 1) {
 					this.ram[0xe8800b] |= iera & 0x80;
-					++this.scanline.v_count > r04 && (this.scanline.v_count = 0, this.bitmap && update());
+					++this.scanline.v_count > r04 && (this.scanline.v_count = 0, this.ready && update());
 					const v_count = this.scanline.v_count, cirq = v_count === r09, vdisp = v_count > r06 && v_count <= r07 || r07 >= r04 && v_count < r07 - r04;
 					this.ram[0xe88001] = this.ram[0xe88001] & ~0x50 | !cirq << 6 | vdisp << 4, ~aer & 0x40 && cirq && (this.ram[0xe8800b] |= iera & 0x40);
 					if (aer & 0x10 ? v_count === r06 + 1 : r07 >= r04 ? v_count === r07 - r04 : v_count === r07 + 1)
 						this.ram[0xe8800d] |= ierb & 0x40, timer_a_tick();
 					v_count === r06 + 1 && this.ram[0xe80481] & 2 && (this.fastClear(), this.ram[0xe80481] &= ~2);
-					if (vdisp && this.bitmap) {
+					if (vdisp && this.ready) {
 						const y = v_count - r06 + (v_count > r06 ? -1 : r04), mode = r20 >> 2 & 7;
 						mode === 1 ? (this.drawLine(y << 1), this.drawLine(y << 1 | 1)) : mode !== 4 ? this.drawLine(y) : y & 1 && this.drawLine(y >> 1);
 					}
@@ -564,7 +565,7 @@ class X68000 {
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
-			this.bitmap = null;
+			this.ready = false;
 			this.ram.fill(0).set(SRAM, 0xed0000);
 			this.view.setUint32(0xbffffc, 0xffce14);
 			this.scc.a.wr.fill(0), this.scc.a.rr.fill(0), this.scc.b.wr.fill(0), this.scc.b.rr.fill(0);
@@ -650,8 +651,8 @@ class X68000 {
 		this.ram[0xe9a003] = this.ram[0xe9a003] & ~(1 << 6) | fDown << 6;
 	}
 
-	makeBitmap() {
-		return this.bitmap0;
+	makeBitmap(flag) {
+		return this.updated = flag, this.bitmap;
 	}
 
 	drawLine(y) {

@@ -5,7 +5,7 @@
  */
 
 import MappySound from './mappy_sound.js';
-import {seq, rseq, convertGFX} from './utils.js';
+import {seq, rseq, convertGFX, Timer} from './utils.js';
 import {init, read} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
@@ -43,14 +43,12 @@ class Phozon {
 	objcolor = Uint8Array.from(OBJCOLOR, e => 0x10 | e);
 	rgb = Int32Array.from(seq(0x40), i => 0xff000000 | BLUE[i] * 255 / 15 << 16 | GREEN[i] * 255 / 15 << 8 | RED[i] * 255 / 15);
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 
 	cpu = new MC6809(Math.floor(18432000 / 12));
 	cpu2 = new MC6809(Math.floor(18432000 / 12));
 	cpu3 = new MC6809(Math.floor(18432000 / 12));
-	scanline = {rate: 256 * 60, frac: 0, count: 0, execute(rate, fn) {
-		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-			fn(this.count = this.count + 1 & 255);
-	}};
+	timer = new Timer(60);
 
 	constructor() {
 		// CPU周りの初期化
@@ -128,20 +126,15 @@ class Phozon {
 		convertGFX(this.obj, OBJ, 128, rseq(8, 256, 8).concat(rseq(8, 0, 8)), seq(4).concat(seq(4, 64), seq(4, 128), seq(4, 192)), [0, 4], 64);
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
 			this.cpu3.execute(tick_rate);
-			this.scanline.execute(tick_rate, (vpos) => {
-				if (!vpos) {
-					update();
-					this.fInterruptEnable0 && this.cpu.interrupt();
-					this.fInterruptEnable1 && this.cpu2.interrupt();
-					this.fInterruptEnable2 && this.cpu3.interrupt();
-				}
+			this.timer.execute(tick_rate, () => {
+				update(), this.fInterruptEnable0 && this.cpu.interrupt(), this.fInterruptEnable1 && this.cpu2.interrupt(), this.fInterruptEnable2 && this.cpu3.interrupt();
 			});
 			sound.execute(tick_rate);
 			audio.execute(tick_rate);
@@ -268,16 +261,16 @@ class Phozon {
 		return this.edge = this.in[3] ^ 0xf, this;
 	}
 
-	coin() {
-		this.fCoin = 2;
+	coin(fDown) {
+		fDown && (this.fCoin = 2);
 	}
 
-	start1P() {
-		this.fStart1P = 2;
+	start1P(fDown) {
+		fDown && (this.fStart1P = 2);
 	}
 
-	start2P() {
-		this.fStart2P = 2;
+	start2P(fDown) {
+		fDown && (this.fStart2P = 2);
 	}
 
 	up(fDown) {
@@ -301,7 +294,7 @@ class Phozon {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		// 画面クリア
@@ -637,7 +630,7 @@ read('phozon.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	SND = zip.decompress('sound.prm');
 	game = new Phozon();
 	sound = new MappySound({SND});
-	canvas.addEventListener('click', () => game.coin());
+	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
 });
 

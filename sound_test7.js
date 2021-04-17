@@ -8,7 +8,7 @@ import YM2151 from './ym2151.js';
 import K007232 from './k007232.js';
 import VLM5030 from './vlm5030.js';
 import {Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, read} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -31,6 +31,7 @@ class SoundTest {
 	wd = 0;
 
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 
 	cpu2 = new Z80(3579545);
 	timer = new Timer(60);
@@ -70,10 +71,10 @@ class SoundTest {
 		this.cpu2.check_interrupt = () => { return this.command.length && this.cpu2.interrupt(); };
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu2.execute(tick_rate);
 			this.timer.execute(tick_rate, update);
 			sound[0].execute(tick_rate);
@@ -133,7 +134,7 @@ class SoundTest {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		for (let i = 0; i < 16; i++)
@@ -182,16 +183,6 @@ read('salamand.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		new K007232({SND, clock: 3579545, gain: 0.2}),
 		new VLM5030({VLM, clock: 3579545, gain: 5}),
 	];
-	game.initial = true;
-	canvas.addEventListener('click', e => {
-		if (game.initial)
-			game.initial = false;
-		else if (e.offsetX < canvas.width / 2)
-			game.left();
-		else
-			game.right();
-		game.triggerA();
-	});
 	init({game, sound});
 });
 

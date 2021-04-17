@@ -49,6 +49,7 @@ class TwinBee {
 	chr = new Uint8Array(0x20000);
 	rgb = new Int32Array(0x800).fill(0xff000000);
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 	flip = 0;
 	intensity = new Uint8Array(32);
 
@@ -187,10 +188,10 @@ class TwinBee {
 		this.intensity.set(_intensity.map(e => (e - black) * white + 0.5));
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
 			this.cpu2.execute(tick_rate);
 			this.scanline.execute(tick_rate, (vpos) => {
@@ -281,16 +282,16 @@ class TwinBee {
 		return this;
 	}
 
-	coin() {
-		this.fCoin = 2;
+	coin(fDown) {
+		fDown && (this.fCoin = 2);
 	}
 
-	start1P() {
-		this.fStart1P = 2;
+	start1P(fDown) {
+		fDown && (this.fStart1P = 2);
 	}
 
-	start2P() {
-		this.fStart2P = 2;
+	start2P(fDown) {
+		fDown && (this.fStart2P = 2);
 	}
 
 	up(fDown) {
@@ -322,7 +323,7 @@ class TwinBee {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		// 画面クリア
@@ -607,7 +608,7 @@ read('twinbee.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 		new K005289({SND, clock: Math.floor(14318180 / 4), gain: 0.3}),
 		new VLM5030({VLM: game.vlm, clock: Math.floor(14318180 / 4), gain: 5}),
 	];
-	canvas.addEventListener('click', () => game.coin());
+	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
 });
 

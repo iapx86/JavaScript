@@ -6,7 +6,7 @@
 
 import PolePositionSound from './pole_position_sound.js';
 import {Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, read} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -27,9 +27,11 @@ class SoundTest {
 	count = 0;
 
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
+	updated = false;
 
 	cpu = new Z80(Math.floor(24576000 / 8));
-	timer = new Timer(120);
+	timer = new Timer(60);
+	timer2 = new Timer(120);
 
 	constructor() {
 		// CPU周りの初期化
@@ -78,12 +80,13 @@ class SoundTest {
 		this.cpu.set_breakpoint(0x0159);
 	}
 
-	execute(audio, length, fn) {
+	execute(audio, length) {
 		const tick_rate = 192000, tick_max = Math.ceil(((length - audio.samples.length) * tick_rate - audio.frac) / audio.rate);
-		const update = () => { fn(this.makeBitmap(true)), this.updateStatus(), this.updateInput(); };
-		for (let i = 0; i < tick_max; i++) {
+		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
+		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
-			this.timer.execute(tick_rate, () => { update(), this.fInterruptEnable && this.cpu.interrupt(); });
+			this.timer.execute(tick_rate, update);
+			this.timer2.execute(tick_rate, () => { this.fInterruptEnable && this.cpu.interrupt(); });
 			sound.execute(tick_rate);
 			audio.execute(tick_rate);
 		}
@@ -141,7 +144,7 @@ class SoundTest {
 	}
 
 	makeBitmap(flag) {
-		if (!flag)
+		if (!(this.updated = flag))
 			return this.bitmap;
 
 		for (let i = 0; i < 16; i++)
@@ -191,16 +194,6 @@ read('polepos2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	}
 	game = new SoundTest();
 	sound = new PolePositionSound({SND});
-	game.initial = true;
-	canvas.addEventListener('click', e => {
-		if (game.initial)
-			game.initial = false;
-		else if (e.offsetX < canvas.width / 2)
-			game.left();
-		else
-			game.right();
-		game.triggerA();
-	});
 	init({game, sound});
 });
 
