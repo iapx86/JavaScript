@@ -35,9 +35,9 @@ export default class FD1094 extends MC68000 {
 		this.change_state(0x300);
 	}
 
-	cmpi32(op, src, dst) {
+	cmp32(src, dst) {
 		super.cmp32(src, dst);
-		if (!(op & 0o77) && (src & 0xffff) === 0xffff)
+		if (this.op === 0x0c80 && (src & 0xffff) === 0xffff)
 			this.change_state(src >> 16);
 	}
 

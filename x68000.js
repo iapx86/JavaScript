@@ -428,6 +428,12 @@ class X68000 {
 		this.cpu.memorymap[0xe9a0].write = (addr, data) => { // PPI
 			return (addr &= ~0xff000000) === 0xe9a005 ? sound[1].control(this.ram[addr] = data) : void(this.ram[addr] = data);
 		};
+		for (let i = 0; i < 0x120; i++) {
+			const bus_error = (addr) => { return this.cpu.exception(2), this.cpu.a[7] -= 6, this.cpu.write32(addr | 1, this.cpu.a[7]), this.cpu.a[7] -= 2; };
+			this.cpu.memorymap[0xe9e0 + i].read16 = (addr) => { return bus_error(addr), 0xffff; };
+			this.cpu.memorymap[0xe9e0 + i].read = (addr) => { return bus_error(addr), 0xff; };
+			this.cpu.memorymap[0xe9e0 + i].write16 = this.cpu.memorymap[0xe9e0 + i].write = (addr) => { bus_error(addr); };
+		}
 		for (let i = 0; i < 0x20; i++)
 			this.cpu.memorymap[0xeb80 + i].write = (addr, data) => { // SPRITE VRAM
 				const addr8 = (addr &= ~0xff000000) << 1 & 0x3ffe, addr16 = addr << 1 & 0xff06 | addr << 2 & 0xf0 | addr >> 3 & 8;
