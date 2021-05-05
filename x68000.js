@@ -24,6 +24,7 @@ class X68000 {
 	fTurboA = false;
 	fTurboB = false;
 
+	bus_error = 0;
 	ram = new Uint8Array(0xf00000).addBase();
 	view = new DataView(this.ram.buffer);
 	fdc = {rate: 62500, frac: 0, status: 0x80, data: 0, irq: false, drq: false, tc: false, c: new Uint8Array(4), execute(rate, fn) {
@@ -429,10 +430,8 @@ class X68000 {
 			return (addr &= ~0xff000000) === 0xe9a005 ? sound[1].control(this.ram[addr] = data) : void(this.ram[addr] = data);
 		};
 		for (let i = 0; i < 0x120; i++) {
-			const bus_error = (addr) => { return this.cpu.exception(2), this.cpu.a[7] -= 6, this.cpu.write32(addr | 1, this.cpu.a[7]), this.cpu.a[7] -= 2; };
-			this.cpu.memorymap[0xe9e0 + i].read16 = (addr) => { return bus_error(addr), 0xffff; };
-			this.cpu.memorymap[0xe9e0 + i].read = (addr) => { return bus_error(addr), 0xff; };
-			this.cpu.memorymap[0xe9e0 + i].write16 = this.cpu.memorymap[0xe9e0 + i].write = (addr) => { bus_error(addr); };
+			this.cpu.memorymap[0xe9e0 + i].read = (addr) => { return !this.bus_error && (this.bus_error = addr | 1), 0xff; };
+			this.cpu.memorymap[0xe9e0 + i].write = (addr) => { !this.bus_error && (this.bus_error = addr | 1); };
 		}
 		for (let i = 0; i < 0x20; i++)
 			this.cpu.memorymap[0xeb80 + i].write = (addr, data) => { // SPRITE VRAM
@@ -453,6 +452,8 @@ class X68000 {
 		this.cpu.check_interrupt = () => {
 			if (this.ram[0xe84080] & 8)
 				return this.dma(2), true;
+			if (this.bus_error)
+				return this.cpu.exception(2), this.cpu.a[7] -= 6, this.cpu.write32(this.bus_error, this.cpu.a[7]), this.cpu.a[7] -= 2, this.bus_error = 0, true;
 			let cause = 31 - Math.clz32(this.ram[0xe8800b] << 8 & this.ram[0xe88013] << 8 | this.ram[0xe8800d] & this.ram[0xe88015]);
 			if (cause >= 0 && this.cpu.interrupt(6, this.ram[0xe88017] & ~15 | cause))
 				return cause >= 8 ? (this.ram[0xe8800b] &= ~(1 << cause - 8)) : (this.ram[0xe8800d] &= ~(1 << cause)), true;
@@ -859,20 +860,20 @@ class X68000 {
 		const sx = this.view.getUint16(0xe80014), sy = this.view.getUint16(0xe80016);
 		if (~r2 & 0x20)
 			return;
-		if (diff === 1 && r2 & 0x40)
+		if (diff === 1 && r2 & 0x40 && this.ram[0xeb0808] & 2)
 			for (let px, p = 16, q = y + sy << 10 & 0xffc00, x = 0; x < cx; ++p, ++x)
 				(px = this.text[q | x + sx & 0x3ff]) && (this.temp[p] = px);
 		else
 			for (let p = 16, q = y + sy << 10 & 0xffc00, x = 0; x < cx; ++p, ++x)
 				this.temp[p] = this.text[q | x + sx & 0x3ff];
-		if (diff !== -1 || ~r2 & 0x40)
+		if (diff !== -1 || ~r2 & 0x40 || ~this.ram[0xeb0808] & 2)
 			for (let px, p = 1024 * (y + 16) + 16, q = 16, x = 0; x < cx; ++p, ++x)
 				(px = this.palette2[this.temp[q++]]) && (data[p] = px);
 	}
 
 	drawSprite(data, y) {
 		const cx = this.cxScreen, r1 = this.spri, r2 = this.view.getUint16(0xe82600), diff = (r1 >> 12 & 3) - (r1 >> 10 & 3);
-		if (~r2 & 0x40)
+		if (~r2 & 0x40 || ~this.ram[0xeb0808] & 2)
 			return;
 		if (diff !== -1 || ~r2 & 0x20)
 			this.temp.fill(0, 16, 16 + cx);
