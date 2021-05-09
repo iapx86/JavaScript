@@ -875,6 +875,7 @@ class X68000 {
 		const cx = this.cxScreen, r1 = this.spri, r2 = this.view.getUint16(0xe82600), diff = (r1 >> 12 & 3) - (r1 >> 10 & 3);
 		if (~r2 & 0x40 || ~this.ram[0xeb0808] & 2)
 			return;
+		(this.ram[0xe80029] ^ this.ram[0xeb0811]) & 4 && (this.ram[0xeb0811] & 4 ? (y <<= 1) : (y >>= 1));
 		if (diff !== -1 || ~r2 & 0x20)
 			this.temp.fill(0, 16, 16 + cx);
 		this.pri.fill(0xff);
