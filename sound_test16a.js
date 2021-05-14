@@ -50,7 +50,7 @@ class SoundTest {
 			else if (range(page, 0xe0, 0xe0, 0x1f))
 				this.cpu2.memorymap[page].read = () => { return this.command.length ? this.command.shift() : 0xff; };
 
-		this.cpu2.check_interrupt = () => { return this.cpu2_irq && this.cpu2.interrupt() ? (this.cpu2_irq = false, true) : false; };
+		this.cpu2.check_interrupt = () => { return this.cpu2_irq && this.cpu2.interrupt() && (this.cpu2_irq = false, true); };
 	}
 
 	execute(audio, length) {

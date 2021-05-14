@@ -199,57 +199,45 @@ export default class MC68000 extends Cpu {
 			}
 			return this.exception(4);
 		case 0o07:
-			switch (x) {
-			case 0:
-				switch (y) {
-				case 0: // ORI.B #<data>,Abs.W
-					return data = this.fetch16(), ea = this.fetch16s(), this.write8(this.or8(data, this.read8(ea)), ea);
-				case 1: // ORI.B #<data>,Abs.L
-					return data = this.fetch16(), ea = this.fetch32(), this.write8(this.or8(data, this.read8(ea)), ea);
-				case 4: // ORI #<data>,CCR
-					return void(this.sr |= this.fetch16() & 0xff);
-				}
-				return this.exception(4);
-			case 1:
-				switch (y) {
-				case 0: // ANDI.B #<data>,Abs.W
-					return data = this.fetch16(), ea = this.fetch16s(), this.write8(this.and8(data, this.read8(ea)), ea);
-				case 1: // ANDI.B #<data>,Abs.L
-					return data = this.fetch16(), ea = this.fetch32(), this.write8(this.and8(data, this.read8(ea)), ea);
-				case 4: // ANDI #<data>,CCR
-					return void(this.sr &= this.fetch16() | ~0xff);
-				}
-				return this.exception(4);
-			case 2:
-				switch (y) {
-				case 0: // SUBI.B #<data>,Abs.W
-					return data = this.fetch16(), ea = this.fetch16s(), this.write8(this.sub8(data, this.read8(ea)), ea);
-				case 1: // SUBI.B #<data>,Abs.L
-					return data = this.fetch16(), ea = this.fetch32(), this.write8(this.sub8(data, this.read8(ea)), ea);
-				}
-				return this.exception(4);
-			case 3:
-				switch (y) {
-				case 0: // ADDI.B #<data>,Abs.W
-					return data = this.fetch16(), ea = this.fetch16s(), this.write8(this.add8(data, this.read8(ea)), ea);
-				case 1: // ADDI.B #<data>,Abs.L
-					return data = this.fetch16(), ea = this.fetch32(), this.write8(this.add8(data, this.read8(ea)), ea);
-				}
-				return this.exception(4);
-			case 4: // BTST #<data>,Abs...
-				return y >= 4 ? this.exception(4) : (data = this.fetch16(), this.btst8(data, this.rop8()));
-			case 5:
-				switch (y) {
-				case 0: // EORI.B #<data>,Abs.W
-					return data = this.fetch16(), ea = this.fetch16s(), this.write8(this.eor8(data, this.read8(ea)), ea);
-				case 1: // EORI.B #<data>,Abs.L
-					return data = this.fetch16(), ea = this.fetch32(), this.write8(this.eor8(data, this.read8(ea)), ea);
-				case 4: // EORI #<data>,CCR
-					return void(this.sr ^= this.fetch16() & 0xff);
-				}
-				return this.exception(4);
-			case 6: // CMPI.B #<data>,Abs...
-				return y >= 2 ? this.exception(4) : (data = this.fetch16(), this.cmp8(data, this.rop8()));
+			switch (x << 3 | y) {
+			case 0o00: // ORI.B #<data>,Abs.W
+				return data = this.fetch16(), ea = this.fetch16s(), this.write8(this.or8(data, this.read8(ea)), ea);
+			case 0o01: // ORI.B #<data>,Abs.L
+				return data = this.fetch16(), ea = this.fetch32(), this.write8(this.or8(data, this.read8(ea)), ea);
+			case 0o04: // ORI #<data>,CCR
+				return void(this.sr |= this.fetch16() & 0xff);
+			case 0o10: // ANDI.B #<data>,Abs.W
+				return data = this.fetch16(), ea = this.fetch16s(), this.write8(this.and8(data, this.read8(ea)), ea);
+			case 0o11: // ANDI.B #<data>,Abs.L
+				return data = this.fetch16(), ea = this.fetch32(), this.write8(this.and8(data, this.read8(ea)), ea);
+			case 0o14: // ANDI #<data>,CCR
+				return void(this.sr &= this.fetch16() | ~0xff);
+			case 0o20: // SUBI.B #<data>,Abs.W
+				return data = this.fetch16(), ea = this.fetch16s(), this.write8(this.sub8(data, this.read8(ea)), ea);
+			case 0o21: // SUBI.B #<data>,Abs.L
+				return data = this.fetch16(), ea = this.fetch32(), this.write8(this.sub8(data, this.read8(ea)), ea);
+			case 0o30: // ADDI.B #<data>,Abs.W
+				return data = this.fetch16(), ea = this.fetch16s(), this.write8(this.add8(data, this.read8(ea)), ea);
+			case 0o31: // ADDI.B #<data>,Abs.L
+				return data = this.fetch16(), ea = this.fetch32(), this.write8(this.add8(data, this.read8(ea)), ea);
+			case 0o40: // BTST #<data>,Abs.W
+				return data = this.fetch16(), this.btst8(data, this.read8(this.fetch16s()));
+			case 0o41: // BTST #<data>,Abs.L
+				return data = this.fetch16(), this.btst8(data, this.read8(this.fetch32()));
+			case 0o42: // BTST #<data>,d(PC)
+				return data = this.fetch16(), this.btst8(data, this.read8(this.disp(this.pc)));
+			case 0o43: // BTST #<data>,d(PC,Xi)
+				return data = this.fetch16(), this.btst8(data, this.read8(this.index(this.pc)));
+			case 0o50: // EORI.B #<data>,Abs.W
+				return data = this.fetch16(), ea = this.fetch16s(), this.write8(this.eor8(data, this.read8(ea)), ea);
+			case 0o51: // EORI.B #<data>,Abs.L
+				return data = this.fetch16(), ea = this.fetch32(), this.write8(this.eor8(data, this.read8(ea)), ea);
+			case 0o54: // EORI #<data>,CCR
+				return void(this.sr ^= this.fetch16() & 0xff);
+			case 0o60: // CMPI.B #<data>,Abs.W
+				return data = this.fetch16(), this.cmp8(data, this.read8(this.fetch16s()));
+			case 0o61: // CMPI.B #<data>,Abs.L
+				return data = this.fetch16(), this.cmp8(data, this.read8(this.fetch32()));
 			}
 			return this.exception(4);
 		case 0o10:
@@ -361,63 +349,41 @@ export default class MC68000 extends Cpu {
 			}
 			return this.exception(4);
 		case 0o17:
-			switch (x) {
-			case 0:
-				switch (y) {
-				case 0: // ORI.W #<data>,Abs.W
-					return data = this.fetch16(), ea = this.fetch16s(), this.write16(this.or16(data, this.read16(ea)), ea);
-				case 1: // ORI.W #<data>,Abs.L
-					return data = this.fetch16(), ea = this.fetch32(), this.write16(this.or16(data, this.read16(ea)), ea);
-				case 4: // ORI #<data>,SR
-					return ~this.sr & 0x2000 ? this.exception(8) : void(this.sr |= this.fetch16());
-				}
-				return this.exception(4);
-			case 1:
-				switch (y) {
-				case 0: // ANDI.W #<data>,Abs.W
-					return data = this.fetch16(), ea = this.fetch16s(), this.write16(this.and16(data, this.read16(ea)), ea);
-				case 1: // ANDI.W #<data>,Abs.L
-					return data = this.fetch16(), ea = this.fetch32(), this.write16(this.and16(data, this.read16(ea)), ea);
-				case 4: // ANDI #<data>,SR
-					return ~this.sr & 0x2000 ? this.exception(8) : (this.sr &= this.fetch16(), void(~this.sr & 0x2000 && (this.ssp = this.a[7], this.a[7] = this.usp)));
-				}
-				return this.exception(4);
-			case 2:
-				switch (y) {
-				case 0: // SUBI.W #<data>,Abs.W
-					return data = this.fetch16(), ea = this.fetch16s(), this.write16(this.sub16(data, this.read16(ea)), ea);
-				case 1: // SUBI.W #<data>,Abs.L
-					return data = this.fetch16(), ea = this.fetch32(), this.write16(this.sub16(data, this.read16(ea)), ea);
-				}
-				return this.exception(4);
-			case 3:
-				switch (y) {
-				case 0: // ADDI.W #<data>,Abs.W
-					return data = this.fetch16(), ea = this.fetch16s(), this.write16(this.add16(data, this.read16(ea)), ea);
-				case 1: // ADDI.W #<data>,Abs.L
-					return data = this.fetch16(), ea = this.fetch32(), this.write16(this.add16(data, this.read16(ea)), ea);
-				}
-				return this.exception(4);
-			case 4:
-				switch (y) {
-				case 0: // BCHG #<data>,Abs.W
-					return data = this.fetch16(), ea = this.fetch16s(), this.write8(this.bchg8(data, this.read8(ea)), ea);
-				case 1: // BCHG #<data>,Abs.L
-					return data = this.fetch16(), ea = this.fetch32(), this.write8(this.bchg8(data, this.read8(ea)), ea);
-				}
-				return this.exception(4);
-			case 5:
-				switch (y) {
-				case 0: // EORI.W #<data>,Abs.W
-					return data = this.fetch16(), ea = this.fetch16s(), this.write16(this.eor16(data, this.read16(ea)), ea);
-				case 1: // EORI.W #<data>,Abs.L
-					return data = this.fetch16(), ea = this.fetch32(), this.write16(this.eor16(data, this.read16(ea)), ea);
-				case 4: // EORI #<data>,SR
-					return ~this.sr & 0x2000 ? this.exception(8) : (this.sr ^= this.fetch16(), void(~this.sr & 0x2000 && (this.ssp = this.a[7], this.a[7] = this.usp)));
-				}
-				return this.exception(4);
-			case 6: // CMPI.W #<data>,Abs...
-				return y >= 2 ? this.exception(4) : (data = this.fetch16(), this.cmp16(data, this.rop16()));
+			switch (x << 3 | y) {
+			case 0o00: // ORI.W #<data>,Abs.W
+				return data = this.fetch16(), ea = this.fetch16s(), this.write16(this.or16(data, this.read16(ea)), ea);
+			case 0o01: // ORI.W #<data>,Abs.L
+				return data = this.fetch16(), ea = this.fetch32(), this.write16(this.or16(data, this.read16(ea)), ea);
+			case 0o04: // ORI #<data>,SR
+				return ~this.sr & 0x2000 ? this.exception(8) : void(this.sr |= this.fetch16());
+			case 0o10: // ANDI.W #<data>,Abs.W
+				return data = this.fetch16(), ea = this.fetch16s(), this.write16(this.and16(data, this.read16(ea)), ea);
+			case 0o11: // ANDI.W #<data>,Abs.L
+				return data = this.fetch16(), ea = this.fetch32(), this.write16(this.and16(data, this.read16(ea)), ea);
+			case 0o14: // ANDI #<data>,SR
+				return ~this.sr & 0x2000 ? this.exception(8) : (this.sr &= this.fetch16(), void(~this.sr & 0x2000 && (this.ssp = this.a[7], this.a[7] = this.usp)));
+			case 0o20: // SUBI.W #<data>,Abs.W
+				return data = this.fetch16(), ea = this.fetch16s(), this.write16(this.sub16(data, this.read16(ea)), ea);
+			case 0o21: // SUBI.W #<data>,Abs.L
+				return data = this.fetch16(), ea = this.fetch32(), this.write16(this.sub16(data, this.read16(ea)), ea);
+			case 0o30: // ADDI.W #<data>,Abs.W
+				return data = this.fetch16(), ea = this.fetch16s(), this.write16(this.add16(data, this.read16(ea)), ea);
+			case 0o31: // ADDI.W #<data>,Abs.L
+				return data = this.fetch16(), ea = this.fetch32(), this.write16(this.add16(data, this.read16(ea)), ea);
+			case 0o40: // BCHG #<data>,Abs.W
+				return data = this.fetch16(), ea = this.fetch16s(), this.write8(this.bchg8(data, this.read8(ea)), ea);
+			case 0o41: // BCHG #<data>,Abs.L
+				return data = this.fetch16(), ea = this.fetch32(), this.write8(this.bchg8(data, this.read8(ea)), ea);
+			case 0o50: // EORI.W #<data>,Abs.W
+				return data = this.fetch16(), ea = this.fetch16s(), this.write16(this.eor16(data, this.read16(ea)), ea);
+			case 0o51: // EORI.W #<data>,Abs.L
+				return data = this.fetch16(), ea = this.fetch32(), this.write16(this.eor16(data, this.read16(ea)), ea);
+			case 0o54: // EORI #<data>,SR
+				return ~this.sr & 0x2000 ? this.exception(8) : (this.sr ^= this.fetch16(), void(~this.sr & 0x2000 && (this.ssp = this.a[7], this.a[7] = this.usp)));
+			case 0o60: // CMPI.W #<data>,Abs.W
+				return data = this.fetch16(), this.cmp16(data, this.read16(this.fetch16s()));
+			case 0o61: // CMPI.W #<data>,Abs.L
+				return data = this.fetch16(), this.cmp16(data, this.read16(this.fetch32()));
 			}
 			return this.exception(4);
 		case 0o20:
@@ -529,57 +495,35 @@ export default class MC68000 extends Cpu {
 			}
 			return this.exception(4);
 		case 0o27:
-			switch (x) {
-			case 0:
-				switch (y) {
-				case 0: // ORI.L #<data>,Abs.W
-					return data = this.fetch32(), ea = this.fetch16s(), this.write32(this.or32(data, this.read32(ea)), ea);
-				case 1: // ORI.L #<data>,Abs.L
-					return data = this.fetch32(), ea = this.fetch32(), this.write32(this.or32(data, this.read32(ea)), ea);
-				}
-				return this.exception(4);
-			case 1:
-				switch (y) {
-				case 0: // ANDI.L #<data>,Abs.W
-					return data = this.fetch32(), ea = this.fetch16s(), this.write32(this.and32(data, this.read32(ea)), ea);
-				case 1: // ANDI.L #<data>,Abs.L
-					return data = this.fetch32(), ea = this.fetch32(), this.write32(this.and32(data, this.read32(ea)), ea);
-				}
-				return this.exception(4);
-			case 2:
-				switch (y) {
-				case 0: // SUBI.L #<data>,Abs.W
-					return data = this.fetch32(), ea = this.fetch16s(), this.write32(this.sub32(data, this.read32(ea)), ea);
-				case 1: // SUBI.L #<data>,Abs.L
-					return data = this.fetch32(), ea = this.fetch32(), this.write32(this.sub32(data, this.read32(ea)), ea);
-				}
-				return this.exception(4);
-			case 3:
-				switch (y) {
-				case 0: // ADDI.L #<data>,Abs.W
-					return data = this.fetch32(), ea = this.fetch16s(), this.write32(this.add32(data, this.read32(ea)), ea);
-				case 1: // ADDI.L #<data>,Abs.L
-					return data = this.fetch32(), ea = this.fetch32(), this.write32(this.add32(data, this.read32(ea)), ea);
-				}
-				return this.exception(4);
-			case 4:
-				switch (y) {
-				case 0: // BCLR #<data>,Abs.W
-					return data = this.fetch16(), ea = this.fetch16s(), this.write8(this.bclr8(data, this.read8(ea)), ea);
-				case 1: // BCLR #<data>,Abs.L
-					return data = this.fetch16(), ea = this.fetch32(), this.write8(this.bclr8(data, this.read8(ea)), ea);
-				}
-				return this.exception(4);
-			case 5:
-				switch (y) {
-				case 0: // EORI.L #<data>,Abs.W
-					return data = this.fetch32(), ea = this.fetch16s(), this.write32(this.eor32(data, this.read32(ea)), ea);
-				case 1: // EORI.L #<data>,Abs.L
-					return data = this.fetch32(), ea = this.fetch32(), this.write32(this.eor32(data, this.read32(ea)), ea);
-				}
-				return this.exception(4);
-			case 6: // CMPI.L #<data>,Abs...
-				return y >= 2 ? this.exception(4) : (data = this.fetch32(), this.cmp32(data, this.rop32()));
+			switch (x << 3 | y) {
+			case 0o00: // ORI.L #<data>,Abs.W
+				return data = this.fetch32(), ea = this.fetch16s(), this.write32(this.or32(data, this.read32(ea)), ea);
+			case 0o01: // ORI.L #<data>,Abs.L
+				return data = this.fetch32(), ea = this.fetch32(), this.write32(this.or32(data, this.read32(ea)), ea);
+			case 0o10: // ANDI.L #<data>,Abs.W
+				return data = this.fetch32(), ea = this.fetch16s(), this.write32(this.and32(data, this.read32(ea)), ea);
+			case 0o11: // ANDI.L #<data>,Abs.L
+				return data = this.fetch32(), ea = this.fetch32(), this.write32(this.and32(data, this.read32(ea)), ea);
+			case 0o20: // SUBI.L #<data>,Abs.W
+				return data = this.fetch32(), ea = this.fetch16s(), this.write32(this.sub32(data, this.read32(ea)), ea);
+			case 0o21: // SUBI.L #<data>,Abs.L
+				return data = this.fetch32(), ea = this.fetch32(), this.write32(this.sub32(data, this.read32(ea)), ea);
+			case 0o30: // ADDI.L #<data>,Abs.W
+				return data = this.fetch32(), ea = this.fetch16s(), this.write32(this.add32(data, this.read32(ea)), ea);
+			case 0o31: // ADDI.L #<data>,Abs.L
+				return data = this.fetch32(), ea = this.fetch32(), this.write32(this.add32(data, this.read32(ea)), ea);
+			case 0o40: // BCLR #<data>,Abs.W
+				return data = this.fetch16(), ea = this.fetch16s(), this.write8(this.bclr8(data, this.read8(ea)), ea);
+			case 0o41: // BCLR #<data>,Abs.L
+				return data = this.fetch16(), ea = this.fetch32(), this.write8(this.bclr8(data, this.read8(ea)), ea);
+			case 0o50: // EORI.L #<data>,Abs.W
+				return data = this.fetch32(), ea = this.fetch16s(), this.write32(this.eor32(data, this.read32(ea)), ea);
+			case 0o51: // EORI.L #<data>,Abs.L
+				return data = this.fetch32(), ea = this.fetch32(), this.write32(this.eor32(data, this.read32(ea)), ea);
+			case 0o60: // CMPI.L #<data>,Abs.W
+				return data = this.fetch32(), this.cmp32(data, this.read32(this.fetch16s()));
+			case 0o61: // CMPI.L #<data>,Abs.L
+				return data = this.fetch32(), this.cmp32(data, this.read32(this.fetch32()));
 			}
 			return this.exception(4);
 		case 0o30: // BSET #<data>,Dy
@@ -1309,49 +1253,31 @@ export default class MC68000 extends Cpu {
 			}
 			return this.exception(4);
 		case 0o07:
-			switch (x) {
-			case 0:
-				switch (y) {
-				case 0: // NEGX.B Abs.W
-					return ea = this.fetch16s(), this.write8(this.negx8(this.read8(ea)), ea);
-				case 1: // NEGX.B Abs.L
-					return ea = this.fetch32(), this.write8(this.negx8(this.read8(ea)), ea);
-				}
-				return this.exception(4);
-			case 1:
-				switch (y) {
-				case 0: // CLR.B Abs.W
-					return ea = this.fetch16s(), this.read8(ea), this.write8(this.clr(), ea);
-				case 1: // CLR.B Abs.L
-					return ea = this.fetch32(), this.read8(ea), this.write8(this.clr(), ea);
-				}
-				return this.exception(4);
-			case 2:
-				switch (y) {
-				case 0: // NEG.B Abs.W
-					return ea = this.fetch16s(), this.write8(this.neg8(this.read8(ea)), ea);
-				case 1: // NEG.B Abs.L
-					return ea = this.fetch32(), this.write8(this.neg8(this.read8(ea)), ea);
-				}
-				return this.exception(4);
-			case 3:
-				switch (y) {
-				case 0: // NOT.B Abs.W
-					return ea = this.fetch16s(), this.write8(this.or8(0, ~this.read8(ea)), ea);
-				case 1: // NOT.B Abs.L
-					return ea = this.fetch32(), this.write8(this.or8(0, ~this.read8(ea)), ea);
-				}
-				return this.exception(4);
-			case 4:
-				switch (y) {
-				case 0: // NBCD Abs.W
-					return ea = this.fetch16s(), this.write8(this.nbcd(this.read8(ea)), ea);
-				case 1: // NBCD Abs.L
-					return ea = this.fetch32(), this.write8(this.nbcd(this.read8(ea)), ea);
-				}
-				return this.exception(4);
-			case 5: // TST.B Abs...
-				return y >= 2 ? this.exception(4) : void(this.or8(0, this.rop8()));
+			switch (x << 3 | y) {
+			case 0o00: // NEGX.B Abs.W
+				return ea = this.fetch16s(), this.write8(this.negx8(this.read8(ea)), ea);
+			case 0o01: // NEGX.B Abs.L
+				return ea = this.fetch32(), this.write8(this.negx8(this.read8(ea)), ea);
+			case 0o10: // CLR.B Abs.W
+				return ea = this.fetch16s(), this.read8(ea), this.write8(this.clr(), ea);
+			case 0o11: // CLR.B Abs.L
+				return ea = this.fetch32(), this.read8(ea), this.write8(this.clr(), ea);
+			case 0o20: // NEG.B Abs.W
+				return ea = this.fetch16s(), this.write8(this.neg8(this.read8(ea)), ea);
+			case 0o21: // NEG.B Abs.L
+				return ea = this.fetch32(), this.write8(this.neg8(this.read8(ea)), ea);
+			case 0o30: // NOT.B Abs.W
+				return ea = this.fetch16s(), this.write8(this.or8(0, ~this.read8(ea)), ea);
+			case 0o31: // NOT.B Abs.L
+				return ea = this.fetch32(), this.write8(this.or8(0, ~this.read8(ea)), ea);
+			case 0o40: // NBCD Abs.W
+				return ea = this.fetch16s(), this.write8(this.nbcd(this.read8(ea)), ea);
+			case 0o41: // NBCD Abs.L
+				return ea = this.fetch32(), this.write8(this.nbcd(this.read8(ea)), ea);
+			case 0o50: // TST.B Abs.W
+				return void(this.or8(0, this.read8(this.fetch16s())));
+			case 0o51: // TST.B Abs.L
+				return void(this.or8(0, this.read8(this.fetch32())));
 			}
 			return this.exception(4);
 		case 0o10:
@@ -1479,43 +1405,35 @@ export default class MC68000 extends Cpu {
 			}
 			return this.exception(4);
 		case 0o17:
-			switch (x) {
-			case 0:
-				switch (y) {
-				case 0: // NEGX.W Abs.W
-					return ea = this.fetch16s(), this.write16(this.negx16(this.read16(ea)), ea);
-				case 1: // NEGX.W Abs.L
-					return ea = this.fetch32(), this.write16(this.negx16(this.read16(ea)), ea);
-				}
-				return this.exception(4);
-			case 1:
-				switch (y) {
-				case 0: // CLR.W Abs.W
-					return ea = this.fetch16s(), this.read16(ea), this.write16(this.clr(), ea);
-				case 1: // CLR.W Abs.L
-					return ea = this.fetch32(), this.read16(ea), this.write16(this.clr(), ea);
-				}
-				return this.exception(4);
-			case 2:
-				switch (y) {
-				case 0: // NEG.W Abs.W
-					return ea = this.fetch16s(), this.write16(this.neg16(this.read16(ea)), ea);
-				case 1: // NEG.W Abs.L
-					return ea = this.fetch32(), this.write16(this.neg16(this.read16(ea)), ea);
-				}
-				return this.exception(4);
-			case 3:
-				switch (y) {
-				case 0: // NOT.W Abs.W
-					return ea = this.fetch16s(), this.write16(this.or16(0, ~this.read16(ea)), ea);
-				case 1: // NOT.W Abs.L
-					return ea = this.fetch32(), this.write16(this.or16(0, ~this.read16(ea)), ea);
-				}
-				return this.exception(4);
-			case 4: // PEA Abs...
-				return y >= 4 ? this.exception(4) : (ea = this.lea(), this.a[7] -= 4, this.write32(ea, this.a[7]));
-			case 5: // TST.W Abs...
-				return y >= 2 ? this.exception(4) : void(this.or16(0, this.rop16()));
+			switch (x << 3 | y) {
+			case 0o00: // NEGX.W Abs.W
+				return ea = this.fetch16s(), this.write16(this.negx16(this.read16(ea)), ea);
+			case 0o01: // NEGX.W Abs.L
+				return ea = this.fetch32(), this.write16(this.negx16(this.read16(ea)), ea);
+			case 0o10: // CLR.W Abs.W
+				return ea = this.fetch16s(), this.read16(ea), this.write16(this.clr(), ea);
+			case 0o11: // CLR.W Abs.L
+				return ea = this.fetch32(), this.read16(ea), this.write16(this.clr(), ea);
+			case 0o20: // NEG.W Abs.W
+				return ea = this.fetch16s(), this.write16(this.neg16(this.read16(ea)), ea);
+			case 0o21: // NEG.W Abs.L
+				return ea = this.fetch32(), this.write16(this.neg16(this.read16(ea)), ea);
+			case 0o30: // NOT.W Abs.W
+				return ea = this.fetch16s(), this.write16(this.or16(0, ~this.read16(ea)), ea);
+			case 0o31: // NOT.W Abs.L
+				return ea = this.fetch32(), this.write16(this.or16(0, ~this.read16(ea)), ea);
+			case 0o40: // PEA Abs.W
+				return ea = this.fetch16s(), this.a[7] -= 4, this.write32(ea, this.a[7]);
+			case 0o41: // PEA Abs.L
+				return ea = this.fetch32(), this.a[7] -= 4, this.write32(ea, this.a[7]);
+			case 0o42: // PEA d(PC)
+				return ea = this.disp(this.pc), this.a[7] -= 4, this.write32(ea, this.a[7]);
+			case 0o43: // PEA d(PC,Xi)
+				return ea = this.index(this.pc), this.a[7] -= 4, this.write32(ea, this.a[7]);
+			case 0o50: // TST.W Abs.W
+				return void(this.or16(0, this.read16(this.fetch16s())));
+			case 0o51: // TST.W Abs.L
+				return void(this.or16(0, this.read16(this.fetch32())));
 			}
 			return this.exception(4);
 		case 0o20:
@@ -1627,47 +1545,43 @@ export default class MC68000 extends Cpu {
 			}
 			return;
 		case 0o27:
-			switch (x) {
-			case 0:
-				switch (y) {
-				case 0: // NEGX.L Abs.W
-					return ea = this.fetch16s(), this.write32(this.negx32(this.read32(ea)), ea);
-				case 1: // NEGX.L Abs.L
-					return ea = this.fetch32(), this.write32(this.negx32(this.read32(ea)), ea);
-				}
-				return this.exception(4);
-			case 1:
-				switch (y) {
-				case 0: // CLR.L Abs.W
-					return ea = this.fetch16s(), this.read32(ea), this.write32(this.clr(), ea);
-				case 1: // CLR.L Abs.L
-					return ea = this.fetch32(), this.read32(ea), this.write32(this.clr(), ea);
-				}
-				return this.exception(4);
-			case 2:
-				switch (y) {
-				case 0: // NEG.L Abs.W
-					return ea = this.fetch16s(), this.write32(this.neg32(this.read32(ea)), ea);
-				case 1: // NEG.L Abs.L
-					return ea = this.fetch32(), this.write32(this.neg32(this.read32(ea)), ea);
-				}
-				return this.exception(4);
-			case 3:
-				switch (y) {
-				case 0: // NOT.L Abs.W
-					return ea = this.fetch16s(), this.write32(this.or32(0, ~this.read32(ea)), ea);
-				case 1: // NOT.L Abs.L
-					return ea = this.fetch32(), this.write32(this.or32(0, ~this.read32(ea)), ea);
-				}
-				return this.exception(4);
-			case 4: // MOVEM.W <register list>,Abs...
-				return y >= 2 ? this.exception(4) : this.movem16rm();
-			case 5: // TST.L Abs...
-				return y >= 2 ? this.exception(4) : void(this.or32(0, this.rop32()));
-			case 6: // MOVEM.W Abs...,<register list>
-				return y >= 4 ? this.exception(4) : this.movem16mr();
-			case 7: // JSR Abs...
-				return y >= 4 ? this.exception(4) : (ea = this.lea(), this.a[7] -= 4, this.write32(this.pc, this.a[7]), void(this.pc = ea));
+			switch (x << 3 | y) {
+			case 0o00: // NEGX.L Abs.W
+				return ea = this.fetch16s(), this.write32(this.negx32(this.read32(ea)), ea);
+			case 0o01: // NEGX.L Abs.L
+				return ea = this.fetch32(), this.write32(this.negx32(this.read32(ea)), ea);
+			case 0o10: // CLR.L Abs.W
+				return ea = this.fetch16s(), this.read32(ea), this.write32(this.clr(), ea);
+			case 0o11: // CLR.L Abs.L
+				return ea = this.fetch32(), this.read32(ea), this.write32(this.clr(), ea);
+			case 0o20: // NEG.L Abs.W
+				return ea = this.fetch16s(), this.write32(this.neg32(this.read32(ea)), ea);
+			case 0o21: // NEG.L Abs.L
+				return ea = this.fetch32(), this.write32(this.neg32(this.read32(ea)), ea);
+			case 0o30: // NOT.L Abs.W
+				return ea = this.fetch16s(), this.write32(this.or32(0, ~this.read32(ea)), ea);
+			case 0o31: // NOT.L Abs.L
+				return ea = this.fetch32(), this.write32(this.or32(0, ~this.read32(ea)), ea);
+			case 0o40: // MOVEM.W <register list>,Abs.W
+			case 0o41: // MOVEM.W <register list>,Abs.L
+				return this.movem16rm();
+			case 0o50: // TST.L Abs.W
+				return void(this.or32(0, this.read32(this.fetch16s())));
+			case 0o51: // TST.L Abs.L
+				return void(this.or32(0, this.read32(this.fetch32())));
+			case 0o60: // MOVEM.W Abs.W,<register list>
+			case 0o61: // MOVEM.W Abs.L,<register list>
+			case 0o62: // MOVEM.W d(PC),<register list>
+			case 0o63: // MOVEM.W d(PC,Xi),<register list>
+				return this.movem16mr();
+			case 0o70: // JSR Abs.W
+				return ea = this.fetch16s(), this.a[7] -= 4, this.write32(this.pc, this.a[7]), void(this.pc = ea);
+			case 0o71: // JSR Abs.L
+				return ea = this.fetch32(), this.a[7] -= 4, this.write32(this.pc, this.a[7]), void(this.pc = ea);
+			case 0o72: // JSR d(PC)
+				return ea = this.disp(this.pc), this.a[7] -= 4, this.write32(this.pc, this.a[7]), void(this.pc = ea);
+			case 0o73: // JSR d(PC,Xi)
+				return ea = this.index(this.pc), this.a[7] -= 4, this.write32(this.pc, this.a[7]), void(this.pc = ea);
 			}
 			return;
 		case 0o30:
@@ -1767,35 +1681,45 @@ export default class MC68000 extends Cpu {
 			}
 			return this.exception(4);
 		case 0o37:
-			switch (x) {
-			case 0:
-				switch (y) {
-				case 0: // MOVE SR,Abs.W
-					return ea = this.fetch16s(), this.read16(ea), this.write16(this.sr, ea);
-				case 1: // MOVE SR,Abs.L
-					return ea = this.fetch32(), this.read16(ea), this.write16(this.sr, ea);
-				}
+			switch (x << 3 | y) {
+			case 0o00: // MOVE SR,Abs.W
+				return ea = this.fetch16s(), this.read16(ea), this.write16(this.sr, ea);
+			case 0o01: // MOVE SR,Abs.L
+				return ea = this.fetch32(), this.read16(ea), this.write16(this.sr, ea);
+			case 0o20: // MOVE Abs.W,CCR
+			case 0o21: // MOVE Abs.L,CCR
+			case 0o22: // MOVE d(PC),CCR
+			case 0o23: // MOVE d(PC,Xi),CCR
+			case 0o24: // MOVE #<data>,CCR
+				return void(this.sr = this.sr & ~0xff | this.rop16() & 0xff);
+			case 0o30: // MOVE Abs.W,SR
+			case 0o31: // MOVE Abs.L,SR
+			case 0o32: // MOVE d(PC),SR
+			case 0o33: // MOVE d(PC,Xi),SR
+			case 0o34: // MOVE #<data>,SR
+				return ~this.sr & 0x2000 ? this.exception(8) : (this.sr = this.rop16(), void(~this.sr & 0x2000 && (this.ssp = this.a[7], this.a[7] = this.usp)));
+			case 0o40: // MOVEM.L <register list>,Abs.W
+			case 0o41: // MOVEM.L <register list>,Abs.L
+				return this.movem32rm();
+			case 0o50: // TAS Abs.W
+				return ea = this.fetch16s(), this.write8(this.or8(0, this.read8(ea)) | 0x80, ea);
+			case 0o51: // TAS Abs.L
+				return ea = this.fetch32(), this.write8(this.or8(0, this.read8(ea)) | 0x80, ea);
+			case 0o54: // ILLEGAL
 				return this.exception(4);
-			case 2: // MOVE Abs...,CCR
-				return y >= 5 ? this.exception(4) : void(this.sr = this.sr & ~0xff | this.rop16() & 0xff);
-			case 3: // MOVE Abs...,SR
-				return y >= 5 ? this.exception(4) : ~this.sr & 0x2000 ? this.exception(8) : (this.sr = this.rop16(), void(~this.sr & 0x2000 && (this.ssp = this.a[7], this.a[7] = this.usp)));
-			case 4: // MOVEM.L <register list>,Abs...
-				return y >= 2 ? this.exception(4) : this.movem32rm();
-			case 5:
-				switch (y) {
-				case 0: // TAS Abs.W
-					return ea = this.fetch16s(), this.write8(this.or8(0, this.read8(ea)) | 0x80, ea);
-				case 1: // TAS Abs.L
-					return ea = this.fetch32(), this.write8(this.or8(0, this.read8(ea)) | 0x80, ea);
-				case 4: // ILLEGAL
-					return this.exception(4);
-				}
-				return this.exception(4);
-			case 6: // MOVEM.L Abs...,<register list>
-				return y >= 4 ? this.exception(4) : this.movem32mr();
-			case 7: // JMP Abs...
-				return y >= 4 ? this.exception(4) : void(this.pc = this.lea());
+			case 0o60: // MOVEM.L Abs.W,<register list>
+			case 0o61: // MOVEM.L Abs.L,<register list>
+			case 0o62: // MOVEM.L d(PC),<register list>
+			case 0o63: // MOVEM.L d(PC,Xi),<register list>
+				return this.movem32mr();
+			case 0o70: // JMP Abs.W
+				return void(this.pc = this.fetch16s());
+			case 0o71: // JMP Abs.L
+				return void(this.pc = this.fetch32());
+			case 0o72: // JMP d(PC)
+				return void(this.pc = this.disp(this.pc));
+			case 0o73: // JMP d(PC,Xi)
+				return void(this.pc = this.index(this.pc));
 			}
 			return this.exception(4);
 		case 0o60: // CHK Dy,Dx
@@ -2898,9 +2822,9 @@ export default class MC68000 extends Cpu {
 			return ea = this.index(this.a[y]), this.write16(this.and16(this.d[x], this.read16(ea)), ea);
 		case 0o57:
 			switch (y) {
-			case 0: // AND.W Dx,Abs...
+			case 0: // AND.W Dx,Abs.W
 				return ea = this.fetch16s(), this.write16(this.and16(this.d[x], this.read16(ea)), ea);
-			case 1: // AND.W Dx,Abs...
+			case 1: // AND.W Dx,Abs.L
 				return ea = this.fetch32(), this.write16(this.and16(this.d[x], this.read16(ea)), ea);
 			}
 			return this.exception(4);
