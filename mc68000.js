@@ -1776,7 +1776,7 @@ export default class MC68000 extends Cpu {
 		case 0o10: // ADDQ.W #<data>,Dy
 			return void(this.d[y] = this.d[y] & ~0xffff | this.add16(data, this.d[y]));
 		case 0o11: // ADDQ.W #<data>,Ay
-			return void(this.a[y] = this.adda32(data, this.a[y]));
+			return void(this.a[y] += data);
 		case 0o12: // ADDQ.W #<data>,(Ay)
 			return this.write16(this.add16(data, this.read16(this.a[y])), this.a[y]);
 		case 0o13: // ADDQ.W #<data>,(Ay)+
@@ -1798,7 +1798,7 @@ export default class MC68000 extends Cpu {
 		case 0o20: // ADDQ.L #<data>,Dy
 			return void(this.d[y] = this.add32(data, this.d[y]));
 		case 0o21: // ADDQ.L #<data>,Ay
-			return void(this.a[y] = this.adda32(data, this.a[y]));
+			return void(this.a[y] += data);
 		case 0o22: // ADDQ.L #<data>,(Ay)
 			return this.write32(this.add32(data, this.read32(this.a[y])), this.a[y]);
 		case 0o23: // ADDQ.L #<data>,(Ay)+
@@ -2016,7 +2016,7 @@ export default class MC68000 extends Cpu {
 		case 0o50: // SUBQ.W #<data>,Dy
 			return void(this.d[y] = this.d[y] & ~0xffff | this.sub16(data, this.d[y]));
 		case 0o51: // SUBQ.W #<data>,Ay
-			return void(this.a[y] = this.suba32(data, this.a[y]));
+			return void(this.a[y] -= data);
 		case 0o52: // SUBQ.W #<data>,(Ay)
 			return this.write16(this.sub16(data, this.read16(this.a[y])), this.a[y]);
 		case 0o53: // SUBQ.W #<data>,(Ay)+
@@ -2038,7 +2038,7 @@ export default class MC68000 extends Cpu {
 		case 0o60: // SUBQ.L #<data>,Dy
 			return void(this.d[y] = this.sub32(data, this.d[y]));
 		case 0o61: // SUBQ.L #<data>,Ay
-			return void(this.a[y] = this.suba32(data, this.a[y]));
+			return void(this.a[y] -= data);
 		case 0o62: // SUBQ.L #<data>,(Ay)
 			return this.write32(this.sub32(data, this.read32(this.a[y])), this.a[y]);
 		case 0o63: // SUBQ.L #<data>,(Ay)+
@@ -3466,10 +3466,6 @@ export default class MC68000 extends Cpu {
 		return this.sr = this.sr & ~0x1f | c >> 27 & 0x10 | r >> 28 & 8 | !r << 2 | v >> 30 & 2 | c >> 31 & 1, r;
 	}
 
-	suba32(src, dst) {
-		return dst - src | 0;
-	}
-
 	add8(src, dst) {
 		const r = dst + src & 0xff, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
 		return this.sr = this.sr & ~0x1f | c >> 3 & 0x10 | r >> 4 & 8 | !r << 2 | v >> 6 & 2 | c >> 7 & 1, r;
@@ -3483,10 +3479,6 @@ export default class MC68000 extends Cpu {
 	add32(src, dst) {
 		const r = dst + src | 0, v = dst & src & ~r | ~dst & ~src & r, c = dst & src | src & ~r | ~r & dst;
 		return this.sr = this.sr & ~0x1f | c >> 27 & 0x10 | r >> 28 & 8 | !r << 2 | v >> 30 & 2 | c >> 31 & 1, r;
-	}
-
-	adda32(src, dst) {
-		return dst + src | 0;
 	}
 
 	btst8(src, dst) {

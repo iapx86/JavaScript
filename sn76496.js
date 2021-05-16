@@ -4,6 +4,8 @@
  *
  */
 
+import {seq} from './utils.js';
+
 export default class SN76496 {
 	rate;
 	gain;
@@ -47,12 +49,9 @@ export default class SN76496 {
 		this.output = 0;
 		if (this.mute)
 			return;
-		const reg = this.reg, nvol = ~reg[7] & 0xf;
-		this.channel.forEach((ch, i) => {
-			const vol = ~reg[i * 2 + 1] & 0xf;
-			this.output += ((ch.output & 1) * 2 - 1) * (vol ? Math.pow(10, (vol - 15) / 10) : 0) * this.gain;
-		});
-		this.output += ((this.rng & 1) * 2 - 1) * (nvol ? Math.pow(10, (nvol - 15) / 10) : 0) * this.gain;
+		this.channel.forEach((ch, i) => this.output += ((ch.output & 1) * 2 - 1) * vol[this.reg[i * 2 + 1] & 15] * this.gain);
+		this.output += ((this.rng & 1) * 2 - 1) * vol[this.reg[7] & 15] * this.gain;
 	}
 }
 
+const vol = Float64Array.from(seq(16), i => i < 15 ? Math.pow(10, -i / 10) : 0);

@@ -4,6 +4,8 @@
  *
  */
 
+import {seq} from './utils.js';
+
 export default class K054539 {
 	pcm;
 	clock;
@@ -133,7 +135,8 @@ outer:			switch (reg[0x200 | i << 1] & 0x2c) {
 		this.output = 0;
 		if (~reg[0x22f] & 1)
 			return;
-		this.channel.forEach((ch, i) => ch.play && (this.output += ch.output / 32767 * Math.pow(10, -36 / 0x40 / 20 * reg[3 | i << 5]) * this.gain));
+		this.channel.forEach((ch, i) => ch.play && (this.output += ch.output / 32767 * vol[reg[3 | i << 5]] * this.gain));
 	}
 }
 
+const vol = Float64Array.from(seq(256), i => Math.pow(10, -36 / 0x40 / 20 * i));

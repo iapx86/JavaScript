@@ -4,6 +4,8 @@
  *
  */
 
+import {seq} from './utils.js';
+
 export default class AY_3_8910 {
 	rate;
 	gain;
@@ -29,7 +31,7 @@ export default class AY_3_8910 {
 	}
 
 	read(addr) {
-		return this.reg[addr & 0xf];
+		return this.reg[addr & 15];
 	}
 
 	write(addr, data) {
@@ -38,7 +40,7 @@ export default class AY_3_8910 {
 
 	execute(rate) {
 		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate) {
-			const reg = this.reg, nfreq = reg[6] & 0x1f, efreq = reg[11] | reg[12] << 8, etype = reg[13];
+			const reg = this.reg, nfreq = reg[6] & 31, efreq = reg[11] | reg[12] << 8, etype = reg[13];
 			this.channel.forEach((ch, i) => { ch.freq = reg[1 + i * 2] << 8 & 0xf00 | reg[i * 2], ++ch.count >= ch.freq && (ch.output = ~ch.output, ch.count = 0); });
 			++this.ncount >= nfreq << 1 && (this.rng = (this.rng >> 16 ^ this.rng >> 13 ^ 1) & 1 | this.rng << 1, this.ncount = 0);
 			++this.ecount >= efreq && (this.step += ((this.step < 16) | etype >> 3 & ~etype & 1) - (this.step >= 47) * 32, this.ecount = 0);
@@ -52,9 +54,9 @@ export default class AY_3_8910 {
 		const reg = this.reg, etype = reg[13];
 		const evol = (~this.step ^ ((((etype ^ etype >> 1) & this.step >> 4 ^ ~etype >> 2) & 1) - 1)) & (~etype >> 3 & this.step >> 4 & 1) - 1 & 15;
 		this.channel.forEach((ch, i) => {
-			const vol = reg[8 + i] >> 4 & 1 ? evol : reg[8 + i] & 0xf;
-			this.output += (((!ch.freq | reg[7] >> i | ch.output) & (reg[7] >> i + 3 | this.rng) & 1) * 2 - 1) * (vol ? Math.pow(10, (vol - 15) / 10) : 0) * this.gain;
+			this.output += (((!ch.freq | reg[7] >> i | ch.output) & (reg[7] >> i + 3 | this.rng) & 1) * 2 - 1) * vol[reg[8 + i] >> 4 & 1 ? evol : reg[8 + i] & 15] * this.gain;
 		});
 	}
 }
 
+const vol = Float64Array.from(seq(16), i => i ? Math.pow(10, (i - 15) / 10) : 0);

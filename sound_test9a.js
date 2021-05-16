@@ -25,6 +25,8 @@ class SoundTest {
 
 	ram = new Uint8Array(0x800).addBase();
 	command = [];
+	cpu_command = 0xff;
+	cpu_nmi = false;
 
 	bitmap = new Int32Array(this.width * this.height).fill(0xff000000);
 	updated = false;
@@ -50,12 +52,14 @@ class SoundTest {
 				case 0:
 					return addr & 1 ? sound[0].status : 0xff;
 				case 1:
-					return this.command.length ? this.command.shift() : 0xff;
+					return this.cpu_command;
 				}
 				return 0xff;
 			};
 			this.cpu.iomap[i].write = (addr, data) => { addr >> 6 & 3 ? void(0) : ~addr & 1 ? void(sound[0].addr = data) : sound[0].write(data); };
 		}
+
+		this.cpu.check_interrupt = () => { return this.cpu_nmi && (this.cpu_nmi = false, this.cpu.non_maskable_interrupt()); };
 	}
 
 	execute(audio, length) {
@@ -63,7 +67,7 @@ class SoundTest {
 		const update = () => { this.makeBitmap(true), this.updateStatus(), this.updateInput(); };
 		for (let i = 0; !this.updated && i < tick_max; i++) {
 			this.cpu.execute(tick_rate);
-			this.timer.execute(tick_rate, () => { update(), this.command.length && this.cpu.non_maskable_interrupt(); });
+			this.timer.execute(tick_rate, update);
 			sound[0].execute(tick_rate);
 			sound[1].execute(tick_rate);
 			audio.execute(tick_rate);
@@ -75,6 +79,10 @@ class SoundTest {
 	}
 
 	updateStatus() {
+		// コマンド処理
+		if (this.command.length && !this.cpu_nmi)
+			this.cpu_command = this.command.shift(), this.cpu_nmi = true;
+
 		// リセット処理
 		if (this.fReset) {
 			this.fReset = false;
