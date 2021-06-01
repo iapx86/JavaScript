@@ -149,10 +149,11 @@ class OPM {
 	}
 
 	Noise() {
-		this.noisecount += 2;
-		if (this.noisecount >= 32) {
+		this.noisecount += 2 << YM.RATIOBITS;
+		if (this.noisecount >= 32 << YM.RATIOBITS) {
 			let e = 32 - (31 & this.noisedelta);
-			1 === e && (e = 2), this.noisecount -= e, this.noise = this.noise >> 1 ^ (1 & this.noise ? 33800 : 0);
+			1 === e && (e = 2), this.noisecount -= e << YM.RATIOBITS, 31 === (31 & this.noisedelta) && (this.noisecount -= YM.RATIOBITS);
+			this.noise = this.noise >> 1 ^ (1 & this.noise ? 33800 : 0);
 		}
 		return this.noise;
 	}

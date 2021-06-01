@@ -81,7 +81,7 @@ class SoundTest {
 			this.fReset = false;
 			this.nSound = 0;
 			this.ram2.fill(0);
-			this.ram2.set(PRG.subarray(0x4e000, 0x57713));
+			this.ram2.set(PRG.subarray(0xe000, 0x17713));
 			this.command.splice(0);
 			this.cpu2.reset();
 		}

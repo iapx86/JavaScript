@@ -4,8 +4,8 @@
  *
  */
 
-const LFOENTS = 256, CLENTS = 8192, OPSINBITS = 10, OPSINENTS = 1 << OPSINBITS, EG_BOTTOM = 955, OpType = {typeN: 0, typeM: 1};
-export const YM = {OpType};
+const LFOENTS = 256, CLENTS = 8192, OPSINBITS = 10, OPSINENTS = 1 << OPSINBITS, PGBITS = 9, RATIOBITS = 7, EG_BOTTOM = 955, OpType = {typeN: 0, typeM: 1};
+export const YM = {RATIOBITS, OpType};
 
 export class Channel4 {
 	op = [new Operator, new Operator, new Operator, new Operator];
@@ -211,9 +211,9 @@ class Operator {
 				this.SetEGRate(Math.min(63, this.rr_ + this.key_scale_rate_));
 				break;
 			}
-			if (this.ssg_type_ && this.eg_phase_ !== 'release') {
+			if (this.ssg_type_ && 'release' !== this.eg_phase_) {
 				let t = this.ar_ >= (this.ssg_type_ === 8 || this.ssg_type_ === 12 ? 56 : 60), e = ssgenvtable[this.ssg_type_ & 7][t][this.ssg_phase_];
-				this.ssg_offset_ = e[0] * 0x200, this.ssg_vector_ = e[1];
+				this.ssg_offset_ = 512 * e[0], this.ssg_vector_ = e[1];
 			}
 			this.ams_ = amtable[this.type_][this.amon_ ? this.ms_ >> 4 & 3 : 0], this.EGUpdate();
 		}
@@ -224,13 +224,13 @@ class Operator {
 		case 'attack':
 			this.tl_ = this.tl_latch_;
 			if (this.ssg_type_) {
-				this.ssg_phase_ += + 1;
+				this.ssg_phase_ += 1;
 				if (this.ssg_phase_ > 2)
 					this.ssg_phase_ = 1;
-				let s = this.ar_ >= (this.ssg_type_ === 8 || this.ssg_type_ === 12 ? 56 : 60), h = ssgenvtable[this.ssg_type_ & 7][s][this.ssg_phase_];
+				let s = this.ar_ >= (this.ssg_type_ === 8 || this.ssg_type_ === 12 ? 56 : 60), h = ssgenvtable[7 & this.ssg_type_][s][this.ssg_phase_];
 				this.ssg_offset_ = h[0] * 0x200, this.ssg_vector_ = h[1];
 			}
-			if (this.ar_ + this.key_scale_rate_ < 62) {
+			if (62 > this.ar_ + this.key_scale_rate_) {
 				this.SetEGRate(this.ar_ ? Math.min(63, this.ar_ + this.key_scale_rate_) : 0), this.eg_phase_ = 'attack';
 				break;
 			} // fallthrough
@@ -247,7 +247,7 @@ class Operator {
 		case 'release':
 			if (this.ssg_type_)
 				this.eg_level_ = this.eg_level_ * this.ssg_vector_ + this.ssg_offset_, this.ssg_vector_ = 1, this.ssg_offset_ = 0;
-			if (this.eg_phase_ === 'attack' || this.eg_level_ < EG_BOTTOM) {
+			if ('attack' === this.eg_phase_ || EG_BOTTOM > this.eg_level_) {
 				this.eg_level_on_next_phase_ = 1024, this.SetEGRate(Math.min(63, this.rr_ + this.key_scale_rate_)), this.eg_phase_ = 'release';
 				break;
 			} // fallthrough
@@ -257,7 +257,7 @@ class Operator {
 		}
 	}
 
-	LogToLin(i) { return i < CLENTS ? cltable[i] : 0; }
+	LogToLin(i) { return CLENTS > i ? cltable[i] : 0; }
 
 	EGUpdate() {
 		if (!this.ssg_type_)
@@ -266,11 +266,11 @@ class Operator {
 			this.eg_out_ = Math.min(this.tl_out_ + this.eg_level_ * this.ssg_vector_ + this.ssg_offset_, 1023) << 3;
 	}
 
-	SetEGRate(t) { this.eg_rate_ = t, this.eg_count_diff_ = decaytable2[t >> 2]; }
+	SetEGRate(t) { this.eg_rate_ = t, this.eg_count_diff_ = decaytable2[t >> 2] << RATIOBITS; }
 
 	EGCalc() {
-		this.eg_count_ = 6141;
-		if (this.eg_phase_ === 'attack') {
+		this.eg_count_ = 6141 << RATIOBITS;
+		if ('attack' === this.eg_phase_) {
 			let i = attacktable[this.eg_rate_][7 & this.eg_curve_count_];
 			if (i >= 0)
 				this.eg_level_ -= 1 + (this.eg_level_ >> i), this.eg_level_ <= 0 && this.ShiftPhase('decay');
@@ -312,48 +312,42 @@ class Operator {
 		this.eg_curve_count_++;
 	}
 
-	EGStep() {
-		this.eg_count_ -= this.eg_count_diff_;
-		this.eg_count_ <= 0 && this.EGCalc();
-	}
+	EGStep() { this.eg_count_ -= this.eg_count_diff_, this.eg_count_ <= 0 && this.EGCalc(); }
 
 	PGCalc() {
 		let t = this.pg_count_;
-		this.pg_count_ += this.pg_diff_;
-		return t;
+		return this.pg_count_ += this.pg_diff_, t;
 	}
 
 	PGCalcL() {
 		let t = this.pg_count_;
-		this.pg_count_ += this.pg_diff_ + (this.pg_diff_lfo_ * this.chip_.GetPMV() >> 5);
-		return t;
+		return this.pg_count_ += this.pg_diff_ + (this.pg_diff_lfo_ * this.chip_.GetPMV() >> 5), t;
 	}
 
 	Calc(i) {
 		this.EGStep(), this.out2_ = this.out_;
-		let s = (this.PGCalc() >> 22 - OPSINBITS) + (i >> 11 - OPSINBITS);
+		let s = (this.PGCalc() >> 20 + PGBITS - OPSINBITS) + (i >> 11 - OPSINBITS);
 		return this.out_ = this.LogToLin(this.eg_out_ + sinetable[s & OPSINENTS - 1]);
 	}
 
 	CalcL(i) {
 		this.EGStep();
-		let s = (this.PGCalcL() >> 22 - OPSINBITS) + (i >> 11 - OPSINBITS);
+		let s = (this.PGCalcL() >> 20 + PGBITS - OPSINBITS) + (i >> 11 - OPSINBITS);
 		return this.out_ = this.LogToLin(this.eg_out_ + sinetable[s & OPSINENTS - 1] + this.ams_[this.chip_.GetAML()]);
 	}
 
 	CalcN(t) {
 		this.EGStep();
 		let e = Math.max(0, 1023 - (this.tl_out_ + this.eg_level_)) << 1;
-		return this.out_ = 1 & t ? e : -e;
+		return t = (t & 1) - 1, this.out_ = e + t ^ t;
 	}
 
 	CalcFB(i) {
 		this.EGStep();
 		let s = this.out_ + this.out2_;
 		this.out2_ = this.out_;
-		let h = this.PGCalc() >> 22 - OPSINBITS;
-		31 > i && (h += s << 10 >> i >> 22 - OPSINBITS);
-		this.out_ = this.LogToLin(this.eg_out_ + sinetable[h & OPSINENTS - 1]);
+		let h = this.PGCalc() >> 20 + PGBITS - OPSINBITS;
+		31 > i && (h += s << 8 + PGBITS >> i >> 20 + PGBITS - OPSINBITS), this.out_ = this.LogToLin(this.eg_out_ + sinetable[h & OPSINENTS - 1]);
 		return this.out2_;
 	}
 
@@ -361,8 +355,8 @@ class Operator {
 		this.EGStep();
 		let s = this.out_ + this.out2_;
 		this.out2_ = this.out_;
-		let h = this.PGCalcL() >> 22 - OPSINBITS;
-		31 > i && (h += s << 10 >> i >> 22 - OPSINBITS);
+		let h = this.PGCalcL() >> 20 + PGBITS - OPSINBITS;
+		31 > i && (h += s << 8 + PGBITS >> i >> 20 + PGBITS - OPSINBITS);
 		return this.out_ = this.LogToLin(this.eg_out_ + sinetable[h & OPSINENTS - 1] + this.ams_[this.chip_.GetAML()]);
 	}
 
@@ -478,7 +472,7 @@ void function () {
 	}
 	for (let e = 0; 4 > e; e++)
 		for (let i = 0; 16 > i; i++)
-			multable[e][i] = [1, 1.414, 1.581, 1.732][e] * (i ? 2 * i : 1);
+			multable[e][i] = [1, 1.414, 1.581, 1.732][e] * (1 << RATIOBITS) / (1 << 2 + RATIOBITS - PGBITS) * (i ? 2 * i : 1);
 }();
 
 const pmtable = new Array(2), amtable = new Array(2);
