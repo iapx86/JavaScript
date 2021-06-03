@@ -75,7 +75,7 @@ export default class YM2203 {
 			++this.ncount >= nfreq << 1 && (this.rng = (this.rng >> 16 ^ this.rng >> 13 ^ 1) & 1 | this.rng << 1, this.ncount = 0);
 			++this.ecount >= efreq && (this.step += ((this.step < 32) | etype >> 3 & ~etype & 1) - (this.step >= 95) * 64, this.ecount = 0);
 		}
-		return this.irq = (this.status & this.reg[0x14] >> 2 & 3) !== 0;
+		return this.irq = (this.status & this.reg[0x27] >> 2 & 3) !== 0;
 	}
 
 	update() {

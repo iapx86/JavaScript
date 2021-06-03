@@ -85,7 +85,7 @@ const list = [
 	{name: 'wonder_boy_in_monster_land', title: 'Wonder Boy in Monster Land', width: 256, height: 224},
 	{name: 'wonder_momo', title: 'Wonder Momo', width: 288, height: 224},
 	{name: 'world_court', title: 'World Court', width: 288, height: 224},
-	{name: 'x68000', title: 'x68000', width: 256, height: 192},
+	{name: 'x68000', title: 'x68000', width: 340, height: 256},
 	{name: 'xevious', title: 'Xevious', width: 224, height: 288},
 	{name: 'zigzag', title: 'Zig Zag', width: 224, height: 256},
 ];
