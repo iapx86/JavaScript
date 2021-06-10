@@ -65,6 +65,7 @@ const list = [
 	{name: 'strategy_x', title: 'Strategy X', width: 256, height: 224},
 	{name: 'sukeban_jansi_ryuko', title: 'Sukeban Jansi Ryuko', width: 320, height: 224},
 	{name: 'super_pac-man', title: 'Super Pac-Man', width: 224, height: 288},
+	{name: 'super_real_mahjong_part2', title: 'Super Real Mahjong Part 2', width: 300, height: 224},
 	{name: 'super_real_mahjong_part3', title: 'Super Real Mahjong Part 3', width: 300, height: 224},
 	{name: 'super_xevious', title: 'Super Xevious', width: 224, height: 288},
 	{name: 't.t_mahjong', title: 'T.T Mahjong', width: 256, height: 240},
