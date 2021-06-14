@@ -5,6 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
+import {Timer} from './utils.js';
 import {init, read} from './main.js';
 import Z80 from './z80.js';
 let game, sound;

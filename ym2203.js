@@ -37,6 +37,10 @@ export default class YM2203 {
 			this.channel.push({freq: 0, count: 0, output: 0});
 	}
 
+	prescaler(val) {
+		this.div = [[6, 4], [3, 2], [2, 1]][val], this.frac = 0;
+	}
+
 	read() {
 		return this.reg[this.addr];
 	}
@@ -53,9 +57,6 @@ export default class YM2203 {
 			break;
 		case 0x28: // KON
 			this.kon[data & 3] = Number((data & 0xf0) !== 0);
-			break;
-		case 0x2d: case 0x2e: case 0x2f: // Prescaler
-			this.div = [[6, 4], [3, 2], [2, 1]][this.addr - 0x2d];
 			break;
 		}
 		this.reg[this.addr] = data;
