@@ -36,6 +36,7 @@ const list = [
 	{name: 'korosuke_roller', title: 'Korosuke Roller', width: 224, height: 288},
 	{name: 'libble_rabble', title: 'Libble Rabble', width: 288, height: 224},
 	{name: 'lunar_rescue', title: 'Lunar Rescue', width: 224, height: 256},
+	{name: 'makai-mura', title: 'Makai-Mura', width: 256, height: 224},
 	{name: 'mappy', title: 'Mappy', width: 224, height: 288},
 	{name: 'marchen_maze', title: 'Marchen Maze', width: 288, height: 224},
 	{name: 'metro-cross', title: 'Metro-Cross', width: 288, height: 224},
