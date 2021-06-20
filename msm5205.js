@@ -19,7 +19,7 @@ export default class MSM5205 {
 	}
 
 	start() {
-		this.m.play = true, this.m.output = this.m.state = 0, this.frac = 0;
+		!this.m.play && (this.m.play = true, this.m.output = this.m.state = 0);
 	}
 
 	stop() {
@@ -27,7 +27,7 @@ export default class MSM5205 {
 	}
 
 	status() {
-		return 1;
+		return this.m.play;
 	}
 
 	write(data) {
@@ -35,12 +35,11 @@ export default class MSM5205 {
 	}
 
 	execute(rate, fn) {
-		if (this.m.play)
-			for (this.frac += this.clock; this.frac >= rate * this.div; this.frac -= rate * this.div)
-				if (fn(), this.m.play) {
-					this.m.output = Math.min(Math.max(this.m.output + step[this.m.state][this.m.port], -2048), 2047);
-					this.m.state = Math.min(Math.max(this.m.state + state_table[this.m.port & 7], 0), 48);
-				}
+		for (this.frac += this.clock; this.frac >= rate * this.div; this.frac -= rate * this.div)
+			if (fn(), this.m.play) {
+				this.m.output = Math.min(Math.max(this.m.output + step[this.m.state][this.m.port], -2048), 2047);
+				this.m.state = Math.min(Math.max(this.m.state + state_table[this.m.port & 7], 0), 48);
+			}
 	}
 
 	update() {

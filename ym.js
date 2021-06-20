@@ -47,22 +47,22 @@ export class Channel4 {
 	Calc() {
 		let t = 0;
 		switch (this.algo_) {
-			case 0:
-				return this.op[2].Calc(this.op[1].Out()), this.op[1].Calc(this.op[0].Out()), t = this.op[3].Calc(this.op[2].Out()), this.op[0].CalcFB(this.fb), t;
-			case 1:
-				return this.op[2].Calc(this.op[0].Out() + this.op[1].Out()), this.op[1].Calc(0), t = this.op[3].Calc(this.op[2].Out()), this.op[0].CalcFB(this.fb), t;
-			case 2:
-				return this.op[2].Calc(this.op[1].Out()), this.op[1].Calc(0), t = this.op[3].Calc(this.op[0].Out() + this.op[2].Out()), this.op[0].CalcFB(this.fb), t;
-			case 3:
-				return this.op[2].Calc(0), this.op[1].Calc(this.op[0].Out()), t = this.op[3].Calc(this.op[1].Out() + this.op[2].Out()), this.op[0].CalcFB(this.fb), t;
-			case 4:
-				return this.op[2].Calc(0), t = this.op[1].Calc(this.op[0].Out()), t += this.op[3].Calc(this.op[2].Out()), this.op[0].CalcFB(this.fb), t;
-			case 5:
-				return t = this.op[2].Calc(this.op[0].Out()), t += this.op[1].Calc(this.op[0].Out()), t += this.op[3].Calc(this.op[0].Out()), this.op[0].CalcFB(this.fb), t;
-			case 6:
-				return t = this.op[2].Calc(0), t += this.op[1].Calc(this.op[0].Out()), t += this.op[3].Calc(0), this.op[0].CalcFB(this.fb), t;
-			case 7:
-				return t = this.op[2].Calc(0), t += this.op[1].Calc(0), t += this.op[3].Calc(0), t += this.op[0].CalcFB(this.fb), t;
+		case 0:
+			return this.op[2].Calc(this.op[1].Out()), this.op[1].Calc(this.op[0].Out()), t = this.op[3].Calc(this.op[2].Out()), this.op[0].CalcFB(this.fb), t;
+		case 1:
+			return this.op[2].Calc(this.op[0].Out() + this.op[1].Out()), this.op[1].Calc(0), t = this.op[3].Calc(this.op[2].Out()), this.op[0].CalcFB(this.fb), t;
+		case 2:
+			return this.op[2].Calc(this.op[1].Out()), this.op[1].Calc(0), t = this.op[3].Calc(this.op[0].Out() + this.op[2].Out()), this.op[0].CalcFB(this.fb), t;
+		case 3:
+			return this.op[2].Calc(0), this.op[1].Calc(this.op[0].Out()), t = this.op[3].Calc(this.op[1].Out() + this.op[2].Out()), this.op[0].CalcFB(this.fb), t;
+		case 4:
+			return this.op[2].Calc(0), t = this.op[1].Calc(this.op[0].Out()), t += this.op[3].Calc(this.op[2].Out()), this.op[0].CalcFB(this.fb), t;
+		case 5:
+			return t = this.op[2].Calc(this.op[0].Out()), t += this.op[1].Calc(this.op[0].Out()), t += this.op[3].Calc(this.op[0].Out()), this.op[0].CalcFB(this.fb), t;
+		case 6:
+			return t = this.op[2].Calc(0), t += this.op[1].Calc(this.op[0].Out()), t += this.op[3].Calc(0), this.op[0].CalcFB(this.fb), t;
+		case 7:
+			return t = this.op[2].Calc(0), t += this.op[1].Calc(0), t += this.op[3].Calc(0), t += this.op[0].CalcFB(this.fb), t;
 		}
 		return t;
 	}
@@ -71,22 +71,22 @@ export class Channel4 {
 		this.chip_.SetPMV(this.pms[this.chip_.GetPML()]);
 		let t = 0;
 		switch (this.algo_) {
-			case 0:
-				return this.op[2].CalcL(this.op[1].Out()), this.op[1].CalcL(this.op[0].Out()), t = this.op[3].CalcL(this.op[2].Out()), this.op[0].CalcFBL(this.fb), t;
-			case 1:
-				return this.op[2].CalcL(this.op[0].Out() + this.op[1].Out()), this.op[1].CalcL(0), t = this.op[3].CalcL(this.op[2].Out()), this.op[0].CalcFBL(this.fb), t;
-			case 2:
-				return this.op[2].CalcL(this.op[1].Out()), this.op[1].CalcL(0), t = this.op[3].CalcL(this.op[0].Out() + this.op[2].Out()), this.op[0].CalcFBL(this.fb), t;
-			case 3:
-				return this.op[2].CalcL(0), this.op[1].CalcL(this.op[0].Out()), t = this.op[3].CalcL(this.op[1].Out() + this.op[2].Out()), this.op[0].CalcFBL(this.fb), t;
-			case 4:
-				return this.op[2].CalcL(0), t = this.op[1].CalcL(this.op[0].Out()), t += this.op[3].CalcL(this.op[2].Out()), this.op[0].CalcFBL(this.fb), t;
-			case 5:
-				return t = this.op[2].CalcL(this.op[0].Out()), t += this.op[1].CalcL(this.op[0].Out()), t += this.op[3].CalcL(this.op[0].Out()), this.op[0].CalcFBL(this.fb), t;
-			case 6:
-				return t = this.op[2].CalcL(0), t += this.op[1].CalcL(this.op[0].Out()), t += this.op[3].CalcL(0), this.op[0].CalcFBL(this.fb), t;
-			case 7:
-				return t = this.op[2].CalcL(0), t += this.op[1].CalcL(0), t += this.op[3].CalcL(0), t += this.op[0].CalcFBL(this.fb), t;
+		case 0:
+			return this.op[2].CalcL(this.op[1].Out()), this.op[1].CalcL(this.op[0].Out()), t = this.op[3].CalcL(this.op[2].Out()), this.op[0].CalcFBL(this.fb), t;
+		case 1:
+			return this.op[2].CalcL(this.op[0].Out() + this.op[1].Out()), this.op[1].CalcL(0), t = this.op[3].CalcL(this.op[2].Out()), this.op[0].CalcFBL(this.fb), t;
+		case 2:
+			return this.op[2].CalcL(this.op[1].Out()), this.op[1].CalcL(0), t = this.op[3].CalcL(this.op[0].Out() + this.op[2].Out()), this.op[0].CalcFBL(this.fb), t;
+		case 3:
+			return this.op[2].CalcL(0), this.op[1].CalcL(this.op[0].Out()), t = this.op[3].CalcL(this.op[1].Out() + this.op[2].Out()), this.op[0].CalcFBL(this.fb), t;
+		case 4:
+			return this.op[2].CalcL(0), t = this.op[1].CalcL(this.op[0].Out()), t += this.op[3].CalcL(this.op[2].Out()), this.op[0].CalcFBL(this.fb), t;
+		case 5:
+			return t = this.op[2].CalcL(this.op[0].Out()), t += this.op[1].CalcL(this.op[0].Out()), t += this.op[3].CalcL(this.op[0].Out()), this.op[0].CalcFBL(this.fb), t;
+		case 6:
+			return t = this.op[2].CalcL(0), t += this.op[1].CalcL(this.op[0].Out()), t += this.op[3].CalcL(0), this.op[0].CalcFBL(this.fb), t;
+		case 7:
+			return t = this.op[2].CalcL(0), t += this.op[1].CalcL(0), t += this.op[3].CalcL(0), t += this.op[0].CalcFBL(this.fb), t;
 		}
 		return t;
 	}

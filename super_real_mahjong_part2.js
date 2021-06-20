@@ -143,6 +143,8 @@ class SuperRealMahjongPart2 {
 			this.timer.execute(tick_rate, (cnt) => { this.cpu_irq2 = true, !cnt && (update(), this.cpu_irq4 = true); });
 			sound[0].execute(tick_rate);
 			sound[1].execute(tick_rate, () => {
+				if (!sound[1].status())
+					return;
 				if (this.adpcm.data >= 0)
 					sound[1].write(this.adpcm.data & 15), this.adpcm.data = -1;
 				else if (this.adpcm.addr < this.adpcm.end)
