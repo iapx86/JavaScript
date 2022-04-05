@@ -1583,7 +1583,7 @@ export default class MC68000 extends Cpu {
 			case 0o73: // JSR d(PC,Xi)
 				return ea = this.index(this.pc), this.a[7] -= 4, this.write32(this.pc, this.a[7]), void(this.pc = ea);
 			}
-			return;
+			return this.exception(4);
 		case 0o30:
 			switch (x) {
 			case 0: // MOVE SR,Dy
