@@ -8,7 +8,7 @@ import YM2151 from './ym2151.js';
 import K007232 from './k007232.js';
 import UPD7759 from './upd7759.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -154,13 +154,14 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/gradius_ii_rom.js";
 const key = [];
 let PRG3, SND, VOI;
 
-read('vulcan.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG3 = zip.decompress('785_g03.10a').addBase();
-	SND = zip.decompress('785_f01.5a');
-	VOI = zip.decompress('785_f02.7c');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG3 = new Uint8Array(ROM.buffer, 0x0, 0x8000).addBase();
+	SND = new Uint8Array(ROM.buffer, 0x8000, 0x20000);
+	VOI = new Uint8Array(ROM.buffer, 0x28000, 0x20000);
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -174,5 +175,5 @@ read('vulcan.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 		new UPD7759({VOI}),
 	];
 	init({game, sound});
-});
+}));
 

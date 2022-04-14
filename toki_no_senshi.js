@@ -6,7 +6,7 @@
 
 import SN76489 from './sn76489.js';
 import {seq, rseq, convertGFX} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC8123 from './mc8123.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -465,18 +465,19 @@ const keyup = e => {
  *
  */
 
+import {ROM} from "./dist/toki_no_senshi_rom.js";
 let PRG1, KEY, PRG2, BG, OBJ, RED, GREEN, BLUE, PRI;
 
-read('tokisens.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['epr-10961.ic90', 'epr-10962.ic91', 'epr-10963.ic92'].map(e => zip.decompress(e))).addBase();
-	KEY = zip.decompress('317-0040.key');
-	PRG2 = zip.decompress('epr-10967.ic126').addBase();
-	BG = Uint8Array.concat(...['epr-10964.ic4', 'epr-10965.ic5', 'epr-10966.ic6'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['epr-10958.ic87', 'epr-10957.ic86', 'epr-10960.ic89', 'epr-10959.ic88'].map(e => zip.decompress(e)));
-	RED = zip.decompress('pr10956.ic20');
-	GREEN = zip.decompress('pr10955.ic14');
-	BLUE = zip.decompress('pr10954.ic8');
-	PRI = zip.decompress('pr-5317.ic28');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x18000).addBase();
+	KEY = new Uint8Array(ROM.buffer, 0x18000, 0x2000);
+	PRG2 = new Uint8Array(ROM.buffer, 0x1a000, 0x8000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x22000, 0x18000);
+	OBJ = new Uint8Array(ROM.buffer, 0x3a000, 0x20000);
+	RED = new Uint8Array(ROM.buffer, 0x5a000, 0x100);
+	GREEN = new Uint8Array(ROM.buffer, 0x5a100, 0x100);
+	BLUE = new Uint8Array(ROM.buffer, 0x5a200, 0x100);
+	PRI = new Uint8Array(ROM.buffer, 0x5a300, 0x100);
 	game = new TokiNoSenshi();
 	sound = [
 		new SN76489({clock: Math.floor(8000000 / 4)}),
@@ -484,5 +485,5 @@ read('tokisens.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

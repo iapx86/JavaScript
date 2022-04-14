@@ -7,7 +7,7 @@
 import YM2203 from './ym2203.js';
 import MSM5205 from './msm5205.js';
 import {seq, Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -279,13 +279,14 @@ function sound_update() {
  *
  */
 
+import {ROM} from "./dist/darius_rom.js";
 const key = [];
 const vol = Float64Array.from(seq(32), i => i > 1 ? Math.pow(10, (i - 31) / 20) : 0);
 let PRG2, PRG4;
 
-read('darius.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG2 = zip.decompress('a96_57.33').addBase();
-	PRG4 = zip.decompress('a96_56.18').addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG2 = new Uint8Array(ROM.buffer, 0x0, 0x10000).addBase();
+	PRG4 = new Uint8Array(ROM.buffer, 0x10000, 0x10000).addBase();
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -300,5 +301,5 @@ read('darius.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	];
 	sound[0].update = sound[1].update = sound_update;
 	init({game, sound});
-});
+}));
 

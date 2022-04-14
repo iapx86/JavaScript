@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import FD1094 from './fd1094.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -477,20 +477,18 @@ const keyup = e => {
  *
  */
 
-const PRG1 = new Uint8Array(0x10000).addBase(), OBJ = new Uint8Array(0x10000);
-let KEY, BG, PRG2;
+import {ROM} from "./dist/tetris_rom.js";
+let PRG1, KEY, BG, OBJ, PRG2;
 
-read('tetris.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	zip.decompress('epr-12201.rom').forEach((e, i) => PRG1[i << 1] = e);
-	zip.decompress('epr-12200.rom').forEach((e, i) => PRG1[1 | i << 1] = e);
-	KEY = zip.decompress('317-0093.key');
-	BG = Uint8Array.concat(...['epr-12202.rom', 'epr-12203.rom', 'epr-12204.rom'].map(e => zip.decompress(e)));
-	zip.decompress('epr-12169.b1').forEach((e, i) => OBJ[1 | i << 1] = e);
-	zip.decompress('epr-12170.b5').forEach((e, i) => OBJ[i << 1] = e);
-	PRG2 = zip.decompress('epr-12205.rom').addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x10000).addBase();
+	KEY = new Uint8Array(ROM.buffer, 0x10000, 0x2000);
+	BG = new Uint8Array(ROM.buffer, 0x12000, 0x30000);
+	OBJ = new Uint8Array(ROM.buffer, 0x42000, 0x10000);
+	PRG2 = new Uint8Array(ROM.buffer, 0x52000, 0x8000).addBase();
 	game = new Tetris();
 	sound = new YM2151({clock: 4000000});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

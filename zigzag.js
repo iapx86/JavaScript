@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -430,16 +430,17 @@ class ZigZag {
  *
  */
 
+import {ROM} from "./dist/zigzag_rom.js";
 let BG, OBJ, RGB, PRG;
 
-read('zigzagb.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = Uint8Array.concat(...['zz_d1.7l', 'zz_d2.7k', 'zz_d4.7f', 'zz_d3.7h'].map(e => zip.decompress(e))).addBase();
-	BG = Uint8Array.concat(...['zz_6.1h', 'zz_5.1k'].map(e => zip.decompress(e).subarray(0, 0x800)));
-	OBJ = Uint8Array.concat(...['zz_6.1h', 'zz_5.1k'].map(e => zip.decompress(e).subarray(0x800)));
-	RGB = zip.decompress('zzbpr_e9.bin');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0x4000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x4000, 0x1000);
+	OBJ = new Uint8Array(ROM.buffer, 0x5000, 0x1000);
+	RGB = new Uint8Array(ROM.buffer, 0x6000, 0x20);
 	game = new ZigZag();
 	sound = new AY_3_8910({clock: Math.floor(18432000 / 6)});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

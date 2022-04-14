@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import UPD7759 from './upd7759.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -169,11 +169,12 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/cotton_rom.js";
 const key = [];
 let PRG2;
 
-read('cotton.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG2 = Uint8Array.concat(...['cottonj/epr-13860.a10', 'cottonj/opr-13061.a11'].map(e => zip.decompress(e))).addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG2 = new Uint8Array(ROM.buffer, 0x342000, 0x28000).addBase();
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -186,5 +187,5 @@ read('cotton.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 		new UPD7759(),
 	];
 	init({game, sound});
-});
+}));
 

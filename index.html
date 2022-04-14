@@ -27,7 +27,6 @@ img {
 </head>
 <body>
 <canvas id="canvas" width="<%= htmlWebpackPlugin.options.width %>" height="<%= htmlWebpackPlugin.options.height %>"><noscript>noscript</noscript></canvas>
-<script src="https://cdn.jsdelivr.net/gh/imaya/zlib.js@master/bin/unzip.min.js"></script>
 <script>
 const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
 const canvas = document.getElementById('canvas');

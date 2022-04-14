@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC68000 from './mc68000.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -513,27 +513,17 @@ const keyup = e => {
  *
  */
 
-const PRG1 = new Uint8Array(0x30000).addBase(), OBJ = new Uint8Array(0x30000);
-let BG, PRG2;
+import {ROM} from "./dist/fantasy_zone_rom.js";
+let PRG1, BG, OBJ, PRG2;
 
-read('fantzone.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	zip.decompress('epr-7385a.43').forEach((e, i) => PRG1[i << 1] = e);
-	zip.decompress('epr-7382a.26').forEach((e, i) => PRG1[1 | i << 1] = e);
-	zip.decompress('epr-7386a.42').forEach((e, i) => PRG1[0x10000 | i << 1] = e);
-	zip.decompress('epr-7383a.25').forEach((e, i) => PRG1[0x10001 | i << 1] = e);
-	zip.decompress('epr-7387.41').forEach((e, i) => PRG1[0x20000 | i << 1] = e);
-	zip.decompress('epr-7384.24').forEach((e, i) => PRG1[0x20001 | i << 1] = e);
-	BG = Uint8Array.concat(...['epr-7388.95', 'epr-7389.94', 'epr-7390.93'].map(e => zip.decompress(e)));
-	zip.decompress('epr-7392.10').forEach((e, i) => OBJ[1 | i << 1] = e);
-	zip.decompress('epr-7396.11').forEach((e, i) => OBJ[i << 1] = e);
-	zip.decompress('epr-7393.17').forEach((e, i) => OBJ[0x10001 | i << 1] = e);
-	zip.decompress('epr-7397.18').forEach((e, i) => OBJ[0x10000 | i << 1] = e);
-	zip.decompress('epr-7394.23').forEach((e, i) => OBJ[0x20001 | i << 1] = e);
-	zip.decompress('epr-7398.24').forEach((e, i) => OBJ[0x20000 | i << 1] = e);
-	PRG2 = zip.decompress('epr-7535a.12').addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x30000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x30000, 0x18000);
+	OBJ = new Uint8Array(ROM.buffer, 0x48000, 0x30000);
+	PRG2 = new Uint8Array(ROM.buffer, 0x78000, 0x8000).addBase();
 	game = new FantasyZone();
 	sound = new YM2151({clock: 4000000});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

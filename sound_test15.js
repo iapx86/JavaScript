@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import K007232 from './k007232.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -158,12 +158,13 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/gradius_iii_rom.js";
 const key = [];
 let PRG3, SND;
 
-read('gradius3.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG3 = zip.decompress('945_r05.d9').addBase();
-	SND = Uint8Array.concat(...['945_a10.b15', '945_l11a.c18', '945_l11b.c20'].map(e => zip.decompress(e)));
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG3 = new Uint8Array(ROM.buffer, 0x0, 0x10000).addBase();
+	SND = new Uint8Array(ROM.buffer, 0x10000, 0x80000);
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -176,5 +177,5 @@ read('gradius3.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		new K007232({SND, clock: 3579545, gain: 0.2}),
 	];
 	init({game, sound});
-});
+}));
 

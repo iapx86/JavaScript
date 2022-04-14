@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -81,7 +81,8 @@ class SoundTest {
 			this.fReset = false;
 			this.nSound = 1;
 			this.ram2.fill(0);
-			this.ram2.set(PRG.subarray(0, 0x8000));
+			for (let i = 0; i < 0x8000; i++)
+				this.ram2[i] = PRG[0x20000 + i * 2];
 			this.command.splice(0);
 			this.cpu2.reset();
 		}
@@ -154,11 +155,12 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/r-type_rom.js";
 const key = [];
 let PRG;
 
-read('rtype.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = zip.decompress('rtypej/rt_r-l1-.3c');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0x40000).addBase();
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -168,5 +170,5 @@ read('rtype.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zi
 	game = new SoundTest();
 	sound = new YM2151({clock: 3579545, gain: 2});
 	init({game, sound});
-});
+}));
 

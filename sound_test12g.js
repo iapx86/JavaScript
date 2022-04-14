@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import {dummypage} from './cpu.js'
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
@@ -275,13 +275,14 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/beraboh_man_rom.js";
 const key = [];
 let SND, MCU, VOI;
 
-read('berabohm.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	SND = zip.decompress('bm1_s0.bin').addBase();
-	MCU = zip.decompress('cus64-64a1.mcu').addBase();
-	VOI = Uint8Array.concat(...['bm1_v0.bin', 'bm1_v0.bin', 'bm_voi-1.bin', 'bm1_v2.bin', 'bm1_v2.bin'].map(e => zip.decompress(e))).addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	SND = new Uint8Array(ROM.buffer, 0x0, 0x10000).addBase();
+	MCU = new Uint8Array(ROM.buffer, 0xa0000, 0x1000).addBase();
+	VOI = new Uint8Array(ROM.buffer, 0xa1000, 0x60000).addBase();
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -295,5 +296,5 @@ read('berabohm.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		{output: 0, gain: 0.5, d1: 0, d2: 0, v1: 0, v2: 0, update() { this.output = (this.d1 * this.v1 + this.d2 * this.v2) * this.gain; }}, // DAC
 	];
 	init({game, sound});
-});
+}));
 

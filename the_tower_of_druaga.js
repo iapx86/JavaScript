@@ -6,7 +6,7 @@
 
 import MappySound from './mappy_sound.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -480,20 +480,21 @@ class TheTowerOfDruaga {
  *
  */
 
+import {ROM} from "./dist/the_tower_of_druaga_rom.js";
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
-read('todruaga.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['td2_3.1d', 'td2_1.1b'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('td1_4.1k').addBase();
-	BG = zip.decompress('td1_5.3b');
-	OBJ = Uint8Array.concat(...['td1_7.3n', 'td1_6.3m'].map(e => zip.decompress(e)));
-	RGB = zip.decompress('td1-5.5b');
-	BGCOLOR = zip.decompress('td1-6.4c');
-	OBJCOLOR = zip.decompress('td1-7.5k');
-	SND = zip.decompress('td1-3.3m');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x8000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x8000, 0x2000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0xa000, 0x1000);
+	OBJ = new Uint8Array(ROM.buffer, 0xb000, 0x4000);
+	RGB = new Uint8Array(ROM.buffer, 0xf000, 0x20);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0xf020, 0x100);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0xf120, 0x400);
+	SND = new Uint8Array(ROM.buffer, 0xf520, 0x100);
 	game = new TheTowerOfDruaga();
 	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

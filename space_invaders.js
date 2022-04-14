@@ -4,7 +4,7 @@
  *
  */
 
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import I8080 from './i8080.js';
 let game, sound;
 
@@ -238,14 +238,15 @@ class SpaceInvaders {
  *
  */
 
+import {ROM} from "./dist/space_invaders_rom.js";
 let PRG, MAP;
 
-read('invaders.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = Uint8Array.concat(...['sicv/cv17.36', 'sicv/cv18.35', 'sicv/cv19.34', 'sicv/cv20.33'].map(e => zip.decompress(e))).addBase();
-	MAP = zip.decompress('sicv/cv01.1');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0x2000).addBase();
+	MAP = new Uint8Array(ROM.buffer, 0x2000, 0x800);
 	game = new SpaceInvaders();
 	sound = [];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

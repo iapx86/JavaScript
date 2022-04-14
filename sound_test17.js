@@ -7,7 +7,7 @@
 import YM2203 from './ym2203.js';
 import SegaPCM from './sega_pcm.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -164,12 +164,13 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/space_harrier_rom.js";
 const key = [];
 let PRG3, PCM;
 
-read('sharrier.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG3 = Uint8Array.concat(...['epr-7234.ic73', 'epr-7233.ic72'].map(e => zip.decompress(e))).addBase();
-	PCM = Uint8Array.concat(...['epr-7231.ic5', 'epr-7232.ic6'].map(e => zip.decompress(e)));
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG3 = new Uint8Array(ROM.buffer, 0x0, 0x8000).addBase();
+	PCM = new Uint8Array(ROM.buffer, 0x8000, 0x10000);
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -182,5 +183,5 @@ read('sharrier.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		new SegaPCM({PCM, clock: 8000000}),
 	];
 	init({game, sound});
-});
+}));
 

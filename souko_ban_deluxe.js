@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import {dummypage} from './cpu.js'
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
@@ -674,16 +674,17 @@ class SoukoBanDeluxe {
  *
  */
 
+import {ROM} from "./dist/souko_ban_deluxe_rom.js";
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ;
 
-read('boxyboy.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	SND = zip.decompress('sb1_snd0.bin').addBase();
-	PRG = Uint8Array.concat(...['sb1_prg0.bin', 'sb1_prg1.bin', 'soukobdx/sb1_prg7.bin'].map(e => zip.decompress(e))).addBase();
-	MCU = zip.decompress('cus64-64a1.mcu').addBase();
-	VOI = Uint8Array.concat(...['sb1_voi0.bin', 'sb1_voi0.bin'].map(e => zip.decompress(e))).addBase();
-	CHR8 = zip.decompress('sb1_chr8.bin');
-	CHR = Uint8Array.concat(...['sb1_chr0.bin', 'sb1_chr1.bin', 'sb1_chr2.bin', 'sb1_chr3.bin'].map(e => zip.decompress(e)));
-	OBJ = zip.decompress('sb1_obj0.bin');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	SND = new Uint8Array(ROM.buffer, 0x0, 0x10000).addBase();
+	PRG = new Uint8Array(ROM.buffer, 0x10000, 0x50000).addBase();
+	MCU = new Uint8Array(ROM.buffer, 0x60000, 0x1000).addBase();
+	VOI = new Uint8Array(ROM.buffer, 0x61000, 0x20000).addBase();
+	CHR8 = new Uint8Array(ROM.buffer, 0x81000, 0x10000);
+	CHR = new Uint8Array(ROM.buffer, 0x91000, 0x80000);
+	OBJ = new Uint8Array(ROM.buffer, 0x111000, 0x10000);
 	game = new SoukoBanDeluxe();
 	sound = [
 		new YM2151({clock: 3579580, gain: 1.4}),
@@ -692,5 +693,5 @@ read('boxyboy.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

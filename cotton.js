@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import UPD7759 from './upd7759.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import {dummypage} from './cpu.js'
 import FD1094 from './fd1094.js';
 import Z80 from './z80.js';
@@ -593,34 +593,15 @@ const keyup = e => {
  *
  */
 
-const PRG1 = new Uint8Array(0x80000).addBase(), OBJ = new Uint8Array(0x200000);
-let KEY, BG, PRG2;
+import {ROM} from "./dist/cotton_rom.js";
+let PRG1, KEY, BG, OBJ, PRG2;
 
-read('cotton.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	zip.decompress('cottonj/epr-13858b.a7').forEach((e, i) => PRG1[i << 1] = e);
-	zip.decompress('cottonj/epr-13856b.a5').forEach((e, i) => PRG1[1 | i << 1] = e);
-	zip.decompress('cottonj/epr-13859b.a8').forEach((e, i) => PRG1[0x40000 | i << 1] = e);
-	zip.decompress('cottonj/epr-13857b.a6').forEach((e, i) => PRG1[0x40001 | i << 1] = e);
-	KEY = zip.decompress('cottonj/317-0179b.key');
-	BG = Uint8Array.concat(...['opr-13862.a14', 'opr-13877.b14', 'opr-13863.a15'].map(e => zip.decompress(e)));
-	BG = Uint8Array.concat(BG, ...['opr-13878.b15', 'opr-13864.a16', 'opr-13879.b16'].map(e => zip.decompress(e)));
-	zip.decompress('opr-13869.b5').forEach((e, i) => OBJ[i << 1] = e);
-	zip.decompress('opr-13865.b1').forEach((e, i) => OBJ[1 | i << 1] = e);
-	zip.decompress('opr-13870.b6').forEach((e, i) => OBJ[0x40000 | i << 1] = e);
-	zip.decompress('opr-13866.b2').forEach((e, i) => OBJ[0x40001 | i << 1] = e);
-	zip.decompress('opr-13871.b7').forEach((e, i) => OBJ[0x80000 | i << 1] = e);
-	zip.decompress('opr-13867.b3').forEach((e, i) => OBJ[0x80001 | i << 1] = e);
-	zip.decompress('opr-13872.b8').forEach((e, i) => OBJ[0xc0000 | i << 1] = e);
-	zip.decompress('opr-13868.b4').forEach((e, i) => OBJ[0xc0001 | i << 1] = e);
-	zip.decompress('opr-13873.b10').forEach((e, i) => OBJ[0x100000 | i << 1] = e);
-	zip.decompress('opr-13852.a1').forEach((e, i) => OBJ[0x100001 | i << 1] = e);
-	zip.decompress('opr-13874.b11').forEach((e, i) => OBJ[0x140000 | i << 1] = e);
-	zip.decompress('opr-13853.a2').forEach((e, i) => OBJ[0x140001 | i << 1] = e);
-	zip.decompress('cottonj/opr-13875.b12').forEach((e, i) => OBJ[0x180000 | i << 1] = e);
-	zip.decompress('cottonj/opr-13854.a3').forEach((e, i) => OBJ[0x180001 | i << 1] = e);
-	zip.decompress('opr-13876.b13').forEach((e, i) => OBJ[0x1c0000 | i << 1] = e);
-	zip.decompress('opr-13855.a4').forEach((e, i) => OBJ[0x1c0001 | i << 1] = e);
-	PRG2 = Uint8Array.concat(...['cottonj/epr-13860.a10', 'cottonj/opr-13061.a11'].map(e => zip.decompress(e))).addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x80000).addBase();
+	KEY = new Uint8Array(ROM.buffer, 0x80000, 0x2000);
+	BG = new Uint8Array(ROM.buffer, 0x82000, 0xc0000);
+	OBJ = new Uint8Array(ROM.buffer, 0x142000, 0x200000);
+	PRG2 = new Uint8Array(ROM.buffer, 0x342000, 0x28000).addBase();
 	game = new Cotton();
 	sound = [
 		new YM2151({clock: Math.floor(8000000 / 2)}),
@@ -628,5 +609,5 @@ read('cotton.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

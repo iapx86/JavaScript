@@ -7,7 +7,7 @@
 import AY_3_8910 from './ay-3-8910.js';
 import MSM5205 from './msm5205.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -475,22 +475,15 @@ AAAAAAAAgwICCgYAgwICCoMCAgqDAgIKBgCxf/l9AAAggE2hyADge8jRAAAAAAAAAADmFc4MIAOAzrIV
  *
  */
 
-const GFX = new Uint8Array(0x400000);
-let PRG, VOI, COLOR_H, COLOR_L;
+import {ROM} from "./dist/super_real_mahjong_part3_rom.js";
+let PRG, GFX, VOI, COLOR_H, COLOR_L;
 
-read('srmp3.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = zip.decompress('za0-10.bin').addBase();
-	zip.decompress('za0-02.bin').forEach((e, i) => GFX[i << 1] = e);
-	zip.decompress('za0-04.bin').forEach((e, i) => GFX[1 | i << 1] = e);
-	zip.decompress('za0-01.bin').forEach((e, i) => GFX[0x100000 | i << 1] = e);
-	zip.decompress('za0-03.bin').forEach((e, i) => GFX[0x100001 | i << 1] = e);
-	zip.decompress('za0-06.bin').forEach((e, i) => GFX[0x200000 | i << 1] = e);
-	zip.decompress('za0-08.bin').forEach((e, i) => GFX[0x200001 | i << 1] = e);
-	zip.decompress('za0-05.bin').forEach((e, i) => GFX[0x300000 | i << 1] = e);
-	zip.decompress('za0-07.bin').forEach((e, i) => GFX[0x300001 | i << 1] = e);
-	VOI = zip.decompress('za0-11.bin');
-	COLOR_H = zip.decompress('za0-12.prm');
-	COLOR_L = zip.decompress('za0-13.prm');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0x20000).addBase();
+	GFX = new Uint8Array(ROM.buffer, 0x20000, 0x400000);
+	VOI = new Uint8Array(ROM.buffer, 0x420000, 0x80000);
+	COLOR_H = new Uint8Array(ROM.buffer, 0x4a0000, 0x200);
+	COLOR_L = new Uint8Array(ROM.buffer, 0x4a0200, 0x200);
 	game = new SuperRealMahjongPart3();
 	sound = [
 		new AY_3_8910({clock: Math.floor(16000000 / 16)}),
@@ -498,5 +491,5 @@ read('srmp3.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zi
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

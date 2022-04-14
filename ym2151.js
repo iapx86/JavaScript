@@ -37,13 +37,13 @@ export default class YM2151 {
 			data & ~this.reg[0x14] & 2 && (this.timerb.count = this.reg[0x12]);
 			break;
 		}
-		this.reg[this.addr] = data;
+		this.reg[this.addr] = data, this.status |= 0x80;
 		this.opm.SetReg(this.addr, data);
 	}
 
 	execute(rate) {
 		for (this.timera.frac += this.clock; this.timera.frac >= rate * 64; this.timera.frac -= rate * 64) {
-			this.output0.fill(0), this.opm.Mix(this.output0, 1);
+			this.output0.fill(0), this.opm.Mix(this.output0, 1), this.status &= ~0x80;
 			this.reg[0x14] & 1 && ++this.timera.count >= 0x400 && (this.status |= 1, this.timera.count = this.reg[0x10] << 2 | this.reg[0x11] & 3);
 		}
 		for (this.timerb.frac += this.clock; this.timerb.frac >= rate * 1024; this.timerb.frac -= rate * 1024)

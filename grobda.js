@@ -6,7 +6,7 @@
 
 import MappySound from './mappy_sound.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -506,20 +506,21 @@ class Grobda {
  *
  */
 
+import {ROM} from "./dist/grobda_rom.js";
 let PRG1, PRG2, BG, OBJ, RGB, BGCOLOR, OBJCOLOR, SND;
 
-read('grobda.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['gr2-3.1d', 'gr2-2.1c', 'gr2-1.1b'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('gr1-4.1k').addBase();
-	BG = zip.decompress('gr1-7.3c');
-	OBJ = Uint8Array.concat(...['gr1-5.3f', 'gr1-6.3e'].map(e => zip.decompress(e)));
-	RGB = zip.decompress('gr1-6.4c');
-	BGCOLOR = zip.decompress('gr1-5.4e');
-	OBJCOLOR = zip.decompress('gr1-4.3l');
-	SND = zip.decompress('gr1-3.3m');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x6000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x6000, 0x2000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x8000, 0x1000);
+	OBJ = new Uint8Array(ROM.buffer, 0x9000, 0x4000);
+	RGB = new Uint8Array(ROM.buffer, 0xd000, 0x20);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0xd020, 0x100);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0xd120, 0x100);
+	SND = new Uint8Array(ROM.buffer, 0xd220, 0x100);
 	game = new Grobda();
 	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

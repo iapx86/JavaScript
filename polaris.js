@@ -4,7 +4,7 @@
  *
  */
 
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import I8080 from './i8080.js';
 let game, sound;
 
@@ -232,16 +232,16 @@ class Polaris {
  *
  */
 
+import {ROM} from "./dist/polaris_rom.js";
 let PRG1, PRG2, MAP /* , OBJ */;
 
-read('polaris.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['ps01-1.30', 'ps09.36', 'ps03-1.31', 'ps04.37'].map(e => zip.decompress(e))).addBase();
-	PRG2 = Uint8Array.concat(...['ps05.32', 'ps10.38', 'ps26'].map(e => zip.decompress(e))).addBase();
-	MAP = zip.decompress('ps08.1b');
-//	OBJ = zip.decompress('ps07.2c');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x2000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x2000, 0x1800).addBase();
+	MAP = new Uint8Array(ROM.buffer, 0x3800, 0x400);
 	game = new Polaris();
 	sound = [];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

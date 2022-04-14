@@ -4,7 +4,7 @@
  *
  */
 
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import I8080 from './i8080.js';
 let game, sound;
 
@@ -239,15 +239,16 @@ class LunarRescue {
  *
  */
 
+import {ROM} from "./dist/lunar_rescue_rom.js";
 let PRG1, PRG2, MAP;
 
-read('lrescue.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['lrescue.1', 'lrescue.2', 'lrescue.3', 'lrescue.4'].map(e => zip.decompress(e))).addBase();
-	PRG2 = Uint8Array.concat(...['lrescue.5', 'lrescue.6'].map(e => zip.decompress(e))).addBase();
-	MAP = zip.decompress('7643-1.cpu');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x2000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x2000, 0x1000).addBase();
+	MAP = new Uint8Array(ROM.buffer, 0x3000, 0x800);
 	game = new LunarRescue();
 	sound = [];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

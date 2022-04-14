@@ -4,7 +4,7 @@
  *
  */
 
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import I8080 from './i8080.js';
 let game, sound;
 
@@ -242,14 +242,15 @@ class GalaxyWars {
  *
  */
 
+import {ROM} from "./dist/galaxy_wars_rom.js";
 let PRG1, PRG2;
 
-read('galxwars.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['univgw3.0', 'univgw4.1', 'univgw5.2', 'univgw6.3'].map(e => zip.decompress(e))).addBase();
-	PRG2 = Uint8Array.concat(...['univgw1.4', 'univgw2.5'].map(e => zip.decompress(e))).addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x1000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x1000, 0x800).addBase();
 	game = new GalaxyWars();
 	sound = [];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

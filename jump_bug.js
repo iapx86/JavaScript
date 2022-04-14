@@ -7,7 +7,7 @@
 import AY_3_8910 from './ay-3-8910.js';
 import SoundEffect from './sound_effect.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -1574,12 +1574,13 @@ AP8A/wD/AP8A/wD/AP8A/wD/\
  *
  */
 
+import {ROM} from "./dist/jump_bug_rom.js";
 let PRG, BG, RGB;
 
-read('jumpbug.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = Uint8Array.concat(...['jb1', 'jb2', 'jb3', 'jb4', 'jb5', 'jb6', 'jb7'].map(e => zip.decompress(e))).addBase();
-	BG = Uint8Array.concat(...['jbl', 'jbn', 'jbm', 'jbi', 'jbk', 'jbj'].map(e => zip.decompress(e)));
-	RGB = zip.decompress('l06_prom.bin');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0x6800).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x6800, 0x3000);
+	RGB = new Uint8Array(ROM.buffer, 0x9800, 0x20);
 	game = new JumpBug();
 	sound = [
 		new AY_3_8910({clock: Math.floor(18432000 / 12)}),
@@ -1587,5 +1588,5 @@ read('jumpbug.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

@@ -8,7 +8,7 @@ import YM2151 from './ym2151.js';
 import K007232 from './k007232.js';
 import VLM5030 from './vlm5030.js';
 import {Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC68000 from './mc68000.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -531,17 +531,14 @@ class Salamander {
  *
  */
 
-const PRG1 = new Uint8Array(0x60000).addBase();
-let PRG2, VLM, SND;
+import {ROM} from "./dist/salamander_rom.js";
+let PRG1, PRG2, VLM, SND;
 
-read('salamand.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	zip.decompress('587-d02.18b').forEach((e, i) => PRG1[i << 1] = e);
-	zip.decompress('587-d05.18c').forEach((e, i) => PRG1[1 + (i << 1)] = e);
-	zip.decompress('587-c03.17b').forEach((e, i) => PRG1[0x20000 + (i << 1)] = e);
-	zip.decompress('587-c06.17c').forEach((e, i) => PRG1[0x20001 + (i << 1)] = e);
-	PRG2 = zip.decompress('587-d09.11j').addBase();
-	VLM = zip.decompress('587-d08.8g');
-	SND = zip.decompress('587-c01.10a');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x60000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x60000, 0x8000).addBase();
+	VLM = new Uint8Array(ROM.buffer, 0x68000, 0x4000);
+	SND = new Uint8Array(ROM.buffer, 0x6c000, 0x20000);
 	game = new Salamander();
 	sound = [
 		new YM2151({clock: 3579545, gain: 5}),
@@ -550,5 +547,5 @@ read('salamand.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

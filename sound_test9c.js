@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import SegaPCM from './sega_pcm.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -159,12 +159,13 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/after_burner_ii_rom.js";
 const key = [];
 let PRG3, PCM;
 
-read('aburner2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG3 = zip.decompress('epr-11112.17').addBase();
-	PCM = Uint8Array.concat(...['mpr-10931.11', 'mpr-10930.12', 'epr-11102.13'].map(e => zip.decompress(e)), new Uint8Array(0x20000).fill(0xff));
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG3 = new Uint8Array(ROM.buffer, 0x0, 0x10000).addBase();
+	PCM = new Uint8Array(ROM.buffer, 0x10000, 0x80000);
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -177,5 +178,5 @@ read('aburner2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		new SegaPCM({PCM, clock: Math.floor(16000000 / 4)}),
 	];
 	init({game, sound});
-});
+}));
 

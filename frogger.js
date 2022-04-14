@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import {seq, rseq, bitswap, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -408,16 +408,17 @@ class Frogger {
  *
  */
 
-let BG, RGB, PRG1, PRG2;
+import {ROM} from "./dist/frogger_rom.js";
+let PRG1, PRG2, BG, RGB;
 
-read('frogger.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['frogger.26', 'frogger.27', 'frsm3.7'].map(e => zip.decompress(e))).addBase();
-	PRG2 = Uint8Array.concat(...['frogger.608', 'frogger.609', 'frogger.610'].map(e => zip.decompress(e))).addBase();
-	BG = Uint8Array.concat(...['frogger.607', 'frogger.606'].map(e => zip.decompress(e)));
-	RGB = zip.decompress('pr-91.6l');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x3000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x3000, 0x1800).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x4800, 0x1000);
+	RGB = new Uint8Array(ROM.buffer, 0x5800, 0x20);
 	game = new Frogger();
 	sound = new AY_3_8910({clock: Math.floor(14318181 / 8), gain: 0.4});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

@@ -6,7 +6,7 @@
 
 import MappySound from './mappy_sound.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -534,20 +534,21 @@ class SuperPacMan {
  *
  */
 
+import {ROM} from "./dist/super_pac-man_rom.js";
 let PRG1, PRG2, BG, OBJ, RGB, BGCOLOR, OBJCOLOR, SND;
 
-read('superpac.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['sp1-2.1c', 'sp1-1.1b'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('spc-3.1k').addBase();
-	BG = zip.decompress('sp1-6.3c');
-	OBJ = zip.decompress('spv-2.3f');
-	RGB = zip.decompress('superpac.4c');
-	BGCOLOR = zip.decompress('superpac.4e');
-	OBJCOLOR = zip.decompress('superpac.3l');
-	SND = zip.decompress('superpac.3m');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x4000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x4000, 0x1000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x5000, 0x1000);
+	OBJ = new Uint8Array(ROM.buffer, 0x6000, 0x2000);
+	RGB = new Uint8Array(ROM.buffer, 0x8000, 0x20);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0x8020, 0x100);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0x8120, 0x100);
+	SND = new Uint8Array(ROM.buffer, 0x8220, 0x100);
 	game = new SuperPacMan();
 	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

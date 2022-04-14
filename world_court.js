@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import {dummypage} from './cpu.js'
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
@@ -677,16 +677,17 @@ class WorldCourt {
  *
  */
 
+import {ROM} from "./dist/world_court_rom.js";
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ;
 
-read('wldcourt.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	SND = zip.decompress('wc1_snd0.bin').addBase();
-	PRG = Uint8Array.concat(...['wc1_prg6.bin', 'wc1_prg7.bin'].map(e => zip.decompress(e))).addBase();
-	MCU = zip.decompress('cus64-64a1.mcu').addBase();
-	VOI = Uint8Array.concat(...['wc1_voi0.bin', 'wc1_voi0.bin', 'wc1_voi1.bin'].map(e => zip.decompress(e))).addBase();
-	CHR8 = zip.decompress('wc1_chr8.bin');
-	CHR = Uint8Array.concat(...['wc1_chr0.bin', 'wc1_chr1.bin', 'wc1_chr2.bin', 'wc1_chr3.bin'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['wc1_obj0.bin', 'wc1_obj1.bin', 'wc1_obj2.bin', 'wc1_obj3.bin', 'wc1_obj3.bin'].map(e => zip.decompress(e)));
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	SND = new Uint8Array(ROM.buffer, 0x0, 0x10000).addBase();
+	PRG = new Uint8Array(ROM.buffer, 0x10000, 0x20000).addBase();
+	MCU = new Uint8Array(ROM.buffer, 0x30000, 0x1000).addBase();
+	VOI = new Uint8Array(ROM.buffer, 0x31000, 0x40000).addBase();
+	CHR8 = new Uint8Array(ROM.buffer, 0x71000, 0x20000);
+	CHR = new Uint8Array(ROM.buffer, 0x91000, 0x80000);
+	OBJ = new Uint8Array(ROM.buffer, 0x111000, 0x80000);
 	game = new WorldCourt();
 	sound = [
 		new YM2151({clock: 3579580, gain: 1.4}),
@@ -695,5 +696,5 @@ read('wldcourt.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

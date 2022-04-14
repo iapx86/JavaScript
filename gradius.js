@@ -7,7 +7,7 @@
 import AY_3_8910 from './ay-3-8910.js';
 import K005289 from './k005289.js';
 import VLM5030 from './vlm5030.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC68000 from './mc68000.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -651,16 +651,13 @@ const keyup = e => {
  *
  */
 
-const PRG1 = new Uint8Array(0x50000).addBase();
-let PRG2, SND;
+import {ROM} from "./dist/gradius_rom.js";
+let PRG1, PRG2, SND;
 
-read('nemesis.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	zip.decompress('gradius/400-a06.15l').forEach((e, i) => PRG1[i << 1] = e);
-	zip.decompress('gradius/400-a04.10l').forEach((e, i) => PRG1[1 + (i << 1)] = e);
-	zip.decompress('gradius/456-a07.17l').forEach((e, i) => PRG1[0x10000 + (i << 1)] = e);
-	zip.decompress('gradius/456-a05.12l').forEach((e, i) => PRG1[0x10001 + (i << 1)] = e);
-	PRG2 = zip.decompress('gradius/400-e03.5l').addBase();
-	SND = Uint8Array.concat(...['400-a01.fse', '400-a02.fse'].map(e => zip.decompress(e)));
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x50000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x50000, 0x2000).addBase();
+	SND = new Uint8Array(ROM.buffer, 0x52000, 0x200);
 	game = new Gradius();
 	sound = [
 		new AY_3_8910({clock: Math.floor(14318180 / 8), gain: 0.3}),
@@ -670,5 +667,5 @@ read('nemesis.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

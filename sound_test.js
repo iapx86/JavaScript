@@ -6,7 +6,7 @@
 
 import MappySound from './mappy_sound.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -134,12 +134,13 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/libble_rabble_rom.js";
 const key = [];
-let SND, PRG2;
+let PRG2, SND;
 
-read('liblrabl.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG2 = zip.decompress('2c.rom').addBase();
-	SND = zip.decompress('lr1-4.3d');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG2 = new Uint8Array(ROM.buffer, 0x8000, 0x2000).addBase();
+	SND = new Uint8Array(ROM.buffer, 0x18600, 0x100);
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -149,5 +150,5 @@ read('liblrabl.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	game = new SoundTest();
 	sound = new MappySound({SND});
 	init({game, sound});
-});
+}));
 

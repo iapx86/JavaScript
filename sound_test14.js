@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import K054539 from './k054539.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -168,12 +168,13 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/xexex_rom.js";
 const key = [];
 let PRG2, PCM;
 
-read('xexex.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG2 = zip.decompress('xexexj/067jaa05.4e').addBase();
-	PCM = Uint8Array.concat(...['067b06.3e', '067b07.1e'].map(e => zip.decompress(e)));
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG2 = new Uint8Array(ROM.buffer, 0x0, 0x20000).addBase();
+	PCM = new Uint8Array(ROM.buffer, 0x20000, 0x300000);
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -186,5 +187,5 @@ read('xexex.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zi
 		new K054539({PCM, clock: 18432000, gain: 0.2}),
 	];
 	init({game, sound});
-});
+}));
 

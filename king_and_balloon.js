@@ -7,7 +7,7 @@
 import GalaxianSound from './galaxian_sound.js';
 import SoundEffect from './sound_effect.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -1712,16 +1712,17 @@ Lfkm+t/50vr8+j37Evz9+/n7t/wd/eP8Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkA
  *
  */
 
+import {ROM} from "./dist/king_and_balloon_rom.js";
 const HELP = new Int16Array(0x700 * 2 + 0x1200);
 const THANKYOU = new Int16Array(0x800 * 2);
 const BYEBYE = new Int16Array(0x800 * 2);
 let VOICE, PRG, BG, RGB;
 
-read('kingball.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	VOICE = Uint8Array.concat(...['kingballj/kbj1.ic4', 'kingballj/kbj2.ic5', 'kingballj/kbj3.ic6'].map(e => zip.decompress(e)));
-	PRG = Uint8Array.concat(...['prg1.7f', 'prg2.7j', 'prg3.7l'].map(e => zip.decompress(e))).addBase();
-	BG = Uint8Array.concat(...['chg1.1h', 'chg2.1k'].map(e => zip.decompress(e)));
-	RGB = zip.decompress('kb2-1');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	VOICE = new Uint8Array(ROM.buffer, 0x0, 0x1800);
+	PRG = new Uint8Array(ROM.buffer, 0x1800, 0x2800).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x4000, 0x1000);
+	RGB = new Uint8Array(ROM.buffer, 0x5000, 0x20);
 	game = new KingAndBalloon();
 	sound = [
 		new GalaxianSound({SND}),
@@ -1729,5 +1730,5 @@ read('kingball.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

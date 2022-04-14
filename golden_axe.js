@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import UPD7759 from './upd7759.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import {dummypage} from './cpu.js'
 import FD1094 from './fd1094.js';
 import Z80 from './z80.js';
@@ -590,29 +590,15 @@ const keyup = e => {
  *
  */
 
-const PRG1 = new Uint8Array(0x80000).addBase(), OBJ = new Uint8Array(0x200000).fill(0xff);
-let KEY, BG, PRG2;
+import {ROM} from "./dist/golden_axe_rom.js";
+let PRG1, KEY, BG, OBJ, PRG2;
 
-read('goldnaxe.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	zip.decompress('goldnaxej/epr-12540.a7').forEach((e, i) => PRG1[i << 1] = e);
-	zip.decompress('goldnaxej/epr-12539.a5').forEach((e, i) => PRG1[1 | i << 1] = e);
-	zip.decompress('goldnaxe2/epr-12521.a8').forEach((e, i) => PRG1[0x40000 | i << 1] = e);
-	zip.decompress('goldnaxe2/epr-12519.a6').forEach((e, i) => PRG1[0x40001 | i << 1] = e);
-	KEY = zip.decompress('goldnaxej/317-0121.key');
-	BG = Uint8Array.concat(...['epr-12385.ic19', 'epr-12386.ic20', 'epr-12387.ic21'].map(e => zip.decompress(e)));
-	zip.decompress('mpr-12379.ic12').subarray(0, 0x20000).forEach((e, i) => OBJ[i << 1] = e);
-	zip.decompress('mpr-12378.ic9').subarray(0, 0x20000).forEach((e, i) => OBJ[1 | i << 1] = e);
-	zip.decompress('mpr-12381.ic13').subarray(0, 0x20000).forEach((e, i) => OBJ[0x40000 | i << 1] = e);
-	zip.decompress('mpr-12380.ic10').subarray(0, 0x20000).forEach((e, i) => OBJ[0x40001 | i << 1] = e);
-	zip.decompress('mpr-12383.ic14').subarray(0, 0x20000).forEach((e, i) => OBJ[0x80000 | i << 1] = e);
-	zip.decompress('mpr-12382.ic11').subarray(0, 0x20000).forEach((e, i) => OBJ[0x80001 | i << 1] = e);
-	zip.decompress('mpr-12379.ic12').subarray(0x20000).forEach((e, i) => OBJ[0x100000 | i << 1] = e);
-	zip.decompress('mpr-12378.ic9').subarray(0x20000).forEach((e, i) => OBJ[0x100001 | i << 1] = e);
-	zip.decompress('mpr-12381.ic13').subarray(0x20000).forEach((e, i) => OBJ[0x140000 | i << 1] = e);
-	zip.decompress('mpr-12380.ic10').subarray(0x20000).forEach((e, i) => OBJ[0x140001 | i << 1] = e);
-	zip.decompress('mpr-12383.ic14').subarray(0x20000).forEach((e, i) => OBJ[0x180000 | i << 1] = e);
-	zip.decompress('mpr-12382.ic11').subarray(0x20000).forEach((e, i) => OBJ[0x180001 | i << 1] = e);
-	PRG2 = Uint8Array.concat(...['epr-12390.ic8', 'mpr-12384.ic6'].map(e => zip.decompress(e))).addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x80000).addBase();
+	KEY = new Uint8Array(ROM.buffer, 0x80000, 0x2000);
+	BG = new Uint8Array(ROM.buffer, 0x82000, 0x60000);
+	OBJ = new Uint8Array(ROM.buffer, 0xe2000, 0x200000);
+	PRG2 = new Uint8Array(ROM.buffer, 0x2e2000, 0x28000).addBase();
 	game = new GoldenAxe();
 	sound = [
 		new YM2151({clock: Math.floor(8000000 / 2)}),
@@ -620,5 +606,5 @@ read('goldnaxe.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

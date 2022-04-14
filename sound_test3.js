@@ -6,7 +6,7 @@
 
 import PolePositionSound from './pole_position_sound.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -180,12 +180,13 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/pole_position_ii_rom.js";
 const key = [];
 let PRG, SND;
 
-read('polepos2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = Uint8Array.concat(...['pp4_9.6h', 'pp4_10.5h'].map(e => zip.decompress(e))).addBase();
-	SND = zip.decompress('pp1-5.3b');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0x3000).addBase();
+	SND = new Uint8Array(ROM.buffer, 0x3000, 0x100);
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -195,5 +196,5 @@ read('polepos2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	game = new SoundTest();
 	sound = new PolePositionSound({SND});
 	init({game, sound});
-});
+}));
 

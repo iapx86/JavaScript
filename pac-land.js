@@ -6,7 +6,7 @@
 
 import C30 from './c30.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -820,24 +820,24 @@ class PacLand {
  *
  */
 
+import {ROM} from "./dist/pac-land_rom.js";
 let PRG1, PRG2, PRG2I, FG, BG, OBJ, RED, BLUE, FGCOLOR, BGCOLOR, OBJCOLOR;
 
-read('pacland.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['paclandj/pl6_01.8b', 'paclandj/pl6_02.8d', 'pl1_3.8e'].map(e => zip.decompress(e)));
-	PRG1 = Uint8Array.concat(PRG1, ...['pl1_4.8f', 'pl1_5.8h', 'paclandj/pl1_6.8j'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('pl1_7.3e').addBase();
-	PRG2I = zip.decompress('cus60-60a1.mcu').addBase();
-	FG = zip.decompress('paclandj/pl6_12.6n');
-	BG = zip.decompress('paclandj/pl1_13.6t');
-	OBJ = Uint8Array.concat(...['paclandj/pl1_9b.6f', 'paclandj/pl1_8.6e', 'paclandj/pl1_10b.7e', 'paclandj/pl1_11.7f'].map(e => zip.decompress(e)));
-	RED = zip.decompress('pl1-2.1t');
-	BLUE = zip.decompress('pl1-1.1r');
-	FGCOLOR = zip.decompress('pl1-5.5t');
-	BGCOLOR = zip.decompress('pl1-4.4n');
-	OBJCOLOR = zip.decompress('pl1-3.6l');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x18000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x18000, 0x2000).addBase();
+	PRG2I = new Uint8Array(ROM.buffer, 0x1a000, 0x1000).addBase();
+	FG = new Uint8Array(ROM.buffer, 0x1b000, 0x2000);
+	BG = new Uint8Array(ROM.buffer, 0x1d000, 0x2000);
+	OBJ = new Uint8Array(ROM.buffer, 0x1f000, 0x10000);
+	RED = new Uint8Array(ROM.buffer, 0x2f000, 0x400);
+	BLUE = new Uint8Array(ROM.buffer, 0x2f400, 0x400);
+	FGCOLOR = new Uint8Array(ROM.buffer, 0x2f800, 0x400);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0x2fc00, 0x400);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0x30000, 0x400);
 	game = new PacLand();
 	sound = new C30();
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

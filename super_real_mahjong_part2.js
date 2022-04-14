@@ -7,7 +7,7 @@
 import AY_3_8910 from './ay-3-8910.js';
 import MSM5205 from './msm5205.js';
 import {seq, rseq, convertGFX} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC68000 from './mc68000.js';
 let game, sound;
 
@@ -639,21 +639,15 @@ AAEVjA==\
  *
  */
 
-const PRG = new Uint8Array(0x40000).addBase(), GFX = new Uint8Array(0x200000);
-let VOI, COLOR_H, COLOR_L;
+import {ROM} from "./dist/super_real_mahjong_part2_rom.js";
+let PRG, GFX, VOI, COLOR_H, COLOR_L;
 
-read('srmp2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	zip.decompress('uco-2.17').forEach((e, i) => PRG[i << 1] = e);
-	zip.decompress('uco-3.18').forEach((e, i) => PRG[1 | i << 1] = e);
-	GFX.set(zip.decompress('ubo-4.60')), GFX.set(zip.decompress('ubo-5.61'), 0x40000);
-	zip.decompress('uco-8.64').forEach((e, i) => GFX[0x80000 | i << 1] = e);
-	zip.decompress('uco-9.65').forEach((e, i) => GFX[0x80001 | i << 1] = e);
-	GFX.set(zip.decompress('ubo-6.62'), 0x100000), GFX.set(zip.decompress('ubo-7.63'), 0x140000);
-	zip.decompress('uco-10.66').forEach((e, i) => GFX[0x180000 | i << 1] = e);
-	zip.decompress('uco-11.67').forEach((e, i) => GFX[0x180001 | i << 1] = e);
-	VOI = zip.decompress('uco-1.19');
-	COLOR_H = zip.decompress('uc-1o.12');
-	COLOR_L = zip.decompress('uc-2o.13');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0x40000).addBase();
+	GFX = new Uint8Array(ROM.buffer, 0x40000, 0x200000);
+	VOI = new Uint8Array(ROM.buffer, 0x240000, 0x20000);
+	COLOR_H = new Uint8Array(ROM.buffer, 0x260000, 0x400);
+	COLOR_L = new Uint8Array(ROM.buffer, 0x260400, 0x400);
 	game = new SuperRealMahjongPart2();
 	sound = [
 		new AY_3_8910({clock: Math.floor(20000000 / 16)}),
@@ -661,5 +655,5 @@ read('srmp2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zi
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

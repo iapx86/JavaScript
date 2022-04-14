@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import {dummypage} from './cpu.js'
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
@@ -280,14 +280,14 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/galaga_88_rom.js";
 const key = [];
 let SND, MCU, VOI;
 
-read('galaga88.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	SND = Uint8Array.concat(...['g81_s0.bin', 'g81_s1.bin'].map(e => zip.decompress(e))).addBase();
-	MCU = zip.decompress('cus64-64a1.mcu').addBase();
-	VOI = Uint8Array.concat(...['g81_v0.bin', 'g81_v0.bin', 'g81_v1.bin', 'g81_v1.bin', 'g81_v2.bin', 'g81_v2.bin', 'g81_v3.bin'].map(e => zip.decompress(e)));
-	VOI = Uint8Array.concat(VOI, ...['g81_v3.bin', 'g81_v4.bin', 'g81_v4.bin', 'g81_v5.bin', 'g81_v5.bin'].map(e => zip.decompress(e))).addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	SND = new Uint8Array(ROM.buffer, 0x0, 0x20000).addBase();
+	MCU = new Uint8Array(ROM.buffer, 0x70000, 0x1000).addBase();
+	VOI = new Uint8Array(ROM.buffer, 0x71000, 0xc0000).addBase();
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -301,5 +301,5 @@ read('galaga88.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		{output: 0, gain: 0.5, d1: 0, d2: 0, v1: 0, v2: 0, update() { this.output = (this.d1 * this.v1 + this.d2 * this.v2) * this.gain; }}, // DAC
 	];
 	init({game, sound});
-});
+}));
 

@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import {dummypage} from './cpu.js'
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
@@ -280,13 +280,14 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/yokai_douchuuki_rom.js";
 const key = [];
 let SND, MCU, VOI;
 
-read('shadowld.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	SND = Uint8Array.concat(...['yd1_s0.bin', 'yd1_s1.bin'].map(e => zip.decompress(e))).addBase();
-	MCU = zip.decompress('cus64-64a1.mcu').addBase();
-	VOI = Uint8Array.concat(...['yd_voi-0.bin', 'yd_voi-1.bin', 'yd_voi-2.bin'].map(e => zip.decompress(e))).addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	SND = new Uint8Array(ROM.buffer, 0x0, 0x20000).addBase();
+	MCU = new Uint8Array(ROM.buffer, 0x90000, 0x1000).addBase();
+	VOI = new Uint8Array(ROM.buffer, 0x91000, 0x60000).addBase();
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -300,5 +301,5 @@ read('shadowld.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		{output: 0, gain: 0.5, d1: 0, d2: 0, v1: 0, v2: 0, update() { this.output = (this.d1 * this.v1 + this.d2 * this.v2) * this.gain; }}, // DAC
 	];
 	init({game, sound});
-});
+}));
 

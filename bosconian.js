@@ -8,7 +8,7 @@ import PacManSound from './pac-man_sound.js';
 import Namco54XX from './namco_54xx.js';
 import Namco52XX from './namco_52xx.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 import MB8840 from './mb8840.js';
 let game, sound;
@@ -929,24 +929,22 @@ class Bosconian {
  *
  */
 
+import {ROM} from "./dist/bosconian_rom.js";
 let PRG1, PRG2, PRG3, RGB, SND, BGCOLOR, BG, OBJ, VOI, KEY, IO, PRG;
 
-read('bosco.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['bos3_1.3n', 'bos1_2.3m', 'bos1_3.3l', 'bos1_4b.3k'].map(e => zip.decompress(e))).addBase();
-	PRG2 = Uint8Array.concat(...['bos1_5c.3j', 'bos3_6.3h'].map(e => zip.decompress(e))).addBase();
-	PRG3 = zip.decompress('bos1_7.3e').addBase();
-	BG = zip.decompress('bos1_14.5d');
-	OBJ = zip.decompress('bos1_13.5e');
-	RGB = zip.decompress('bos1-6.6b');
-	BGCOLOR = zip.decompress('bos1-5.4m');
-	SND = zip.decompress('bos1-1.1d');
-	VOI = Uint8Array.concat(...['bos1_9.5n', 'bos1_10.5m', 'bos1_11.5k'].map(e => zip.decompress(e)));
-}).then(() =>read('namco50.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	KEY = zip.decompress('50xx.bin');
-}).then(() =>read('namco51.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	IO = zip.decompress('51xx.bin');
-}).then(() =>read('namco54.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = zip.decompress('54xx.bin');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x4000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x4000, 0x2000).addBase();
+	PRG3 = new Uint8Array(ROM.buffer, 0x6000, 0x1000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x7000, 0x1000);
+	OBJ = new Uint8Array(ROM.buffer, 0x8000, 0x1000);
+	RGB = new Uint8Array(ROM.buffer, 0x9000, 0x20);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0x9020, 0x100);
+	SND = new Uint8Array(ROM.buffer, 0x9120, 0x100);
+	VOI = new Uint8Array(ROM.buffer, 0x9220, 0x3000);
+	KEY = new Uint8Array(ROM.buffer, 0xc220, 0x800);
+	IO = new Uint8Array(ROM.buffer, 0xca20, 0x400);
+	PRG = new Uint8Array(ROM.buffer, 0xce20, 0x400);
 	game = new Bosconian();
 	sound = [
 		new PacManSound({SND}),
@@ -955,5 +953,5 @@ read('bosco.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zi
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

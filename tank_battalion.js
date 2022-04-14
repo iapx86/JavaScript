@@ -6,7 +6,7 @@
 
 import SoundEffect from './sound_effect.js';
 import {seq, rseq, convertGFX} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MCS6502 from './mcs6502.js';
 let game, sound;
 
@@ -3297,15 +3297,16 @@ MP8=\
  *
  */
 
+import {ROM} from "./dist/tank_battalion_rom.js";
 let PRG, BG, RGB;
 
-read('tankbatt.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = Uint8Array.concat(...['tb1-1.1a', 'tb1-2.1b', 'tb1-3.1c', 'tb1-4.1d'].map(e => zip.decompress(e))).addBase();
-	BG = zip.decompress('tb1-5.2k');
-	RGB = zip.decompress('bct1-1.l3');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0x2000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x2000, 0x800);
+	RGB = new Uint8Array(ROM.buffer, 0x2800, 0x100);
 	game = new TankBattalion();
 	sound = new SoundEffect({se: game.se, gain: 0.5});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

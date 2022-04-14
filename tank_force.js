@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import {dummypage} from './cpu.js'
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
@@ -676,16 +676,17 @@ class TankForce {
  *
  */
 
+import {ROM} from "./dist/tank_force_rom.js";
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ;
 
-read('tankfrce.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	SND = zip.decompress('tf1_snd0.bin').addBase();
-	PRG = Uint8Array.concat(...['tf1_prg0.bin', 'tf1_prg1.bin', 'tankfrcej/tf1_prg7.bin'].map(e => zip.decompress(e))).addBase();
-	MCU = zip.decompress('cus64-64a1.mcu').addBase();
-	VOI = Uint8Array.concat(...['tf1_voi0.bin', 'tf1_voi1.bin'].map(e => zip.decompress(e))).addBase();
-	CHR8 = zip.decompress('tf1_chr8.bin');
-	CHR = Uint8Array.concat(...['tf1_chr0.bin', 'tf1_chr1.bin', 'tf1_chr2.bin', 'tf1_chr3.bin', 'tf1_chr4.bin', 'tf1_chr5.bin'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['tf1_obj0.bin', 'tf1_obj1.bin'].map(e => zip.decompress(e)));
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	SND = new Uint8Array(ROM.buffer, 0x0, 0x20000).addBase();
+	PRG = new Uint8Array(ROM.buffer, 0x20000, 0x60000).addBase();
+	MCU = new Uint8Array(ROM.buffer, 0x80000, 0x1000).addBase();
+	VOI = new Uint8Array(ROM.buffer, 0x81000, 0x40000).addBase();
+	CHR8 = new Uint8Array(ROM.buffer, 0xc1000, 0x20000);
+	CHR = new Uint8Array(ROM.buffer, 0xe1000, 0xc0000);
+	OBJ = new Uint8Array(ROM.buffer, 0x1a1000, 0x40000);
 	game = new TankForce();
 	sound = [
 		new YM2151({clock: 3579580, gain: 1.4}),
@@ -694,5 +695,5 @@ read('tankfrce.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

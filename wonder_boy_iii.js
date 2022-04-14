@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import FD1094 from './fd1094.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -501,36 +501,18 @@ const keyup = e => {
  *
  */
 
-const PRG1 = new Uint8Array(0x40000).addBase(), OBJ = new Uint8Array(0x80000);
-let KEY, BG, PRG2;
+import {ROM} from "./dist/wonder_boy_iii_rom.js";
+let PRG1, KEY, BG, OBJ, PRG2;
 
-read('wb3.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	zip.decompress('wb31/epr-12084.bin').forEach((e, i) => PRG1[i << 1] = e);
-	zip.decompress('wb31/epr-12082.bin').forEach((e, i) => PRG1[1 | i << 1] = e);
-	zip.decompress('wb31/epr-12085.bin').forEach((e, i) => PRG1[0x20000 | i << 1] = e);
-	zip.decompress('wb31/epr-12083.bin').forEach((e, i) => PRG1[0x20001 | i << 1] = e);
-	KEY = zip.decompress('wb31/317-0084.key');
-	BG = Uint8Array.concat(...['wb31/epr-12086.bin', 'wb31/epr-12087.bin', 'wb31/epr-12088.bin'].map(e => zip.decompress(e)));
-	zip.decompress('epr-12090.b1').subarray(0, 0x8000).forEach((e, i) => OBJ[1 | i << 1] = e);
-	zip.decompress('epr-12094.b5').subarray(0, 0x8000).forEach((e, i) => OBJ[i << 1] = e);
-	zip.decompress('epr-12091.b2').subarray(0, 0x8000).forEach((e, i) => OBJ[0x10001 | i << 1] = e);
-	zip.decompress('epr-12095.b6').subarray(0, 0x8000).forEach((e, i) => OBJ[0x10000 | i << 1] = e);
-	zip.decompress('epr-12092.b3').subarray(0, 0x8000).forEach((e, i) => OBJ[0x20001 | i << 1] = e);
-	zip.decompress('epr-12096.b7').subarray(0, 0x8000).forEach((e, i) => OBJ[0x20000 | i << 1] = e);
-	zip.decompress('epr-12093.b4').subarray(0, 0x8000).forEach((e, i) => OBJ[0x30001 | i << 1] = e);
-	zip.decompress('epr-12097.b8').subarray(0, 0x8000).forEach((e, i) => OBJ[0x30000 | i << 1] = e);
-	zip.decompress('epr-12090.b1').subarray(0x8000).forEach((e, i) => OBJ[0x40001 | i << 1] = e);
-	zip.decompress('epr-12094.b5').subarray(0x8000).forEach((e, i) => OBJ[0x40000 | i << 1] = e);
-	zip.decompress('epr-12091.b2').subarray(0x8000).forEach((e, i) => OBJ[0x50001 | i << 1] = e);
-	zip.decompress('epr-12095.b6').subarray(0x8000).forEach((e, i) => OBJ[0x50000 | i << 1] = e);
-	zip.decompress('epr-12092.b3').subarray(0x8000).forEach((e, i) => OBJ[0x60001 | i << 1] = e);
-	zip.decompress('epr-12096.b7').subarray(0x8000).forEach((e, i) => OBJ[0x60000 | i << 1] = e);
-	zip.decompress('epr-12093.b4').subarray(0x8000).forEach((e, i) => OBJ[0x70001 | i << 1] = e);
-	zip.decompress('epr-12097.b8').subarray(0x8000).forEach((e, i) => OBJ[0x70000 | i << 1] = e);
-	PRG2 = zip.decompress('wb31/epr-12089.bin').addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x40000).addBase();
+	KEY = new Uint8Array(ROM.buffer, 0x40000, 0x2000);
+	BG = new Uint8Array(ROM.buffer, 0x42000, 0x30000);
+	OBJ = new Uint8Array(ROM.buffer, 0x72000, 0x80000);
+	PRG2 = new Uint8Array(ROM.buffer, 0xf2000, 0x8000).addBase();
 	game = new WonderBoyIII();
 	sound = new YM2151({clock: 4000000});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

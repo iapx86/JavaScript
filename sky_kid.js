@@ -6,7 +6,7 @@
 
 import C30 from './c30.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -678,23 +678,24 @@ class SkyKid {
  *
  */
 
+import {ROM} from "./dist/sky_kid_rom.js";
 let PRG1, PRG2, PRG2I, FG, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR;
 
-read('skykid.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['sk2_2.6c', 'sk1-1c.6b', 'sk1_3.6d'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('sk2_4.3c').addBase();
-	PRG2I = zip.decompress('cus63-63a1.mcu').addBase();
-	FG = zip.decompress('sk1_6.6l');
-	BG = zip.decompress('sk1_5.7e');
-	OBJ = Uint8Array.concat(...['sk1_8.10n', 'sk1_7.10m'].map(e => zip.decompress(e)));
-	RED = zip.decompress('sk1-1.2n');
-	GREEN = zip.decompress('sk1-2.2p');
-	BLUE = zip.decompress('sk1-3.2r');
-	BGCOLOR = zip.decompress('sk1-4.5n');
-	OBJCOLOR = zip.decompress('sk1-5.6n');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0xc000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0xc000, 0x2000).addBase();
+	PRG2I = new Uint8Array(ROM.buffer, 0xe000, 0x1000).addBase();
+	FG = new Uint8Array(ROM.buffer, 0xf000, 0x2000);
+	BG = new Uint8Array(ROM.buffer, 0x11000, 0x2000);
+	OBJ = new Uint8Array(ROM.buffer, 0x13000, 0x8000);
+	RED = new Uint8Array(ROM.buffer, 0x1b000, 0x100);
+	GREEN = new Uint8Array(ROM.buffer, 0x1b100, 0x100);
+	BLUE = new Uint8Array(ROM.buffer, 0x1b200, 0x100);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0x1b300, 0x200);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0x1b500, 0x200);
 	game = new SkyKid();
 	sound = new C30();
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import {seq, rseq, convertGFX} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -427,21 +427,21 @@ class _1942 {
  *
  */
 
+import {ROM} from "./dist/1942_rom.js";
 let PRG1, PRG2, FG, BG, OBJ, RED, GREEN, BLUE, FGCOLOR, BGCOLOR, OBJCOLOR;
 
-read('1942.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['srb-03.m3', 'srb-04.m4', 'srb-05.m5', 'srb-06.m6'].map(e => zip.decompress(e)));
-	PRG1 = Uint8Array.concat(PRG1, new Uint8Array(0x2000).fill(0xff), zip.decompress('srb-07.m7'), new Uint8Array(0x4000).fill(0xff)).addBase();
-	PRG2 = zip.decompress('sr-01.c11').addBase();
-	FG = zip.decompress('sr-02.f2');
-	BG = Uint8Array.concat(...['sr-08.a1', 'sr-09.a2', 'sr-10.a3', 'sr-11.a4', 'sr-12.a5', 'sr-13.a6'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['sr-14.l1', 'sr-15.l2', 'sr-16.n1', 'sr-17.n2'].map(e => zip.decompress(e)));
-	RED = zip.decompress('sb-5.e8');
-	GREEN = zip.decompress('sb-6.e9');
-	BLUE = zip.decompress('sb-7.e10');
-	FGCOLOR = zip.decompress('sb-0.f1');
-	BGCOLOR = zip.decompress('sb-4.d6');
-	OBJCOLOR = zip.decompress('sb-8.k3');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x18000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x18000, 0x4000).addBase();
+	FG = new Uint8Array(ROM.buffer, 0x1c000, 0x2000);
+	BG = new Uint8Array(ROM.buffer, 0x1e000, 0xc000);
+	OBJ = new Uint8Array(ROM.buffer, 0x2a000, 0x10000);
+	RED = new Uint8Array(ROM.buffer, 0x3a000, 0x100);
+	GREEN = new Uint8Array(ROM.buffer, 0x3a100, 0x100);
+	BLUE = new Uint8Array(ROM.buffer, 0x3a200, 0x100);
+	FGCOLOR = new Uint8Array(ROM.buffer, 0x3a300, 0x100);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0x3a400, 0x100);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0x3a500, 0x100);
 	game = new _1942();
 	sound = [
 		new AY_3_8910({clock: Math.floor(12000000 / 8)}),
@@ -449,5 +449,5 @@ read('1942.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

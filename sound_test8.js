@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -146,11 +146,12 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/fantasy_zone_rom.js";
 const key = [];
 let PRG2;
 
-read('fantzone.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG2 = zip.decompress('fantzone1/epr-7535.12').addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG2 = new Uint8Array(ROM.buffer, 0x78000, 0x8000).addBase();
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -160,5 +161,5 @@ read('fantzone.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	game = new SoundTest();
 	sound = new YM2151({clock: 4000000});
 	init({game, sound});
-});
+}));
 

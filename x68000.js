@@ -6,11 +6,9 @@
 
 import YM2151 from './ym2151.js';
 import MSM6258 from './msm6258.js';
-import {init, read} from './main.js';
 import MC68000 from './mc68000.js';
-let game, sound;
 
-class X68000 {
+export default class X68000 {
 	cxScreen = 768;
 	cyScreen = 512;
 	width = 1024;
@@ -26,6 +24,7 @@ class X68000 {
 
 	bus_error = 0;
 	ram = new Uint8Array(0xf00000).addBase();
+	rom = new Uint8Array(0xe0000).addBase();
 	view = new DataView(this.ram.buffer);
 	fdc = {rate: 62500, frac: 0, status: 0x80, data: 0, irq: false, drq: false, tc: false, c: new Uint8Array(4), execute(rate, fn) {
 		for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
@@ -445,9 +444,9 @@ class X68000 {
 				this.pcg16[addr16] = data >> 4, this.pcg16[addr16 + 1] = data & 15, this.ram[addr] = data;
 			};
 		for (let i = 0; i < 0xc00; i++)
-			this.cpu.memorymap[0xf000 + i].base = ROM.base[i];
+			this.cpu.memorymap[0xf000 + i].base = this.rom.base[i];
 		for (let i = 0; i < 0x200; i++)
-			this.cpu.memorymap[0xfe00 + i].base = ROM.base[0xc00 + i];
+			this.cpu.memorymap[0xfe00 + i].base = this.rom.base[0xc00 + i];
 
 		this.cpu.check_interrupt = () => {
 			if (this.ram[0xe84080] & 8)
@@ -578,7 +577,7 @@ class X68000 {
 			this.scc.a.wr.fill(0), this.scc.a.rr.fill(0), this.scc.b.wr.fill(0), this.scc.b.rr.fill(0);
 			this.scc.a.rr[0] = this.scc.b.rr[0] = 4, this.scc.a.rr[1] = this.scc.b.rr[1] = 1;
 			this.keyboard.fifo.splice(0), this.mouse.fifo.splice(0);
-			this.cpu.memorymap[0].base = ROM.base[0xd00];
+			this.cpu.memorymap[0].base = this.rom.base[0xd00];
 			this.cpu.reset();
 			this.cpu.memorymap[0].base = this.ram.base[0];
 			sound[0].reg.fill(0);
@@ -1115,318 +1114,17 @@ function* generator(fdc) {
 	}
 }
 
-const keydown = e => {
-	switch (e.code) {
-	case 'Digit0':
-		return void game.keyboard.fifo.push(0x0b);
-	case 'Digit1':
-		return void game.keyboard.fifo.push(0x02);
-	case 'Digit2':
-		return void game.keyboard.fifo.push(0x03);
-	case 'Digit3':
-		return void game.keyboard.fifo.push(0x04);
-	case 'Digit4':
-		return void game.keyboard.fifo.push(0x05);
-	case 'Digit5':
-		return void game.keyboard.fifo.push(0x06);
-	case 'Digit6':
-		return void game.keyboard.fifo.push(0x07);
-	case 'Digit7':
-		return void game.keyboard.fifo.push(0x08);
-	case 'Digit8':
-		return void game.keyboard.fifo.push(0x09);
-	case 'Digit9':
-		return void game.keyboard.fifo.push(0x0a);
-	case 'KeyA':
-		return void game.keyboard.fifo.push(0x1e);
-	case 'KeyB':
-		return void game.keyboard.fifo.push(0x2e);
-	case 'KeyC':
-		return void game.keyboard.fifo.push(0x2c);
-	case 'KeyD':
-		return void game.keyboard.fifo.push(0x20);
-	case 'KeyE':
-		return void game.keyboard.fifo.push(0x13);
-	case 'KeyF':
-		return void game.keyboard.fifo.push(0x21);
-	case 'KeyG':
-		return void game.keyboard.fifo.push(0x22);
-	case 'KeyH':
-		return void game.keyboard.fifo.push(0x23);
-	case 'KeyI':
-		return void game.keyboard.fifo.push(0x18);
-	case 'KeyJ':
-		return void game.keyboard.fifo.push(0x24);
-	case 'KeyK':
-		return void game.keyboard.fifo.push(0x25);
-	case 'KeyL':
-		return void game.keyboard.fifo.push(0x26);
-	case 'KeyM':
-		return void game.keyboard.fifo.push(0x30);
-	case 'KeyN':
-		return void game.keyboard.fifo.push(0x2f);
-	case 'KeyO':
-		return void game.keyboard.fifo.push(0x19);
-	case 'KeyP':
-		return void game.keyboard.fifo.push(0x1a);
-	case 'KeyQ':
-		return void game.keyboard.fifo.push(0x11);
-	case 'KeyR':
-		return void game.keyboard.fifo.push(0x14);
-	case 'KeyS':
-		return void game.keyboard.fifo.push(0x1f);
-	case 'KeyT':
-		return void game.keyboard.fifo.push(0x15);
-	case 'KeyU':
-		return void game.keyboard.fifo.push(0x17);
-	case 'KeyV':
-		return void game.keyboard.fifo.push(0x2d);
-	case 'KeyW':
-		return void game.keyboard.fifo.push(0x12);
-	case 'KeyX':
-		return void game.keyboard.fifo.push(0x2b);
-	case 'KeyY':
-		return void game.keyboard.fifo.push(0x16);
-	case 'KeyZ':
-		return void game.keyboard.fifo.push(0x2a);
-	case 'Backquote':
-		return void game.keyboard.fifo.push(0x1b);
-	case 'Backslash':
-		return void game.keyboard.fifo.push(0x0e);
-	case 'BracketLeft':
-		return void game.keyboard.fifo.push(0x1c);
-	case 'BracketRight':
-		return void game.keyboard.fifo.push(0x29);
-	case 'Comma':
-		return void game.keyboard.fifo.push(0x31);
-	case 'Equal':
-		return void game.keyboard.fifo.push(0x0d);
-	case 'Minus':
-		return void game.keyboard.fifo.push(0x0c);
-	case 'Period':
-		return void game.keyboard.fifo.push(0x32);
-	case 'Quote':
-		return void game.keyboard.fifo.push(0x28);
-	case 'Semicolon':
-		return void game.keyboard.fifo.push(0x27);
-	case 'Slash':
-		return void game.keyboard.fifo.push(0x33);
-	case 'Backspace':
-		return void game.keyboard.fifo.push(0x0f);
-	case 'Tab':
-		return void game.keyboard.fifo.push(0x10);
-	case 'Enter':
-		return void game.keyboard.fifo.push(0x1d);
-	case 'ShiftLeft':
-	case 'ShiftRight':
-		return void game.keyboard.fifo.push(0x70);
-	case 'ControlLeft':
-	case 'ControlRight':
-		return void game.keyboard.fifo.push(0x71);
-	case 'AltLeft':
-		return void game.keyboard.fifo.push(0x72); // OPT1
-	case 'AltRight':
-		return void game.keyboard.fifo.push(0x73); // OPT2
-	case 'CapsLock':
-		return void game.keyboard.fifo.push(0x5d);
-	case 'Escape':
-		return void game.keyboard.fifo.push(0x01);
-	case 'Space':
-		return void game.keyboard.fifo.push(0x35);
-	case 'PageUp':
-		return void game.keyboard.fifo.push(0x38);
-	case 'PageDown':
-		return void game.keyboard.fifo.push(0x39);
-	case 'End':
-		return void game.keyboard.fifo.push(0x3a);
-	case 'Home':
-		return void game.keyboard.fifo.push(0x36);
-	case 'ArrowLeft':
-		return void game.keyboard.fifo.push(0x3b);
-	case 'ArrowUp':
-		return void game.keyboard.fifo.push(0x3c);
-	case 'ArrowRight':
-		return void game.keyboard.fifo.push(0x3d);
-	case 'ArrowDown':
-		return void game.keyboard.fifo.push(0x3e);
-	case 'Delete':
-		return void game.keyboard.fifo.push(0x37);
-	}
-};
-
-const keyup = e => {
-	switch (e.code) {
-	case 'Digit0':
-		return void game.keyboard.fifo.push(0x80 | 0x0b);
-	case 'Digit1':
-		return void game.keyboard.fifo.push(0x80 | 0x02);
-	case 'Digit2':
-		return void game.keyboard.fifo.push(0x80 | 0x03);
-	case 'Digit3':
-		return void game.keyboard.fifo.push(0x80 | 0x04);
-	case 'Digit4':
-		return void game.keyboard.fifo.push(0x80 | 0x05);
-	case 'Digit5':
-		return void game.keyboard.fifo.push(0x80 | 0x06);
-	case 'Digit6':
-		return void game.keyboard.fifo.push(0x80 | 0x07);
-	case 'Digit7':
-		return void game.keyboard.fifo.push(0x80 | 0x08);
-	case 'Digit8':
-		return void game.keyboard.fifo.push(0x80 | 0x09);
-	case 'Digit9':
-		return void game.keyboard.fifo.push(0x80 | 0x0a);
-	case 'KeyA':
-		return void game.keyboard.fifo.push(0x80 | 0x1e);
-	case 'KeyB':
-		return void game.keyboard.fifo.push(0x80 | 0x2e);
-	case 'KeyC':
-		return void game.keyboard.fifo.push(0x80 | 0x2c);
-	case 'KeyD':
-		return void game.keyboard.fifo.push(0x80 | 0x20);
-	case 'KeyE':
-		return void game.keyboard.fifo.push(0x80 | 0x13);
-	case 'KeyF':
-		return void game.keyboard.fifo.push(0x80 | 0x21);
-	case 'KeyG':
-		return void game.keyboard.fifo.push(0x80 | 0x22);
-	case 'KeyH':
-		return void game.keyboard.fifo.push(0x80 | 0x23);
-	case 'KeyI':
-		return void game.keyboard.fifo.push(0x80 | 0x18);
-	case 'KeyJ':
-		return void game.keyboard.fifo.push(0x80 | 0x24);
-	case 'KeyK':
-		return void game.keyboard.fifo.push(0x80 | 0x25);
-	case 'KeyL':
-		return void game.keyboard.fifo.push(0x80 | 0x26);
-	case 'KeyM':
-		return void game.keyboard.fifo.push(0x80 | 0x30);
-	case 'KeyN':
-		return void game.keyboard.fifo.push(0x80 | 0x2f);
-	case 'KeyO':
-		return void game.keyboard.fifo.push(0x80 | 0x19);
-	case 'KeyP':
-		return void game.keyboard.fifo.push(0x80 | 0x1a);
-	case 'KeyQ':
-		return void game.keyboard.fifo.push(0x80 | 0x11);
-	case 'KeyR':
-		return void game.keyboard.fifo.push(0x80 | 0x14);
-	case 'KeyS':
-		return void game.keyboard.fifo.push(0x80 | 0x1f);
-	case 'KeyT':
-		return void game.keyboard.fifo.push(0x80 | 0x15);
-	case 'KeyU':
-		return void game.keyboard.fifo.push(0x80 | 0x17);
-	case 'KeyV':
-		return void game.keyboard.fifo.push(0x80 | 0x2d);
-	case 'KeyW':
-		return void game.keyboard.fifo.push(0x80 | 0x12);
-	case 'KeyX':
-		return void game.keyboard.fifo.push(0x80 | 0x2b);
-	case 'KeyY':
-		return void game.keyboard.fifo.push(0x80 | 0x16);
-	case 'KeyZ':
-		return void game.keyboard.fifo.push(0x80 | 0x2a);
-	case 'Backquote':
-		return void game.keyboard.fifo.push(0x80 | 0x1b);
-	case 'Backslash':
-		return void game.keyboard.fifo.push(0x80 | 0x0e);
-	case 'BracketLeft':
-		return void game.keyboard.fifo.push(0x80 | 0x1c);
-	case 'BracketRight':
-		return void game.keyboard.fifo.push(0x80 | 0x29);
-	case 'Comma':
-		return void game.keyboard.fifo.push(0x80 | 0x31);
-	case 'Equal':
-		return void game.keyboard.fifo.push(0x80 | 0x0d);
-	case 'Minus':
-		return void game.keyboard.fifo.push(0x80 | 0x0c);
-	case 'Period':
-		return void game.keyboard.fifo.push(0x80 | 0x32);
-	case 'Quote':
-		return void game.keyboard.fifo.push(0x80 | 0x28);
-	case 'Semicolon':
-		return void game.keyboard.fifo.push(0x80 | 0x27);
-	case 'Slash':
-		return void game.keyboard.fifo.push(0x80 | 0x33);
-	case 'Backspace':
-		return void game.keyboard.fifo.push(0x80 | 0x0f);
-	case 'Tab':
-		return void game.keyboard.fifo.push(0x80 | 0x10);
-	case 'Enter':
-		return void game.keyboard.fifo.push(0x80 | 0x1d);
-	case 'ShiftLeft':
-	case 'ShiftRight':
-		return void game.keyboard.fifo.push(0x80 | 0x70);
-	case 'ControlLeft':
-	case 'ControlRight':
-		return void game.keyboard.fifo.push(0x80 | 0x71);
-	case 'AltLeft':
-		return void game.keyboard.fifo.push(0x80 | 0x72); // OPT1
-	case 'AltRight':
-		return void game.keyboard.fifo.push(0x80 | 0x73); // OPT2
-	case 'CapsLock':
-		return void game.keyboard.fifo.push(0x80 | 0x5d);
-	case 'Escape':
-		return void game.keyboard.fifo.push(0x80 | 0x01);
-	case 'Space':
-		return void game.keyboard.fifo.push(0x80 | 0x35);
-	case 'PageUp':
-		return void game.keyboard.fifo.push(0x80 | 0x38);
-	case 'PageDown':
-		return void game.keyboard.fifo.push(0x80 | 0x39);
-	case 'End':
-		return void game.keyboard.fifo.push(0x80 | 0x3a);
-	case 'Home':
-		return void game.keyboard.fifo.push(0x80 | 0x36);
-	case 'ArrowLeft':
-		return void game.keyboard.fifo.push(0x80 | 0x3b);
-	case 'ArrowUp':
-		return void game.keyboard.fifo.push(0x80 | 0x3c);
-	case 'ArrowRight':
-		return void game.keyboard.fifo.push(0x80 | 0x3d);
-	case 'ArrowDown':
-		return void game.keyboard.fifo.push(0x80 | 0x3e);
-	case 'Delete':
-		return void game.keyboard.fifo.push(0x80 | 0x37);
-	}
-};
-
-/*
- *
- *	X68000
- *
- */
-
 const bc = Uint8Array.from(window.atob('\
 AAEBAgECAgMBAgIDAgMDBAECAgMCAwMEAgMDBAMEBAUBAgIDAgMDBAIDAwQDBAQFAgMDBAMEBAUDBAQFBAUFBgECAgMCAwMEAgMDBAMEBAUCAwMEAwQEBQME\
 BAUEBQUGAgMDBAMEBAUDBAQFBAUFBgMEBAUEBQUGBAUFBgUGBgcBAgIDAgMDBAIDAwQDBAQFAgMDBAMEBAUDBAQFBAUFBgIDAwQDBAQFAwQEBQQFBQYDBAQF\
 BAUFBgQFBQYFBgYHAgMDBAMEBAUDBAQFBAUFBgMEBAUEBQUGBAUFBgUGBgcDBAQFBAUFBgQFBQYFBgYHBAUFBgUGBgcFBgYHBgcHCA==\
 ').split(''), c => c.charCodeAt(0));
-const SRAM = Uint8Array.from(window.atob('\
+export const SRAM = Uint8Array.from(window.atob('\
 gnc2ODAwMFcAwAAAAL///ADtAQD/////kHBuBwAQAAAAAP//AAAHAQ4ADQAAAAAA+D7/wP/+zahAIgMCAAgAAAAAAAAAAAAAAP/cAAQAAQEAAAAgAAn5AQAA\
 AADgAOAA4ADgAAAAAAAAAAAAAAAAVg8=\
 ').split(''), c => c.charCodeAt(0));
-let DISK1, ROM, FDD = [];
-
-read(`human302.xdf`).then(buffer => {
-	DISK1 = new Uint8Array(buffer);
-}).then(() => read('x68000.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	ROM = Uint8Array.concat(...['cgrom.dat', 'iplrom.dat'].map(e => zip.decompress(e))).addBase();
-	game = new X68000();
-	sound = [
-		new YM2151({clock: Math.floor(16000000 / 4)}),
-		new MSM6258(),
-	];
-	game.fdd.command.push({unit: 0, disk: DISK1});
-	game.touch = {x: null, y: null};
-	canvas.addEventListener('mousedown', e => game.mouse.button |= e.button === 0 ? 1 : e.button === 2 ? 2 : 0);
-	canvas.addEventListener('mouseup', e => game.mouse.button &= ~(e.button === 0 ? 1 : e.button === 2 ? 2 : 0));
-	canvas.addEventListener('mousemove', e => {
-		typeof game.touch.x === 'number' && (game.mouse.x += e.offsetX - game.touch.x, game.mouse.y += e.offsetY - game.touch.y);
-		game.touch = {x: e.offsetX, y: e.offsetY}
-	});
-	init({game, sound, keydown, keyup});
-});
-
+export const FDD = [];
+export const sound = [
+	new YM2151({clock: Math.floor(16000000 / 4)}),
+	new MSM6258(),
+];

@@ -6,7 +6,7 @@
 
 import SN76489 from './sn76489.js';
 import {seq, rseq, convertGFX} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -640,19 +640,20 @@ class TimePilot84 {
  *
  */
 
+import {ROM} from "./dist/time_pilot_84_rom.js";
 let PRG1, PRG2, PRG3, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR;
 
-read('tp84.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['388_f04.7j', '388_05.8j', '388_f06.9j', '388_07.10j'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('388_f08.10d').addBase();
-	PRG3 = zip.decompress('388j13.6a').addBase();
-	BG = Uint8Array.concat(...['388_h02.2j', '388_d01.1j'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['388_e09.12a', '388_e10.13a', '388_e11.14a', '388_e12.15a'].map(e => zip.decompress(e)));
-	RED = zip.decompress('388d14.2c');
-	GREEN = zip.decompress('388d15.2d');
-	BLUE = zip.decompress('388d16.1e');
-	BGCOLOR = zip.decompress('388d18.1f');
-	OBJCOLOR = zip.decompress('388j17.16c');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x8000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x8000, 0x2000).addBase();
+	PRG3 = new Uint8Array(ROM.buffer, 0xa000, 0x2000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0xc000, 0x4000);
+	OBJ = new Uint8Array(ROM.buffer, 0x10000, 0x8000);
+	RED = new Uint8Array(ROM.buffer, 0x18000, 0x100);
+	GREEN = new Uint8Array(ROM.buffer, 0x18100, 0x100);
+	BLUE = new Uint8Array(ROM.buffer, 0x18200, 0x100);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0x18300, 0x100);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0x18400, 0x100);
 	game = new TimePilot84();
 	sound = [
 		new SN76489({clock: Math.floor(14318181 / 8)}),
@@ -661,5 +662,5 @@ read('tp84.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

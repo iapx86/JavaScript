@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -594,21 +594,21 @@ class SkyKidDeluxe {
  *
  */
 
+import {ROM} from "./dist/sky_kid_deluxe_rom.js";
 let PRG1, PRG2, BG1, BG2, OBJ, RED, BLUE, BGCOLOR, OBJCOLOR, /* BGADDR, */ PRG3, PRG3I;
 
-read('skykiddx.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['sk3_2.9d', 'sk3_1b.9c'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('sk3_3.12c').addBase();
-	BG1 = Uint8Array.concat(...['sk3_9.7r', 'sk3_10.7s'].map(e => zip.decompress(e)));
-	BG2 = Uint8Array.concat(...['sk3_7.4r', 'sk3_8.4s'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['sk3_5.12h', 'sk3_6.12k'].map(e => zip.decompress(e)));
-	RED = zip.decompress('sk3-1.3r');
-	BLUE = zip.decompress('sk3-2.3s');
-	BGCOLOR = zip.decompress('sk3-3.4v');
-	OBJCOLOR = zip.decompress('sk3-4.5v');
-//	BGADDR = zip.decompress('sk3-5.6u');
-	PRG3 = zip.decompress('sk3_4.6b').addBase();
-	PRG3I = zip.decompress('cus60-60a1.mcu').addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x10000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x10000, 0x8000).addBase();
+	BG1 = new Uint8Array(ROM.buffer, 0x18000, 0xc000);
+	BG2 = new Uint8Array(ROM.buffer, 0x24000, 0xc000);
+	OBJ = new Uint8Array(ROM.buffer, 0x30000, 0x10000);
+	RED = new Uint8Array(ROM.buffer, 0x40000, 0x200);
+	BLUE = new Uint8Array(ROM.buffer, 0x40200, 0x200);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0x40400, 0x800);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0x40c00, 0x800);
+	PRG3 = new Uint8Array(ROM.buffer, 0x41420, 0x4000).addBase();
+	PRG3I = new Uint8Array(ROM.buffer, 0x45420, 0x1000).addBase();
 	game = new SkyKidDeluxe();
 	sound = [
 		new YM2151({clock: 3579580}),
@@ -616,5 +616,5 @@ read('skykiddx.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

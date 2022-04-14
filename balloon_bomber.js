@@ -4,7 +4,7 @@
  *
  */
 
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import I8080 from './i8080.js';
 let game, sound;
 
@@ -239,15 +239,16 @@ class BalloonBomber {
  *
  */
 
+import {ROM} from "./dist/balloon_bomber_rom.js";
 let PRG1, PRG2, MAP;
 
-read('ballbomb.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['tn01', 'tn02', 'tn03', 'tn04'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('tn05-1').addBase();
-	MAP = zip.decompress('tn06');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x2000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x2000, 0x800).addBase();
+	MAP = new Uint8Array(ROM.buffer, 0x2800, 0x800);
 	game = new BalloonBomber();
 	sound = [];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

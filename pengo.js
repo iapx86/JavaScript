@@ -6,7 +6,7 @@
 
 import PacManSound from './pac-man_sound.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import SegaZ80 from './sega_z80.js';
 let game, sound;
 
@@ -425,19 +425,19 @@ class Pengo {
  *
  */
 
+import {ROM} from "./dist/pengo_rom.js";
 let PRG, BG, OBJ, RGB, COLOR, SND;
 
-read('pengo.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = Uint8Array.concat(...['ep1689c.8', 'ep1690b.7', 'ep1691b.15', 'ep1692b.14'].map(e => zip.decompress(e)));
-	PRG = Uint8Array.concat(PRG, ...['ep1693b.21', 'ep1694b.20', 'ep5118b.32', 'ep5119c.31'].map(e => zip.decompress(e))).addBase();
-	BG = Uint8Array.concat(...['ep1640.92', 'ep1695.105'].map(e => zip.decompress(e).subarray(0, 0x1000)));
-	OBJ = Uint8Array.concat(...['ep1640.92', 'ep1695.105'].map(e => zip.decompress(e).subarray(0x1000)));
-	RGB = zip.decompress('pr1633.78');
-	COLOR = zip.decompress('pr1634.88');
-	SND = zip.decompress('pr1635.51');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0x8000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x8000, 0x2000);
+	OBJ = new Uint8Array(ROM.buffer, 0xa000, 0x2000);
+	RGB = new Uint8Array(ROM.buffer, 0xc000, 0x20);
+	COLOR = new Uint8Array(ROM.buffer, 0xc020, 0x400);
+	SND = new Uint8Array(ROM.buffer, 0xc420, 0x100);
 	game = new Pengo();
 	sound = new PacManSound({SND});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

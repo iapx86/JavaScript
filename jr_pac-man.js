@@ -6,7 +6,7 @@
 
 import PacManSound from './pac-man_sound.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -477,19 +477,20 @@ class JrPacMan {
  *
  */
 
+import {ROM} from "./dist/jr_pac-man_rom.js";
 let PRG, BG, OBJ, RGB_L, RGB_H, COLOR, SND;
 
-read('jrpacman.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = Uint8Array.concat(...['jrp8d.8d', 'jrp8e.8e', 'jrp8h.8h', 'jrp8j.8j', 'jrp8k.8k'].map(e => zip.decompress(e))).addBase();
-	BG = zip.decompress('jrp2c.2c');
-	OBJ = zip.decompress('jrp2e.2e');
-	RGB_L = zip.decompress('a290-27axv-bxhd.9e');
-	RGB_H = zip.decompress('a290-27axv-cxhd.9f');
-	COLOR = zip.decompress('a290-27axv-axhd.9p');
-	SND = zip.decompress('a290-27axv-dxhd.7p');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0xa000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0xa000, 0x2000);
+	OBJ = new Uint8Array(ROM.buffer, 0xc000, 0x2000);
+	RGB_L = new Uint8Array(ROM.buffer, 0xe000, 0x100);
+	RGB_H = new Uint8Array(ROM.buffer, 0xe100, 0x100);
+	COLOR = new Uint8Array(ROM.buffer, 0xe200, 0x100);
+	SND = new Uint8Array(ROM.buffer, 0xe300, 0x100);
 	game = new JrPacMan();
 	sound = new PacManSound({SND});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

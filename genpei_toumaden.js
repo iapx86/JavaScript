@@ -8,7 +8,7 @@ import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import Namco63701X from './namco_63701x.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -609,23 +609,22 @@ class GenpeiToumaDen {
  *
  */
 
+import {ROM} from "./dist/genpei_toumaden_rom.js";
 let PRG1, PRG2, BG1, BG2, OBJ, RED, BLUE, BGCOLOR, OBJCOLOR, /* BGADDR, */ PRG3, PRG3I, PCM;
 
-read('genpeitd.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['gt1_10b.f1', 'gt1_1b.9c'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('gt1_2.12c').addBase();
-	BG1 = Uint8Array.concat(...['gt1_7.7r', 'gt1_6.7s'].map(e => zip.decompress(e)));
-	BG2 = Uint8Array.concat(...['gt1_5.4r', 'gt1_4.4s'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['gt1_11.12h', 'gt1_12.12k', 'gt1_13.12l', 'gt1_14.12m', 'gt1_15.12p'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(OBJ, ...['gt1_16.12r', 'gt1_8.12t', 'gt1_8.12t', 'gt1_9.12u', 'gt1_9.12u'].map(e => zip.decompress(e)));
-	RED = zip.decompress('gt1-1.3r');
-	BLUE = zip.decompress('gt1-2.3s');
-	BGCOLOR = zip.decompress('gt1-3.4v');
-	OBJCOLOR = zip.decompress('gt1-4.5v');
-//	BGADDR = zip.decompress('gt1-5.6u');
-	PRG3 = zip.decompress('gt1_3.6b').addBase();
-	PRG3I = zip.decompress('cus60-60a1.mcu').addBase();
-	PCM = Uint8Array.concat(...['gt1_17.f3', 'gt1_18.h3', 'gt1_19.k3'].map(e => zip.decompress(e)));
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x18000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x18000, 0x4000).addBase();
+	BG1 = new Uint8Array(ROM.buffer, 0x1c000, 0x18000);
+	BG2 = new Uint8Array(ROM.buffer, 0x34000, 0xc000);
+	OBJ = new Uint8Array(ROM.buffer, 0x40000, 0x100000);
+	RED = new Uint8Array(ROM.buffer, 0x140000, 0x200);
+	BLUE = new Uint8Array(ROM.buffer, 0x140200, 0x200);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0x140400, 0x800);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0x140c00, 0x800);
+	PRG3 = new Uint8Array(ROM.buffer, 0x141420, 0x8000).addBase();
+	PRG3I = new Uint8Array(ROM.buffer, 0x149420, 0x1000).addBase();
+	PCM = new Uint8Array(ROM.buffer, 0x14a420, 0x60000);
 	game = new GenpeiToumaDen();
 	sound = [
 		new YM2151({clock: 3579580}),
@@ -634,5 +633,5 @@ read('genpeitd.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

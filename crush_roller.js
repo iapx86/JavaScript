@@ -6,7 +6,7 @@
 
 import PacManSound from './pac-man_sound.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -446,18 +446,19 @@ class CrushRoller {
  *
  */
 
+import {ROM} from "./dist/crush_roller_rom.js";
 let PRG, BG, OBJ, RGB, COLOR, SND;
 
-read('crush.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = Uint8Array.concat(...['crushkrl.6e', 'crushkrl.6f', 'crushkrl.6h', 'crushkrl.6j'].map(e => zip.decompress(e))).addBase();
-	BG = zip.decompress('maketrax.5e');
-	OBJ = zip.decompress('maketrax.5f');
-	RGB = zip.decompress('82s123.7f');
-	COLOR = zip.decompress('2s140.4a');
-	SND = zip.decompress('82s126.1m');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0x4000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x4000, 0x1000);
+	OBJ = new Uint8Array(ROM.buffer, 0x5000, 0x1000);
+	RGB = new Uint8Array(ROM.buffer, 0x6000, 0x20);
+	COLOR = new Uint8Array(ROM.buffer, 0x6020, 0x100);
+	SND = new Uint8Array(ROM.buffer, 0x6120, 0x100);
 	game = new CrushRoller();
 	sound = new PacManSound({SND});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

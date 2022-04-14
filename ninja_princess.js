@@ -6,7 +6,7 @@
 
 import SN76489 from './sn76489.js';
 import {seq, rseq, convertGFX} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -480,16 +480,15 @@ const keyup = e => {
  *
  */
 
+import {ROM} from "./dist/ninja_princess_rom.js";
 let PRG1, PRG2, BG, OBJ, PRI;
 
-read('seganinj.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['nprincesu/epr-6573.129', 'nprincesu/epr-6574.130', 'nprincesu/epr-6575.131'].map(e => zip.decompress(e)));
-	PRG1 = Uint8Array.concat(PRG1, ...['nprincesu/epr-6576.132', 'nprinces/epr-6616.133', 'nprincesu/epr-6578.134'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('epr-6559.120').addBase();
-	BG = Uint8Array.concat(...['epr-6558.62', 'nprinces/epr-6557.61', 'epr-6556.64'].map(e => zip.decompress(e)));
-	BG = Uint8Array.concat(BG, ...['nprinces/epr-6555.63', 'epr-6554.66', 'nprinces/epr-6553.65'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['epr-6546.117', 'epr-6548.04', 'epr-6547.110', 'ninja/epr-6549.05'].map(e => zip.decompress(e)));
-	PRI = zip.decompress('pr-5317.76');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0xc000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0xc000, 0x2000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0xe000, 0xc000);
+	OBJ = new Uint8Array(ROM.buffer, 0x1a000, 0x10000);
+	PRI = new Uint8Array(ROM.buffer, 0x2a000, 0x100);
 	game = new NinjaPrincess();
 	sound = [
 		new SN76489({clock: Math.floor(8000000 / 4)}),
@@ -497,5 +496,5 @@ read('seganinj.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

@@ -6,7 +6,7 @@
 
 import YM2151 from './ym2151.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -81,7 +81,7 @@ class SoundTest {
 			this.fReset = false;
 			this.nSound = 0;
 			this.ram2.fill(0);
-			this.ram2.set(PRG.subarray(0x22000, 0x2f000));
+			this.ram2.set(PRG.subarray(0x42000, 0x4f000));
 			this.command.splice(0);
 			this.cpu2.reset();
 		}
@@ -162,12 +162,12 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/image_fight_rom.js";
 const key = [];
-const PRG = new Uint8Array(0x40000);
+let PRG;
 
-read('imgfight.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	zip.decompress('if-c-h3.bin').forEach((e, i) => PRG[1 | i << 1] = e);
-	zip.decompress('if-c-l3.bin').forEach((e, i) => PRG[i << 1] = e);
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0x60000).addBase();
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -177,5 +177,5 @@ read('imgfight.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	game = new SoundTest();
 	sound = new YM2151({clock: 3579545, gain: 2});
 	init({game, sound});
-});
+}));
 

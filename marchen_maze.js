@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import {dummypage} from './cpu.js'
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
@@ -691,17 +691,18 @@ class MarchenMaze {
  *
  */
 
+import {ROM} from "./dist/marchen_maze_rom.js";
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ, NVRAM;
 
-read('mmaze.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	SND = Uint8Array.concat(...['mm_snd-0.bin', 'mm_snd-1.bin'].map(e => zip.decompress(e))).addBase();
-	PRG = Uint8Array.concat(...['mm_prg-0.bin', 'mm_prg-1.bin', 'mm_prg-2.bin', 'mm1_p6.bin', 'mm1_p7.bin'].map(e => zip.decompress(e))).addBase();
-	MCU = zip.decompress('cus64-64a1.mcu').addBase();
-	VOI = Uint8Array.concat(...['mm_voi-0.bin', 'mm_voi-1.bin'].map(e => zip.decompress(e))).addBase();
-	CHR8 = zip.decompress('mm_chr-8.bin');
-	CHR = Uint8Array.concat(...['mm_chr-0.bin', 'mm_chr-1.bin', 'mm_chr-2.bin', 'mm_chr-3.bin', 'mm_chr-4.bin', 'mm_chr-5.bin'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['mm_obj-0.bin', 'mm_obj-1.bin', 'mm_obj-2.bin', 'mm_obj-3.bin'].map(e => zip.decompress(e)));
-	NVRAM = zip.decompress('mmaze.nv');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	SND = new Uint8Array(ROM.buffer, 0x0, 0x20000).addBase();
+	PRG = new Uint8Array(ROM.buffer, 0x20000, 0x80000).addBase();
+	MCU = new Uint8Array(ROM.buffer, 0xa0000, 0x1000).addBase();
+	VOI = new Uint8Array(ROM.buffer, 0xa1000, 0x40000).addBase();
+	CHR8 = new Uint8Array(ROM.buffer, 0xe1000, 0x20000);
+	CHR = new Uint8Array(ROM.buffer, 0x101000, 0xc0000);
+	OBJ = new Uint8Array(ROM.buffer, 0x1c1000, 0x80000);
+	NVRAM = new Uint8Array(ROM.buffer, 0x241000, 0x800);
 	game = new MarchenMaze();
 	sound = [
 		new YM2151({clock: 3579580, gain: 1.4}),
@@ -710,5 +711,5 @@ read('mmaze.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zi
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import UPD7751 from './upd7751.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import FD1089B from './fd1089b.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -535,35 +535,17 @@ const keyup = e => {
  *
  */
 
-const PRG1 = new Uint8Array(0x20000).addBase(), OBJ = new Uint8Array(0x80000);
-let BG, PRG2, MCU, VOI, KEY;
+import {ROM} from "./dist/sukeban_jansi_ryuko_rom.js";
+let PRG1, BG, OBJ, PRG2, MCU, VOI, KEY;
 
-read('sjryuko.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	zip.decompress('sjryuko1/epr-12251.43').forEach((e, i) => PRG1[i << 1] = e);
-	zip.decompress('sjryuko1/epr-12249.26').forEach((e, i) => PRG1[1 | i << 1] = e);
-	zip.decompress('sjryuko1/epr-12252.42').forEach((e, i) => PRG1[0x10000 | i << 1] = e);
-	zip.decompress('sjryuko1/epr-12250.25').forEach((e, i) => PRG1[0x10001 | i << 1] = e);
-	BG = Uint8Array.concat(...['epr-12224-95.b9', 'epr-12225-94.b10', 'epr-12226-93.b11'].map(e => zip.decompress(e)));
-	zip.decompress('epr-12232-10.b1').subarray(0, 0x8000).forEach((e, i) => OBJ[1 | i << 1] = e);
-	zip.decompress('epr-12236-11.b5').subarray(0, 0x8000).forEach((e, i) => OBJ[i << 1] = e);
-	zip.decompress('epr-12233-17.b2').subarray(0, 0x8000).forEach((e, i) => OBJ[0x10001 | i << 1] = e);
-	zip.decompress('epr-12237-18.b6').subarray(0, 0x8000).forEach((e, i) => OBJ[0x10000 | i << 1] = e);
-	zip.decompress('epr-12234-23.b3').subarray(0, 0x8000).forEach((e, i) => OBJ[0x20001 | i << 1] = e);
-	zip.decompress('epr-12238-24.b7').subarray(0, 0x8000).forEach((e, i) => OBJ[0x20000 | i << 1] = e);
-	zip.decompress('epr-12235-29.b4').subarray(0, 0x8000).forEach((e, i) => OBJ[0x30001 | i << 1] = e);
-	zip.decompress('epr-12239-30.b8').subarray(0, 0x8000).forEach((e, i) => OBJ[0x30000 | i << 1] = e);
-	zip.decompress('epr-12232-10.b1').subarray(0x8000).forEach((e, i) => OBJ[0x40001 | i << 1] = e);
-	zip.decompress('epr-12236-11.b5').subarray(0x8000).forEach((e, i) => OBJ[0x40000 | i << 1] = e);
-	zip.decompress('epr-12233-17.b2').subarray(0x8000).forEach((e, i) => OBJ[0x50001 | i << 1] = e);
-	zip.decompress('epr-12237-18.b6').subarray(0x8000).forEach((e, i) => OBJ[0x50000 | i << 1] = e);
-	zip.decompress('epr-12234-23.b3').subarray(0x8000).forEach((e, i) => OBJ[0x60001 | i << 1] = e);
-	zip.decompress('epr-12238-24.b7').subarray(0x8000).forEach((e, i) => OBJ[0x60000 | i << 1] = e);
-	zip.decompress('epr-12235-29.b4').subarray(0x8000).forEach((e, i) => OBJ[0x70001 | i << 1] = e);
-	zip.decompress('epr-12239-30.b8').subarray(0x8000).forEach((e, i) => OBJ[0x70000 | i << 1] = e);
-	PRG2 = zip.decompress('sjryuko1/epr-12227.12').addBase();
-	MCU = zip.decompress('sjryuko1/7751.bin').addBase();
-	VOI = Uint8Array.concat(...['sjryuko1/epr-12228.1', 'sjryuko1/epr-12229.2', 'sjryuko1/epr-12230.4', 'sjryuko1/epr-12231.5'].map(e => zip.decompress(e)));
-	KEY = zip.decompress('317-5021.key').addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x20000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x20000, 0x18000);
+	OBJ = new Uint8Array(ROM.buffer, 0x38000, 0x80000);
+	PRG2 = new Uint8Array(ROM.buffer, 0xb8000, 0x8000).addBase();
+	MCU = new Uint8Array(ROM.buffer, 0xc0000, 0x400);
+	VOI = new Uint8Array(ROM.buffer, 0xc0400, 0x20000);
+	KEY = new Uint8Array(ROM.buffer, 0xe0400, 0x2000);
 	game = new SukebanJansiRyuko();
 	sound = [
 		new YM2151({clock: 4000000}),
@@ -571,5 +553,5 @@ read('sjryuko.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

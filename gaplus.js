@@ -7,7 +7,7 @@
 import MappySound from './mappy_sound.js';
 import Namco62XX from './namco_62xx.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -756,23 +756,23 @@ class Gaplus {
  *
  */
 
+import {ROM} from "./dist/gaplus_rom.js";
 let PRG1, PRG2, PRG3, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR_L, OBJCOLOR_H, SND, PRG;
 
-read('gaplus.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['gp2-4.8d', 'gp2-3b.8c', 'gp2-2b.8b'].map(e => zip.decompress(e))).addBase();
-	PRG2 = Uint8Array.concat(...['gp2-8.11d', 'gp2-7.11c', 'gp2-6.11b'].map(e => zip.decompress(e))).addBase();
-	PRG3 = zip.decompress('gp2-1.4b').addBase();
-	BG = zip.decompress('gp2-5.8s');
-	OBJ = Uint8Array.concat(...['gp2-11.11p', 'gp2-10.11n', 'gp2-9.11m', 'gp2-12.11r'].map(e => zip.decompress(e)));
-	RED = zip.decompress('gp2-3.1p');
-	GREEN = zip.decompress('gp2-1.1n');
-	BLUE = zip.decompress('gp2-2.2n');
-	BGCOLOR = zip.decompress('gp2-7.6s');
-	OBJCOLOR_L = zip.decompress('gp2-6.6p');
-	OBJCOLOR_H = zip.decompress('gp2-5.6n');
-	SND = zip.decompress('gp2-4.3f');
-}).then(() => read('namco62.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = zip.decompress('62xx.bin');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x6000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x6000, 0x6000).addBase();
+	PRG3 = new Uint8Array(ROM.buffer, 0xc000, 0x2000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0xe000, 0x2000);
+	OBJ = new Uint8Array(ROM.buffer, 0x10000, 0x8000);
+	RED = new Uint8Array(ROM.buffer, 0x18000, 0x100);
+	GREEN = new Uint8Array(ROM.buffer, 0x18100, 0x100);
+	BLUE = new Uint8Array(ROM.buffer, 0x18200, 0x100);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0x18300, 0x100);
+	OBJCOLOR_L = new Uint8Array(ROM.buffer, 0x18400, 0x200);
+	OBJCOLOR_H = new Uint8Array(ROM.buffer, 0x18600, 0x200);
+	SND = new Uint8Array(ROM.buffer, 0x18800, 0x100);
+	PRG = new Uint8Array(ROM.buffer, 0x18900, 0x800);
 	game = new Gaplus();
 	sound = [
 		new MappySound({SND}),
@@ -780,5 +780,5 @@ read('gaplus.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

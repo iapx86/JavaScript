@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import {Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -361,14 +361,15 @@ const keyup = e => {
  *
  */
 
+import {ROM} from "./dist/royal_mahjong_rom.js";
 let PRG, RGB;
 
-read('royalmj.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = Uint8Array.concat(...['1.p1', '2.p2', '3.p3', '4.p4', '5.p5', '6.p6'].map(e => zip.decompress(e))).addBase();
-	RGB = zip.decompress('18s030n.6k');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0x6000).addBase();
+	RGB = new Uint8Array(ROM.buffer, 0x6000, 0x20);
 	game = new RoyalMahjong();
 	sound = new AY_3_8910({clock: Math.floor(18432000 / 12), gain: 0.2});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

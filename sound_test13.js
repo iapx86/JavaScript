@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import K007232 from './k007232.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -150,11 +150,12 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/cue_brick_rom.js";
 const key = [];
 let PRG3, SND;
 
-read('cuebrick.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG3 = zip.decompress('cuebrickj/903_d03.10a').addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG3 = new Uint8Array(ROM.buffer, 0x80000, 0x8000).addBase();
 	SND = new Uint8Array(0x20000);
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
@@ -168,5 +169,5 @@ read('cuebrick.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		new K007232({SND, clock: 3579545, gain: 0.2}),
 	];
 	init({game, sound});
-});
+}));
 

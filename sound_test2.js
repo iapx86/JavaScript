@@ -6,7 +6,7 @@
 
 import C30 from './c30.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import MC6801 from './mc6801.js';
 let game, sound;
 
@@ -165,12 +165,13 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/pac-land_rom.js";
 const key = [];
 let PRG2, PRG2I;
 
-read('pacland.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG2 = zip.decompress('pl1_7.3e').addBase();
-	PRG2I = zip.decompress('cus60-60a1.mcu').addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG2 = new Uint8Array(ROM.buffer, 0x18000, 0x2000).addBase();
+	PRG2I = new Uint8Array(ROM.buffer, 0x1a000, 0x1000).addBase();
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -180,5 +181,5 @@ read('pacland.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	game = new SoundTest();
 	sound = new C30();
 	init({game, sound});
-});
+}));
 

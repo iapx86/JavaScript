@@ -6,7 +6,7 @@
 
 import YM2203 from './ym2203.js';
 import {seq, rseq, convertGFX} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -485,15 +485,15 @@ class MakaiMura {
  *
  */
 
+import {ROM} from "./dist/makai-mura_rom.js";
 let PRG1, PRG2, FG, BG, OBJ;
 
-read('gng.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['makaimur/10n.rom', 'makaimur/8n.rom', 'makaimur/12n.rom'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('gg2.bin').addBase();
-	FG = zip.decompress('gg1.bin');
-	BG = Uint8Array.concat(...['gg11.bin', 'gg10.bin', 'gg9.bin', 'gg8.bin', 'gg7.bin', 'gg6.bin'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['gngbl/19.84472.4n', 'gg16.bin', 'gg15.bin'].map(e => zip.decompress(e)), new Uint8Array(0x4000).fill(0xff));
-	OBJ = Uint8Array.concat(OBJ, ...['gngbl/16.84472.4l', 'gg13.bin', 'gg12.bin'].map(e => zip.decompress(e)), new Uint8Array(0x4000).fill(0xff));
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x14000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x14000, 0x8000).addBase();
+	FG = new Uint8Array(ROM.buffer, 0x1c000, 0x4000);
+	BG = new Uint8Array(ROM.buffer, 0x20000, 0x18000);
+	OBJ = new Uint8Array(ROM.buffer, 0x38000, 0x20000);
 	game = new MakaiMura();
 	sound = [
 		new YM2203({clock: Math.floor(12000000 / 8), gain: 0.5}),
@@ -501,5 +501,5 @@ read('gng.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip 
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

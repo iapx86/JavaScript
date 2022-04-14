@@ -7,7 +7,7 @@
 import GalaxianSound from './galaxian_sound.js';
 import SoundEffect from './sound_effect.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -1565,12 +1565,13 @@ AP8A/wD/AP8A/wD/AP8A/wD/\
  *
  */
 
-let BG, RGB, PRG;
+import {ROM} from "./dist/moon_cresta_rom.js";
+let PRG, BG, RGB;
 
-read('mooncrst.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = Uint8Array.concat(...['mc1', 'mc2', 'mc3', 'mc4', 'mc5.7r', 'mc6.8d', 'mc7.8e', 'mc8'].map(e => zip.decompress(e))).addBase();
-	BG = Uint8Array.concat(...['mcs_b', 'mcs_d', 'mcs_a', 'mcs_c'].map(e => zip.decompress(e)));
-	RGB = zip.decompress('mmi6331.6l');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0x4000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x4000, 0x2000);
+	RGB = new Uint8Array(ROM.buffer, 0x6000, 0x20);
 	game = new MoonCresta();
 	sound = [
 		new GalaxianSound({SND}),
@@ -1578,5 +1579,5 @@ read('mooncrst.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

@@ -7,7 +7,7 @@
 import SN76489 from './sn76489.js';
 import SenjyoSound from './senjyo_sound.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -556,17 +556,18 @@ class StarForce {
  *
  */
 
+import {ROM} from "./dist/star_force_rom.js";
 let PRG1, PRG2, FG, BG1, BG2, BG3, OBJ, SND;
 
-read('starforc.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['3.3p', '2.3mn'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('1.3hj').addBase();
-	FG = Uint8Array.concat(...['7.2fh', '8.3fh', '9.3fh'].map(e => zip.decompress(e)));
-	BG1 = Uint8Array.concat(...['15.10jk', '14.9jk', '13.8jk'].map(e => zip.decompress(e)));
-	BG2 = Uint8Array.concat(...['12.10de', '11.9de', '10.8de'].map(e => zip.decompress(e)));
-	BG3 = Uint8Array.concat(...['18.10pq', '17.9pq', '16.8pq'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['6.10lm', '5.9lm', '4.8lm'].map(e => zip.decompress(e)));
-	SND = zip.decompress('07b.bin');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x8000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x8000, 0x2000).addBase();
+	FG = new Uint8Array(ROM.buffer, 0xa000, 0x3000);
+	BG1 = new Uint8Array(ROM.buffer, 0xd000, 0x6000);
+	BG2 = new Uint8Array(ROM.buffer, 0x13000, 0x6000);
+	BG3 = new Uint8Array(ROM.buffer, 0x19000, 0x3000);
+	OBJ = new Uint8Array(ROM.buffer, 0x1c000, 0xc000);
+	SND = new Uint8Array(ROM.buffer, 0x28000, 0x20);
 	game = new StarForce();
 	sound = [
 		new SN76489({clock: 2000000}),
@@ -576,5 +577,5 @@ read('starforc.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

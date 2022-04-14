@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import {dummypage} from './cpu.js'
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
@@ -689,18 +689,17 @@ class DragonSpirit {
  *
  */
 
+import {ROM} from "./dist/dragon_spirit_rom.js";
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ;
 
-read('dspirit.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	SND = Uint8Array.concat(...['ds1_s0.bin', 'ds1_s1.bin'].map(e => zip.decompress(e))).addBase();
-	PRG = Uint8Array.concat(...['ds1_p0.bin', 'ds1_p1.bin', 'ds1_p2.bin', 'ds1_p3.bin', 'ds1_p4.bin'].map(e => zip.decompress(e)));
-	PRG = Uint8Array.concat(PRG, ...['ds1_p5.bin', 'ds3_p6.bin', 'ds3_p7.bin'].map(e => zip.decompress(e))).addBase();
-	MCU = zip.decompress('cus64-64a1.mcu').addBase();
-	VOI = Uint8Array.concat(...['ds1_v0.bin', 'ds1_v0.bin', 'ds_voi-1.bin', 'ds_voi-2.bin', 'ds_voi-3.bin', 'ds_voi-4.bin'].map(e => zip.decompress(e))).addBase();
-	CHR8 = zip.decompress('ds_chr-8.bin');
-	CHR = Uint8Array.concat(...['ds_chr-0.bin', 'ds_chr-1.bin', 'ds_chr-2.bin', 'ds_chr-3.bin'].map(e => zip.decompress(e)));
-	CHR = Uint8Array.concat(CHR, ...['ds_chr-4.bin', 'ds_chr-5.bin', 'ds_chr-6.bin', 'ds_chr-7.bin'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['ds_obj-0.bin', 'ds_obj-1.bin', 'ds_obj-2.bin', 'ds_obj-3.bin', 'ds1_o4.bin', 'ds1_o4.bin'].map(e => zip.decompress(e)));
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	SND = new Uint8Array(ROM.buffer, 0x0, 0x20000).addBase();
+	PRG = new Uint8Array(ROM.buffer, 0x20000, 0x80000).addBase();
+	MCU = new Uint8Array(ROM.buffer, 0xa0000, 0x1000).addBase();
+	VOI = new Uint8Array(ROM.buffer, 0xa1000, 0xa0000).addBase();
+	CHR8 = new Uint8Array(ROM.buffer, 0x141000, 0x20000);
+	CHR = new Uint8Array(ROM.buffer, 0x161000, 0x100000);
+	OBJ = new Uint8Array(ROM.buffer, 0x261000, 0xa0000);
 	game = new DragonSpirit();
 	sound = [
 		new YM2151({clock: 3579580, gain: 1.4}),
@@ -709,5 +708,5 @@ read('dspirit.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

@@ -6,7 +6,7 @@
 
 import C30 from './c30.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -636,20 +636,21 @@ class MetroCross {
  *
  */
 
+import {ROM} from "./dist/metro-cross_rom.js";
 let PRG1, PRG2, PRG2I, FG, BG, OBJ, GREEN, RED;
 
-read('metrocrs.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['mc1-3.9c', 'mc1-1.9a', 'mc1-2.9b'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('mc1-4.3b').addBase();
-	PRG2I = zip.decompress('cus60-60a1.mcu').addBase();
-	FG = zip.decompress('mc1-5.3j');
-	BG = Uint8Array.concat(...['mc1-7.4p', 'mc1-6.4n'].map(e => zip.decompress(e)), new Uint8Array(0x4000).fill(0xff));
-	OBJ = Uint8Array.concat(...['mc1-8.8k', 'mc1-9.8l'].map(e => zip.decompress(e)));
-	GREEN = zip.decompress('mc1-1.1n');
-	RED = zip.decompress('mc1-2.2m');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0xa000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0xa000, 0x2000).addBase();
+	PRG2I = new Uint8Array(ROM.buffer, 0xc000, 0x1000).addBase();
+	FG = new Uint8Array(ROM.buffer, 0xd000, 0x2000);
+	BG = new Uint8Array(ROM.buffer, 0xf000, 0xc000);
+	OBJ = new Uint8Array(ROM.buffer, 0x1b000, 0x8000);
+	GREEN = new Uint8Array(ROM.buffer, 0x23000, 0x800);
+	RED = new Uint8Array(ROM.buffer, 0x23800, 0x800);
 	game = new MetroCross();
 	sound = new C30({clock: Math.floor(49152000 / 1024)});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

@@ -6,7 +6,7 @@
 
 import SN76489 from './sn76489.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -156,11 +156,12 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/choplifter_rom.js";
 const key = [];
 let PRG2;
 
-read('choplift.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG2 = zip.decompress('epr-7130.ic126').addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG2 = new Uint8Array(ROM.buffer, 0x18000, 0x8000).addBase();
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -173,5 +174,5 @@ read('choplift.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		new SN76489({clock: Math.floor(8000000 / 2)}),
 	];
 	init({game, sound});
-});
+}));
 

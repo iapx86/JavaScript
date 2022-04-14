@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -477,14 +477,15 @@ const keyup = e => {
  *
  */
 
+import {ROM} from "./dist/strategy_x_rom.js";
 let PRG1, PRG2, BG, RGB, MAP;
 
-read('stratgyx.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['2c_1.bin', '2e_2.bin', '2f_3.bin', '2h_4.bin', '2j_5.bin', '2l_6.bin'].map(e => zip.decompress(e))).addBase();
-	PRG2 = Uint8Array.concat(...['s1.bin', 's2.bin'].map(e => zip.decompress(e))).addBase();
-	BG = Uint8Array.concat(...['5f_c2.bin', '5h_c1.bin'].map(e => zip.decompress(e)));
-	RGB = zip.decompress('strategy.6e');
-	MAP = zip.decompress('strategy.10k');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x6000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x6000, 0x2000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x8000, 0x1000);
+	RGB = new Uint8Array(ROM.buffer, 0x9000, 0x20);
+	MAP = new Uint8Array(ROM.buffer, 0x9020, 0x20);
 	game = new StrategyX();
 	sound = [
 		new AY_3_8910({clock: Math.floor(14318000 / 8), gain: 0.2}),
@@ -492,5 +493,5 @@ read('stratgyx.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

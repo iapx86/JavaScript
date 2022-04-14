@@ -8,7 +8,7 @@ import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import Namco63701X from './namco_63701x.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -583,24 +583,22 @@ class WonderMomo {
  *
  */
 
+import {ROM} from "./dist/wonder_momo_rom.js";
 let PRG1, PRG2, BG1, BG2, OBJ, RED, BLUE, BGCOLOR, OBJCOLOR, /* BGADDR, */ PRG3, PRG3I, PCM;
 
-read('wndrmomo.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['wm1_16.f1', 'wm1_1.9c'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('wm1_2.12c').addBase();
-	BG1 = Uint8Array.concat(...['wm1_6.7r', 'wm1_7.7s'].map(e => zip.decompress(e)));
-	BG2 = Uint8Array.concat(...['wm1_4.4r', 'wm1_5.4s'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['wm1_8.12h', 'wm1_9.12k', 'wm1_10.12l', 'wm1_11.12m'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(OBJ, ...['wm1_12.12p', 'wm1_13.12r', 'wm1_14.12t', 'wm1_15.12u'].map(e => zip.decompress(e)));
-	RED = zip.decompress('wm1-1.3r');
-	BLUE = zip.decompress('wm1-2.3s');
-	BGCOLOR = zip.decompress('wm1-3.4v');
-	OBJCOLOR = zip.decompress('wm1-4.5v');
-//	BGADDR = zip.decompress('wm1-5.6u');
-	PRG3 = zip.decompress('wm1_3.6b').addBase();
-	PRG3I = zip.decompress('cus60-60a1.mcu').addBase();
-	PCM = Uint8Array.concat(...['wm1_17.f3', 'wm1_17.f3','wm1_18.h3', 'wm1_18.h3'].map(e => zip.decompress(e)));
-	PCM = Uint8Array.concat(PCM, ...['wm1_19.k3', 'wm1_19.k3', 'wm1_20.m3', 'wm1_20.m3'].map(e => zip.decompress(e)));
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x18000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x18000, 0x8000).addBase();
+	BG1 = new Uint8Array(ROM.buffer, 0x20000, 0xc000);
+	BG2 = new Uint8Array(ROM.buffer, 0x2c000, 0xc000);
+	OBJ = new Uint8Array(ROM.buffer, 0x38000, 0x80000);
+	RED = new Uint8Array(ROM.buffer, 0xb8000, 0x200);
+	BLUE = new Uint8Array(ROM.buffer, 0xb8200, 0x200);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0xb8400, 0x800);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0xb8c00, 0x800);
+	PRG3 = new Uint8Array(ROM.buffer, 0xb9420, 0x8000).addBase();
+	PRG3I = new Uint8Array(ROM.buffer, 0xc1420, 0x1000).addBase();
+	PCM = new Uint8Array(ROM.buffer, 0xc2420, 0x80000);
 	game = new WonderMomo();
 	sound = [
 		new YM2151({clock: 3579580}),
@@ -609,5 +607,5 @@ read('wndrmomo.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

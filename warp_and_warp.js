@@ -6,7 +6,7 @@
 
 import SoundEffect from './sound_effect.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import I8080 from './i8080.js';
 let game, sound;
 
@@ -3517,11 +3517,12 @@ CAABAP7/AwD7//r/9//3//n/8P/5//D/8P/5//3/8v/z/+//+P/8//H/+v/z//b/9P/4//L/+P/1//P/
  *
  */
 
+import {ROM} from "./dist/warp_and_warp_rom.js";
 let PRG, BG;
 
-read('warpwarp.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = Uint8Array.concat(...['ww1_prg1.s10', 'ww1_prg2.s8', 'ww1_prg3.s4'].map(e => zip.decompress(e))).addBase();
-	BG = zip.decompress('ww1_chg1.s12').addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0x3000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x3000, 0x800).addBase();
 	game = new WarpAndWarp();
 	sound = [
 		new WarpAndWarpSound(),
@@ -3529,5 +3530,5 @@ read('warpwarp.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

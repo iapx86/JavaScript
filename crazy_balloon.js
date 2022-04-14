@@ -5,7 +5,7 @@
  */
 
 import {seq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -293,15 +293,16 @@ class CrazyBalloon {
  *
  */
 
+import {ROM} from "./dist/crazy_balloon_rom.js";
 let PRG, BG, OBJ;
 
-read('crbaloon.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = Uint8Array.concat(...['cl01.bin', 'cl02.bin', 'cl03.bin', 'cl04.bin', 'cl05.bin', 'cl06.bin'].map(e => zip.decompress(e))).addBase();
-	BG = zip.decompress('cl07.bin');
-	OBJ = zip.decompress('cl08.bin');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0x3000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x3000, 0x800);
+	OBJ = new Uint8Array(ROM.buffer, 0x3800, 0x800);
 	game = new CrazyBalloon();
 	sound = [];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

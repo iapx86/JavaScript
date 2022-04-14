@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import {Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -648,14 +648,14 @@ class TimeTunnel {
  *
  */
 
+import {ROM} from "./dist/time_tunnel_rom.js";
 let PRG1, PRG2, GFX, PRI;
 
-read('timetunl.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['un01.69', 'un02.68', 'un03.67', 'un04.66', 'un05.65'].map(e => zip.decompress(e)));
-	PRG1 = Uint8Array.concat(PRG1, ...['un06.64', 'un07.55', 'un08.54', 'un09.53', 'un10.52'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('un19.70').addBase();
-	GFX = Uint8Array.concat(...['un11.1', 'un12.2', 'un13.3', 'un14.4', 'un15.5', 'un16.6', 'un17.7', 'un18.8'].map(e => zip.decompress(e)));
-	PRI = zip.decompress('eb16.22');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0xa000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0xa000, 0x1000).addBase();
+	GFX = new Uint8Array(ROM.buffer, 0xb000, 0x8000);
+	PRI = new Uint8Array(ROM.buffer, 0x13000, 0x100);
 	game = new TimeTunnel();
 	sound = [
 		new AY_3_8910({clock: Math.floor(6000000 / 4)}),
@@ -666,5 +666,5 @@ read('timetunl.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

@@ -4,7 +4,7 @@
  *
  */
 
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import I8080 from './i8080.js';
 let game, sound;
 
@@ -246,16 +246,16 @@ class SpaceChaser {
  *
  */
 
+import {ROM} from "./dist/space_chaser_rom.js";
 let PRG1, PRG2, MAP;
 
-read('schaser.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['rt13.bin', 'rt14.bin', 'rt15.bin', 'rt16.bin', 'rt17.bin'].map(e => zip.decompress(e)));
-	PRG1 = Uint8Array.concat(PRG1, ...['rt18.bin', 'rt19.bin', 'rt20.bin'].map(e => zip.decompress(e))).addBase();
-	PRG2 = Uint8Array.concat(...['rt21.bin', 'rt22.bin'].map(e => zip.decompress(e))).addBase();
-	MAP = zip.decompress('rt06.ic2');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x2000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x2000, 0x800).addBase();
+	MAP = new Uint8Array(ROM.buffer, 0x2800, 0x400);
 	game = new SpaceChaser();
 	sound = [];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

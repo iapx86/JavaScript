@@ -6,7 +6,7 @@
 
 import SN76489 from './sn76489.js';
 import {seq, rseq, convertGFX} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Sega2Z80 from './sega_z80_2.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -462,15 +462,15 @@ const keyup = e => {
  *
  */
 
+import {ROM} from "./dist/wonder_boy_rom.js";
 let PRG1, PRG2, BG, OBJ, PRI;
 
-read('wboy.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['wboy2/epr-7587.129', 'wboy2/epr-7588.130', 'wboy2/epr-7589.131'].map(e => zip.decompress(e)));
-	PRG1 = Uint8Array.concat(PRG1, ...['wboy2/epr-7590.132', 'wboy2/epr-7591.133', 'wboy2/epr-7592.134'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('epr-7498.120').addBase();
-	BG = Uint8Array.concat(...['epr-7497.62', 'epr-7496.61', 'epr-7495.64', 'epr-7494.63', 'epr-7493.66', 'epr-7492.65'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['epr-7485.117', 'epr-7487.04', 'epr-7486.110', 'epr-7488.05'].map(e => zip.decompress(e)));
-	PRI = zip.decompress('pr-5317.76');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0xc000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0xc000, 0x2000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0xe000, 0xc000);
+	OBJ = new Uint8Array(ROM.buffer, 0x1a000, 0x10000);
+	PRI = new Uint8Array(ROM.buffer, 0x2a000, 0x100);
 	game = new WonderBoy();
 	sound = [
 		new SN76489({clock: Math.floor(8000000 / 4)}),
@@ -478,5 +478,5 @@ read('wboy.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

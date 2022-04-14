@@ -6,7 +6,7 @@
 
 import MappySound from './mappy_sound.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -498,20 +498,21 @@ class DigDugII {
  *
  */
 
+import {ROM} from "./dist/digdug_ii_rom.js";
 let PRG1, PRG2, BG, OBJ, RGB, BGCOLOR, OBJCOLOR, SND;
 
-read('digdug2.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['d23_3.1d', 'd23_1.1b'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('d21_4.1k').addBase();
-	BG = zip.decompress('d21_5.3b');
-	OBJ = Uint8Array.concat(...['d21_7.3n', 'd21_6.3m'].map(e => zip.decompress(e)));
-	RGB = zip.decompress('d21-5.5b');
-	BGCOLOR = zip.decompress('d21-6.4c');
-	OBJCOLOR = zip.decompress('d21-7.5k');
-	SND = zip.decompress('d21-3.3m');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x8000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x8000, 0x2000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0xa000, 0x1000);
+	OBJ = new Uint8Array(ROM.buffer, 0xb000, 0x8000);
+	RGB = new Uint8Array(ROM.buffer, 0x13000, 0x20);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0x13020, 0x100);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0x13120, 0x100);
+	SND = new Uint8Array(ROM.buffer, 0x13220, 0x100);
 	game = new DigDugII();
 	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

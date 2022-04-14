@@ -7,7 +7,7 @@
 import PacManSound from './pac-man_sound.js';
 import SoundEffect from './sound_effect.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -1171,17 +1171,15 @@ z//f//3/9f///w==\
  *
  */
 
+import {ROM} from "./dist/new_rally-x_rom.js";
 let PRG, BGOBJ, RGB, COLOR, SND;
 
-read('nrallyx.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = Uint8Array.concat(...['nrx_prg1.1d', 'nrx_prg2.1e'].map(e => zip.decompress(e).subarray(0, 0x800)));
-	PRG = Uint8Array.concat(PRG, ...['nrx_prg1.1d', 'nrx_prg2.1e'].map(e => zip.decompress(e).subarray(0x800)));
-	PRG = Uint8Array.concat(PRG, ...['nrx_prg3.1k', 'nrx_prg4.1l'].map(e => zip.decompress(e).subarray(0, 0x800)));
-	PRG = Uint8Array.concat(PRG, ...['nrx_prg3.1k', 'nrx_prg4.1l'].map(e => zip.decompress(e).subarray(0x800))).addBase();
-	BGOBJ = Uint8Array.concat(...['nrx_chg1.8e', 'nrx_chg2.8d'].map(e => zip.decompress(e)));
-	RGB = zip.decompress('nrx1-1.11n');
-	COLOR = zip.decompress('nrx1-7.8p');
-	SND = zip.decompress('rx1-5.3p');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0x4000).addBase();
+	BGOBJ = new Uint8Array(ROM.buffer, 0x4000, 0x1000);
+	RGB = new Uint8Array(ROM.buffer, 0x5000, 0x20);
+	COLOR = new Uint8Array(ROM.buffer, 0x5020, 0x100);
+	SND = new Uint8Array(ROM.buffer, 0x5120, 0x100);
 	game = new NewRallyX();
 	sound = [
 		new PacManSound({SND}),
@@ -1189,5 +1187,5 @@ read('nrallyx.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

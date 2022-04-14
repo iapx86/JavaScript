@@ -6,7 +6,7 @@
 
 import MappySound from './mappy_sound.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -614,23 +614,24 @@ class Phozon {
  *
  */
 
+import {ROM} from "./dist/phozon_rom.js";
 let PRG1, PRG2, PRG3, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR, SND;
 
-read('phozon.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['6e.rom', '6h.rom', '6c.rom', '6d.rom'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('3b.rom').addBase();
-	PRG3 = zip.decompress('9r.rom').addBase();
-	BG = Uint8Array.concat(...['7j.rom', '8j.rom'].map(e => zip.decompress(e)));
-	OBJ = zip.decompress('5t.rom');
-	RED = zip.decompress('red.prm');
-	GREEN = zip.decompress('green.prm');
-	BLUE = zip.decompress('blue.prm');
-	BGCOLOR = zip.decompress('chr.prm');
-	OBJCOLOR = zip.decompress('sprite.prm');
-	SND = zip.decompress('sound.prm');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x8000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x8000, 0x2000).addBase();
+	PRG3 = new Uint8Array(ROM.buffer, 0xa000, 0x2000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0xc000, 0x2000);
+	OBJ = new Uint8Array(ROM.buffer, 0xe000, 0x2000);
+	RED = new Uint8Array(ROM.buffer, 0x10000, 0x100);
+	GREEN = new Uint8Array(ROM.buffer, 0x10100, 0x100);
+	BLUE = new Uint8Array(ROM.buffer, 0x10200, 0x100);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0x10300, 0x100);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0x10400, 0x100);
+	SND = new Uint8Array(ROM.buffer, 0x10500, 0x100);
 	game = new Phozon();
 	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

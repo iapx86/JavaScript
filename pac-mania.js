@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import {dummypage} from './cpu.js'
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
@@ -679,16 +679,17 @@ class PacMania {
  *
  */
 
+import {ROM} from "./dist/pac-mania_rom.js";
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ;
 
-read('pacmania.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	SND = Uint8Array.concat(...['pacmaniaj/pn1_s0.bin', 'pacmaniaj/pn1_s1.bin'].map(e => zip.decompress(e))).addBase();
-	PRG = Uint8Array.concat(...['pn_prg-6.bin', 'pacmaniaj/pn1_p7.bin'].map(e => zip.decompress(e))).addBase();
-	MCU = zip.decompress('cus64-64a1.mcu').addBase();
-	VOI = Uint8Array.concat(...['pacmaniaj/pn1_v0.bin', 'pacmaniaj/pn1_v0.bin'].map(e => zip.decompress(e))).addBase();
-	CHR8 = zip.decompress('pn2_c8.bin');
-	CHR = Uint8Array.concat(...['pn_chr-0.bin', 'pn_chr-1.bin', 'pn_chr-2.bin', 'pn_chr-3.bin'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['pn_obj-0.bin', 'pacmaniaj/pn_obj-1.bin'].map(e => zip.decompress(e)));
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	SND = new Uint8Array(ROM.buffer, 0x0, 0x20000).addBase();
+	PRG = new Uint8Array(ROM.buffer, 0x20000, 0x30000).addBase();
+	MCU = new Uint8Array(ROM.buffer, 0x50000, 0x1000).addBase();
+	VOI = new Uint8Array(ROM.buffer, 0x51000, 0x20000).addBase();
+	CHR8 = new Uint8Array(ROM.buffer, 0x71000, 0x10000);
+	CHR = new Uint8Array(ROM.buffer, 0x81000, 0x80000);
+	OBJ = new Uint8Array(ROM.buffer, 0x101000, 0x40000);
 	game = new PacMania();
 	sound = [
 		new YM2151({clock: 3579580, gain: 1.4}),
@@ -697,5 +698,5 @@ read('pacmania.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

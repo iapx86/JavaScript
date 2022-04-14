@@ -8,7 +8,7 @@ import AY_3_8910 from './ay-3-8910.js';
 import K005289 from './k005289.js';
 import VLM5030 from './vlm5030.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -210,12 +210,13 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/twinbee_rom.js";
 const key = [];
 let PRG2, SND;
 
-read('twinbee.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG2 = zip.decompress('400-e03.5l').addBase();
-	SND = Uint8Array.concat(...['400-a01.fse', '400-a02.fse'].map(e => zip.decompress(e)));
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG2 = new Uint8Array(ROM.buffer, 0x50000, 0x2000).addBase();
+	SND = new Uint8Array(ROM.buffer, 0x52000, 0x200);
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -230,5 +231,5 @@ read('twinbee.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 		new VLM5030({VLM: game.vlm, clock: Math.floor(14318180 / 4), gain: 5}),
 	];
 	init({game, sound});
-});
+}));
 

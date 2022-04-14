@@ -6,7 +6,7 @@
 
 import PacManSound from './pac-man_sound.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 import MB8840 from './mb8840.js';
 let game, sound;
@@ -1020,25 +1020,25 @@ P2Y=\
  *
  */
 
+import {ROM} from "./dist/digdug_rom.js";
 let PRG1, PRG2, PRG3, BG2, OBJ, BG4, MAPDATA, RGB, OBJCOLOR, BGCOLOR, SND, IO;
 
-read('digdug.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['dd1a.1', 'dd1a.2', 'dd1a.3', 'dd1a.4'].map(e => zip.decompress(e))).addBase();
-	PRG2 = Uint8Array.concat(...['dd1a.5', 'dd1a.6'].map(e => zip.decompress(e))).addBase();
-	PRG3 = zip.decompress('dd1.7').addBase();
-	BG2 = zip.decompress('dd1.9');
-	OBJ = Uint8Array.concat(...['dd1.15', 'dd1.14', 'dd1.13', 'dd1.12'].map(e => zip.decompress(e)));
-	BG4 = zip.decompress('dd1.11');
-	MAPDATA = zip.decompress('dd1.10b');
-	RGB = zip.decompress('136007.113');
-	OBJCOLOR = zip.decompress('136007.111');
-	BGCOLOR = zip.decompress('136007.112');
-	SND = zip.decompress('136007.110');
-}).then(() =>read('namco51.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	IO = zip.decompress('51xx.bin');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x4000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x4000, 0x2000).addBase();
+	PRG3 = new Uint8Array(ROM.buffer, 0x6000, 0x1000).addBase();
+	BG2 = new Uint8Array(ROM.buffer, 0x7000, 0x800);
+	OBJ = new Uint8Array(ROM.buffer, 0x7800, 0x4000);
+	BG4 = new Uint8Array(ROM.buffer, 0xb800, 0x1000);
+	MAPDATA = new Uint8Array(ROM.buffer, 0xc800, 0x1000);
+	RGB = new Uint8Array(ROM.buffer, 0xd800, 0x20);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0xd820, 0x100);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0xd920, 0x100);
+	SND = new Uint8Array(ROM.buffer, 0xda20, 0x100);
+	IO = new Uint8Array(ROM.buffer, 0xdb20, 0x400);
 	game = new DigDug();
 	sound = new PacManSound({SND});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

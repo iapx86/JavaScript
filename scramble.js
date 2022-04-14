@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -477,13 +477,14 @@ class Scramble {
  *
  */
 
+import {ROM} from "./dist/scramble_rom.js";
 let PRG1, PRG2, BG, RGB;
 
-read('scramble.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['s1.2d', 's2.2e', 's3.2f', 's4.2h', 's5.2j', 's6.2l', 's7.2m', 's8.2p'].map(e => zip.decompress(e))).addBase();
-	PRG2 = Uint8Array.concat(...['ot1.5c', 'ot2.5d', 'ot3.5e',].map(e => zip.decompress(e))).addBase();
-	BG = Uint8Array.concat(...['c2.5f', 'c1.5h'].map(e => zip.decompress(e)));
-	RGB = zip.decompress('c01s.6e');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x4000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x4000, 0x1800).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x5800, 0x1000);
+	RGB = new Uint8Array(ROM.buffer, 0x6800, 0x20);
 	game = new Scramble();
 	sound = [
 		new AY_3_8910({clock: Math.floor(14318181 / 8), gain: 0.2}),
@@ -491,5 +492,5 @@ read('scramble.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

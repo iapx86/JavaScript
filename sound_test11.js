@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import MC6801 from './mc6801.js';
 let game, sound;
 
@@ -196,12 +196,13 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/genpei_toumaden_rom.js";
 const key = [];
 let PRG3, PRG3I;
 
-read('genpeitd.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG3 = zip.decompress('gt1_3.6b').addBase();
-	PRG3I = zip.decompress('cus60-60a1.mcu').addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG3 = new Uint8Array(ROM.buffer, 0x141420, 0x8000).addBase();
+	PRG3I = new Uint8Array(ROM.buffer, 0x149420, 0x1000).addBase();
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -214,5 +215,5 @@ read('genpeitd.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		new C30(),
 	];
 	init({game, sound});
-});
+}));
 

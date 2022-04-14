@@ -7,7 +7,7 @@
 import YM2151 from './ym2151.js';
 import C30 from './c30.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 import MC6801 from './mc6801.js';
 let game, sound;
@@ -589,21 +589,21 @@ class HoppingMappy {
  *
  */
 
+import {ROM} from "./dist/hopping_mappy_rom.js";
 let PRG1, PRG2, BG1, BG2, OBJ, RED, BLUE, BGCOLOR, OBJCOLOR, /* BGADDR, */ PRG3, PRG3I;
 
-read('hopmappy.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = zip.decompress('hm1_1.9c').addBase();
-	PRG2 = zip.decompress('hm1_2.12c').addBase();
-	BG1 = zip.decompress('hm1_6.7r');
-	BG2 = zip.decompress('hm1_5.4r');
-	OBJ = zip.decompress('hm1_4.12h');
-	RED = zip.decompress('hm1-1.3r');
-	BLUE = zip.decompress('hm1-2.3s');
-	BGCOLOR = zip.decompress('hm1-3.4v');
-	OBJCOLOR = zip.decompress('hm1-4.5v');
-//	BGADDR = zip.decompress('hm1-5.6u');
-	PRG3 = zip.decompress('hm1_3.6b').addBase();
-	PRG3I = zip.decompress('cus60-60a1.mcu').addBase();
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x8000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x8000, 0x4000).addBase();
+	BG1 = new Uint8Array(ROM.buffer, 0xc000, 0x4000);
+	BG2 = new Uint8Array(ROM.buffer, 0x10000, 0x4000);
+	OBJ = new Uint8Array(ROM.buffer, 0x14000, 0x8000);
+	RED = new Uint8Array(ROM.buffer, 0x1c000, 0x200);
+	BLUE = new Uint8Array(ROM.buffer, 0x1c200, 0x200);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0x1c400, 0x800);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0x1cc00, 0x800);
+	PRG3 = new Uint8Array(ROM.buffer, 0x1d420, 0x2000).addBase();
+	PRG3I = new Uint8Array(ROM.buffer, 0x1f420, 0x1000).addBase();
 	game = new HoppingMappy();
 	sound = [
 		new YM2151({clock: 3579580}),
@@ -611,5 +611,5 @@ read('hopmappy.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

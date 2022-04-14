@@ -6,7 +6,7 @@
 
 import MappySound from './mappy_sound.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -493,20 +493,21 @@ class Motos {
  *
  */
 
+import {ROM} from "./dist/motos_rom.js";
 let PRG1, PRG2, BG, OBJ, RGB, BGCOLOR, OBJCOLOR, SND;
 
-read('motos.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['mo1_3.1d', 'mo1_1.1b'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('mo1_4.1k').addBase();
-	BG = zip.decompress('mo1_5.3b');
-	OBJ = Uint8Array.concat(...['mo1_7.3n', 'mo1_6.3m'].map(e => zip.decompress(e)));
-	RGB = zip.decompress('mo1-5.5b');
-	BGCOLOR = zip.decompress('mo1-6.4c');
-	OBJCOLOR = zip.decompress('mo1-7.5k');
-	SND = zip.decompress('mo1-3.3m');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x8000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x8000, 0x2000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0xa000, 0x1000);
+	OBJ = new Uint8Array(ROM.buffer, 0xb000, 0x8000);
+	RGB = new Uint8Array(ROM.buffer, 0x13000, 0x20);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0x13020, 0x100);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0x13120, 0x100);
+	SND = new Uint8Array(ROM.buffer, 0x13220, 0x100);
 	game = new Motos();
 	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

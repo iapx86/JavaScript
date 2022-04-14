@@ -7,7 +7,7 @@
 import GalaxianSound from './galaxian_sound.js';
 import SoundEffect from './sound_effect.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -2674,12 +2674,13 @@ Lfkm+t/50vr8+j37Evz9+/n7t/wd/eP8Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkA
  *
  */
 
+import {ROM} from "./dist/galaxian_rom.js";
 let BG, RGB, PRG;
 
-read('galaxian.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = Uint8Array.concat(...['galmidw.u', 'galmidw.v', 'galmidw.w', 'galmidw.y', '7l'].map(e => zip.decompress(e))).addBase();
-	BG = Uint8Array.concat(...['1h.bin', '1k.bin'].map(e => zip.decompress(e)));
-	RGB = zip.decompress('6l.bpr');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG = new Uint8Array(ROM.buffer, 0x0, 0x2800).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x2800, 0x1000);
+	RGB = new Uint8Array(ROM.buffer, 0x3800, 0x20);
 	game = new Galaxian();
 	sound = [
 		new GalaxianSound({SND}),
@@ -2687,5 +2688,5 @@ read('galaxian.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

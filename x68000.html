@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title><%= htmlWebpackPlugin.options.title %></title>
+<style>
+html {
+	height: 100%;
+	margin: auto;
+	display: table;
+}
+body {
+	display: table-cell;
+	text-align: center;
+	vertical-align: middle;
+	font-family: sans-serif;
+	font-size: xx-large;
+	color: white;
+	background-color: dimgray;
+}
+img {
+	position: fixed;
+	right: 1vw;
+	bottom: 1vh;
+}
+</style>
+</head>
+<body>
+<canvas id="canvas" width="340" height="256"><noscript>noscript</noscript></canvas>
+<script>
+const audioCtx = 'AudioContext' in window && new window.AudioContext() || 'webkitAudioContext' in window && new window.webkitAudioContext();
+const canvas = document.getElementById('canvas');
+</script>
+</body>
+</html>

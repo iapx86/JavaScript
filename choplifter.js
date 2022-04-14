@@ -6,7 +6,7 @@
 
 import SN76489 from './sn76489.js';
 import {seq, rseq, convertGFX} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -491,17 +491,18 @@ const keyup = e => {
  *
  */
 
+import {ROM} from "./dist/choplifter_rom.js";
 let PRG1, PRG2, BG, OBJ, RED, GREEN, BLUE, PRI;
 
-read('choplift.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['chopliftu/epr-7152.ic90', 'chopliftu/epr-7153.ic91', 'chopliftu/epr-7154.ic92'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('epr-7130.ic126').addBase();
-	BG = Uint8Array.concat(...['epr-7127.ic4', 'epr-7128.ic5', 'epr-7129.ic6'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['epr-7121.ic87', 'epr-7120.ic86', 'epr-7123.ic89', 'epr-7122.ic88'].map(e => zip.decompress(e)));
-	RED = zip.decompress('pr7119.ic20');
-	GREEN = zip.decompress('pr7118.ic14');
-	BLUE = zip.decompress('pr7117.ic8');
-	PRI = zip.decompress('pr5317.ic28');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x18000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x18000, 0x8000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x20000, 0x18000);
+	OBJ = new Uint8Array(ROM.buffer, 0x38000, 0x20000);
+	RED = new Uint8Array(ROM.buffer, 0x58000, 0x100);
+	GREEN = new Uint8Array(ROM.buffer, 0x58100, 0x100);
+	BLUE = new Uint8Array(ROM.buffer, 0x58200, 0x100);
+	PRI = new Uint8Array(ROM.buffer, 0x58300, 0x100);
 	game = new Choplifter();
 	sound = [
 		new SN76489({clock: Math.floor(8000000 / 4)}),
@@ -509,5 +510,5 @@ read('choplift.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

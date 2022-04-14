@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import {seq, rseq, convertGFX} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -635,17 +635,18 @@ class TimePilot {
  *
  */
 
+import {ROM} from "./dist/time_pilot_rom.js";
 let PRG1, PRG2, BG, OBJ, RGB_H, RGB_L, OBJCOLOR, BGCOLOR;
 
-read('timeplt.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['tm1', 'tm2', 'tm3'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('tm7').addBase();
-	BG = zip.decompress('tm6');
-	OBJ = Uint8Array.concat(...['tm4', 'tm5'].map(e => zip.decompress(e)));
-	RGB_H = zip.decompress('timeplt.b4');
-	RGB_L = zip.decompress('timeplt.b5');
-	OBJCOLOR = zip.decompress('timeplt.e9');
-	BGCOLOR = zip.decompress('timeplt.e12');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x6000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x6000, 0x1000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x7000, 0x2000);
+	OBJ = new Uint8Array(ROM.buffer, 0x9000, 0x4000);
+	RGB_H = new Uint8Array(ROM.buffer, 0xd000, 0x20);
+	RGB_L = new Uint8Array(ROM.buffer, 0xd020, 0x20);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0xd040, 0x100);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0xd140, 0x100);
 	game = new TimePilot();
 	sound = [
 		new AY_3_8910({clock: Math.floor(14318181 / 8), gain: 0.2}),
@@ -653,5 +654,5 @@ read('timeplt.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

@@ -8,7 +8,7 @@ import YM2151 from './ym2151.js';
 import K007232 from './k007232.js';
 import VLM5030 from './vlm5030.js';
 import {Timer} from './utils.js';
-import {init, read} from './sound_test_main.js';
+import {init, expand} from './sound_test_main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -164,13 +164,14 @@ class SoundTest {
  *
  */
 
+import {ROM} from "./dist/salamander_rom.js";
 const key = [];
 let PRG2, VLM, SND;
 
-read('salamand.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG2 = zip.decompress('587-d09.11j').addBase();
-	VLM = zip.decompress('587-d08.8g');
-	SND = zip.decompress('587-c01.10a');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG2 = new Uint8Array(ROM.buffer, 0x60000, 0x8000).addBase();
+	VLM = new Uint8Array(ROM.buffer, 0x68000, 0x4000);
+	SND = new Uint8Array(ROM.buffer, 0x6c000, 0x20000);
 	const tmp = Object.assign(document.createElement('canvas'), {width: 28, height: 16});
 	const img = document.getElementsByTagName('img');
 	for (let i = 0; i < 14; i++) {
@@ -184,5 +185,5 @@ read('salamand.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 		new VLM5030({VLM, clock: 3579545, gain: 5}),
 	];
 	init({game, sound});
-});
+}));
 

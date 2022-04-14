@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import {Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 import MC6805 from './mc6805.js';
 let game, sound;
@@ -687,14 +687,15 @@ class SeaFighterPoseidon {
  *
  */
 
+import {ROM} from "./dist/sea_fighter_poseidon_rom.js";
 let PRG1, PRG2, PRG3, GFX, PRI;
 
-read('sfposeid.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['a14-01.1', 'a14-02.2', 'a14-03.3', 'a14-04.6', 'a14-05.7'].map(e => zip.decompress(e))).addBase();
-	PRG2 = Uint8Array.concat(...['a14-10.70', 'a14-11.71'].map(e => zip.decompress(e))).addBase();
-	PRG3 = zip.decompress('a14-12').addBase();
-	GFX = Uint8Array.concat(...['a14-06.4', 'a14-07.5', 'a14-08.9', 'a14-09.10'].map(e => zip.decompress(e))).addBase();
-	PRI = zip.decompress('eb16.22');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0xa000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0xa000, 0x2000).addBase();
+	PRG3 = new Uint8Array(ROM.buffer, 0xc000, 0x800).addBase();
+	GFX = new Uint8Array(ROM.buffer, 0xc800, 0x8000);
+	PRI = new Uint8Array(ROM.buffer, 0x14800, 0x100);
 	game = new SeaFighterPoseidon();
 	sound = [
 		new AY_3_8910({clock: Math.floor(6000000 / 4)}),
@@ -705,5 +706,5 @@ read('sfposeid.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

@@ -6,7 +6,7 @@
 
 import MappySound from './mappy_sound.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 import MC68000 from './mc68000.js';
 let game, sound;
@@ -492,25 +492,24 @@ class Toypop {
  *
  */
 
-const PRG3 = new Uint8Array(0x8000).addBase();
-let PRG1, PRG2, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR, SND;
+import {ROM} from "./dist/toypop_rom.js";
+let PRG1, PRG2, PRG3, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR, SND;
 
-read('toypop.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['tp1-2.5b', 'tp1-1.5c'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('tp1-3.2c').addBase();
-	zip.decompress('tp1-4.8c').forEach((e, i) => PRG3[i << 1] = e);
-	zip.decompress('tp1-5.10c').forEach((e, i) => PRG3[1 | i << 1] = e);
-	BG = zip.decompress('tp1-7.5p');
-	OBJ = zip.decompress('tp1-6.9t');
-	RED = zip.decompress('tp1-3.1r');
-	GREEN = zip.decompress('tp1-2.1s');
-	BLUE = zip.decompress('tp1-1.1t');
-	BGCOLOR = zip.decompress('tp1-4.5l');
-	OBJCOLOR = zip.decompress('tp1-5.2p');
-	SND = zip.decompress('tp1-6.3d');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x8000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x8000, 0x2000).addBase();
+	PRG3 = new Uint8Array(ROM.buffer, 0xa000, 0x8000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x12000, 0x2000);
+	OBJ = new Uint8Array(ROM.buffer, 0x14000, 0x4000);
+	RED = new Uint8Array(ROM.buffer, 0x18000, 0x100);
+	GREEN = new Uint8Array(ROM.buffer, 0x18100, 0x100);
+	BLUE = new Uint8Array(ROM.buffer, 0x18200, 0x100);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0x18300, 0x100);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0x18400, 0x200);
+	SND = new Uint8Array(ROM.buffer, 0x18600, 0x100);
 	game = new Toypop();
 	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

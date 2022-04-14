@@ -6,7 +6,7 @@
 
 import YM2203 from './ym2203.js';
 import {seq, rseq, bitswap, convertGFX} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -453,19 +453,19 @@ class SenjouNoOokami {
  *
  */
 
+import {ROM} from "./dist/senjou_no_ookami_rom.js";
 const code_table = Uint8Array.from(seq(0x100), i => bitswap(i, 3, 2, 1, 4, 7, 6, 5, 0));
 let PRG1, PRG2, FG, BG, OBJ, RED, GREEN, BLUE;
 
-read('commando.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['commandoj/so04.9m', 'commandoj/so03.8m'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('commandob2/8,so02.9f').addBase();
-	FG = zip.decompress('vt01.5d');
-	BG = Uint8Array.concat(...['vt11.5a', 'vt12.6a', 'vt13.7a', 'vt14.8a', 'vt15.9a', 'vt16.10a'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['vt05.7e', 'vt06.8e', 'vt07.9e'].map(e => zip.decompress(e)), new Uint8Array(0x4000).fill(0xff));
-	OBJ = Uint8Array.concat(OBJ, ...['vt08.7h', 'vt09.8h', 'vt10.9h'].map(e => zip.decompress(e)), new Uint8Array(0x4000).fill(0xff));
-	RED = zip.decompress('vtb1.1d');
-	GREEN = zip.decompress('vtb2.2d');
-	BLUE = zip.decompress('vtb3.3d');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0xc000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0xc000, 0x4000).addBase();
+	FG = new Uint8Array(ROM.buffer, 0x10000, 0x4000);
+	BG = new Uint8Array(ROM.buffer, 0x14000, 0x18000);
+	OBJ = new Uint8Array(ROM.buffer, 0x2c000, 0x20000);
+	RED = new Uint8Array(ROM.buffer, 0x4c000, 0x100);
+	GREEN = new Uint8Array(ROM.buffer, 0x4c100, 0x100);
+	BLUE = new Uint8Array(ROM.buffer, 0x4c200, 0x100);
 	game = new SenjouNoOokami();
 	sound = [
 		new YM2203({clock: Math.floor(12000000 / 8), gain: 0.5}),
@@ -473,5 +473,5 @@ read('commando.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

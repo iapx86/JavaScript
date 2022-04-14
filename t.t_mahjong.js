@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import {Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 let game, sound;
 
@@ -259,16 +259,17 @@ const keyup = e => {
  *
  */
 
+import {ROM} from "./dist/t.t_mahjong_rom.js";
 let PRG1, PRG2, COLOR1, COLOR2;
 
-read('ttmahjng.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['ju04', 'ju05', 'ju06', 'ju07'].map(e => zip.decompress(e))).addBase();
-	PRG2 = Uint8Array.concat(...['ju01', 'ju02', 'ju08'].map(e => zip.decompress(e))).addBase();
-	COLOR1 = zip.decompress('ju03');
-	COLOR2 = zip.decompress('ju09');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x4000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x4000, 0x1800).addBase();
+	COLOR1 = new Uint8Array(ROM.buffer, 0x5800, 0x100);
+	COLOR2 = new Uint8Array(ROM.buffer, 0x5900, 0x100);
 	game = new TTMahjong();
 	sound = new AY_3_8910({clock: Math.floor(10000000 / 8), gain: 0.2});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

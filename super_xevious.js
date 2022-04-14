@@ -7,7 +7,7 @@
 import PacManSound from './pac-man_sound.js';
 import Namco54XX from './namco_54xx.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 import MB8840 from './mb8840.js';
 let game, sound;
@@ -931,31 +931,29 @@ class SuperXevious {
  *
  */
 
+import {ROM} from "./dist/super_xevious_rom.js";
 let PRG1, PRG2, PRG3, BG2, BG4, OBJ, MAPTBL, MAPDATA, RED, GREEN, BLUE, BGCOLOR_L, BGCOLOR_H, OBJCOLOR_L, OBJCOLOR_H, SND, KEY, IO, PRG;
 
-read('xevious.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['sxeviousj/xv3_1.3p', 'sxeviousj/xv3_2.3m', 'sxevious/xv3_3.2m', 'sxevious/xv3_4.2l'].map(e => zip.decompress(e))).addBase();
-	PRG2 = Uint8Array.concat(...['sxevious/xv3_5.3f', 'sxevious/xv3_6.3j'].map(e => zip.decompress(e))).addBase();
-	PRG3 = zip.decompress('xvi_7.2c').addBase();
-	BG2 = zip.decompress('xvi_12.3b');
-	BG4 = Uint8Array.concat(...['xvi_13.3c', 'xvi_14.3d'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['xvi_15.4m', 'xvi_17.4p', 'xvi_18.4r', 'xvi_16.4n'].map(e => zip.decompress(e)));
-	MAPTBL = Uint8Array.concat(...['xvi_9.2a', 'xvi_10.2b'].map(e => zip.decompress(e)));
-	MAPDATA = zip.decompress('xvi_11.2c');
-	RED = zip.decompress('xvi-8.6a');
-	GREEN = zip.decompress('xvi-9.6d');
-	BLUE = zip.decompress('xvi-10.6e');
-	BGCOLOR_L = zip.decompress('xvi-7.4h');
-	BGCOLOR_H = zip.decompress('xvi-6.4f');
-	OBJCOLOR_L = zip.decompress('xvi-4.3l');
-	OBJCOLOR_H = zip.decompress('xvi-5.3m');
-	SND = zip.decompress('xvi-2.7n');
-}).then(() => read('namco50.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	KEY = zip.decompress('50xx.bin');
-}).then(() => read('namco51.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	IO = zip.decompress('51xx.bin');
-}).then(() => read('namco54.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = zip.decompress('54xx.bin');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x4000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x4000, 0x2000).addBase();
+	PRG3 = new Uint8Array(ROM.buffer, 0x6000, 0x1000).addBase();
+	BG2 = new Uint8Array(ROM.buffer, 0x7000, 0x1000);
+	BG4 = new Uint8Array(ROM.buffer, 0x8000, 0x2000);
+	OBJ = new Uint8Array(ROM.buffer, 0xa000, 0x7000);
+	MAPTBL = new Uint8Array(ROM.buffer, 0x11000, 0x3000);
+	MAPDATA = new Uint8Array(ROM.buffer, 0x14000, 0x1000);
+	RED = new Uint8Array(ROM.buffer, 0x15000, 0x100);
+	GREEN = new Uint8Array(ROM.buffer, 0x15100, 0x100);
+	BLUE = new Uint8Array(ROM.buffer, 0x15200, 0x100);
+	BGCOLOR_L = new Uint8Array(ROM.buffer, 0x15300, 0x200);
+	BGCOLOR_H = new Uint8Array(ROM.buffer, 0x15500, 0x200);
+	OBJCOLOR_L = new Uint8Array(ROM.buffer, 0x15700, 0x200);
+	OBJCOLOR_H = new Uint8Array(ROM.buffer, 0x15900, 0x200);
+	SND = new Uint8Array(ROM.buffer, 0x15b00, 0x100);
+	KEY = new Uint8Array(ROM.buffer, 0x15c00, 0x800);
+	IO = new Uint8Array(ROM.buffer, 0x16400, 0x400);
+	PRG = new Uint8Array(ROM.buffer, 0x16800, 0x400);
 	game = new SuperXevious();
 	sound = [
 		new PacManSound({SND}),
@@ -963,5 +961,5 @@ read('xevious.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

@@ -6,7 +6,7 @@
 
 import SN76489 from './sn76489.js';
 import {seq, rseq, convertGFX} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC8123 from './mc8123.js';
 import Z80 from './z80.js';
 let game, sound;
@@ -481,18 +481,19 @@ const keyup = e => {
  *
  */
 
+import {ROM} from "./dist/ufo_senshi_yohko_chan_rom.js";
 let PRG1, KEY, PRG2, BG, OBJ, RED, GREEN, BLUE, PRI;
 
-read('ufosensi.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['epr-11661.90', 'epr-11662.91', 'epr-11663.92'].map(e => zip.decompress(e))).addBase();
-	KEY = zip.decompress('317-0064.key');
-	PRG2 = zip.decompress('epr-11667.126').addBase();
-	BG = Uint8Array.concat(...['epr-11664.4', 'epr-11665.5', 'epr-11666.6'].map(e => zip.decompress(e)));
-	OBJ = Uint8Array.concat(...['epr-11658.87', 'epr-11657.86', 'epr-11660.89', 'epr-11659.88'].map(e => zip.decompress(e)));
-	RED = zip.decompress('pr11656.20');
-	GREEN = zip.decompress('pr11655.14');
-	BLUE = zip.decompress('pr11654.8');
-	PRI = zip.decompress('pr5317.28');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x18000).addBase();
+	KEY = new Uint8Array(ROM.buffer, 0x18000, 0x2000);
+	PRG2 = new Uint8Array(ROM.buffer, 0x1a000, 0x8000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x22000, 0x18000);
+	OBJ = new Uint8Array(ROM.buffer, 0x3a000, 0x20000);
+	RED = new Uint8Array(ROM.buffer, 0x5a000, 0x100);
+	GREEN = new Uint8Array(ROM.buffer, 0x5a100, 0x100);
+	BLUE = new Uint8Array(ROM.buffer, 0x5a200, 0x100);
+	PRI = new Uint8Array(ROM.buffer, 0x5a300, 0x100);
 	game = new UfoSenshiYohkoChan();
 	sound = [
 		new SN76489({clock: Math.floor(8000000 / 4)}),
@@ -500,5 +501,5 @@ read('ufosensi.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

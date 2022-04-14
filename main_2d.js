@@ -139,27 +139,17 @@ if (!Array.prototype.addBase)
 		configurable: true,
 	});
 
-void function () {
-	Uint8Array.__proto__.concat = function (...args) {
-		const typed_array = new this(args.reduce((a, b) => a + b.length, 0));
-		for (let offset = 0, i = 0; i < args.length; offset += args[i++].length)
-			typed_array.set(args[i], offset);
-		return typed_array;
-	};
-}();
-
 /*
  *
  *	Utilities
  *
  */
 
-export function read(url) {
-	return fetch(url).then(response => {
-		if (response.ok)
-			return response.arrayBuffer();
-		alert(`failed to get: ${url}`);
-		throw new Error(url);
+export function expand(src) {
+	let img = new Image();
+	return new Promise((resolve) => Object.assign(img, {onload: () => resolve(), src})).then(() => {
+		const {width, height} = img, c = Object.assign(document.createElement('canvas'), {width, height}).getContext('2d');
+		return c.drawImage(img, 0, 0), new Uint8Array(new Int32Array(c.getImageData(0, 0, width, height).data.buffer));
 	});
 }
 

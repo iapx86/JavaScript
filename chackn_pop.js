@@ -6,7 +6,7 @@
 
 import AY_3_8910 from './ay-3-8910.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 import MC6805 from './mc6805.js';
 let game, sound;
@@ -512,15 +512,16 @@ const keyup = e => {
  *
  */
 
+import {ROM} from "./dist/chackn_pop_rom.js";
 let PRG1, PRG2, OBJ, BG, RGB_L, RGB_H;
 
-read('chaknpop.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['ao4_01.ic28', 'ao4_02.ic27', 'ao4_03.ic26', 'ao4_04.ic25', 'ao4_05.ic3'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('ao4_06.ic23').addBase();
-	OBJ = Uint8Array.concat(...['ao4_08.ic14', 'ao4_07.ic15'].map(e => zip.decompress(e)));
-	BG = Uint8Array.concat(...['ao4_09.ic98', 'ao4_10.ic97'].map(e => zip.decompress(e)));
-	RGB_L = zip.decompress('ao4-11.ic96');
-	RGB_H = zip.decompress('ao4-12.ic95');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0xa000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0xa000, 0x800).addBase();
+	OBJ = new Uint8Array(ROM.buffer, 0xa800, 0x4000);
+	BG = new Uint8Array(ROM.buffer, 0xe800, 0x4000);
+	RGB_L = new Uint8Array(ROM.buffer, 0x12800, 0x400);
+	RGB_H = new Uint8Array(ROM.buffer, 0x12c00, 0x400);
 	game = new ChacknPop();
 	sound = [
 		new AY_3_8910({clock: Math.floor(18000000 / 12)}),
@@ -528,5 +529,5 @@ read('chaknpop.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound, keydown, keyup});
-});
+}));
 

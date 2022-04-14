@@ -7,7 +7,7 @@
 import PacManSound from './pac-man_sound.js';
 import Namco54XX from './namco_54xx.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import Z80 from './z80.js';
 import MB8840 from './mb8840.js';
 let game, sound;
@@ -873,22 +873,21 @@ class Galaga {
  *
  */
 
+import {ROM} from "./dist/galaga_rom.js";
 let PRG1, PRG2, PRG3, BG, OBJ, RGB, BGCOLOR, OBJCOLOR, SND, IO, PRG;
 
-read('galaga.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['gg1_1b.3p', 'gg1_2b.3m', 'gg1_3.2m', 'gg1_4b.2l'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('gg1_5b.3f').addBase();
-	PRG3 = zip.decompress('gg1_7b.2c').addBase();
-	BG = zip.decompress('gg1_9.4l');
-	OBJ = Uint8Array.concat(...['gg1_11.4d', 'gg1_10.4f'].map(e => zip.decompress(e)));
-	RGB = zip.decompress('prom-5.5n');
-	BGCOLOR = zip.decompress('prom-4.2n');
-	OBJCOLOR = zip.decompress('prom-3.1c');
-	SND = zip.decompress('prom-1.1d');
-}).then(() => read('namco51.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	IO = zip.decompress('51xx.bin');
-}).then(() => read('namco54.zip')).then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG = zip.decompress('54xx.bin');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x4000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x4000, 0x1000).addBase();
+	PRG3 = new Uint8Array(ROM.buffer, 0x5000, 0x1000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x6000, 0x1000);
+	OBJ = new Uint8Array(ROM.buffer, 0x7000, 0x2000);
+	RGB = new Uint8Array(ROM.buffer, 0x9000, 0x20);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0x9020, 0x100);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0x9120, 0x100);
+	SND = new Uint8Array(ROM.buffer, 0x9220, 0x100);
+	IO = new Uint8Array(ROM.buffer, 0x9320, 0x400);
+	PRG = new Uint8Array(ROM.buffer, 0x9720, 0x400);
 	game = new Galaga();
 	sound = [
 		new PacManSound({SND}),
@@ -896,5 +895,5 @@ read('galaga.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(z
 	];
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 

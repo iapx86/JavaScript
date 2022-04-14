@@ -6,7 +6,7 @@
 
 import MappySound from './mappy_sound.js';
 import {seq, rseq, convertGFX, Timer} from './utils.js';
-import {init, read} from './main.js';
+import {init, expand} from './main.js';
 import MC6809 from './mc6809.js';
 let game, sound;
 
@@ -488,20 +488,21 @@ class PacAndPal {
  *
  */
 
+import {ROM} from "./dist/pac_and_pal_rom.js";
 let PRG1, PRG2, BG, OBJ, RGB, BGCOLOR, OBJCOLOR, SND;
 
-read('pacnpal.zip').then(buffer => new Zlib.Unzip(new Uint8Array(buffer))).then(zip => {
-	PRG1 = Uint8Array.concat(...['pap1-3b.1d', 'pap1-2b.1c', 'pap3-1.1b'].map(e => zip.decompress(e))).addBase();
-	PRG2 = zip.decompress('pap1-4.1k').addBase();
-	BG = zip.decompress('pap1-6.3c');
-	OBJ = zip.decompress('pap1-5.3f');
-	RGB = zip.decompress('pap1-6.4c');
-	BGCOLOR = zip.decompress('pap1-5.4e');
-	OBJCOLOR = zip.decompress('pap1-4.3l');
-	SND = zip.decompress('pap1-3.3m');
+window.addEventListener('load', () => expand(ROM).then(ROM => {
+	PRG1 = new Uint8Array(ROM.buffer, 0x0, 0x6000).addBase();
+	PRG2 = new Uint8Array(ROM.buffer, 0x6000, 0x1000).addBase();
+	BG = new Uint8Array(ROM.buffer, 0x7000, 0x1000);
+	OBJ = new Uint8Array(ROM.buffer, 0x8000, 0x2000);
+	RGB = new Uint8Array(ROM.buffer, 0xa000, 0x20);
+	BGCOLOR = new Uint8Array(ROM.buffer, 0xa020, 0x100);
+	OBJCOLOR = new Uint8Array(ROM.buffer, 0xa120, 0x100);
+	SND = new Uint8Array(ROM.buffer, 0xa220, 0x100);
 	game = new PacAndPal();
 	sound = new MappySound({SND});
 	canvas.addEventListener('click', () => game.coin(true));
 	init({game, sound});
-});
+}));
 
