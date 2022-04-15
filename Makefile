@@ -10,30 +10,29 @@ targets = \
 	galaxian_rom.js galaxy_wars_rom.js gaplus_rom.js gemini_wing_x68_rom.js genocide_x68_rom.js genocide2_x68_rom.js \
 	genpei_toumaden_rom.js genpei_toumaden_x68_rom.js golden_axe_rom.js gradius_rom.js gradius_ii_rom.js \
 	gradius_iii_rom.js gradius_x68_rom.js grobda_rom.js hishou_zame_x68_rom.js hopping_mappy_rom.js image_fight_rom.js \
-	image_fight_x68_rom.js jr_pac-man_rom.js jump_bug_rom.js king_and_balloon_rom.js \
-	korosuke_roller_rom.js lagoon_x68_rom.js libble_rabble_rom.js \
-	lunar_rescue_rom.js mahjong_pon_chin_kan_rom.js mahjong_yuugi_rom.js makai-mura_rom.js mappy_rom.js \
-	marble_madness_x68_rom.js marchen_maze_rom.js marchen_maze_x68_rom.js master_of_weapon_rom.js metro-cross_rom.js \
-	moon_cresta_rom.js motos_rom.js mr_heli_no_daibouken_rom.js namco_video_game_music_library_x68_rom.js \
-	new_rally-x_rom.js ninja_princess_rom.js out_run_rom.js pac-land_rom.js pac-man_rom.js pac-mania_rom.js \
-	pac-mania_x68_rom.js pac_and_pal_rom.js parodius_da_x68_rom.js pengo_rom.js phalanx_x68_rom.js \
-	phozon_rom.js pinball_pinball_x68_rom.js polaris_rom.js pole_position_ii_rom.js \
+	image_fight_x68_rom.js jr_pac-man_rom.js jump_bug_rom.js king_and_balloon_rom.js korosuke_roller_rom.js \
+	lagoon_x68_rom.js libble_rabble_rom.js lunar_rescue_rom.js mahjong_pon_chin_kan_rom.js mahjong_yuugi_rom.js \
+	makai-mura_rom.js mappy_rom.js marble_madness_x68_rom.js marchen_maze_rom.js marchen_maze_x68_rom.js \
+	master_of_weapon_rom.js metro-cross_rom.js moon_cresta_rom.js motos_rom.js mr_heli_no_daibouken_rom.js \
+	namco_video_game_music_library_x68_rom.js new_rally-x_rom.js ninja_princess_rom.js out_run_rom.js pac-land_rom.js \
+	pac-man_rom.js pac-mania_rom.js pac-mania_x68_rom.js pac_and_pal_rom.js parodius_da_x68_rom.js pengo_rom.js \
+	phalanx_x68_rom.js phozon_rom.js pinball_pinball_x68_rom.js polaris_rom.js pole_position_ii_rom.js \
 	populous_x68_rom.js power_league_x68_rom.js prince_of_persia_x68_rom.js professional_mahjong_gokuu_x68_rom.js \
 	puzznic_x68_rom.js quarth_x68_rom.js r-type_rom.js r-type_ii_rom.js r-type_x68_rom.js rally-x_rom.js rompers_rom.js \
 	royal_mahjong_rom.js saigo_no_nindou_rom.js salamander_rom.js scramble_rom.js sea_fighter_poseidon_rom.js \
 	senjou_no_ookami_rom.js shanghai_x68_rom.js shuffle_puck_cafe_x68_rom.js sky_kid_rom.js sky_kid_deluxe_rom.js \
 	souko_ban_deluxe_rom.js souko_ban_perfect_x68_rom.js space_chaser_rom.js space_harrier_rom.js \
-	space_harrier_x68_rom.js space_invaders_rom.js space_laser_rom.js star_force_rom.js \
-	strategy_x_rom.js sukeban_jansi_ryuko_rom.js super_hang-on_rom.js super_hang-on_x68_rom.js \
-	super_pac-man_rom.js super_real_mahjong_part2_rom.js super_real_mahjong_part3_rom.js \
-	super_real_mahjong_pii_and_piii_x68_rom.js super_xevious_rom.js syvalion_x68_rom.js t.t_mahjong_rom.js \
-	tank_battalion_rom.js tank_force_rom.js tetris_rom.js the_fairyland_story_x68_rom.js the_newzealand_story_rom.js \
-	the_newzealand_story_x68_rom.js the_return_of_ishtar_rom.js the_return_of_ishtar_x68_rom.js \
-	the_tower_of_druaga_rom.js thunder_force_ii_x68_rom.js time_pilot_rom.js time_pilot_84_rom.js time_tunnel_rom.js \
-	toki_no_senshi_rom.js toypop_rom.js turbo_out_run_rom.js twinbee_rom.js twinbee_x68_rom.js \
-	ufo_senshi_yohko_chan_rom.js vball_x68_rom.js vulgus_rom.js warp_and_warp_rom.js wings_x68_rom.js wonder_boy_rom.js \
-	wonder_boy_iii_rom.js wonder_boy_in_monster_land_rom.js wonder_momo_rom.js world_court_rom.js world_court_x68_rom.js \
-	world_stadium_x68_rom.js x_multiply_rom.js xevious_rom.js xexex_rom.js yokai_douchuuki_rom.js zigzag_rom.js
+	space_harrier_x68_rom.js space_invaders_rom.js space_laser_rom.js star_force_rom.js strategy_x_rom.js \
+	sukeban_jansi_ryuko_rom.js super_hang-on_rom.js super_hang-on_x68_rom.js super_pac-man_rom.js \
+	super_real_mahjong_part2_rom.js super_real_mahjong_part3_rom.js super_real_mahjong_pii_and_piii_x68_rom.js \
+	super_xevious_rom.js syvalion_x68_rom.js t.t_mahjong_rom.js tank_battalion_rom.js tank_force_rom.js tetris_rom.js \
+	the_fairyland_story_x68_rom.js the_newzealand_story_rom.js the_newzealand_story_x68_rom.js \
+	the_return_of_ishtar_rom.js the_return_of_ishtar_x68_rom.js the_tower_of_druaga_rom.js thunder_force_ii_x68_rom.js \
+	time_pilot_rom.js time_pilot_84_rom.js time_tunnel_rom.js toki_no_senshi_rom.js toypop_rom.js turbo_out_run_rom.js \
+	twinbee_rom.js twinbee_x68_rom.js ufo_senshi_yohko_chan_rom.js vball_x68_rom.js vulgus_rom.js warp_and_warp_rom.js \
+	wings_x68_rom.js wonder_boy_rom.js wonder_boy_iii_rom.js wonder_boy_in_monster_land_rom.js wonder_momo_rom.js \
+	world_court_rom.js world_court_x68_rom.js world_stadium_x68_rom.js x_multiply_rom.js xevious_rom.js xexex_rom.js \
+	yokai_douchuuki_rom.js zigzag_rom.js
 
 .PHONY: all
 all: dist $(addprefix dist/,$(targets))

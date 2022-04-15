@@ -1,6 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const HtmlWebpackInlineSourcePlugin = require('html-webpack-inline-source-plugin');
+const HtmlInlineScriptPlugin = require('html-inline-script-webpack-plugin');
 
 const list = [
 	{name: '1942', title: '1942', width: 224, height: 256},
@@ -218,6 +218,7 @@ module.exports = {
 			width: e.width,
 			height: e.height,
 			inlineSource: '.js$',
+			inject: 'body',
 		})),
 		list2.map(e => new HtmlWebpackPlugin({
 			filename: `${e.name}.html`,
@@ -225,6 +226,7 @@ module.exports = {
 			chunks: [e.name],
 			title: e.title,
 			inlineSource: '.js$',
+			inject: 'body',
 		})),
 		list3.map(e => new HtmlWebpackPlugin({
 			filename: `${e.name}.html`,
@@ -232,23 +234,14 @@ module.exports = {
 			chunks: [e.name],
 			title: e.title,
 			inlineSource: '.js$',
+			inject: 'body',
 		})),
-		new HtmlWebpackInlineSourcePlugin(),
+		new HtmlInlineScriptPlugin(),
 	),
 	module: {
 		rules: [{
 			test: /\.js$/,
 			exclude: /node_modules/,
-			use: [{
-				loader: 'babel-loader',
-				options: {
-					presets: [['@babel/preset-env', {modules: false, targets: ['>0.25%', 'not ie 11', 'not op_mini all']}]],
-					plugins: [
-						['@babel/plugin-proposal-class-properties', {loose: true}],
-						['@babel/plugin-transform-runtime', {regenerator: true}],
-					],
-				}
-			}]
 		}]
 	},
 };

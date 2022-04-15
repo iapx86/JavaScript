@@ -90,6 +90,7 @@ export function init({game, sound, keydown, keyup} = {}) {
 			for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
 				audioCtx && this.samples.push(sound.output), sound.update();
 	}};
+	addEventListener('blur', () => audioCtx.suspend().catch());
 	addEventListener('message', ({data: {timestamp}}) => {
 		if (!timestamp)
 			return;

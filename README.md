@@ -1,9 +1,8 @@
 ### Webpackのインストール
 ```
 $ npm init -y
-$ npm install webpack webpack-cli html-webpack-plugin html-webpack-inline-source-plugin babel-loader @babel/core @babel/preset-env @babel/plugin-proposal-class-properties @babel/plugin-transform-runtime @babel/runtime --save-dev
+$ npm install -D webpack webpack-cli html-webpack-plugin html-inline-script-webpack-plugin
 ```
-※最新のhtml-webpack-inline-source-pluginに問題があるらしいです。
 ### その他必要なもの
 * make http://gnuwin32.sourceforge.net/packages/make.htm
 ### ビルド方法
@@ -13,7 +12,7 @@ $ webpack
 ```
 ### http-serverのインストール
 ```
-$ npm install --global http-server
+$ npm install -g http-server
 ```
 ### http-serverの実行例
 ```
