@@ -58,7 +58,7 @@ const keyup = e => {
  *
  */
 
-import {ROM, DISK1} from "./dist/professional_mahjong_gokuu_x68_rom.js";
+import {ROM, DISK1} from "./dist/professional_mahjong_gokuu_x68.png.js";
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {
 	game = new X68000(), game.rom.set(ROM);

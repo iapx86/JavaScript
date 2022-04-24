@@ -1712,7 +1712,7 @@ Lfkm+t/50vr8+j37Evz9+/n7t/wd/eP8Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkA
  *
  */
 
-import {ROM} from "./dist/king_and_balloon_rom.js";
+import {ROM} from "./dist/king_and_balloon.png.js";
 const HELP = new Int16Array(0x700 * 2 + 0x1200);
 const THANKYOU = new Int16Array(0x800 * 2);
 const BYEBYE = new Int16Array(0x800 * 2);

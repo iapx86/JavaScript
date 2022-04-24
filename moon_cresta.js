@@ -1565,7 +1565,7 @@ AP8A/wD/AP8A/wD/AP8A/wD/\
  *
  */
 
-import {ROM} from "./dist/moon_cresta_rom.js";
+import {ROM} from "./dist/moon_cresta.png.js";
 let PRG, BG, RGB;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

@@ -2674,7 +2674,7 @@ Lfkm+t/50vr8+j37Evz9+/n7t/wd/eP8Sv0B/i/+xv/AALgBUAIeAyIF0QX3BEgE9gPNA+cCDgNWAvkA
  *
  */
 
-import {ROM} from "./dist/galaxian_rom.js";
+import {ROM} from "./dist/galaxian.png.js";
 let BG, RGB, PRG;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

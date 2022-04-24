@@ -477,7 +477,7 @@ const keyup = e => {
  *
  */
 
-import {ROM} from "./dist/tetris_rom.js";
+import {ROM} from "./dist/tetris.png.js";
 let PRG1, KEY, BG, OBJ, PRG2;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

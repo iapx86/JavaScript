@@ -1020,7 +1020,7 @@ P2Y=\
  *
  */
 
-import {ROM} from "./dist/digdug_rom.js";
+import {ROM} from "./dist/digdug.png.js";
 let PRG1, PRG2, PRG3, BG2, OBJ, BG4, MAPDATA, RGB, OBJCOLOR, BGCOLOR, SND, IO;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

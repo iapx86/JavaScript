@@ -689,7 +689,7 @@ class Galaga88 {
  *
  */
 
-import {ROM} from "./dist/galaga_88_rom.js";
+import {ROM} from "./dist/galaga_88.png.js";
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

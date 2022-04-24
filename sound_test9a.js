@@ -159,7 +159,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/super_hang-on_rom.js";
+import {ROM} from "./dist/super_hang-on.png.js";
 const key = [];
 let PRG3, PCM;
 

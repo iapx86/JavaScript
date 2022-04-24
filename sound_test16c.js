@@ -156,7 +156,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/ufo_senshi_yohko_chan_rom.js";
+import {ROM} from "./dist/ufo_senshi_yohko_chan.png.js";
 const key = [];
 let PRG2;
 

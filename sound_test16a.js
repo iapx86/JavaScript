@@ -156,7 +156,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/choplifter_rom.js";
+import {ROM} from "./dist/choplifter.png.js";
 const key = [];
 let PRG2;
 

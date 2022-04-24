@@ -168,7 +168,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/xexex_rom.js";
+import {ROM} from "./dist/xexex.png.js";
 const key = [];
 let PRG2, PCM;
 

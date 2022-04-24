@@ -279,7 +279,7 @@ function sound_update() {
  *
  */
 
-import {ROM} from "./dist/darius_rom.js";
+import {ROM} from "./dist/darius.png.js";
 const key = [];
 const vol = Float64Array.from(seq(32), i => i > 1 ? Math.pow(10, (i - 31) / 20) : 0);
 let PRG2, PRG4;

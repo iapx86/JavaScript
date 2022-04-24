@@ -239,7 +239,7 @@ class BalloonBomber {
  *
  */
 
-import {ROM} from "./dist/balloon_bomber_rom.js";
+import {ROM} from "./dist/balloon_bomber.png.js";
 let PRG1, PRG2, MAP;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

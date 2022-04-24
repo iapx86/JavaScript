@@ -154,7 +154,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/mr_heli_no_daibouken_rom.js";
+import {ROM} from "./dist/mr_heli_no_daibouken.png.js";
 const key = [];
 let PRG;
 

@@ -512,7 +512,7 @@ const keyup = e => {
  *
  */
 
-import {ROM} from "./dist/chackn_pop_rom.js";
+import {ROM} from "./dist/chackn_pop.png.js";
 let PRG1, PRG2, OBJ, BG, RGB_L, RGB_H;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

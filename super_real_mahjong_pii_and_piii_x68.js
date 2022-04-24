@@ -292,7 +292,7 @@ const keyup = e => {
  *
  */
 
-import {ROM, DISK1, DISK2, DISK3, DISK4, DISK5, DISK6} from "./dist/super_real_mahjong_pii_and_piii_x68_rom.js";
+import {ROM, DISK1, DISK2, DISK3, DISK4, DISK5, DISK6} from "./dist/super_real_mahjong_pii_and_piii_x68.png.js";
 let disk1, disk2, disk3, disk4, disk5, disk6;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

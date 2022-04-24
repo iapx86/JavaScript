@@ -430,7 +430,7 @@ class WonderBoyInMonsterLand {
  *
  */
 
-import {ROM} from "./dist/wonder_boy_in_monster_land_rom.js";
+import {ROM} from "./dist/wonder_boy_in_monster_land.png.js";
 let PRG1, KEY, PRG2, BG, OBJ, RED, GREEN, BLUE, PRI;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

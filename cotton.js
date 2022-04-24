@@ -593,7 +593,7 @@ const keyup = e => {
  *
  */
 
-import {ROM} from "./dist/cotton_rom.js";
+import {ROM} from "./dist/cotton.png.js";
 let PRG1, KEY, BG, OBJ, PRG2;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

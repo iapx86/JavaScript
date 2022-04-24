@@ -3297,7 +3297,7 @@ MP8=\
  *
  */
 
-import {ROM} from "./dist/tank_battalion_rom.js";
+import {ROM} from "./dist/tank_battalion.png.js";
 let PRG, BG, RGB;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

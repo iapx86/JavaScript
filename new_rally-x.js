@@ -1171,7 +1171,7 @@ z//f//3/9f///w==\
  *
  */
 
-import {ROM} from "./dist/new_rally-x_rom.js";
+import {ROM} from "./dist/new_rally-x.png.js";
 let PRG, BGOBJ, RGB, COLOR, SND;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

@@ -591,7 +591,7 @@ class TwinBee {
  *
  */
 
-import {ROM} from "./dist/twinbee_rom.js";
+import {ROM} from "./dist/twinbee.png.js";
 let PRG1, PRG2, SND;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

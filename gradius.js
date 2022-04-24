@@ -651,7 +651,7 @@ const keyup = e => {
  *
  */
 
-import {ROM} from "./dist/gradius_rom.js";
+import {ROM} from "./dist/gradius.png.js";
 let PRG1, PRG2, SND;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

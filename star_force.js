@@ -556,7 +556,7 @@ class StarForce {
  *
  */
 
-import {ROM} from "./dist/star_force_rom.js";
+import {ROM} from "./dist/star_force.png.js";
 let PRG1, PRG2, FG, BG1, BG2, BG3, OBJ, SND;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

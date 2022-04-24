@@ -259,7 +259,7 @@ const keyup = e => {
  *
  */
 
-import {ROM} from "./dist/t.t_mahjong_rom.js";
+import {ROM} from "./dist/t.t_mahjong.png.js";
 let PRG1, PRG2, COLOR1, COLOR2;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

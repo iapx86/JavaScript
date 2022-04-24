@@ -146,7 +146,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/tetris_rom.js";
+import {ROM} from "./dist/tetris.png.js";
 const key = [];
 let PRG2;
 

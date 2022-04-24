@@ -64,7 +64,7 @@ const keyup = e => {
  *
  */
 
-import {ROM, DISK1, DISK2, DISK3, DISK4} from "./dist/genocide2_x68_rom.js";
+import {ROM, DISK1, DISK2, DISK3, DISK4} from "./dist/genocide2_x68.png.js";
 let disk2, disk3, disk4;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

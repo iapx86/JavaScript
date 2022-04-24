@@ -165,7 +165,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/r-type_ii_rom.js";
+import {ROM} from "./dist/r-type_ii.png.js";
 const key = [];
 let PRG2, PCM;
 

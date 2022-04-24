@@ -653,7 +653,7 @@ AAAEMg==\
  *
  */
 
-import {ROM} from "./dist/mahjong_yuugi_rom.js";
+import {ROM} from "./dist/mahjong_yuugi.png.js";
 let PRG, GFX, VOI;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

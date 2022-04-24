@@ -491,7 +491,7 @@ const keyup = e => {
  *
  */
 
-import {ROM} from "./dist/choplifter_rom.js";
+import {ROM} from "./dist/choplifter.png.js";
 let PRG1, PRG2, BG, OBJ, RED, GREEN, BLUE, PRI;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

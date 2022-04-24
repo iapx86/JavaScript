@@ -3517,7 +3517,7 @@ CAABAP7/AwD7//r/9//3//n/8P/5//D/8P/5//3/8v/z/+//+P/8//H/+v/z//b/9P/4//L/+P/1//P/
  *
  */
 
-import {ROM} from "./dist/warp_and_warp_rom.js";
+import {ROM} from "./dist/warp_and_warp.png.js";
 let PRG, BG;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

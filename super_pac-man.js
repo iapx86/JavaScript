@@ -534,7 +534,7 @@ class SuperPacMan {
  *
  */
 
-import {ROM} from "./dist/super_pac-man_rom.js";
+import {ROM} from "./dist/super_pac-man.png.js";
 let PRG1, PRG2, BG, OBJ, RGB, BGCOLOR, OBJCOLOR, SND;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

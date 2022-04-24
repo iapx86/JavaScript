@@ -158,7 +158,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/gradius_iii_rom.js";
+import {ROM} from "./dist/gradius_iii.png.js";
 const key = [];
 let PRG3, SND;
 

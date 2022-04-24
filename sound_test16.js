@@ -156,7 +156,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/flicky_rom.js";
+import {ROM} from "./dist/flicky.png.js";
 const key = [];
 let PRG2;
 

@@ -169,7 +169,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/cotton_rom.js";
+import {ROM} from "./dist/cotton.png.js";
 const key = [];
 let PRG2;
 

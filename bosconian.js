@@ -929,7 +929,7 @@ class Bosconian {
  *
  */
 
-import {ROM} from "./dist/bosconian_rom.js";
+import {ROM} from "./dist/bosconian.png.js";
 let PRG1, PRG2, PRG3, RGB, SND, BGCOLOR, BG, OBJ, VOI, KEY, IO, PRG;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

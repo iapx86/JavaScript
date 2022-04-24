@@ -931,7 +931,7 @@ class SuperXevious {
  *
  */
 
-import {ROM} from "./dist/super_xevious_rom.js";
+import {ROM} from "./dist/super_xevious.png.js";
 let PRG1, PRG2, PRG3, BG2, BG4, OBJ, MAPTBL, MAPDATA, RED, GREEN, BLUE, BGCOLOR_L, BGCOLOR_H, OBJCOLOR_L, OBJCOLOR_H, SND, KEY, IO, PRG;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

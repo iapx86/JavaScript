@@ -175,7 +175,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/the_newzealand_story_rom.js";
+import {ROM} from "./dist/the_newzealand_story.png.js";
 const key = [];
 let PRG3;
 

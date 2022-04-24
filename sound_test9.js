@@ -159,7 +159,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/out_run_rom.js";
+import {ROM} from "./dist/out_run.png.js";
 const key = [];
 let PRG3, PCM;
 

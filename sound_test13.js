@@ -150,7 +150,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/cue_brick_rom.js";
+import {ROM} from "./dist/cue_brick.png.js";
 const key = [];
 let PRG3, SND;
 

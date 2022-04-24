@@ -531,7 +531,7 @@ class Salamander {
  *
  */
 
-import {ROM} from "./dist/salamander_rom.js";
+import {ROM} from "./dist/salamander.png.js";
 let PRG1, PRG2, VLM, SND;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

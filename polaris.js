@@ -232,7 +232,7 @@ class Polaris {
  *
  */
 
-import {ROM} from "./dist/polaris_rom.js";
+import {ROM} from "./dist/polaris.png.js";
 let PRG1, PRG2, MAP /* , OBJ */;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

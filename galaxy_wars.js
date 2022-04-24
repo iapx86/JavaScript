@@ -242,7 +242,7 @@ class GalaxyWars {
  *
  */
 
-import {ROM} from "./dist/galaxy_wars_rom.js";
+import {ROM} from "./dist/galaxy_wars.png.js";
 let PRG1, PRG2;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

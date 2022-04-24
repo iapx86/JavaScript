@@ -146,7 +146,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/fantasy_zone_rom.js";
+import {ROM} from "./dist/fantasy_zone.png.js";
 const key = [];
 let PRG2;
 

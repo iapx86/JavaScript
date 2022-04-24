@@ -709,7 +709,7 @@ class ElevatorAction {
  *
  */
 
-import {ROM} from "./dist/elevator_action_rom.js";
+import {ROM} from "./dist/elevator_action.png.js";
 let PRG1, PRG2, PRG3, GFX, PRI;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

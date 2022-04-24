@@ -275,7 +275,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/beraboh_man_rom.js";
+import {ROM} from "./dist/beraboh_man.png.js";
 const key = [];
 let SND, MCU, VOI;
 

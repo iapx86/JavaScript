@@ -653,7 +653,7 @@ AAAEMg==\
  *
  */
 
-import {ROM} from "./dist/mahjong_pon_chin_kan_rom.js";
+import {ROM} from "./dist/mahjong_pon_chin_kan.png.js";
 let PRG, GFX, VOI;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

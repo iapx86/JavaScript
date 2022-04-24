@@ -689,7 +689,7 @@ class DragonSpirit {
  *
  */
 
-import {ROM} from "./dist/dragon_spirit_rom.js";
+import {ROM} from "./dist/dragon_spirit.png.js";
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

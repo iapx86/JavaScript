@@ -280,7 +280,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/dragon_spirit_rom.js";
+import {ROM} from "./dist/dragon_spirit.png.js";
 const key = [];
 let SND, MCU, VOI;
 

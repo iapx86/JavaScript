@@ -682,7 +682,7 @@ class BlastOff {
  *
  */
 
-import {ROM} from "./dist/blast_off_rom.js";
+import {ROM} from "./dist/blast_off.png.js";
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

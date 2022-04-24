@@ -420,7 +420,7 @@ class PacMan {
  *
  */
 
-import {ROM} from "./dist/pac-man_rom.js";
+import {ROM} from "./dist/pac-man.png.js";
 let PRG, BG, OBJ, RGB, COLOR, SND;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

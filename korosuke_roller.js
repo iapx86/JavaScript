@@ -450,7 +450,7 @@ class KorosukeRoller {
  *
  */
 
-import {ROM} from "./dist/korosuke_roller_rom.js";
+import {ROM} from "./dist/korosuke_roller.png.js";
 let PRG, BG, OBJ, RGB, COLOR, SND;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

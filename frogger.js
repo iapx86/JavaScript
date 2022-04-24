@@ -408,7 +408,7 @@ class Frogger {
  *
  */
 
-import {ROM} from "./dist/frogger_rom.js";
+import {ROM} from "./dist/frogger.png.js";
 let PRG1, PRG2, BG, RGB;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

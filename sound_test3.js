@@ -180,7 +180,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/pole_position_ii_rom.js";
+import {ROM} from "./dist/pole_position_ii.png.js";
 const key = [];
 let PRG, SND;
 

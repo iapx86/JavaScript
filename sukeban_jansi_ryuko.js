@@ -535,7 +535,7 @@ const keyup = e => {
  *
  */
 
-import {ROM} from "./dist/sukeban_jansi_ryuko_rom.js";
+import {ROM} from "./dist/sukeban_jansi_ryuko.png.js";
 let PRG1, BG, OBJ, PRG2, MCU, VOI, KEY;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

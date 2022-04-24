@@ -475,7 +475,7 @@ AAAAAAAAgwICCgYAgwICCoMCAgqDAgIKBgCxf/l9AAAggE2hyADge8jRAAAAAAAAAADmFc4MIAOAzrIV
  *
  */
 
-import {ROM} from "./dist/super_real_mahjong_part3_rom.js";
+import {ROM} from "./dist/super_real_mahjong_part3.png.js";
 let PRG, GFX, VOI, COLOR_H, COLOR_L;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

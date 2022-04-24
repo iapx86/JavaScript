@@ -154,7 +154,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/saigo_no_nindou_rom.js";
+import {ROM} from "./dist/saigo_no_nindou.png.js";
 const key = [];
 let PRG;
 

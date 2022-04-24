@@ -485,7 +485,7 @@ class MakaiMura {
  *
  */
 
-import {ROM} from "./dist/makai-mura_rom.js";
+import {ROM} from "./dist/makai-mura.png.js";
 let PRG1, PRG2, FG, BG, OBJ;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

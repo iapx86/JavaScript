@@ -1,0 +1,27 @@
+﻿#
+#	Space Invaders
+#
+
+from base64 import b64encode
+from io import BytesIO
+from math import ceil
+from sys import argv
+from zipfile import ZipFile
+from PIL import Image
+
+with ZipFile(argv[1]) as z:
+    prg = z.read('sicv/cv17.36') + z.read('sicv/cv18.35') + z.read('sicv/cv19.34') + z.read('sicv/cv20.33')
+    map = z.read('sicv/cv01.1') + z.read('sicv/cv02.2')
+
+rom = prg + map
+
+def pngstring(a):
+    w = 1024
+    img = Image.new('L', (w, ceil(len(a) / w)))
+    img.putdata(a)
+    buf = BytesIO()
+    img.save(buf, 'PNG')
+    return b64encode(buf.getvalue())
+
+with open(argv[2], 'wb') as f:
+    f.write(b'export const ROM = \'data:image/png;base64,' + pngstring(rom) + b'\';\n')

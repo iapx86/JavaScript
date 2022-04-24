@@ -425,7 +425,7 @@ class Pengo {
  *
  */
 
-import {ROM} from "./dist/pengo_rom.js";
+import {ROM} from "./dist/pengo.png.js";
 let PRG, BG, OBJ, RGB, COLOR, SND;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

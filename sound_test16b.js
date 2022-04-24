@@ -156,7 +156,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/ninja_princess_rom.js";
+import {ROM} from "./dist/ninja_princess.png.js";
 const key = [];
 let PRG2;
 

@@ -477,7 +477,7 @@ class Scramble {
  *
  */
 
-import {ROM} from "./dist/scramble_rom.js";
+import {ROM} from "./dist/scramble.png.js";
 let PRG1, PRG2, BG, RGB;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

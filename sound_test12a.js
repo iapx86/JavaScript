@@ -280,7 +280,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/pac-mania_rom.js";
+import {ROM} from "./dist/pac-mania.png.js";
 const key = [];
 let SND, MCU, VOI;
 

@@ -756,7 +756,7 @@ class Gaplus {
  *
  */
 
-import {ROM} from "./dist/gaplus_rom.js";
+import {ROM} from "./dist/gaplus.png.js";
 let PRG1, PRG2, PRG3, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR_L, OBJCOLOR_H, SND, PRG;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

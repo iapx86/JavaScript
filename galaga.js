@@ -873,7 +873,7 @@ class Galaga {
  *
  */
 
-import {ROM} from "./dist/galaga_rom.js";
+import {ROM} from "./dist/galaga.png.js";
 let PRG1, PRG2, PRG3, BG, OBJ, RGB, BGCOLOR, OBJCOLOR, SND, IO, PRG;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

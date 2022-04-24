@@ -134,7 +134,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/libble_rabble_rom.js";
+import {ROM} from "./dist/libble_rabble.png.js";
 const key = [];
 let PRG2, SND;
 

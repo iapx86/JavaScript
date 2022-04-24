@@ -208,7 +208,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/master_of_weapon_rom.js";
+import {ROM} from "./dist/master_of_weapon.png.js";
 const key = [];
 let PRG2;
 

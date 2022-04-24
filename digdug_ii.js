@@ -498,7 +498,7 @@ class DigDugII {
  *
  */
 
-import {ROM} from "./dist/digdug_ii_rom.js";
+import {ROM} from "./dist/digdug_ii.png.js";
 let PRG1, PRG2, BG, OBJ, RGB, BGCOLOR, OBJCOLOR, SND;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

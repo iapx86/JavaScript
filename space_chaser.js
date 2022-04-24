@@ -246,7 +246,7 @@ class SpaceChaser {
  *
  */
 
-import {ROM} from "./dist/space_chaser_rom.js";
+import {ROM} from "./dist/space_chaser.png.js";
 let PRG1, PRG2, MAP;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

@@ -589,7 +589,7 @@ class TheReturnOfIshtar {
  *
  */
 
-import {ROM} from "./dist/the_return_of_ishtar_rom.js";
+import {ROM} from "./dist/the_return_of_ishtar.png.js";
 let PRG1, PRG2, BG1, BG2, OBJ, RED, BLUE, BGCOLOR, OBJCOLOR, /* BGADDR, */ PRG3, PRG3I;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

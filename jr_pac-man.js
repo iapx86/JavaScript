@@ -477,7 +477,7 @@ class JrPacMan {
  *
  */
 
-import {ROM} from "./dist/jr_pac-man_rom.js";
+import {ROM} from "./dist/jr_pac-man.png.js";
 let PRG, BG, OBJ, RGB_L, RGB_H, COLOR, SND;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

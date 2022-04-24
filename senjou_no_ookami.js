@@ -453,7 +453,7 @@ class SenjouNoOokami {
  *
  */
 
-import {ROM} from "./dist/senjou_no_ookami_rom.js";
+import {ROM} from "./dist/senjou_no_ookami.png.js";
 const code_table = Uint8Array.from(seq(0x100), i => bitswap(i, 3, 2, 1, 4, 7, 6, 5, 0));
 let PRG1, PRG2, FG, BG, OBJ, RED, GREEN, BLUE;
 

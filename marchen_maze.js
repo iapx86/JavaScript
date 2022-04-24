@@ -691,7 +691,7 @@ class MarchenMaze {
  *
  */
 
-import {ROM} from "./dist/marchen_maze_rom.js";
+import {ROM} from "./dist/marchen_maze.png.js";
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ, NVRAM;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

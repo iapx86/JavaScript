@@ -410,7 +410,7 @@ class Vulgus {
  *
  */
 
-import {ROM} from "./dist/vulgus_rom.js";
+import {ROM} from "./dist/vulgus.png.js";
 let PRG1, PRG2, FG, BG, OBJ, RED, GREEN, BLUE, FGCOLOR, BGCOLOR, OBJCOLOR;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

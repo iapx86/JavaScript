@@ -210,7 +210,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/twinbee_rom.js";
+import {ROM} from "./dist/twinbee.png.js";
 const key = [];
 let PRG2, SND;
 

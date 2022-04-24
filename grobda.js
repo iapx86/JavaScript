@@ -506,7 +506,7 @@ class Grobda {
  *
  */
 
-import {ROM} from "./dist/grobda_rom.js";
+import {ROM} from "./dist/grobda.png.js";
 let PRG1, PRG2, BG, OBJ, RGB, BGCOLOR, OBJCOLOR, SND;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

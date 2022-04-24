@@ -280,7 +280,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/world_court_rom.js";
+import {ROM} from "./dist/world_court.png.js";
 const key = [];
 let SND, MCU, VOI;
 

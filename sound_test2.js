@@ -165,7 +165,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/pac-land_rom.js";
+import {ROM} from "./dist/pac-land.png.js";
 const key = [];
 let PRG2, PRG2I;
 

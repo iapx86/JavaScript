@@ -465,7 +465,7 @@ const keyup = e => {
  *
  */
 
-import {ROM} from "./dist/toki_no_senshi_rom.js";
+import {ROM} from "./dist/toki_no_senshi.png.js";
 let PRG1, KEY, PRG2, BG, OBJ, RED, GREEN, BLUE, PRI;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

@@ -480,7 +480,7 @@ const keyup = e => {
  *
  */
 
-import {ROM} from "./dist/ninja_princess_rom.js";
+import {ROM} from "./dist/ninja_princess.png.js";
 let PRG1, PRG2, BG, OBJ, PRI;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

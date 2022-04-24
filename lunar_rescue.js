@@ -239,7 +239,7 @@ class LunarRescue {
  *
  */
 
-import {ROM} from "./dist/lunar_rescue_rom.js";
+import {ROM} from "./dist/lunar_rescue.png.js";
 let PRG1, PRG2, MAP;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

@@ -462,7 +462,7 @@ const keyup = e => {
  *
  */
 
-import {ROM} from "./dist/wonder_boy_rom.js";
+import {ROM} from "./dist/wonder_boy.png.js";
 let PRG1, PRG2, BG, OBJ, PRI;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

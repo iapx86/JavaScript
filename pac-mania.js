@@ -679,7 +679,7 @@ class PacMania {
  *
  */
 
-import {ROM} from "./dist/pac-mania_rom.js";
+import {ROM} from "./dist/pac-mania.png.js";
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

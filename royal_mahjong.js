@@ -361,7 +361,7 @@ const keyup = e => {
  *
  */
 
-import {ROM} from "./dist/royal_mahjong_rom.js";
+import {ROM} from "./dist/royal_mahjong.png.js";
 let PRG, RGB;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

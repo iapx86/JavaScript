@@ -537,7 +537,7 @@ class Mappy {
  *
  */
 
-import {ROM} from "./dist/mappy_rom.js";
+import {ROM} from "./dist/mappy.png.js";
 let PRG1, PRG2, BG, OBJ, RGB, BGCOLOR, OBJCOLOR, SND;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

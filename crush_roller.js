@@ -446,7 +446,7 @@ class CrushRoller {
  *
  */
 
-import {ROM} from "./dist/crush_roller_rom.js";
+import {ROM} from "./dist/crush_roller.png.js";
 let PRG, BG, OBJ, RGB, COLOR, SND;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

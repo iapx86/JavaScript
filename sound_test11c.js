@@ -198,7 +198,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/the_return_of_ishtar_rom.js";
+import {ROM} from "./dist/the_return_of_ishtar.png.js";
 const key = [];
 let PRG3, PRG3I;
 

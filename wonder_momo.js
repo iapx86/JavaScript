@@ -583,7 +583,7 @@ class WonderMomo {
  *
  */
 
-import {ROM} from "./dist/wonder_momo_rom.js";
+import {ROM} from "./dist/wonder_momo.png.js";
 let PRG1, PRG2, BG1, BG2, OBJ, RED, BLUE, BGCOLOR, OBJCOLOR, /* BGADDR, */ PRG3, PRG3I, PCM;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

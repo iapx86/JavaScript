@@ -238,7 +238,7 @@ class SpaceInvaders {
  *
  */
 
-import {ROM} from "./dist/space_invaders_rom.js";
+import {ROM} from "./dist/space_invaders.png.js";
 let PRG, MAP;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

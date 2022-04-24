@@ -292,7 +292,7 @@ const keyup = e => {
  *
  */
 
-import {ROM, DISK1} from "./dist/namco_video_game_music_library_x68_rom.js";
+import {ROM, DISK1} from "./dist/namco_video_game_music_library_x68.png.js";
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {
 	game = new X68000(), game.rom.set(ROM);

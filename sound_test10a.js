@@ -162,7 +162,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/image_fight_rom.js";
+import {ROM} from "./dist/image_fight.png.js";
 const key = [];
 let PRG;
 

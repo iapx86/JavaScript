@@ -609,7 +609,7 @@ class GenpeiToumaDen {
  *
  */
 
-import {ROM} from "./dist/genpei_toumaden_rom.js";
+import {ROM} from "./dist/genpei_toumaden.png.js";
 let PRG1, PRG2, BG1, BG2, OBJ, RED, BLUE, BGCOLOR, OBJCOLOR, /* BGADDR, */ PRG3, PRG3I, PCM;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

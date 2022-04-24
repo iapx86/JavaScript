@@ -293,7 +293,7 @@ class CrazyBalloon {
  *
  */
 
-import {ROM} from "./dist/crazy_balloon_rom.js";
+import {ROM} from "./dist/crazy_balloon.png.js";
 let PRG, BG, OBJ;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

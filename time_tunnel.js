@@ -648,7 +648,7 @@ class TimeTunnel {
  *
  */
 
-import {ROM} from "./dist/time_tunnel_rom.js";
+import {ROM} from "./dist/time_tunnel.png.js";
 let PRG1, PRG2, GFX, PRI;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

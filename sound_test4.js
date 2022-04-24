@@ -186,7 +186,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/hopping_mappy_rom.js";
+import {ROM} from "./dist/hopping_mappy.png.js";
 const key = [];
 let PRG3, PRG3I;
 

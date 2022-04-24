@@ -168,6 +168,7 @@ const list3 = [
 	{name: 'gradius_x68', title: 'Gradius'},
 	{name: 'hishou_zame_x68', title: 'Hishou Zame'},
 	{name: 'image_fight_x68', title: 'Image Fight'},
+	{name: 'konya_mo_asa_made_powerful_mahjong2_x68', title: '今夜も朝までPOWERFULまあじゃん2'},
 	{name: 'lagoon_x68', title: 'Lagoon'},
 	{name: 'marble_madness_x68', title: 'Marble Madness'},
 	{name: 'marchen_maze_x68', title: 'Marchen Maze'},

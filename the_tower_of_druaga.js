@@ -480,7 +480,7 @@ class TheTowerOfDruaga {
  *
  */
 
-import {ROM} from "./dist/the_tower_of_druaga_rom.js";
+import {ROM} from "./dist/the_tower_of_druaga.png.js";
 let SND, BG, OBJ, BGCOLOR, OBJCOLOR, RGB, PRG1, PRG2;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

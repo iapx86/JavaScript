@@ -164,7 +164,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/salamander_rom.js";
+import {ROM} from "./dist/salamander.png.js";
 const key = [];
 let PRG2, VLM, SND;
 

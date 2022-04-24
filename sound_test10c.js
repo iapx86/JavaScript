@@ -154,7 +154,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/x_multiply_rom.js";
+import {ROM} from "./dist/x_multiply.png.js";
 const key = [];
 let PRG;
 

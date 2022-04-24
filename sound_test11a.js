@@ -196,7 +196,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/sky_kid_deluxe_rom.js";
+import {ROM} from "./dist/sky_kid_deluxe.png.js";
 const key = [];
 let PRG3, PRG3I;
 

@@ -215,7 +215,7 @@ const keyup = e => {
  *
  */
 
-import {ROM, DISK1, DISK2, DISK3} from "./dist/prince_of_persia_x68_rom.js";
+import {ROM, DISK1, DISK2, DISK3} from "./dist/prince_of_persia_x68.png.js";
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {
 	game = new X68000(), game.rom.set(ROM);

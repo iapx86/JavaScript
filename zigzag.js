@@ -430,7 +430,7 @@ class ZigZag {
  *
  */
 
-import {ROM} from "./dist/zigzag_rom.js";
+import {ROM} from "./dist/zigzag.png.js";
 let BG, OBJ, RGB, PRG;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

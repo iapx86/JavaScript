@@ -196,7 +196,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/wonder_momo_rom.js";
+import {ROM} from "./dist/wonder_momo.png.js";
 const key = [];
 let PRG3, PRG3I;
 

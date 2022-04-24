@@ -676,7 +676,7 @@ class TankForce {
  *
  */
 
-import {ROM} from "./dist/tank_force_rom.js";
+import {ROM} from "./dist/tank_force.png.js";
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

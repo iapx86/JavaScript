@@ -820,7 +820,7 @@ class PacLand {
  *
  */
 
-import {ROM} from "./dist/pac-land_rom.js";
+import {ROM} from "./dist/pac-land.png.js";
 let PRG1, PRG2, PRG2I, FG, BG, OBJ, RED, BLUE, FGCOLOR, BGCOLOR, OBJCOLOR;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

@@ -677,7 +677,7 @@ class WorldCourt {
  *
  */
 
-import {ROM} from "./dist/world_court_rom.js";
+import {ROM} from "./dist/world_court.png.js";
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

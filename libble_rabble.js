@@ -545,7 +545,7 @@ class LibbleRabble {
  *
  */
 
-import {ROM} from "./dist/libble_rabble_rom.js";
+import {ROM} from "./dist/libble_rabble.png.js";
 let PRG1, PRG2, PRG3, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR, SND;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

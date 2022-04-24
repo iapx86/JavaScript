@@ -674,7 +674,7 @@ class SoukoBanDeluxe {
  *
  */
 
-import {ROM} from "./dist/souko_ban_deluxe_rom.js";
+import {ROM} from "./dist/souko_ban_deluxe.png.js";
 let SND, PRG, MCU, VOI, CHR8, CHR, OBJ;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

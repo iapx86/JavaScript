@@ -280,7 +280,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/rompers_rom.js";
+import {ROM} from "./dist/rompers.png.js";
 const key = [];
 let SND, MCU, VOI;
 

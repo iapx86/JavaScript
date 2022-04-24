@@ -4,6 +4,7 @@ $ npm init -y
 $ npm install -D webpack webpack-cli html-webpack-plugin html-inline-script-webpack-plugin
 ```
 ### その他必要なもの
+* python https://www.python.org/downloads/
 * make http://gnuwin32.sourceforge.net/packages/make.htm
 ### ビルド方法
 ```

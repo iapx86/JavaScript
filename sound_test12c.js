@@ -280,7 +280,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/galaga_88_rom.js";
+import {ROM} from "./dist/galaga_88.png.js";
 const key = [];
 let SND, MCU, VOI;
 

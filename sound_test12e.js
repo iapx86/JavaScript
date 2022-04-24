@@ -280,7 +280,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/souko_ban_deluxe_rom.js";
+import {ROM} from "./dist/souko_ban_deluxe.png.js";
 const key = [];
 let SND, MCU, VOI;
 

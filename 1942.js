@@ -427,7 +427,7 @@ class _1942 {
  *
  */
 
-import {ROM} from "./dist/1942_rom.js";
+import {ROM} from "./dist/1942.png.js";
 let PRG1, PRG2, FG, BG, OBJ, RED, GREEN, BLUE, FGCOLOR, BGCOLOR, OBJCOLOR;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

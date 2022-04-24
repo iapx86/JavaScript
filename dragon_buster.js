@@ -647,7 +647,7 @@ class DragonBuster {
  *
  */
 
-import {ROM} from "./dist/dragon_buster_rom.js";
+import {ROM} from "./dist/dragon_buster.png.js";
 let PRG1, PRG2, PRG2I, FG, BG, OBJ, RED, GREEN, BLUE, BGCOLOR, OBJCOLOR;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

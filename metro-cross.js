@@ -636,7 +636,7 @@ class MetroCross {
  *
  */
 
-import {ROM} from "./dist/metro-cross_rom.js";
+import {ROM} from "./dist/metro-cross.png.js";
 let PRG1, PRG2, PRG2I, FG, BG, OBJ, GREEN, RED;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

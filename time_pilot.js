@@ -635,7 +635,7 @@ class TimePilot {
  *
  */
 
-import {ROM} from "./dist/time_pilot_rom.js";
+import {ROM} from "./dist/time_pilot.png.js";
 let PRG1, PRG2, BG, OBJ, RGB_H, RGB_L, OBJCOLOR, BGCOLOR;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

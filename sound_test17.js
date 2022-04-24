@@ -164,7 +164,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/space_harrier_rom.js";
+import {ROM} from "./dist/space_harrier.png.js";
 const key = [];
 let PRG3, PCM;
 

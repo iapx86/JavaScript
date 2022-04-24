@@ -213,7 +213,7 @@ class SpaceLaser {
  *
  */
 
-import {ROM} from "./dist/space_laser_rom.js";
+import {ROM} from "./dist/space_laser.png.js";
 let PRG;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

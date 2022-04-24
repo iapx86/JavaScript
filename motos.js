@@ -493,7 +493,7 @@ class Motos {
  *
  */
 
-import {ROM} from "./dist/motos_rom.js";
+import {ROM} from "./dist/motos.png.js";
 let PRG1, PRG2, BG, OBJ, RGB, BGCOLOR, OBJCOLOR, SND;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

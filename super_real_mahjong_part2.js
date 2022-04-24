@@ -639,7 +639,7 @@ AAEVjA==\
  *
  */
 
-import {ROM} from "./dist/super_real_mahjong_part2_rom.js";
+import {ROM} from "./dist/super_real_mahjong_part2.png.js";
 let PRG, GFX, VOI, COLOR_H, COLOR_L;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

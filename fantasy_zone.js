@@ -513,7 +513,7 @@ const keyup = e => {
  *
  */
 
-import {ROM} from "./dist/fantasy_zone_rom.js";
+import {ROM} from "./dist/fantasy_zone.png.js";
 let PRG1, BG, OBJ, PRG2;
 
 window.addEventListener('load', () => expand(ROM).then(ROM => {

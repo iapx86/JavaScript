@@ -280,7 +280,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/tank_force_rom.js";
+import {ROM} from "./dist/tank_force.png.js";
 const key = [];
 let SND, MCU, VOI;
 

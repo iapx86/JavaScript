@@ -280,7 +280,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/yokai_douchuuki_rom.js";
+import {ROM} from "./dist/yokai_douchuuki.png.js";
 const key = [];
 let SND, MCU, VOI;
 

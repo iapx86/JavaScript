@@ -196,7 +196,7 @@ class SoundTest {
  *
  */
 
-import {ROM} from "./dist/genpei_toumaden_rom.js";
+import {ROM} from "./dist/genpei_toumaden.png.js";
 const key = [];
 let PRG3, PRG3I;
 
