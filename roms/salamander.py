@@ -9,13 +9,8 @@ from sys import argv
 from zipfile import ZipFile
 from PIL import Image
 
-def merge(even, odd):
-    ret = bytearray(len(even) * 2)
-    ret[0::2] = even
-    ret[1::2] = odd
-    return bytes(ret)
-
 with ZipFile(argv[1]) as z:
+    merge = lambda even, odd : bytes([odd[i // 2] if i % 2 else even[i // 2] for i in range(len(even) * 2)])
     prg1 = merge(z.read('587-d02.18b') + z.read('587-c03.17b'), z.read('587-d05.18c') + z.read('587-c06.17c'))
     prg2 = z.read('587-d09.11j')
     vlm = z.read('587-d08.8g')
@@ -25,7 +20,8 @@ rom = prg1 + prg2 + vlm + snd
 
 def pngstring(a):
     w = 1024
-    img = Image.new('L', (w, ceil(len(a) / w)))
+    img = Image.new('P', (w, ceil(len(a) / w)))
+    img.putpalette(sum([[i, 0, 0] for i in range(256)], []))
     img.putdata(a)
     buf = BytesIO()
     img.save(buf, 'PNG')

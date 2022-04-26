@@ -22,7 +22,8 @@ rom = prg + bg + obj + rgb_l + rgb_h + color + snd
 
 def pngstring(a):
     w = 1024
-    img = Image.new('L', (w, ceil(len(a) / w)))
+    img = Image.new('P', (w, ceil(len(a) / w)))
+    img.putpalette(sum([[i, 0, 0] for i in range(256)], []))
     img.putdata(a)
     buf = BytesIO()
     img.save(buf, 'PNG')
