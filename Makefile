@@ -44,518 +44,518 @@ clean:
 dist:
 	mkdir dist
 
-dist/1942.png.js: $(addprefix roms/,1942.py 1942.zip)
-	python $^ $@
+dist/1942.png.js: $(addprefix roms/,1942.js 1942.zip)
+	node $^ $@
 
-dist/after_burner_ii.png.js: $(addprefix roms/,after_burner_ii.py aburner2.zip)
-	python $^ $@
+dist/after_burner_ii.png.js: $(addprefix roms/,after_burner_ii.js aburner2.zip)
+	node $^ $@
 
-dist/after_burner_ii_x68.png.js: $(addprefix roms/,x68000.py x68000.zip after_burner_ii_disk1.xdf after_burner_ii_disk2.xdf)
-	python $^ $@
+dist/after_burner_ii_x68.png.js: $(addprefix roms/,x68000.js x68000.zip after_burner_ii_disk1.xdf after_burner_ii_disk2.xdf)
+	node $^ $@
 
-dist/arkanoid_revenge_of_doh_x68.png.js: $(addprefix roms/,x68000.py x68000.zip arkanoid_revenge_of_doh.xdf)
-	python $^ $@
+dist/arkanoid_revenge_of_doh_x68.png.js: $(addprefix roms/,x68000.js x68000.zip arkanoid_revenge_of_doh.xdf)
+	node $^ $@
 
-dist/balloon_bomber.png.js: $(addprefix roms/,balloon_bomber.py ballbomb.zip)
-	python $^ $@
+dist/balloon_bomber.png.js: $(addprefix roms/,balloon_bomber.js ballbomb.zip)
+	node $^ $@
 
-dist/baraduke.png.js: $(addprefix roms/,baraduke.py aliensec.zip)
-	python $^ $@
+dist/baraduke.png.js: $(addprefix roms/,baraduke.js aliensec.zip)
+	node $^ $@
 
-dist/battle_chess_x68.png.js: $(addprefix roms/,x68000.py x68000.zip battle_chess_disk1.xdf battle_chess_disk2.xdf)
-	python $^ $@
+dist/battle_chess_x68.png.js: $(addprefix roms/,x68000.js x68000.zip battle_chess_disk1.xdf battle_chess_disk2.xdf)
+	node $^ $@
 
-dist/beraboh_man.png.js: $(addprefix roms/,beraboh_man.py berabohm.zip)
-	python $^ $@
+dist/beraboh_man.png.js: $(addprefix roms/,beraboh_man.js berabohm.zip)
+	node $^ $@
 
-dist/blast_off.png.js: $(addprefix roms/,blast_off.py blastoff.zip)
-	python $^ $@
+dist/blast_off.png.js: $(addprefix roms/,blast_off.js blastoff.zip)
+	node $^ $@
 
-dist/bomber_man_x68.png.js: $(addprefix roms/,x68000.py x68000.zip bomber_man.xdf)
-	python $^ $@
+dist/bomber_man_x68.png.js: $(addprefix roms/,x68000.js x68000.zip bomber_man.xdf)
+	node $^ $@
 
-dist/bonanza_bros_x68.png.js: $(addprefix roms/,x68000.py x68000.zip bonanza_bros_disk1.xdf bonanza_bros_disk2.xdf)
-	python $^ $@
+dist/bonanza_bros_x68.png.js: $(addprefix roms/,x68000.js x68000.zip bonanza_bros_disk1.xdf bonanza_bros_disk2.xdf)
+	node $^ $@
 
-dist/bosconian.png.js: $(addprefix roms/,bosconian.py bosco.zip namco50.zip namco51.zip namco54.zip)
-	python $^ $@
+dist/bosconian.png.js: $(addprefix roms/,bosconian.js bosco.zip namco50.zip namco51.zip namco54.zip)
+	node $^ $@
 
-dist/bosconian_x68.png.js: $(addprefix roms/,x68000.py x68000.zip bosconian.xdf)
-	python $^ $@
+dist/bosconian_x68.png.js: $(addprefix roms/,x68000.js x68000.zip bosconian.xdf)
+	node $^ $@
 
-dist/bubble_bobble_x68.png.js: $(addprefix roms/,x68000.py x68000.zip bubble_bobble.xdf)
-	python $^ $@
+dist/bubble_bobble_x68.png.js: $(addprefix roms/,x68000.js x68000.zip bubble_bobble.xdf)
+	node $^ $@
 
-dist/cameltry_x68.png.js: $(addprefix roms/,x68000.py x68000.zip cameltry.xdf)
-	python $^ $@
+dist/cameltry_x68.png.js: $(addprefix roms/,x68000.js x68000.zip cameltry.xdf)
+	node $^ $@
 
-dist/chackn_pop.png.js: $(addprefix roms/,chackn_pop.py chaknpop.zip)
-	python $^ $@
+dist/chackn_pop.png.js: $(addprefix roms/,chackn_pop.js chaknpop.zip)
+	node $^ $@
 
-dist/choplifter.png.js: $(addprefix roms/,choplifter.py choplift.zip)
-	python $^ $@
+dist/choplifter.png.js: $(addprefix roms/,choplifter.js choplift.zip)
+	node $^ $@
 
-dist/cotton.png.js: $(addprefix roms/,cotton.py cotton.zip)
-	python $^ $@
+dist/cotton.png.js: $(addprefix roms/,cotton.js cotton.zip)
+	node $^ $@
 
-dist/cotton_x68.png.js: $(addprefix roms/,x68000.py x68000.zip cotton_disk1.xdf cotton_disk2.xdf)
-	python $^ $@
+dist/cotton_x68.png.js: $(addprefix roms/,x68000.js x68000.zip cotton_disk1.xdf cotton_disk2.xdf)
+	node $^ $@
 
-dist/crazy_balloon.png.js: $(addprefix roms/,crazy_balloon.py crbaloon.zip)
-	python $^ $@
+dist/crazy_balloon.png.js: $(addprefix roms/,crazy_balloon.js crbaloon.zip)
+	node $^ $@
 
-dist/crush_roller.png.js: $(addprefix roms/,crush_roller.py crush.zip)
-	python $^ $@
+dist/crush_roller.png.js: $(addprefix roms/,crush_roller.js crush.zip)
+	node $^ $@
 
-dist/cue_brick.png.js: $(addprefix roms/,cue_brick.py cuebrick.zip)
-	python $^ $@
+dist/cue_brick.png.js: $(addprefix roms/,cue_brick.js cuebrick.zip)
+	node $^ $@
 
-dist/d_return_x68.png.js: $(addprefix roms/,x68000.py x68000.zip d_return_disk1.xdf d_return_disk2.xdf)
-	python $^ $@
+dist/d_return_x68.png.js: $(addprefix roms/,x68000.js x68000.zip d_return_disk1.xdf d_return_disk2.xdf)
+	node $^ $@
 
-dist/daimakaimura_x68.png.js: $(addprefix roms/,x68000.py x68000.zip daimakaimura_disk1.xdf daimakaimura_disk2.xdf)
-	python $^ $@
+dist/daimakaimura_x68.png.js: $(addprefix roms/,x68000.js x68000.zip daimakaimura_disk1.xdf daimakaimura_disk2.xdf)
+	node $^ $@
 
-dist/darius.png.js: $(addprefix roms/,darius.py darius.zip)
-	python $^ $@
+dist/darius.png.js: $(addprefix roms/,darius.js darius.zip)
+	node $^ $@
 
-dist/dash_yarou_x68.png.js: $(addprefix roms/,x68000.py x68000.zip dash_yarou_disk1.xdf dash_yarou_disk2.xdf)
-	python $^ $@
+dist/dash_yarou_x68.png.js: $(addprefix roms/,x68000.js x68000.zip dash_yarou_disk1.xdf dash_yarou_disk2.xdf)
+	node $^ $@
 
-dist/detana_twinbee_x68.png.js: $(addprefix roms/,x68000.py x68000.zip detana_twinbee_disk1.xdf detana_twinbee_disk2.xdf)
-	python $^ $@
+dist/detana_twinbee_x68.png.js: $(addprefix roms/,x68000.js x68000.zip detana_twinbee_disk1.xdf detana_twinbee_disk2.xdf)
+	node $^ $@
 
-dist/digdug.png.js: $(addprefix roms/,digdug.py digdug.zip namco51.zip)
-	python $^ $@
+dist/digdug.png.js: $(addprefix roms/,digdug.js digdug.zip namco51.zip)
+	node $^ $@
 
-dist/digdug_ii.png.js: $(addprefix roms/,digdug_ii.py digdug2.zip)
-	python $^ $@
+dist/digdug_ii.png.js: $(addprefix roms/,digdug_ii.js digdug2.zip)
+	node $^ $@
 
-dist/downtown_nekketsu_monogatari_x68.png.js: $(addprefix roms/,x68000.py x68000.zip downtown_nekketsu_monogatari_disk1.xdf downtown_nekketsu_monogatari_disk2.xdf)
-	python $^ $@
+dist/downtown_nekketsu_monogatari_x68.png.js: $(addprefix roms/,x68000.js x68000.zip downtown_nekketsu_monogatari_disk1.xdf downtown_nekketsu_monogatari_disk2.xdf)
+	node $^ $@
 
-dist/dragon_buster.png.js: $(addprefix roms/,dragon_buster.py drgnbstr.zip)
-	python $^ $@
+dist/dragon_buster.png.js: $(addprefix roms/,dragon_buster.js drgnbstr.zip)
+	node $^ $@
 
-dist/dragon_spirit.png.js: $(addprefix roms/,dragon_spirit.py dspirit.zip)
-	python $^ $@
+dist/dragon_spirit.png.js: $(addprefix roms/,dragon_spirit.js dspirit.zip)
+	node $^ $@
 
-dist/dragon_spirit_x68.png.js: $(addprefix roms/,x68000.py x68000.zip dragon_spirit_disk1.xdf dragon_spirit_disk2.xdf)
-	python $^ $@
+dist/dragon_spirit_x68.png.js: $(addprefix roms/,x68000.js x68000.zip dragon_spirit_disk1.xdf dragon_spirit_disk2.xdf)
+	node $^ $@
 
-dist/elevator_action.png.js: $(addprefix roms/,elevator_action.py elevator.zip)
-	python $^ $@
+dist/elevator_action.png.js: $(addprefix roms/,elevator_action.js elevator.zip)
+	node $^ $@
 
-dist/fantasy_zone.png.js: $(addprefix roms/,fantasy_zone.py fantzone.zip)
-	python $^ $@
+dist/fantasy_zone.png.js: $(addprefix roms/,fantasy_zone.js fantzone.zip)
+	node $^ $@
 
-dist/fantasy_zone_x68.png.js: $(addprefix roms/,x68000.py x68000.zip fantasy_zone.xdf)
-	python $^ $@
+dist/fantasy_zone_x68.png.js: $(addprefix roms/,x68000.js x68000.zip fantasy_zone.xdf)
+	node $^ $@
 
-dist/flicky.png.js: $(addprefix roms/,flicky.py flicky.zip)
-	python $^ $@
+dist/flicky.png.js: $(addprefix roms/,flicky.js flicky.zip)
+	node $^ $@
 
-dist/frogger.png.js: $(addprefix roms/,frogger.py frogger.zip)
-	python $^ $@
+dist/frogger.png.js: $(addprefix roms/,frogger.js frogger.zip)
+	node $^ $@
 
-dist/galaga.png.js: $(addprefix roms/,galaga.py galaga.zip namco51.zip namco54.zip)
-	python $^ $@
+dist/galaga.png.js: $(addprefix roms/,galaga.js galaga.zip namco51.zip namco54.zip)
+	node $^ $@
 
-dist/galaga_88.png.js: $(addprefix roms/,galaga_88.py galaga88.zip)
-	python $^ $@
+dist/galaga_88.png.js: $(addprefix roms/,galaga_88.js galaga88.zip)
+	node $^ $@
 
-dist/galaga_88_x68.png.js: $(addprefix roms/,x68000.py x68000.zip galaga_88_disk1.xdf galaga_88_disk2.xdf)
-	python $^ $@
+dist/galaga_88_x68.png.js: $(addprefix roms/,x68000.js x68000.zip galaga_88_disk1.xdf galaga_88_disk2.xdf)
+	node $^ $@
 
-dist/galaxian.png.js: $(addprefix roms/,galaxian.py galaxian.zip)
-	python $^ $@
+dist/galaxian.png.js: $(addprefix roms/,galaxian.js galaxian.zip)
+	node $^ $@
 
-dist/galaxy_wars.png.js: $(addprefix roms/,galaxy_wars.py galxwars.zip)
-	python $^ $@
+dist/galaxy_wars.png.js: $(addprefix roms/,galaxy_wars.js galxwars.zip)
+	node $^ $@
 
-dist/gaplus.png.js: $(addprefix roms/,gaplus.py gaplus.zip namco62.zip)
-	python $^ $@
+dist/gaplus.png.js: $(addprefix roms/,gaplus.js gaplus.zip namco62.zip)
+	node $^ $@
 
-dist/gemini_wing_x68.png.js: $(addprefix roms/,x68000.py x68000.zip gemini_wing_disk1.xdf gemini_wing_disk2.xdf)
-	python $^ $@
+dist/gemini_wing_x68.png.js: $(addprefix roms/,x68000.js x68000.zip gemini_wing_disk1.xdf gemini_wing_disk2.xdf)
+	node $^ $@
 
-dist/genocide_x68.png.js: $(addprefix roms/,x68000.py x68000.zip genocide_disk1.xdf genocide_disk2.xdf genocide_disk3.xdf genocide_disk4.xdf)
-	python $^ $@
+dist/genocide_x68.png.js: $(addprefix roms/,x68000.js x68000.zip genocide_disk1.xdf genocide_disk2.xdf genocide_disk3.xdf genocide_disk4.xdf)
+	node $^ $@
 
-dist/genocide2_x68.png.js: $(addprefix roms/,x68000.py x68000.zip genocide2_disk1.xdf genocide2_disk2.xdf genocide2_disk3.xdf genocide2_disk4.xdf)
-	python $^ $@
+dist/genocide2_x68.png.js: $(addprefix roms/,x68000.js x68000.zip genocide2_disk1.xdf genocide2_disk2.xdf genocide2_disk3.xdf genocide2_disk4.xdf)
+	node $^ $@
 
-dist/genpei_toumaden.png.js: $(addprefix roms/,genpei_toumaden.py genpeitd.zip)
-	python $^ $@
+dist/genpei_toumaden.png.js: $(addprefix roms/,genpei_toumaden.js genpeitd.zip)
+	node $^ $@
 
-dist/genpei_toumaden_x68.png.js: $(addprefix roms/,x68000.py x68000.zip genpei_toumaden.xdf)
-	python $^ $@
+dist/genpei_toumaden_x68.png.js: $(addprefix roms/,x68000.js x68000.zip genpei_toumaden.xdf)
+	node $^ $@
 
-dist/golden_axe.png.js: $(addprefix roms/,golden_axe.py goldnaxe.zip)
-	python $^ $@
+dist/golden_axe.png.js: $(addprefix roms/,golden_axe.js goldnaxe.zip)
+	node $^ $@
 
-dist/gradius.png.js: $(addprefix roms/,gradius.py nemesis.zip)
-	python $^ $@
+dist/gradius.png.js: $(addprefix roms/,gradius.js nemesis.zip)
+	node $^ $@
 
-dist/gradius_ii.png.js: $(addprefix roms/,gradius_ii.py vulcan.zip)
-	python $^ $@
+dist/gradius_ii.png.js: $(addprefix roms/,gradius_ii.js vulcan.zip)
+	node $^ $@
 
-dist/gradius_iii.png.js: $(addprefix roms/,gradius_iii.py gradius3.zip)
-	python $^ $@
+dist/gradius_iii.png.js: $(addprefix roms/,gradius_iii.js gradius3.zip)
+	node $^ $@
 
-dist/gradius_x68.png.js: $(addprefix roms/,x68000.py x68000.zip gradius.xdf)
-	python $^ $@
+dist/gradius_x68.png.js: $(addprefix roms/,x68000.js x68000.zip gradius.xdf)
+	node $^ $@
 
-dist/grobda.png.js: $(addprefix roms/,grobda.py grobda.zip)
-	python $^ $@
+dist/grobda.png.js: $(addprefix roms/,grobda.js grobda.zip)
+	node $^ $@
 
-dist/hishou_zame_x68.png.js: $(addprefix roms/,x68000.py x68000.zip hishou_zame.xdf)
-	python $^ $@
+dist/hishou_zame_x68.png.js: $(addprefix roms/,x68000.js x68000.zip hishou_zame.xdf)
+	node $^ $@
 
-dist/hopping_mappy.png.js: $(addprefix roms/,hopping_mappy.py hopmappy.zip)
-	python $^ $@
+dist/hopping_mappy.png.js: $(addprefix roms/,hopping_mappy.js hopmappy.zip)
+	node $^ $@
 
-dist/image_fight.png.js: $(addprefix roms/,image_fight.py imgfight.zip)
-	python $^ $@
+dist/image_fight.png.js: $(addprefix roms/,image_fight.js imgfight.zip)
+	node $^ $@
 
-dist/image_fight_x68.png.js: $(addprefix roms/,x68000.py x68000.zip image_fight_disk1.xdf image_fight_disk2.xdf)
-	python $^ $@
+dist/image_fight_x68.png.js: $(addprefix roms/,x68000.js x68000.zip image_fight_disk1.xdf image_fight_disk2.xdf)
+	node $^ $@
 
-dist/jr_pac-man.png.js: $(addprefix roms/,jr_pac-man.py jrpacman.zip)
-	python $^ $@
+dist/jr_pac-man.png.js: $(addprefix roms/,jr_pac-man.js jrpacman.zip)
+	node $^ $@
 
-dist/jump_bug.png.js: $(addprefix roms/,jump_bug.py jumpbug.zip)
-	python $^ $@
+dist/jump_bug.png.js: $(addprefix roms/,jump_bug.js jumpbug.zip)
+	node $^ $@
 
-dist/king_and_balloon.png.js: $(addprefix roms/,king_and_balloon.py kingball.zip)
-	python $^ $@
+dist/king_and_balloon.png.js: $(addprefix roms/,king_and_balloon.js kingball.zip)
+	node $^ $@
 
-dist/konya_mo_asa_made_powerful_mahjong2_x68.png.js: $(addprefix roms/,x68000.py x68000.zip \
+dist/konya_mo_asa_made_powerful_mahjong2_x68.png.js: $(addprefix roms/,x68000.js x68000.zip \
 		konya_mo_asa_made_powerful_mahjong2_disk1.xdf konya_mo_asa_made_powerful_mahjong2_disk2.xdf \
 		konya_mo_asa_made_powerful_mahjong2_disk3.xdf konya_mo_asa_made_powerful_mahjong2_disk4.xdf)
-	python $^ $@
+	node $^ $@
 
-dist/korosuke_roller.png.js: $(addprefix roms/,korosuke_roller.py crush.zip)
-	python $^ $@
+dist/korosuke_roller.png.js: $(addprefix roms/,korosuke_roller.js crush.zip)
+	node $^ $@
 
-dist/lagoon_x68.png.js: $(addprefix roms/,x68000.py x68000.zip lagoon_disk1.xdf lagoon_disk2.xdf lagoon_disk3.xdf lagoon_disk4.xdf)
-	python $^ $@
+dist/lagoon_x68.png.js: $(addprefix roms/,x68000.js x68000.zip lagoon_disk1.xdf lagoon_disk2.xdf lagoon_disk3.xdf lagoon_disk4.xdf)
+	node $^ $@
 
-dist/libble_rabble.png.js: $(addprefix roms/,libble_rabble.py liblrabl.zip)
-	python $^ $@
+dist/libble_rabble.png.js: $(addprefix roms/,libble_rabble.js liblrabl.zip)
+	node $^ $@
 
-dist/lunar_rescue.png.js: $(addprefix roms/,lunar_rescue.py lrescue.zip)
-	python $^ $@
+dist/lunar_rescue.png.js: $(addprefix roms/,lunar_rescue.js lrescue.zip)
+	node $^ $@
 
-dist/mahjong_pon_chin_kan.png.js: $(addprefix roms/,mahjong_pon_chin_kan.py ponchin.zip)
-	python $^ $@
+dist/mahjong_pon_chin_kan.png.js: $(addprefix roms/,mahjong_pon_chin_kan.js ponchin.zip)
+	node $^ $@
 
-dist/mahjong_yuugi.png.js: $(addprefix roms/,mahjong_yuugi.py mjyuugi.zip)
-	python $^ $@
+dist/mahjong_yuugi.png.js: $(addprefix roms/,mahjong_yuugi.js mjyuugi.zip)
+	node $^ $@
 
-dist/makai-mura.png.js: $(addprefix roms/,makai-mura.py gng.zip)
-	python $^ $@
+dist/makai-mura.png.js: $(addprefix roms/,makai-mura.js gng.zip)
+	node $^ $@
 
-dist/mappy.png.js: $(addprefix roms/,mappy.py mappy.zip)
-	python $^ $@
+dist/mappy.png.js: $(addprefix roms/,mappy.js mappy.zip)
+	node $^ $@
 
-dist/marble_madness_x68.png.js: $(addprefix roms/,x68000.py x68000.zip marble_madness.xdf)
-	python $^ $@
+dist/marble_madness_x68.png.js: $(addprefix roms/,x68000.js x68000.zip marble_madness.xdf)
+	node $^ $@
 
-dist/marchen_maze.png.js: $(addprefix roms/,marchen_maze.py mmaze.zip)
-	python $^ $@
+dist/marchen_maze.png.js: $(addprefix roms/,marchen_maze.js mmaze.zip)
+	node $^ $@
 
-dist/marchen_maze_x68.png.js: $(addprefix roms/,x68000.py x68000.zip marchen_maze_disk1.xdf marchen_maze_disk2.xdf)
-	python $^ $@
+dist/marchen_maze_x68.png.js: $(addprefix roms/,x68000.js x68000.zip marchen_maze_disk1.xdf marchen_maze_disk2.xdf)
+	node $^ $@
 
-dist/master_of_weapon.png.js: $(addprefix roms/,master_of_weapon.py masterw.zip)
-	python $^ $@
+dist/master_of_weapon.png.js: $(addprefix roms/,master_of_weapon.js masterw.zip)
+	node $^ $@
 
-dist/metro-cross.png.js: $(addprefix roms/,metro-cross.py metrocrs.zip)
-	python $^ $@
+dist/metro-cross.png.js: $(addprefix roms/,metro-cross.js metrocrs.zip)
+	node $^ $@
 
-dist/moon_cresta.png.js: $(addprefix roms/,moon_cresta.py mooncrst.zip)
-	python $^ $@
+dist/moon_cresta.png.js: $(addprefix roms/,moon_cresta.js mooncrst.zip)
+	node $^ $@
 
-dist/motos.png.js: $(addprefix roms/,motos.py motos.zip)
-	python $^ $@
+dist/motos.png.js: $(addprefix roms/,motos.js motos.zip)
+	node $^ $@
 
-dist/mr_heli_no_daibouken.png.js: $(addprefix roms/,mr_heli_no_daibouken.py bchopper.zip)
-	python $^ $@
+dist/mr_heli_no_daibouken.png.js: $(addprefix roms/,mr_heli_no_daibouken.js bchopper.zip)
+	node $^ $@
 
-dist/namco_video_game_music_library_x68.png.js: $(addprefix roms/,x68000.py x68000.zip namco_video_game_music_library.xdf)
-	python $^ $@
+dist/namco_video_game_music_library_x68.png.js: $(addprefix roms/,x68000.js x68000.zip namco_video_game_music_library.xdf)
+	node $^ $@
 
-dist/new_rally-x.png.js: $(addprefix roms/,new_rally-x.py nrallyx.zip)
-	python $^ $@
+dist/new_rally-x.png.js: $(addprefix roms/,new_rally-x.js nrallyx.zip)
+	node $^ $@
 
-dist/ninja_princess.png.js: $(addprefix roms/,ninja_princess.py seganinj.zip)
-	python $^ $@
+dist/ninja_princess.png.js: $(addprefix roms/,ninja_princess.js seganinj.zip)
+	node $^ $@
 
-dist/out_run.png.js: $(addprefix roms/,out_run.py outrun.zip)
-	python $^ $@
+dist/out_run.png.js: $(addprefix roms/,out_run.js outrun.zip)
+	node $^ $@
 
-dist/pac-land.png.js: $(addprefix roms/,pac-land.py pacland.zip)
-	python $^ $@
+dist/pac-land.png.js: $(addprefix roms/,pac-land.js pacland.zip)
+	node $^ $@
 
-dist/pac-man.png.js: $(addprefix roms/,pac-man.py puckman.zip)
-	python $^ $@
+dist/pac-man.png.js: $(addprefix roms/,pac-man.js puckman.zip)
+	node $^ $@
 
-dist/pac-mania.png.js: $(addprefix roms/,pac-mania.py pacmania.zip)
-	python $^ $@
+dist/pac-mania.png.js: $(addprefix roms/,pac-mania.js pacmania.zip)
+	node $^ $@
 
-dist/pac-mania_x68.png.js: $(addprefix roms/,x68000.py x68000.zip pac-mania.xdf)
-	python $^ $@
+dist/pac-mania_x68.png.js: $(addprefix roms/,x68000.js x68000.zip pac-mania.xdf)
+	node $^ $@
 
-dist/pac_and_pal.png.js: $(addprefix roms/,pac_and_pal.py pacnpal.zip)
-	python $^ $@
+dist/pac_and_pal.png.js: $(addprefix roms/,pac_and_pal.js pacnpal.zip)
+	node $^ $@
 
-dist/parodius_da_x68.png.js: $(addprefix roms/,x68000.py x68000.zip parodius_da_disk1.xdf parodius_da_disk2.xdf)
-	python $^ $@
+dist/parodius_da_x68.png.js: $(addprefix roms/,x68000.js x68000.zip parodius_da_disk1.xdf parodius_da_disk2.xdf)
+	node $^ $@
 
-dist/pengo.png.js: $(addprefix roms/,pengo.py pengo.zip)
-	python $^ $@
+dist/pengo.png.js: $(addprefix roms/,pengo.js pengo.zip)
+	node $^ $@
 
-dist/phalanx_x68.png.js: $(addprefix roms/,x68000.py x68000.zip phalanx_disk1.xdf phalanx_disk2.xdf phalanx_disk3.xdf)
-	python $^ $@
+dist/phalanx_x68.png.js: $(addprefix roms/,x68000.js x68000.zip phalanx_disk1.xdf phalanx_disk2.xdf phalanx_disk3.xdf)
+	node $^ $@
 
-dist/phozon.png.js: $(addprefix roms/,phozon.py phozon.zip)
-	python $^ $@
+dist/phozon.png.js: $(addprefix roms/,phozon.js phozon.zip)
+	node $^ $@
 
-dist/pinball_pinball_x68.png.js: $(addprefix roms/,x68000.py x68000.zip pinball_pinball.xdf)
-	python $^ $@
+dist/pinball_pinball_x68.png.js: $(addprefix roms/,x68000.js x68000.zip pinball_pinball.xdf)
+	node $^ $@
 
-dist/polaris.png.js: $(addprefix roms/,polaris.py polaris.zip)
-	python $^ $@
+dist/polaris.png.js: $(addprefix roms/,polaris.js polaris.zip)
+	node $^ $@
 
-dist/pole_position_ii.png.js: $(addprefix roms/,pole_position_ii.py polepos2.zip)
-	python $^ $@
+dist/pole_position_ii.png.js: $(addprefix roms/,pole_position_ii.js polepos2.zip)
+	node $^ $@
 
-dist/populous_x68.png.js: $(addprefix roms/,x68000.py x68000.zip populous.xdf)
-	python $^ $@
+dist/populous_x68.png.js: $(addprefix roms/,x68000.js x68000.zip populous.xdf)
+	node $^ $@
 
-dist/power_league_x68.png.js: $(addprefix roms/,x68000.py x68000.zip power_league.xdf)
-	python $^ $@
+dist/power_league_x68.png.js: $(addprefix roms/,x68000.js x68000.zip power_league.xdf)
+	node $^ $@
 
-dist/prince_of_persia_x68.png.js: $(addprefix roms/,x68000.py x68000.zip prince_of_persia_disk1.xdf prince_of_persia_disk2.xdf prince_of_persia_disk3.xdf)
-	python $^ $@
+dist/prince_of_persia_x68.png.js: $(addprefix roms/,x68000.js x68000.zip prince_of_persia_disk1.xdf prince_of_persia_disk2.xdf prince_of_persia_disk3.xdf)
+	node $^ $@
 
-dist/professional_mahjong_gokuu_x68.png.js: $(addprefix roms/,x68000.py x68000.zip professional_mahjong_gokuu.xdf)
-	python $^ $@
+dist/professional_mahjong_gokuu_x68.png.js: $(addprefix roms/,x68000.js x68000.zip professional_mahjong_gokuu.xdf)
+	node $^ $@
 
-dist/puzznic_x68.png.js: $(addprefix roms/,x68000.py x68000.zip puzznic.xdf)
-	python $^ $@
+dist/puzznic_x68.png.js: $(addprefix roms/,x68000.js x68000.zip puzznic.xdf)
+	node $^ $@
 
-dist/quarth_x68.png.js: $(addprefix roms/,x68000.py x68000.zip quarth.xdf)
-	python $^ $@
+dist/quarth_x68.png.js: $(addprefix roms/,x68000.js x68000.zip quarth.xdf)
+	node $^ $@
 
-dist/r-type.png.js: $(addprefix roms/,r-type.py rtype.zip)
-	python $^ $@
+dist/r-type.png.js: $(addprefix roms/,r-type.js rtype.zip)
+	node $^ $@
 
-dist/r-type_ii.png.js: $(addprefix roms/,r-type_ii.py rtype2.zip)
-	python $^ $@
+dist/r-type_ii.png.js: $(addprefix roms/,r-type_ii.js rtype2.zip)
+	node $^ $@
 
-dist/r-type_x68.png.js: $(addprefix roms/,x68000.py x68000.zip r-type.xdf)
-	python $^ $@
+dist/r-type_x68.png.js: $(addprefix roms/,x68000.js x68000.zip r-type.xdf)
+	node $^ $@
 
-dist/rally-x.png.js: $(addprefix roms/,rally-x.py rallyx.zip)
-	python $^ $@
+dist/rally-x.png.js: $(addprefix roms/,rally-x.js rallyx.zip)
+	node $^ $@
 
-dist/rompers.png.js: $(addprefix roms/,rompers.py rompers.zip)
-	python $^ $@
+dist/rompers.png.js: $(addprefix roms/,rompers.js rompers.zip)
+	node $^ $@
 
-dist/royal_mahjong.png.js: $(addprefix roms/,royal_mahjong.py royalmj.zip)
-	python $^ $@
+dist/royal_mahjong.png.js: $(addprefix roms/,royal_mahjong.js royalmj.zip)
+	node $^ $@
 
-dist/saigo_no_nindou.png.js: $(addprefix roms/,saigo_no_nindou.py nspirit.zip)
-	python $^ $@
+dist/saigo_no_nindou.png.js: $(addprefix roms/,saigo_no_nindou.js nspirit.zip)
+	node $^ $@
 
-dist/salamander.png.js: $(addprefix roms/,salamander.py salamand.zip)
-	python $^ $@
+dist/salamander.png.js: $(addprefix roms/,salamander.js salamand.zip)
+	node $^ $@
 
-dist/scramble.png.js: $(addprefix roms/,scramble.py scramble.zip)
-	python $^ $@
+dist/scramble.png.js: $(addprefix roms/,scramble.js scramble.zip)
+	node $^ $@
 
-dist/sea_fighter_poseidon.png.js: $(addprefix roms/,sea_fighter_poseidon.py sfposeid.zip)
-	python $^ $@
+dist/sea_fighter_poseidon.png.js: $(addprefix roms/,sea_fighter_poseidon.js sfposeid.zip)
+	node $^ $@
 
-dist/senjou_no_ookami.png.js: $(addprefix roms/,senjou_no_ookami.py commando.zip)
-	python $^ $@
+dist/senjou_no_ookami.png.js: $(addprefix roms/,senjou_no_ookami.js commando.zip)
+	node $^ $@
 
-dist/shanghai_x68.png.js: $(addprefix roms/,x68000.py x68000.zip shanghai.xdf)
-	python $^ $@
+dist/shanghai_x68.png.js: $(addprefix roms/,x68000.js x68000.zip shanghai.xdf)
+	node $^ $@
 
-dist/shuffle_puck_cafe_x68.png.js: $(addprefix roms/,x68000.py x68000.zip shuffle_puck_cafe_disk1.xdf shuffle_puck_cafe_disk2.xdf)
-	python $^ $@
+dist/shuffle_puck_cafe_x68.png.js: $(addprefix roms/,x68000.js x68000.zip shuffle_puck_cafe_disk1.xdf shuffle_puck_cafe_disk2.xdf)
+	node $^ $@
 
-dist/sky_kid.png.js: $(addprefix roms/,sky_kid.py skykid.zip)
-	python $^ $@
+dist/sky_kid.png.js: $(addprefix roms/,sky_kid.js skykid.zip)
+	node $^ $@
 
-dist/sky_kid_deluxe.png.js: $(addprefix roms/,sky_kid_deluxe.py skykiddx.zip)
-	python $^ $@
+dist/sky_kid_deluxe.png.js: $(addprefix roms/,sky_kid_deluxe.js skykiddx.zip)
+	node $^ $@
 
-dist/souko_ban_deluxe.png.js: $(addprefix roms/,souko_ban_deluxe.py boxyboy.zip)
-	python $^ $@
+dist/souko_ban_deluxe.png.js: $(addprefix roms/,souko_ban_deluxe.js boxyboy.zip)
+	node $^ $@
 
-dist/souko_ban_perfect_x68.png.js: $(addprefix roms/,x68000.py x68000.zip souko_ban_perfect.xdf)
-	python $^ $@
+dist/souko_ban_perfect_x68.png.js: $(addprefix roms/,x68000.js x68000.zip souko_ban_perfect.xdf)
+	node $^ $@
 
-dist/space_chaser.png.js: $(addprefix roms/,space_chaser.py schaser.zip)
-	python $^ $@
+dist/space_chaser.png.js: $(addprefix roms/,space_chaser.js schaser.zip)
+	node $^ $@
 
-dist/space_harrier.png.js: $(addprefix roms/,space_harrier.py sharrier.zip)
-	python $^ $@
+dist/space_harrier.png.js: $(addprefix roms/,space_harrier.js sharrier.zip)
+	node $^ $@
 
-dist/space_harrier_x68.png.js: $(addprefix roms/,x68000.py x68000.zip space_harrier.xdf)
-	python $^ $@
+dist/space_harrier_x68.png.js: $(addprefix roms/,x68000.js x68000.zip space_harrier.xdf)
+	node $^ $@
 
-dist/space_invaders.png.js: $(addprefix roms/,space_invaders.py invaders.zip)
-	python $^ $@
+dist/space_invaders.png.js: $(addprefix roms/,space_invaders.js invaders.zip)
+	node $^ $@
 
-dist/space_laser.png.js: $(addprefix roms/,space_laser.py spcewarl.zip)
-	python $^ $@
+dist/space_laser.png.js: $(addprefix roms/,space_laser.js spcewarl.zip)
+	node $^ $@
 
-dist/star_force.png.js: $(addprefix roms/,star_force.py starforc.zip)
-	python $^ $@
+dist/star_force.png.js: $(addprefix roms/,star_force.js starforc.zip)
+	node $^ $@
 
-dist/strategy_x.png.js: $(addprefix roms/,strategy_x.py stratgyx.zip)
-	python $^ $@
+dist/strategy_x.png.js: $(addprefix roms/,strategy_x.js stratgyx.zip)
+	node $^ $@
 
-dist/sukeban_jansi_ryuko.png.js: $(addprefix roms/,sukeban_jansi_ryuko.py sjryuko.zip)
-	python $^ $@
+dist/sukeban_jansi_ryuko.png.js: $(addprefix roms/,sukeban_jansi_ryuko.js sjryuko.zip)
+	node $^ $@
 
-dist/super_hang-on.png.js: $(addprefix roms/,super_hang-on.py shangon.zip)
-	python $^ $@
+dist/super_hang-on.png.js: $(addprefix roms/,super_hang-on.js shangon.zip)
+	node $^ $@
 
-dist/super_hang-on_x68.png.js: $(addprefix roms/,x68000.py x68000.zip super_hang-on_disk1.xdf super_hang-on_disk2.xdf)
-	python $^ $@
+dist/super_hang-on_x68.png.js: $(addprefix roms/,x68000.js x68000.zip super_hang-on_disk1.xdf super_hang-on_disk2.xdf)
+	node $^ $@
 
-dist/super_pac-man.png.js: $(addprefix roms/,super_pac-man.py superpac.zip)
-	python $^ $@
+dist/super_pac-man.png.js: $(addprefix roms/,super_pac-man.js superpac.zip)
+	node $^ $@
 
-dist/super_real_mahjong_part2.png.js: $(addprefix roms/,super_real_mahjong_part2.py srmp2.zip)
-	python $^ $@
+dist/super_real_mahjong_part2.png.js: $(addprefix roms/,super_real_mahjong_part2.js srmp2.zip)
+	node $^ $@
 
-dist/super_real_mahjong_part3.png.js: $(addprefix roms/,super_real_mahjong_part3.py srmp3.zip)
-	python $^ $@
+dist/super_real_mahjong_part3.png.js: $(addprefix roms/,super_real_mahjong_part3.js srmp3.zip)
+	node $^ $@
 
-dist/super_real_mahjong_pii_and_piii_x68.png.js: $(addprefix roms/,x68000.py x68000.zip \
+dist/super_real_mahjong_pii_and_piii_x68.png.js: $(addprefix roms/,x68000.js x68000.zip \
 		super_real_mahjong_pii_and_piii_disk1.xdf super_real_mahjong_pii_and_piii_disk2.xdf \
 		super_real_mahjong_pii_and_piii_disk3.xdf super_real_mahjong_pii_and_piii_disk4.xdf \
 		super_real_mahjong_pii_and_piii_disk5.xdf super_real_mahjong_pii_and_piii_disk6.xdf)
-	python $^ $@
+	node $^ $@
 
-dist/super_xevious.png.js: $(addprefix roms/,super_xevious.py xevious.zip namco50.zip namco51.zip namco54.zip)
-	python $^ $@
+dist/super_xevious.png.js: $(addprefix roms/,super_xevious.js xevious.zip namco50.zip namco51.zip namco54.zip)
+	node $^ $@
 
-dist/syvalion_x68.png.js: $(addprefix roms/,x68000.py x68000.zip syvalion_disk1.xdf syvalion_disk2.xdf)
-	python $^ $@
+dist/syvalion_x68.png.js: $(addprefix roms/,x68000.js x68000.zip syvalion_disk1.xdf syvalion_disk2.xdf)
+	node $^ $@
 
-dist/t.t_mahjong.png.js: $(addprefix roms/,t.t_mahjong.py jongpute.zip)
-	python $^ $@
+dist/t.t_mahjong.png.js: $(addprefix roms/,t.t_mahjong.js jongpute.zip)
+	node $^ $@
 
-dist/tank_battalion.png.js: $(addprefix roms/,tank_battalion.py tankbatt.zip)
-	python $^ $@
+dist/tank_battalion.png.js: $(addprefix roms/,tank_battalion.js tankbatt.zip)
+	node $^ $@
 
-dist/tank_force.png.js: $(addprefix roms/,tank_force.py tankfrce.zip)
-	python $^ $@
+dist/tank_force.png.js: $(addprefix roms/,tank_force.js tankfrce.zip)
+	node $^ $@
 
-dist/tetris.png.js: $(addprefix roms/,tetris.py tetris.zip)
-	python $^ $@
+dist/tetris.png.js: $(addprefix roms/,tetris.js tetris.zip)
+	node $^ $@
 
-dist/the_fairyland_story_x68.png.js: $(addprefix roms/,x68000.py x68000.zip the_fairyland_story_disk1.xdf the_fairyland_story_disk2.xdf)
-	python $^ $@
+dist/the_fairyland_story_x68.png.js: $(addprefix roms/,x68000.js x68000.zip the_fairyland_story_disk1.xdf the_fairyland_story_disk2.xdf)
+	node $^ $@
 
-dist/the_newzealand_story.png.js: $(addprefix roms/,the_newzealand_story.py tnzs.zip)
-	python $^ $@
+dist/the_newzealand_story.png.js: $(addprefix roms/,the_newzealand_story.js tnzs.zip)
+	node $^ $@
 
-dist/the_newzealand_story_x68.png.js: $(addprefix roms/,x68000.py x68000.zip the_newzealand_story_disk1.xdf the_newzealand_story_disk2.xdf)
-	python $^ $@
+dist/the_newzealand_story_x68.png.js: $(addprefix roms/,x68000.js x68000.zip the_newzealand_story_disk1.xdf the_newzealand_story_disk2.xdf)
+	node $^ $@
 
-dist/the_return_of_ishtar.png.js: $(addprefix roms/,the_return_of_ishtar.py roishtar.zip)
-	python $^ $@
+dist/the_return_of_ishtar.png.js: $(addprefix roms/,the_return_of_ishtar.js roishtar.zip)
+	node $^ $@
 
-dist/the_return_of_ishtar_x68.png.js: $(addprefix roms/,x68000.py x68000.zip the_return_of_ishtar.xdf)
-	python $^ $@
+dist/the_return_of_ishtar_x68.png.js: $(addprefix roms/,x68000.js x68000.zip the_return_of_ishtar.xdf)
+	node $^ $@
 
-dist/the_tower_of_druaga.png.js: $(addprefix roms/,the_tower_of_druaga.py todruaga.zip)
-	python $^ $@
+dist/the_tower_of_druaga.png.js: $(addprefix roms/,the_tower_of_druaga.js todruaga.zip)
+	node $^ $@
 
-dist/thunder_force_ii_x68.png.js: $(addprefix roms/,x68000.py x68000.zip thunder_force_ii_disk1.xdf thunder_force_ii_disk2.xdf)
-	python $^ $@
+dist/thunder_force_ii_x68.png.js: $(addprefix roms/,x68000.js x68000.zip thunder_force_ii_disk1.xdf thunder_force_ii_disk2.xdf)
+	node $^ $@
 
-dist/time_pilot.png.js: $(addprefix roms/,time_pilot.py timeplt.zip)
-	python $^ $@
+dist/time_pilot.png.js: $(addprefix roms/,time_pilot.js timeplt.zip)
+	node $^ $@
 
-dist/time_pilot_84.png.js: $(addprefix roms/,time_pilot_84.py tp84.zip)
-	python $^ $@
+dist/time_pilot_84.png.js: $(addprefix roms/,time_pilot_84.js tp84.zip)
+	node $^ $@
 
-dist/time_tunnel.png.js: $(addprefix roms/,time_tunnel.py timetunl.zip)
-	python $^ $@
+dist/time_tunnel.png.js: $(addprefix roms/,time_tunnel.js timetunl.zip)
+	node $^ $@
 
-dist/toki_no_senshi.png.js: $(addprefix roms/,toki_no_senshi.py tokisens.zip)
-	python $^ $@
+dist/toki_no_senshi.png.js: $(addprefix roms/,toki_no_senshi.js tokisens.zip)
+	node $^ $@
 
-dist/toypop.png.js: $(addprefix roms/,toypop.py toypop.zip)
-	python $^ $@
+dist/toypop.png.js: $(addprefix roms/,toypop.js toypop.zip)
+	node $^ $@
 
-dist/turbo_out_run.png.js: $(addprefix roms/,turbo_out_run.py toutrun.zip)
-	python $^ $@
+dist/turbo_out_run.png.js: $(addprefix roms/,turbo_out_run.js toutrun.zip)
+	node $^ $@
 
-dist/twinbee.png.js: $(addprefix roms/,twinbee.py twinbee.zip)
-	python $^ $@
+dist/twinbee.png.js: $(addprefix roms/,twinbee.js twinbee.zip)
+	node $^ $@
 
-dist/twinbee_x68.png.js: $(addprefix roms/,x68000.py x68000.zip twinbee.xdf)
-	python $^ $@
+dist/twinbee_x68.png.js: $(addprefix roms/,x68000.js x68000.zip twinbee.xdf)
+	node $^ $@
 
-dist/ufo_senshi_yohko_chan.png.js: $(addprefix roms/,ufo_senshi_yohko_chan.py ufosensi.zip)
-	python $^ $@
+dist/ufo_senshi_yohko_chan.png.js: $(addprefix roms/,ufo_senshi_yohko_chan.js ufosensi.zip)
+	node $^ $@
 
-dist/vball_x68.png.js: $(addprefix roms/,x68000.py x68000.zip vball.xdf)
-	python $^ $@
+dist/vball_x68.png.js: $(addprefix roms/,x68000.js x68000.zip vball.xdf)
+	node $^ $@
 
-dist/vulgus.png.js: $(addprefix roms/,vulgus.py vulgus.zip)
-	python $^ $@
+dist/vulgus.png.js: $(addprefix roms/,vulgus.js vulgus.zip)
+	node $^ $@
 
-dist/warp_and_warp.png.js: $(addprefix roms/,warp_and_warp.py warpwarp.zip)
-	python $^ $@
+dist/warp_and_warp.png.js: $(addprefix roms/,warp_and_warp.js warpwarp.zip)
+	node $^ $@
 
-dist/wings_x68.png.js: $(addprefix roms/,x68000.py x68000.zip wings.xdf)
-	python $^ $@
+dist/wings_x68.png.js: $(addprefix roms/,x68000.js x68000.zip wings.xdf)
+	node $^ $@
 
-dist/wonder_boy.png.js: $(addprefix roms/,wonder_boy.py wboy.zip)
-	python $^ $@
+dist/wonder_boy.png.js: $(addprefix roms/,wonder_boy.js wboy.zip)
+	node $^ $@
 
-dist/wonder_boy_iii.png.js: $(addprefix roms/,wonder_boy_iii.py wb3.zip)
-	python $^ $@
+dist/wonder_boy_iii.png.js: $(addprefix roms/,wonder_boy_iii.js wb3.zip)
+	node $^ $@
 
-dist/wonder_boy_in_monster_land.png.js: $(addprefix roms/,wonder_boy_in_monster_land.py wbml.zip)
-	python $^ $@
+dist/wonder_boy_in_monster_land.png.js: $(addprefix roms/,wonder_boy_in_monster_land.js wbml.zip)
+	node $^ $@
 
-dist/wonder_momo.png.js: $(addprefix roms/,wonder_momo.py wndrmomo.zip)
-	python $^ $@
+dist/wonder_momo.png.js: $(addprefix roms/,wonder_momo.js wndrmomo.zip)
+	node $^ $@
 
-dist/world_court.png.js: $(addprefix roms/,world_court.py wldcourt.zip)
-	python $^ $@
+dist/world_court.png.js: $(addprefix roms/,world_court.js wldcourt.zip)
+	node $^ $@
 
-dist/world_court_x68.png.js: $(addprefix roms/,x68000.py x68000.zip world_court_disk1.xdf world_court_disk2.xdf)
-	python $^ $@
+dist/world_court_x68.png.js: $(addprefix roms/,x68000.js x68000.zip world_court_disk1.xdf world_court_disk2.xdf)
+	node $^ $@
 
-dist/world_stadium_x68.png.js: $(addprefix roms/,x68000.py x68000.zip world_stadium_disk1.xdf world_stadium_disk2.xdf)
-	python $^ $@
+dist/world_stadium_x68.png.js: $(addprefix roms/,x68000.js x68000.zip world_stadium_disk1.xdf world_stadium_disk2.xdf)
+	node $^ $@
 
-dist/x_multiply.png.js: $(addprefix roms/,x_multiply.py xmultipl.zip)
-	python $^ $@
+dist/x_multiply.png.js: $(addprefix roms/,x_multiply.js xmultipl.zip)
+	node $^ $@
 
-dist/xevious.png.js: $(addprefix roms/,xevious.py xevious.zip namco50.zip namco51.zip namco54.zip)
-	python $^ $@
+dist/xevious.png.js: $(addprefix roms/,xevious.js xevious.zip namco50.zip namco51.zip namco54.zip)
+	node $^ $@
 
-dist/xexex.png.js: $(addprefix roms/,xexex.py xexex.zip)
-	python $^ $@
+dist/xexex.png.js: $(addprefix roms/,xexex.js xexex.zip)
+	node $^ $@
 
-dist/yokai_douchuuki.png.js: $(addprefix roms/,yokai_douchuuki.py shadowld.zip)
-	python $^ $@
+dist/yokai_douchuuki.png.js: $(addprefix roms/,yokai_douchuuki.js shadowld.zip)
+	node $^ $@
 
-dist/zigzag.png.js: $(addprefix roms/,zigzag.py zigzagb.zip)
-	python $^ $@
+dist/zigzag.png.js: $(addprefix roms/,zigzag.js zigzagb.zip)
+	node $^ $@
 
