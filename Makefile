@@ -39,7 +39,7 @@ all: dist $(addprefix dist/,$(targets))
 
 .PHONY: clean
 clean:
-	del dist\*.png.js
+	rm dist/*.png.js
 
 dist:
 	mkdir dist
