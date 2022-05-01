@@ -55,7 +55,7 @@ export default class MC6801 extends Cpu {
 			return;
 		case 0x04: // LSRD
 			return void([this.a, this.b] = this.split(this.lsr16(this.a << 8 | this.b)));
-		case 0x05: // LSLD
+		case 0x05: // ASLD(LSLD)
 			return void([this.a, this.b] = this.split(this.lsl16(this.a << 8 | this.b)));
 		case 0x06: // TAP
 			return void(this.ccr = this.a | 0xc0);
@@ -170,7 +170,7 @@ export default class MC6801 extends Cpu {
 			return void(this.a = this.ror8(this.a));
 		case 0x47: // ASRA
 			return void(this.a = this.asr8(this.a));
-		case 0x48: // LSLA
+		case 0x48: // ASLA(LSLA)
 			return void(this.a = this.lsl8(this.a));
 		case 0x49: // ROLA
 			return void(this.a = this.rol8(this.a));
@@ -192,7 +192,7 @@ export default class MC6801 extends Cpu {
 			return void(this.b = this.ror8(this.b));
 		case 0x57: // ASRB
 			return void(this.b = this.asr8(this.b));
-		case 0x58: // LSLB
+		case 0x58: // ASLB(LSLB)
 			return void(this.b = this.lsl8(this.b));
 		case 0x59: // ROLB
 			return void(this.b = this.rol8(this.b));
@@ -220,7 +220,7 @@ export default class MC6801 extends Cpu {
 			return ea = this.x + this.fetch() & 0xffff, this.write8(this.ror8(this.read(ea)), ea);
 		case 0x67: // ASR ,X
 			return ea = this.x + this.fetch() & 0xffff, this.write8(this.asr8(this.read(ea)), ea);
-		case 0x68: // LSL ,X
+		case 0x68: // ASL(LSL) ,X
 			return ea = this.x + this.fetch() & 0xffff, this.write8(this.lsl8(this.read(ea)), ea);
 		case 0x69: // ROL ,X
 			return ea = this.x + this.fetch() & 0xffff, this.write8(this.rol8(this.read(ea)), ea);
@@ -252,7 +252,7 @@ export default class MC6801 extends Cpu {
 			return ea = this.fetch16(), this.write8(this.ror8(this.read(ea)), ea);
 		case 0x77: // ASR >nn
 			return ea = this.fetch16(), this.write8(this.asr8(this.read(ea)), ea);
-		case 0x78: // LSL >nn
+		case 0x78: // ASL(LSL) >nn
 			return ea = this.fetch16(), this.write8(this.lsl8(this.read(ea)), ea);
 		case 0x79: // ROL >nn
 			return ea = this.fetch16(), this.write8(this.rol8(this.read(ea)), ea);

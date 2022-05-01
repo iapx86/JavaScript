@@ -136,10 +136,10 @@ export function init({game, sound, keydown, keyup} = {}) {
 	const audio = {rate: audioCtx.sampleRate, frac: 0, samples: [], execute(rate) {
 		if (Array.isArray(sound))
 			for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-				audioCtx && this.samples.push(sound.reduce((a, e) => a + e.output, 0)), sound.forEach(e => e.update());
+				this.samples.push(sound.reduce((a, e) => a + e.output, 0)), sound.forEach(e => e.update());
 		else
 			for (this.frac += this.rate; this.frac >= rate; this.frac -= rate)
-				audioCtx && this.samples.push(sound.output), sound.update();
+				this.samples.push(sound.output), sound.update();
 	}};
 	addEventListener('blur', () => audioCtx.suspend().catch());
 	addEventListener('message', ({data: {timestamp}}) => {
