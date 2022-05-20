@@ -7,28 +7,22 @@ const {basename} = require('path');
 const {BasicParser} = require('posix-getopt');
 
 const buffer = new Uint8Array(0x10000);
-const jumplabel = new Array(buffer.length).fill(false);
-const label = new Array(buffer.length).fill(false);
-let location = 0;
-let flags = '';
+const jumplabel = new Array(buffer.length).fill(false), label = new Array(buffer.length).fill(false);
+let location = 0, flags = '';
 
+const char = s => s.charCodeAt(0);
 const x2 = n => Number(n).toString(16).padStart(2, '0');
 const x4 = n => Number(n).toString(16).padStart(4, '0');
 const X2 = n => Number(n).toString(16).toUpperCase().padStart(2, '0');
 const X4 = n => Number(n).toString(16).toUpperCase().padStart(4, '0');
 const s5 = x => x & 15 | -(x & 16);
 const s8 = x => x & 0x7f | -(x & 0x80);
-
-function fetch() {
-	return buffer[location++];
-}
-
-function byte() {
-	return `$${x2(fetch())}`;
-}
+const fetch = () => buffer[location++];
+const fetch16 = () => fetch() << 8 | fetch();
+const byte = () => `$${x2(fetch())}`;
 
 function word() {
-	const operand = fetch() << 8 | fetch();
+	const operand = fetch16();
 	return flags.includes('B') ? (jumplabel[operand] = true) : (label[operand] = true), `L${x4(operand)}`;
 }
 
@@ -216,20 +210,12 @@ if (parser.optind() >= process.argv.length) {
 	console.log('  -t <ファイル名> ラベルテーブルを使用する');
 	process.exit(0);
 }
-const remark = {};
-const attrib = new Uint8Array(buffer.length);
-let start = 0;
-let listing = false;
-let force = false;
-let noentry = true;
-let file = '';
-let tablefile = '';
-let out = '';
+const remark = {}, attrib = new Uint8Array(buffer.length);
+let start = 0, listing = false, force = false, noentry = true, file = '', tablefile = '', out = '';
 for (let opt; (opt = parser.getopt()) !== undefined;)
 	switch (opt.option) {
 	case 'e':
-		jumplabel[parseInt(opt.optarg)] = true;
-		noentry = false;
+		jumplabel[parseInt(opt.optarg)] = true, noentry = false;
 		break;
 	case 'f':
 		force = true;
@@ -255,32 +241,30 @@ if (tablefile)
 		let base, size;
 		switch (words[0]) {
 		case 'b':
-			return base = parseInt(words[1], 16), size = words.length > 2 ? parseInt(words[2], 10) : 1, void(attrib.fill('B'.charCodeAt(0), base, base + size));
+			return base = parseInt(words[1], 16), size = words.length > 2 ? parseInt(words[2], 10) : 1, void(attrib.fill(char('B'), base, base + size));
 		case 'c':
 			return jumplabel[parseInt(words[1], 16)] = true, void(noentry = false);
 		case 'd':
 			return void(label[parseInt(words[1], 16)] = true);
 		case 'r':
 			const addr = parseInt(words[1], 16);
-			if (!(addr in remark))
-				remark[addr] = [];
-			return void(remark[addr].push(line.slice((words[0] + words[1]).length + 2)));
+			return !(addr in remark) && (remark[addr] = []), void(remark[addr].push(line.slice((words[0] + words[1]).length + 2)));
 		case 's':
-			return base = parseInt(words[1], 16), size = words.length > 2 ? parseInt(words[2], 10) : 1, void(attrib.fill('S'.charCodeAt(0), base, base + size));
+			return base = parseInt(words[1], 16), size = words.length > 2 ? parseInt(words[2], 10) : 1, void(attrib.fill(char('S'), base, base + size));
 		case 't':
 			base = parseInt(words[1], 16), size = words.length > 2 ? parseInt(words[2], 10) : 1;
 			for (let i = base; i < base + size * 2; i += 2)
-				attrib.fill('P'.charCodeAt(0), i, i + 2), jumplabel[buffer[i] << 8 | buffer[i + 1]] = true;
+				attrib.fill(char('P'), i, i + 2), jumplabel[buffer[i] << 8 | buffer[i + 1]] = true;
 			return void(noentry = false);
 		case 'u':
 			base = parseInt(words[1], 16), size = words.length > 2 ? parseInt(words[2], 10) : 1;
 			for (let i = base; i < base + size * 2; i += 2)
-				attrib.fill('P'.charCodeAt(0), i, i + 2), label[buffer[i] << 8 | buffer[i + 1]] = true;
+				attrib.fill(char('P'), i, i + 2), label[buffer[i] << 8 | buffer[i + 1]] = true;
 			return;
 		case 'v':
 			base = parseInt(words[1], 16), size = words.length > 2 ? parseInt(words[2], 10) : 1;
 			for (let i = base; i < base + size * 3; i += 3)
-				attrib.fill('P'.charCodeAt(0), i, i + 2), label[buffer[i] << 8 | buffer[i + 1]] = true;
+				attrib.fill(char('P'), i, i + 2), label[buffer[i] << 8 | buffer[i + 1]] = true;
 			return;
 		}
 	});
@@ -295,7 +279,7 @@ for (;;) {
 	do {
 		const base = location;
 		op();
-		attrib.fill('C'.charCodeAt(0), base, location);
+		attrib.fill(char('C'), base, location);
 	} while ((force || !flags.includes('A')) && location < end && !attrib[location]);
 }
 
@@ -317,80 +301,38 @@ if (listing) {
 }
 for (location = start; location < end;) {
 	const base = location;
+	let i;
 	if (base in remark)
-		for (let s of remark[base]) {
-			if (listing)
-				out += `${X4(base)}\t\t\t`;
-			out += `*${s}\n`;
-		}
+		for (let s of remark[base])
+			listing && (out += `${X4(base)}\t\t\t`), out += `*${s}\n`;
 	switch (String.fromCharCode(attrib[base])) {
 	case 'C':
 		const s = op(), size = location - base;
-		if (listing) {
-			out += `${X4(base)} `;
-			for (location = base; location < base + size;)
-				out += ` ${X2(fetch())}`;
-			out += size < 4 ? '\t\t' : '\t';
-		}
-		if (jumplabel[base])
-			out += `L${x4(base)}`;
-		if (s !== '')
-			out += `\t${s}\n`;
-		else {
-			location = base;
-			out += `\tfcb\t$${x2(fetch())}`;
-			while (location < base + size)
-				out += `,$${x2(fetch())}`;
-			out += '\n';
-		}
+		listing && (out += `${X4(base)} `, buffer.slice(base, location).forEach(e => out += ` ${X2(e)}`), out += size < 4 ? '\t\t' : '\t');
+		jumplabel[base] && (out += `L${x4(base)}`);
+		out += s ? `\t${s}\n` : `\tfcb\t${Array.from(buffer.slice(base, location), e => `$${x2(e)}`).join(',')}\n`;
 		break;
 	case 'S':
-		if (listing)
-			out += `${X4(base)}\t\t\t`;
-		if (label[base])
-			out += `L${x4(base)}`;
-		out += `\tfcc\t'${String.fromCharCode(fetch())}`;
-		while (location < end && attrib[location] === 'S'.charCodeAt(0) && !label[location])
-			out += String.fromCharCode(fetch());
+		listing && (out += `${X4(base)}\t\t\t`), label[base] && (out += `L${x4(base)}`);
+		for (out += `\tfcc\t'${String.fromCharCode(fetch())}`; location < end && attrib[location] === char('S') && !label[location]; out += String.fromCharCode(fetch())) {}
 		out += `'\n`;
 		break;
 	case 'B':
-		if (listing)
-			out += `${X4(base)}\t\t\t`;
-		if (label[base])
-			out += `L${x4(base)}`;
-		out += `\tfcb\t$${x2(fetch())}`;
-		for (let i = 0; i < 7 && location < end && attrib[location] === 'B'.charCodeAt(0) && !label[location]; i++)
-			out += `,$${x2(fetch())}`;
+		listing && (out += `${X4(base)}\t\t\t`), label[base] && (out += `L${x4(base)}`);
+		for (out += `\tfcb\t$${x2(fetch())}`, i = 0; i < 7 && location < end && attrib[location] === char('B') && !label[location]; out += `,$${x2(fetch())}`, i++) {}
 		out += '\n';
 		break;
 	case 'P':
-		if (listing)
-			out += `${X4(base)}\t\t\t`;
-		if (label[base])
-			out += `L${x4(base)}`;
-		out += `\tfdb\tL${x4(fetch() << 8 | fetch())}`;
-		for (let i = 0; i < 3 && location < end && attrib[location] === 'P'.charCodeAt(0) && !label[location]; i++)
-			out += `,L${x4(fetch() << 8 | fetch())}`;
+		listing && (out += `${X4(base)}\t\t\t`), label[base] && (out += `L${x4(base)}`);
+		for (out += `\tfdb\tL${x4(fetch16())}`, i = 0; i < 3 && location < end && attrib[location] === char('P') && !label[location]; out += `,L${x4(fetch16())}`, i++) {}
 		out += '\n';
 		break;
 	default:
 		const c = fetch();
-		if (listing)
-			out += `${X4(base)}  ${X2(c)}\t\t`;
-		if (label[base] || jumplabel[base])
-			out += `L${x4(base)}`;
-		out += `\tfcb\t$${x2(c)}`;
-		if (c >= 0x20 && c < 0x7f)
-			out += `\t'${String.fromCharCode(c)}'`;
-		out += '\n';
+		listing && (out += `${X4(base)}  ${X2(c)}\t\t`), (label[base] || jumplabel[base]) && (out += `L${x4(base)}`);
+		out += `\tfcb\t$${x2(c)}`, c >= 0x20 && c < 0x7f && (out += `\t'${String.fromCharCode(c)}'`), out += '\n';
 		break;
 	}
 }
-if (listing)
-	out += `${X4(location & 0xffff)}\t\t\t`;
-out += '\tend\n';
-if (file)
-	writeFileSync(file, out, 'utf-8');
-else
-	console.log(out);
+listing && (out += `${X4(location & 0xffff)}\t\t\t`), out += '\tend\n';
+file ? writeFileSync(file, out, 'utf-8') : console.log(out);

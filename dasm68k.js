@@ -7,11 +7,10 @@ const {basename} = require('path');
 const {BasicParser} = require('posix-getopt');
 
 const buffer = new Uint8Array(0x1000000), view = new DataView(buffer.buffer);
-const jumplabel = new Array(buffer.length).fill(false);
-const label = new Array(buffer.length).fill(false);
-let location = 0;
-let flags = '';
+const jumplabel = new Array(buffer.length).fill(false), label = new Array(buffer.length).fill(false);
+let location = 0, flags = '';
 
+const char = s => s.charCodeAt(0);
 const b16 = n => Number(n).toString(2).padStart(16, '0');
 const x2 = n => Number(n).toString(16).padStart(2, '0');
 const x4 = n => Number(n).toString(16).padStart(4, '0');
@@ -21,15 +20,9 @@ const X4 = n => Number(n).toString(16).toUpperCase().padStart(4, '0');
 const X6 = n => Number(n).toString(16).toUpperCase().padStart(6, '0');
 const s8 = x => x & 0x7f | -(x & 0x80);
 const s16 = x => x & 0x7fff | -(x & 0x8000);
-
-function fetch() {
-	return buffer[location++];
-}
-
-function fetch16() {
-	const c = buffer[location] << 8 | buffer[location + 1];
-	return location += 2, c;
-}
+const fetch = () => buffer[location++];
+const fetch16 = () => fetch() << 8 | fetch();
+const fetch32 = () => fetch16() << 16 | fetch16();
 
 function displacement() {
 	const d = s16(fetch16());
@@ -64,7 +57,7 @@ function am_absolute16() {
 }
 
 function am_absolute32() {
-	const x = fetch16() << 16 | fetch16(), ea = x & 0xffffff;
+	const x = fetch32(), ea = x & 0xffffff;
 	if (ea < start || ea > end)
 		return `($${x8(x >>> 0)})${ea >= 0x8000 && ea < 0xff8000 ? '' : '.l'}`;
 	return flags.includes('B') ? (jumplabel[ea] = true) : (label[ea] = true), `(L${x6(ea)})`;
@@ -82,7 +75,7 @@ function am_immediate16() {
 }
 
 function am_immediate32() {
-	const x = fetch16() << 16 | fetch16(), ea = x & 0xffffff;
+	const x = fetch32(), ea = x & 0xffffff;
 	if (flags.includes('P') && ea >= start && ea <= end)
 		return label[ea] = true, `#L${x6(ea)}`;
 	return `#$${x8(x >>> 0)}`;
@@ -108,13 +101,8 @@ function register_list() {
 	const mask = mod === 4 ? b16(fetch16()).split('') : b16(fetch16()).split('').reverse();
 	let regs = [], start = 0, prev = '0';
 	for (let [r, slice] of [['d', mask.slice(0, 8).concat('0')], ['a', mask.slice(8).concat('0')]])
-		for (let [i, c] of slice.entries()) {
-			if (c === '1' && prev === '0')
-				start = i;
-			if (c === '0' && prev === '1')
-				regs.push(i - start > 1 ? `${r}${start}-${r}${i - 1}` : `${r}${start}`);
-			prev = c;
-		}
+		for (let [i, c] of slice.entries())
+			c === '1' && prev === '0' && (start = i), c === '0' && prev === '1' && regs.push(i - start > 1 ? `${r}${start}-${r}${i - 1}` : `${r}${start}`), prev = c;
 	return regs.join('/');
 }
 
@@ -358,22 +346,12 @@ if (parser.optind() >= process.argv.length) {
 	console.log('  -t <ファイル名> ラベルテーブルを使用する');
 	process.exit(0);
 }
-const remark = {};
-const attrib = new Uint8Array(buffer.length);
-let start = 0;
-let listing = false;
-let force = false;
-let entry = 0;
-let noentry = true;
-let file = '';
-let tablefile = '';
-let out = '';
+const remark = {}, attrib = new Uint8Array(buffer.length);
+let start = 0, listing = false, force = false, entry = 0, noentry = true, file = '', tablefile = '', out = '';
 for (let opt; (opt = parser.getopt()) !== undefined;)
 	switch (opt.option) {
 	case 'e':
-		entry = parseInt(opt.optarg);
-		jumplabel[entry] = true;
-		noentry = false;
+		entry = parseInt(opt.optarg), jumplabel[entry] = true, noentry = false;
 		break;
 	case 'f':
 		force = true;
@@ -399,46 +377,40 @@ if (tablefile)
 		let base, size;
 		switch (words[0]) {
 		case 'b':
-			return base = parseInt(words[1], 16), size = words.length > 2 ? parseInt(words[2], 10) : 1, void(attrib.fill('B'.charCodeAt(0), base, base + size));
+			return base = parseInt(words[1], 16), size = words.length > 2 ? parseInt(words[2], 10) : 1, void(attrib.fill(char('B'), base, base + size));
 		case 'c':
 			return jumplabel[parseInt(words[1], 16)] = true, void(noentry = false);
 		case 'd':
 			return void(label[parseInt(words[1], 16)] = true);
 		case 'r':
 			const addr = parseInt(words[1], 16);
-			if (!(addr in remark))
-				remark[addr] = [];
-			return void(remark[addr].push(line.slice((words[0] + words[1]).length + 2)));
+			return !(addr in remark) && (remark[addr] = []), void(remark[addr].push(line.slice((words[0] + words[1]).length + 2)));
 		case 's':
-			return base = parseInt(words[1], 16), size = words.length > 2 ? parseInt(words[2], 10) : 1, void(attrib.fill('S'.charCodeAt(0), base, base + size));
+			return base = parseInt(words[1], 16), size = words.length > 2 ? parseInt(words[2], 10) : 1, void(attrib.fill(char('S'), base, base + size));
 		case 't':
 			base = parseInt(words[1], 16), size = words.length > 2 ? parseInt(words[2], 10) : 1;
 			for (let i = base; i < base + size * 4; i += 4)
-				attrib.fill('P'.charCodeAt(0), i, i + 4), jumplabel[view.getUint32(i) & 0xffffff] = true;
+				attrib.fill(char('P'), i, i + 4), jumplabel[view.getUint32(i) & 0xffffff] = true;
 			return void(noentry = false);
 		case 'u':
 			base = parseInt(words[1], 16), size = words.length > 2 ? parseInt(words[2], 10) : 1;
 			for (let i = base; i < base + size * 4; i += 4)
-				attrib.fill('P'.charCodeAt(0), i, i + 4), label[view.getUint32(i) & 0xffffff] = true;
+				attrib.fill(char('P'), i, i + 4), label[view.getUint32(i) & 0xffffff] = true;
 			return;
 		}
 	});
 
 // path 1
-if (noentry && start) {
-	entry = start;
-	jumplabel[entry] = true;
-} else if (noentry) {
+if (noentry && !start) {
 	label[start] = true;
 	const reset = view.getUint32(4) & 0xffffff;
-	entry = reset >= Math.max(start, 8) && reset < end && !(reset & 1) ? reset : start;
-	jumplabel[entry] = true;
+	entry = reset >= Math.max(start, 8) && reset < end && !(reset & 1) ? reset : start, jumplabel[entry] = true;
 	for (let i = 8; i < Math.min(reset, 0x400); i += 4) {
 		const vector = view.getUint32(i) & 0xffffff;
-		if (vector >= Math.max(start, 8) && vector < end && !(vector & 1))
-			jumplabel[vector] = true;
+		vector >= Math.max(start, 8) && vector < end && !(vector & 1) && (jumplabel[vector] = true);
 	}
-}
+} else if (noentry)
+	entry = start, jumplabel[entry] = true;
 for (;;) {
 	for (location = start; location < end && (attrib[location] || !jumplabel[location]); location++) {}
 	if (location === end)
@@ -446,7 +418,7 @@ for (;;) {
 	do {
 		const base = location;
 		op();
-		attrib.fill('C'.charCodeAt(0), base, location);
+		attrib.fill(char('C'), base, location);
 	} while ((force || !flags.includes('A')) && location < end && !attrib[location]);
 }
 
@@ -474,99 +446,43 @@ if (listing) {
 }
 for (location = start; location < end;) {
 	const base = location;
+	let i;
 	if (base in remark)
-		for (let s of remark[base]) {
-			if (listing)
-				out += `${X6(base)}\t\t\t\t`;
-			out += `;${s}\n`;
-		}
+		for (let s of remark[base])
+			listing && (out += `${X6(base)}\t\t\t\t`), out += `;${s}\n`;
 	switch (String.fromCharCode(attrib[base])) {
 	case 'C':
 		const s = op(), size = location - base;
-		if (jumplabel[base]) {
-			if (listing)
-				out += `${X6(base)}\t\t\t\t`;
-			out += `L${x6(base)}:\n`;
-		}
+		jumplabel[base] && (listing && (out += `${X6(base)}\t\t\t\t`), out += `L${x6(base)}:\n`);
 		if (listing) {
-			out += `${X6(base)}`;
-			for (location = base; location < base + size;)
-				out += ` ${X4(fetch16())}`;
+			for (out += `${X6(base)}`, location = base; location < base + size; out += ` ${X4(fetch16())}`) {}
 			out += size < 4 ? '\t\t\t' : size < 8 ? '\t\t' : '\t';
 		}
-		if (s !== '')
-			out += `\t${s}\n`;
-		else {
-			location = base;
-			out += `\t.dc.b\t$${x2(fetch())}`;
-			while (location < base + size)
-				out += `,$${x2(fetch())}`;
-			out += '\n';
-		}
+		out += s ? `\t${s}\n` : `\t.dc.b\t${Array.from(buffer.slice(base, location), e => `$${x2(e)}`).join(',')}\n`;
 		break;
 	case 'S':
-		if (label[base]) {
-			if (listing)
-				out += `${X6(base)}\t\t\t\t`;
-			out += `L${x6(base)}:\n`;
-		}
-		if (listing)
-			out += `${X6(base)}\t\t\t\t`;
-		out += `\t.dc.b\t'${String.fromCharCode(fetch())}`;
-		while (location < end && attrib[location] === 'S'.charCodeAt(0) && !label[location])
-			out += String.fromCharCode(fetch());
+		label[base] && (listing && (out += `${X6(base)}\t\t\t\t`), out += `L${x6(base)}:\n`), listing && (out += `${X6(base)}\t\t\t\t`);
+		for (out += `\t.dc.b\t'${String.fromCharCode(fetch())}`; location < end && attrib[location] === char('S') && !label[location]; out += String.fromCharCode(fetch())) {}
 		out += `'\n`;
 		break;
 	case 'B':
-		if (label[base]) {
-			if (listing)
-				out += `${X6(base)}\t\t\t\t`;
-			out += `L${x6(base)}:\n`;
-		}
-		if (listing)
-			out += `${X6(base)}\t\t\t\t`;
-		out += `\t.dc.b\t$${x2(fetch())}`;
-		for (let i = 0; i < 7 && location < end && attrib[location] === 'B'.charCodeAt(0) && !label[location]; i++)
-			out += `,$${x2(fetch())}`;
+		label[base] && (listing && (out += `${X6(base)}\t\t\t\t`), out += `L${x6(base)}:\n`), listing && (out += `${X6(base)}\t\t\t\t`);
+		for (out += `\t.dc.b\t$${x2(fetch())}`, i = 0; i < 7 && location < end && attrib[location] === char('B') && !label[location]; out += `,$${x2(fetch())}`, i++) {}
 		out += '\n';
 		break;
 	case 'P':
-		if (label[base]) {
-			if (listing)
-				out += `${X6(base)}\t\t\t\t`;
-			out += `L${x6(base)}:\n`;
-		}
-		if (listing)
-			out += `${X6(base)}\t\t\t\t`;
-		out += `\t.dc.l\tL${x6(fetch16() << 16 | fetch16())}`;
-		for (let i = 0; i < 3 && location < end && attrib[location] === 'P'.charCodeAt(0) && !label[location]; i++)
-			out += `,L${x6(fetch16() << 16 | fetch16())}`;
+		label[base] && (listing && (out += `${X6(base)}\t\t\t\t`), out += `L${x6(base)}:\n`), listing && (out += `${X6(base)}\t\t\t\t`);
+		for (out += `\t.dc.l\tL${x6(fetch32())}`, i = 0; i < 3 && location < end && attrib[location] === char('P') && !label[location]; out += `,L${x6(fetch32())}`, i++) {}
 		out += '\n';
 		break;
 	default:
-		if (label[base] || jumplabel[base]) {
-			if (listing)
-				out += `${X6(base)}\t\t\t\t`;
-			out += `L${x6(base)}:\n`;
-		}
-		if (listing)
-			out += `${X6(base)}\t\t\t\t`;
-		out += `\t.dc.b\t$${x2(fetch())}`;
-		for (let i = 0; i < 7 && location < end && !'CSBP'.includes(String.fromCharCode(attrib[location])) && !jumplabel[location] && !label[location]; i++)
-			out += `,$${x2(fetch())}`;
+		(label[base] || jumplabel[base]) && (listing && (out += `${X6(base)}\t\t\t\t`), out += `L${x6(base)}:\n`), listing && (out += `${X6(base)}\t\t\t\t`);
+		for (out += `\t.dc.b\t$${x2(fetch())}`, i = 0; i < 7 && location < end && !attrib[location] && !jumplabel[location] && !label[location]; out += `,$${x2(fetch())}`, i++) {}
 		out += '\n';
 		break;
 	}
 }
-if (label[location] || jumplabel[location]) {
-	if (listing)
-		out += `${X6(location)}\t\t\t\t`;
-	out += `L${x6(location)}:\n`;
-}
-if (listing)
-	out += `${X6(location & 0xffffff)}\t\t\t\t`;
-out += `\t.end\tL${x6(entry)}\n`;
-if (file)
-	writeFileSync(file, out, 'utf-8');
-else
-	console.log(out);
+if (label[location] || jumplabel[location])
+	listing &&(out += `${X6(location)}\t\t\t\t`), out += `L${x6(location)}:\n`;
+listing && (out += `${X6(location & 0xffffff)}\t\t\t\t`), out += `\t.end\tL${x6(entry)}\n`;
+file ? writeFileSync(file, out, 'utf-8') : console.log(out);
