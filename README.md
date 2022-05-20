@@ -1,7 +1,7 @@
 ### Webpackのインストール
 ```
 $ npm init -y
-$ npm install -D webpack webpack-cli html-webpack-plugin html-inline-script-webpack-plugin canvas zlibjs
+$ npm install -D webpack webpack-cli html-webpack-plugin html-inline-script-webpack-plugin canvas zlibjs posix-getopt
 ```
 ### その他必要なもの
 * make http://gnuwin32.sourceforge.net/packages/make.htm
