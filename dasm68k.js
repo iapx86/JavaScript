@@ -16,7 +16,7 @@ const x2 = n => Number(n).toString(16).padStart(2, '0');
 const x4 = n => Number(n).toString(16).padStart(4, '0');
 const x6 = n => Number(n).toString(16).padStart(6, '0');
 const x8 = n => Number(n).toString(16).padStart(8, '0');
-const X4 = n => Number(n).toString(16).toUpperCase().padStart(4, '0');
+const X2 = n => Number(n).toString(16).toUpperCase().padStart(2, '0');
 const X6 = n => Number(n).toString(16).toUpperCase().padStart(6, '0');
 const s8 = x => x & 0x7f | -(x & 0x80);
 const s16 = x => x & 0x7fff | -(x & 0x8000);
@@ -412,7 +412,7 @@ if (noentry && !start) {
 } else if (noentry)
 	entry = start, jumplabel[entry] = true;
 for (;;) {
-	for (location = start; location < end && (attrib[location] || !jumplabel[location]); location++) {}
+	for (location = start; location < end && (attrib[location] || !jumplabel[location]); location += 2) {}
 	if (location === end)
 		break;
 	do {
@@ -454,10 +454,7 @@ for (location = start; location < end;) {
 	case 'C':
 		const s = op(), size = location - base;
 		jumplabel[base] && (listing && (out += `${X6(base)}\t\t\t\t`), out += `L${x6(base)}:\n`);
-		if (listing) {
-			for (out += `${X6(base)}`, location = base; location < base + size; out += ` ${X4(fetch16())}`) {}
-			out += size < 4 ? '\t\t\t' : size < 8 ? '\t\t' : '\t';
-		}
+		listing && (out += X6(base) + Array.from(buffer.slice(base, location), (e, i) => ' '.repeat(~i & 1) + X2(e)).join('') + '\t'.repeat(33 - size * 2.5 >> 3));
 		out += s ? `\t${s}\n` : `\t.dc.b\t${Array.from(buffer.slice(base, location), e => `$${x2(e)}`).join(',')}\n`;
 		break;
 	case 'S':
@@ -482,7 +479,6 @@ for (location = start; location < end;) {
 		break;
 	}
 }
-if (label[location] || jumplabel[location])
-	listing &&(out += `${X6(location)}\t\t\t\t`), out += `L${x6(location)}:\n`;
+(label[location] || jumplabel[location]) && (listing && (out += `${X6(location)}\t\t\t\t`), out += `L${x6(location)}:\n`);
 listing && (out += `${X6(location & 0xffffff)}\t\t\t\t`), out += `\t.end\tL${x6(entry)}\n`;
 file ? writeFileSync(file, out, 'utf-8') : console.log(out);

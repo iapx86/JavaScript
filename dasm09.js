@@ -308,7 +308,7 @@ for (location = start; location < end;) {
 	switch (String.fromCharCode(attrib[base])) {
 	case 'C':
 		const s = op(), size = location - base;
-		listing && (out += `${X4(base)} `, buffer.slice(base, location).forEach(e => out += ` ${X2(e)}`), out += size < 4 ? '\t\t' : '\t');
+		listing && (out += `${X4(base)} ${Array.from(buffer.slice(base, location), e => ` ${X2(e)}`).join('')}${'\t'.repeat(26 - size * 3 >> 3)}`);
 		jumplabel[base] && (out += `L${x4(base)}`);
 		out += s ? `\t${s}\n` : `\tfcb\t${Array.from(buffer.slice(base, location), e => `$${x2(e)}`).join(',')}\n`;
 		break;
