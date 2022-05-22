@@ -329,7 +329,7 @@ for (location = start; location < end;) {
 		break;
 	default:
 		const c = fetch();
-		listing && (out += `${X4(base)}  ${X2(c)}\t\t`), (label[base] || jumplabel[base]) && (out += `L${x4(base)}`);
+		listing && (out += `${X4(base)}  ${X2(c)}\t\t`), label[base] && (out += `L${x4(base)}`);
 		out += `\tfcb\t$${x2(c)}`, c >= 0x20 && c < 0x7f && (out += `\t'${String.fromCharCode(c)}'`), out += '\n';
 		break;
 	}

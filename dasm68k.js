@@ -473,8 +473,8 @@ for (location = start; location < end;) {
 		out += '\n';
 		break;
 	default:
-		(label[base] || jumplabel[base]) && (listing && (out += `${X6(base)}\t\t\t\t`), out += `L${x6(base)}:\n`), listing && (out += `${X6(base)}\t\t\t\t`);
-		for (out += `\t.dc.b\t$${x2(fetch())}`, i = 0; i < 7 && location < end && !attrib[location] && !jumplabel[location] && !label[location]; out += `,$${x2(fetch())}`, i++) {}
+		label[base] && (listing && (out += `${X6(base)}\t\t\t\t`), out += `L${x6(base)}:\n`), listing && (out += `${X6(base)}\t\t\t\t`);
+		for (out += `\t.dc.b\t$${x2(fetch())}`, i = 0; i < 7 && location < end && !attrib[location] && !label[location]; out += `,$${x2(fetch())}`, i++) {}
 		out += '\n';
 		break;
 	}
