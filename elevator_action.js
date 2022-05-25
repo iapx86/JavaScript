@@ -5,7 +5,7 @@
  */
 
 import AY_3_8910 from './ay-3-8910.js';
-import {Timer} from './utils.js';
+import {rseq, Timer} from './utils.js';
 import {init, expand} from './main.js';
 import Z80 from './z80.js';
 import MC6805 from './mc6805.js';
@@ -390,32 +390,17 @@ class ElevatorAction {
 			return this.bitmap;
 
 		// 画像データ変換
-		const convertBG = (dst, src, n) => {
-			for (let p = 0, q = 0, i = 0; i < n; q += 8, i++)
-				for (let j = 0; j < 8; j++)
-					for (let k = 7; k >= 0; --k)
-						dst[p++] = src[q + k] >> j & 1 | src[q + k + 0x800] >> j << 1 & 2 | src[q + k + 0x1000] >> j << 2 & 4;
+		const convertGFX = (dst, src, n, x, y, d) => {
+			x = Uint8Array.from(x), y = Uint8Array.from(y);
+			for (let p = 0, q = 0, i = 0; i < n; q += d, i++)
+				for (let j of y)
+					for (let k of x)
+						dst[p++] = src[q | k + j >> 3] >> (~j & 7) & 1 | src[q | k + j >> 3 | 0x800] >> (~j & 7) << 1 & 2 | src[q | k + j >> 3 | 0x1000] >> (~j & 7) << 2 & 4;
 		};
-		convertBG(this.bg, this.ram.subarray(0x800), 256);
-		convertBG(this.bg.subarray(0x4000), this.ram.subarray(0x2000), 256);
-		const convertOBJ = (dst, src, n) => {
-			for (let p = 0, q = 0, i = 0; i < n; q += 32, i++) {
-				for (let j = 0; j < 8; j++) {
-					for (let k = 7; k >= 0; --k)
-						dst[p++] = src[q + k + 16] >> j & 1 | src[q + k + 0x800 + 16] >> j << 1 & 2 | src[q + k + 0x1000 + 16] >> j << 2 & 4;
-					for (let k = 7; k >= 0; --k)
-						dst[p++] = src[q + k] >> j & 1 | src[q + k + 0x800] >> j << 1 & 2 | src[q + k + 0x1000] >> j << 2 & 4;
-				}
-				for (let j = 0; j < 8; j++) {
-					for (let k = 7; k >= 0; --k)
-						dst[p++] = src[q + k + 24] >> j & 1 | src[q + k + 0x800 + 24] >> j << 1 & 2 | src[q + k + 0x1000 + 24] >> j << 2 & 4;
-					for (let k = 7; k >= 0; --k)
-						dst[p++] = src[q + k + 8] >> j & 1 | src[q + k + 0x800 + 8] >> j << 1 & 2 | src[q + k + 0x1000 + 8] >> j << 2 & 4;
-				}
-			}
-		};
-		convertOBJ(this.obj, this.ram.subarray(0x800), 64);
-		convertOBJ(this.obj.subarray(0x4000), this.ram.subarray(0x2000), 64);
+		convertGFX(this.bg, this.ram.subarray(0x800), 256, rseq(8, 0, 8), rseq(8), 8);
+		convertGFX(this.bg.subarray(0x4000), this.ram.subarray(0x2000), 256, rseq(8, 0, 8), rseq(8), 8);
+		convertGFX(this.obj, this.ram.subarray(0x800), 64, rseq(8, 128, 8).concat(rseq(8, 0, 8)), rseq(8).concat(rseq(8, 64)), 32);
+		convertGFX(this.obj.subarray(0x4000), this.ram.subarray(0x2000), 64, rseq(8, 128, 8).concat(rseq(8, 0, 8)), rseq(8).concat(rseq(8, 64)), 32);
 		for (let k = 0x4a00, i = 0; i < 0x40; k += 2, i++) {
 			const e = ~(this.ram[k] << 8 | this.ram[k + 1]);
 			this.rgb[i] = 0xff000000 | (e & 7) * 255 / 7 << 16 | (e >> 3 & 7) * 255 / 7 << 8 | (e >> 6 & 7) * 255 / 7;
