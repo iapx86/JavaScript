@@ -3,6 +3,7 @@
  */
 
 const fs = require('fs');
+const path = require('path');
 const {createCanvas, createImageData} = require('canvas');
 const {Zlib} = require('zlibjs/bin/unzip.min');
 Zlib.Unzip.prototype.read = Zlib.Unzip.prototype.decompress;
@@ -24,5 +25,13 @@ const pngString = array => {
 
 let str = `export const ROM = 'data:image/png;base64,${pngString(rom)}';\n`;
 for(let i = 3; i < process.argv.length - 1; i++)
-	str += `export const DISK${i - 2} = 'data:image/png;base64,${pngString(fs.readFileSync(process.argv[i]))}';\n`;
+	if (path.extname(process.argv[i]) === '.d88') {
+		const disk = fs.readFileSync(process.argv[i]), view = new DataView(disk.buffer), out = new Uint8Array(164 * 8192);
+		let track = 0;
+		for (let p; track < 164 && (p = view.getInt32(0x20 + track * 4, true)) >= 0x2b0 && p < disk.length; track++)
+			for (let nsec = view.getUint16(p + 4, true), sector, size, i = 0; i < nsec; p += 0x10 + size, i++)
+				sector = disk[p + 2] - 1, size = view.getUint16(p + 0xe, true), out.set(disk.subarray(p + 0x10, p + 0x10 + size), track * 8192 + sector * size);
+		str += `export const DISK${i - 2} = 'data:image/png;base64,${pngString(out.subarray(0, track * 8192))}';\n`;
+	} else
+		str += `export const DISK${i - 2} = 'data:image/png;base64,${pngString(fs.readFileSync(process.argv[i]))}';\n`;
 fs.writeFileSync(process.argv[process.argv.length - 1], str);

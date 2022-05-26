@@ -16,23 +16,24 @@ targets = \
 	marble_madness_x68.png.js marchen_maze.png.js marchen_maze_x68.png.js master_of_weapon.png.js metro-cross.png.js \
 	moon_cresta.png.js motos.png.js mr_heli_no_daibouken.png.js namco_video_game_music_library_x68.png.js \
 	new_rally-x.png.js ninja_princess.png.js out_run.png.js pac-land.png.js pac-man.png.js pac-mania.png.js \
-	pac-mania_x68.png.js pac_and_pal.png.js parodius_da_x68.png.js pengo.png.js phalanx_x68.png.js phozon.png.js \
-	pinball_pinball_x68.png.js polaris.png.js pole_position_ii.png.js populous_x68.png.js power_league_x68.png.js \
-	prince_of_persia_x68.png.js professional_mahjong_gokuu_x68.png.js puzznic_x68.png.js quarth_x68.png.js r-type.png.js \
-	r-type_ii.png.js r-type_x68.png.js rally-x.png.js rompers.png.js royal_mahjong.png.js saigo_no_nindou.png.js \
-	salamander.png.js scramble.png.js sea_fighter_poseidon.png.js senjou_no_ookami.png.js shanghai_x68.png.js \
-	shuffle_puck_cafe_x68.png.js sky_kid.png.js sky_kid_deluxe.png.js souko_ban_deluxe.png.js \
-	souko_ban_perfect_x68.png.js space_chaser.png.js space_harrier.png.js space_harrier_x68.png.js space_invaders.png.js \
-	space_laser.png.js star_force.png.js strategy_x.png.js sukeban_jansi_ryuko.png.js super_hang-on.png.js \
-	super_hang-on_x68.png.js super_pac-man.png.js super_real_mahjong_part2.png.js super_real_mahjong_part3.png.js \
-	super_real_mahjong_pii_and_piii_x68.png.js super_xevious.png.js syvalion_x68.png.js t.t_mahjong.png.js \
-	tank_battalion.png.js tank_force.png.js tetris.png.js the_fairyland_story_x68.png.js the_newzealand_story.png.js \
-	the_newzealand_story_x68.png.js the_return_of_ishtar.png.js the_return_of_ishtar_x68.png.js \
-	the_tower_of_druaga.png.js thunder_force_ii_x68.png.js time_pilot.png.js time_pilot_84.png.js time_tunnel.png.js \
-	toki_no_senshi.png.js toypop.png.js turbo_out_run.png.js twinbee.png.js twinbee_x68.png.js \
-	ufo_senshi_yohko_chan.png.js vball_x68.png.js vulgus.png.js warp_and_warp.png.js wings_x68.png.js wonder_boy.png.js \
-	wonder_boy_iii.png.js wonder_boy_in_monster_land.png.js wonder_momo.png.js world_court.png.js world_court_x68.png.js \
-	world_stadium_x68.png.js x_multiply.png.js xevious.png.js xexex.png.js yokai_douchuuki.png.js zigzag.png.js
+	pac-mania_x68.png.js pac_and_pal.png.js parodius_da_x68.png.js pengo.png.js phalanx_x68.png.js \
+	phantasie_iii_x68.png.js phozon.png.js pinball_pinball_x68.png.js polaris.png.js pole_position_ii.png.js \
+	populous_x68.png.js power_league_x68.png.js prince_of_persia_x68.png.js professional_mahjong_gokuu_x68.png.js \
+	puzznic_x68.png.js quarth_x68.png.js r-type.png.js r-type_ii.png.js r-type_x68.png.js rally-x.png.js rompers.png.js \
+	royal_mahjong.png.js saigo_no_nindou.png.js salamander.png.js scramble.png.js sea_fighter_poseidon.png.js \
+	senjou_no_ookami.png.js shanghai_x68.png.js shuffle_puck_cafe_x68.png.js sky_kid.png.js sky_kid_deluxe.png.js \
+	souko_ban_deluxe.png.js souko_ban_perfect_x68.png.js space_chaser.png.js space_harrier.png.js \
+	space_harrier_x68.png.js space_invaders.png.js space_laser.png.js star_force.png.js strategy_x.png.js \
+	sukeban_jansi_ryuko.png.js super_hang-on.png.js super_hang-on_x68.png.js super_pac-man.png.js \
+	super_real_mahjong_part2.png.js super_real_mahjong_part3.png.js super_real_mahjong_pii_and_piii_x68.png.js \
+	super_xevious.png.js syvalion_x68.png.js t.t_mahjong.png.js tank_battalion.png.js tank_force.png.js tetris.png.js \
+	the_fairyland_story_x68.png.js the_newzealand_story.png.js the_newzealand_story_x68.png.js \
+	the_return_of_ishtar.png.js the_return_of_ishtar_x68.png.js the_tower_of_druaga.png.js thunder_force_ii_x68.png.js \
+	time_pilot.png.js time_pilot_84.png.js time_tunnel.png.js toki_no_senshi.png.js toypop.png.js turbo_out_run.png.js \
+	twinbee.png.js twinbee_x68.png.js ufo_senshi_yohko_chan.png.js vball_x68.png.js vulgus.png.js warp_and_warp.png.js \
+	wings_x68.png.js wonder_boy.png.js wonder_boy_iii.png.js wonder_boy_in_monster_land.png.js wonder_momo.png.js \
+	world_court.png.js world_court_x68.png.js world_stadium_x68.png.js x_multiply.png.js xevious.png.js xexex.png.js \
+	yokai_douchuuki.png.js zigzag.png.js
 
 .PHONY: all
 all: dist $(addprefix dist/,$(targets))
@@ -317,6 +318,9 @@ dist/pengo.png.js: $(addprefix roms/,pengo.js pengo.zip)
 	node $^ $@
 
 dist/phalanx_x68.png.js: $(addprefix roms/,x68000.js x68000.zip phalanx_disk1.xdf phalanx_disk2.xdf phalanx_disk3.xdf)
+	node $^ $@
+
+dist/phantasie_iii_x68.png.js: $(addprefix roms/,x68000.js x68000.zip phantasie_iii_disk1.xdf phantasie_iii_disk2.d88 phantasie_iii_disk3.d88)
 	node $^ $@
 
 dist/phozon.png.js: $(addprefix roms/,phozon.js phozon.zip)

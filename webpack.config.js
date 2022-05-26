@@ -176,6 +176,7 @@ const list3 = [
 	{name: 'pac-mania_x68', title: 'Pac-Mania'},
 	{name: 'parodius_da_x68', title: 'Parodius DA!'},
 	{name: 'phalanx_x68', title: 'Phalanx'},
+	{name: 'phantasie_iii_x68', title: 'Phantasie III'},
 	{name: 'pinball_pinball_x68', title: 'Pinball Pinball'},
 	{name: 'populous_x68', title: 'Populous'},
 	{name: 'power_league_x68', title: 'Power League'},
