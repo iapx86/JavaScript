@@ -5,6 +5,7 @@
  */
 
 import Cpu, {dummypage} from './cpu.js';
+import {seq} from "./utils.js";
 
 export default class Z80 extends Cpu {
 	b = 0;
@@ -1986,7 +1987,10 @@ export default class Z80 extends Cpu {
 	}
 }
 
-const fLogic = new Uint8Array(0x100);
+const fLogic = Uint8Array.from(seq(0x100), e => {
+	let p = e ^ e >> 4;
+	return p ^= p >> 2, p ^= p >> 1, e & 0x80 | !e << 6 | ~p << 2 & 4;
+});
 
 const cc_op = Uint8Array.of(
 	4,10, 7, 6, 4, 4, 7, 4, 4,11, 7, 6, 4, 4, 7, 4,
@@ -2095,13 +2099,4 @@ const cc_ex = Uint8Array.of(
 	6, 0, 0, 0, 7, 0, 0, 2, 6, 0, 0, 0, 7, 0, 0, 2,
 	6, 0, 0, 0, 7, 0, 0, 2, 6, 0, 0, 0, 7, 0, 0, 2,
 	6, 0, 0, 0, 7, 0, 0, 2, 6, 0, 0, 0, 7, 0, 0, 2);
-
-void function () {
-	for (let r = 0; r < 0x100; r++) {
-		let p = r ^ r >> 4;
-		p ^= p >> 2;
-		p ^= p >> 1;
-		fLogic[r] = r & 0x80 | !r << 6 | ~p << 2 & 4;
-	}
-}();
 
