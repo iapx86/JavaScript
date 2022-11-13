@@ -81,8 +81,7 @@ export default class MC6801 extends Cpu {
 			return void(this.a = this.sub8(this.b, this.a));
 		case 0x11: // CBA
 			return void(this.sub8(this.b, this.a));
-		case 0x12: // undocumented instruction
-		case 0x13: // undocumented instruction
+		case 0x12: case 0x13: // undefined opcode
 			return void(this.x = this.x + this.read(this.s + 1 & 0xffff) & 0xffff);
 		case 0x16: // TAB
 			return void(this.b = this.mov8(this.a));
@@ -515,9 +514,7 @@ export default class MC6801 extends Cpu {
 		case 0xff: // STX >nn
 			return this.write16(this.mov16(this.x), this.fetch16());
 		default:
-			this.undefsize = 1;
-			this.undef();
-			return;
+			return this.cycle -= cc[0x3f], this.psh16(this.pc - 1 & 0xffff, this.x), this.psh(this.a, this.b, this.ccr), this.ccr |= 0x10, void(this.pc = this.read16(0xffee));
 		}
 	}
 
