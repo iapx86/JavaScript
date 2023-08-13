@@ -233,7 +233,7 @@ for (let opt; (opt = parser.getopt()) !== undefined;)
 		tablefile = opt.optarg;
 		break;
 	}
-const data = readFileSync(process.argv[parser.optind()]).slice(0, buffer.length - start), end = start + data.length;
+const data = Uint8Array.from(readFileSync(process.argv[parser.optind()])).slice(0, buffer.length - start), end = start + data.length;
 buffer.set(data, start);
 if (tablefile)
 	readFileSync(tablefile, 'utf-8').split('\n').map(l => l.trimEnd()).forEach(line => {
