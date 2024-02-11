@@ -561,7 +561,7 @@ export default class MC68000 extends Cpu {
 		case 0o46: // BTST Dx,d(Ay,Xi)
 			return ea = this.index(this.a[y]), this.btst8(this.d[x], this.read8(ea));
 		case 0o47: // BTST Dx,Abs...
-			return y >= 4 ? this.exception(4) : this.btst8(this.d[x], this.rop8());
+			return y >= 5 ? this.exception(4) : this.btst8(this.d[x], this.rop8());
 		case 0o50: // BCHG Dx,Dy
 			return void(this.d[y] = this.bchg32(this.d[x], this.d[y]));
 		case 0o51: // MOVEP.L d(Ay),Dx
@@ -3551,12 +3551,9 @@ export default class MC68000 extends Cpu {
 	}
 
 	sbcd(src, dst) {
-		let r = dst - src - (this.sr >> 4 & 1) & 0xff, c = ~dst & src | src & r | r & ~dst;
-		if (c & 8 && (r & 0x0f) > 5 || (r & 0x0f) > 9)
-			r -= 6;
-		if (c & 0x80 && (r & 0xf0) > 0x50 || (r & 0xf0) > 0x90)
-			r -= 0x60, c |= 0x80;
-		return r &= 0xff, this.sr = this.sr & ~0x15 | c >> 3 & 0x10 | this.sr & !r << 2 | c >> 7 & 1, r;
+		const h = (dst & 0x0f) - (src & 0x0f) - (this.sr >> 4 & 1) < 0, c = (dst >> 4 & 0x0f) - (src >> 4 & 0x0f) - h < 0;
+		const r = dst - src - (this.sr >> 4 & 1) - h * 6 - c * 0x60 & 0xff;
+		return this.sr = this.sr & ~0x15 | c << 4 | this.sr & !r << 2 | c, r;
 	}
 
 	divs(src, dst) {
@@ -3597,13 +3594,9 @@ export default class MC68000 extends Cpu {
 	}
 
 	abcd(src, dst) {
-		let r = dst + src + (this.sr >> 4 & 1) & 0xff, c = dst & src | src & ~r | ~r & dst;
-		if (c & 8 && (r & 0x0f) < 4 || (r & 0x0f) > 9)
-			if ((r += 6) >= 0x100)
-				c |= 0x80;
-		if (c & 0x80 && (r & 0xf0) < 0x40 || (r & 0xf0) > 0x90)
-			r += 0x60, c |= 0x80;
-		return r &= 0xff, this.sr = this.sr & ~0x15 | c >> 3 & 0x10 | this.sr & !r << 2 | c >> 7 & 1, r;
+		const h = (dst & 0x0f) + (src & 0x0f) + (this.sr >> 4 & 1) > 9, c = (dst >> 4 & 0x0f) + (src >> 4 & 0x0f) + h > 9;
+		const r = dst + src + (this.sr >> 4 & 1) + h * 6 + c * 0x60 & 0xff;
+		return this.sr = this.sr & ~0x15 | c << 4 | this.sr & !r << 2 | c, r;
 	}
 
 	muls(src, dst) {
@@ -3812,12 +3805,8 @@ export default class MC68000 extends Cpu {
 	}
 
 	nbcd(dst) {
-		let r = -dst - (this.sr >> 4 & 1) & 0xff, c = dst | r;
-		if (c & 8 && (r & 0x0f) > 5 || (r & 0x0f) > 9)
-			r -= 6;
-		if (c & 0x80 && (r & 0xf0) > 0x50 || (r & 0xf0) > 0x90)
-			r -= 0x60, c |= 0x80;
-		return r &= 0xff, this.sr = this.sr & ~0x15 | c >> 3 & 0x10 | this.sr & !r << 2 | c >> 7 & 1, r;
+		const h = -(dst & 0x0f) - (this.sr >> 4 & 1) < 0, c = -(dst >> 4 & 0x0f) - h < 0, r = -dst - (this.sr >> 4 & 1) - h * 6 - c * 0x60 & 0xff;
+		return this.sr = this.sr & ~0x15 | c << 4 | this.sr & !r << 2 | c, r;
 	}
 
 	dbcc(cond) {
